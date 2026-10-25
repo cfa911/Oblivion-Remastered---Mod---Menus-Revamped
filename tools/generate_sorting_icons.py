@@ -13,11 +13,14 @@ GROUPS = {
  'Misc': ['All','Keys','SoulGems','Books','Tools','Other'],
  'Category': ['All','Weapons','Gear','Potions','Misc'],
  'School': ['All','Alteration','Conjuration','Destruction','Illusion','Mysticism','Restoration','Powers'],
- 'Effect': ['All','Fire','Frost','Shock','Poison','Restore','Other'],
+ 'Effect': ['All','Fire','Frost','Shock','Damage','Drain','Absorb','Restore','Fortify','Shield','Resistance','Weakness','Summon','Bound','Control','Stealth','Utility','Other'],
 }
 INK='#30281e'; GOLD='#ab8544'
 
 def icon(group, name):
+ # New effect defaults intentionally use Staff placeholders; the owner supplies final artwork.
+ if group=='Effect' and name not in ['All','Fire','Frost','Shock','Restore','Other']:
+  return icon('Weapon','Staff')
  im=Image.new('RGBA',(512,512)); d=ImageDraw.Draw(im)
  def line(points,fill=INK,width=22): d.line([(int(x*4),int(y*4)) for x,y in points],fill=fill,width=width,joint='curve')
  def poly(points,fill=INK):d.polygon([(int(x*4),int(y*4)) for x,y in points],fill=fill)

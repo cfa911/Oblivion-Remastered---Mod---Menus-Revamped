@@ -18,7 +18,7 @@ int main()
 	Check(Move(4, 5, Direction::Right) == 3);
 	Check(Move(0, 8, Direction::Up) == 6);
 	Check(Move(99, 0, Direction::Right) == 0);
-	for (unsigned n = 1; n <= 9; ++n)
+	for (unsigned n = 1; n <= pickergrid::kMaxChoices; ++n)
 		for (unsigned i = 0; i < n; ++i)
 			for (auto d : {Direction::Left, Direction::Right, Direction::Up, Direction::Down})
 				Check(Move(i, n, d) < n);
@@ -67,5 +67,42 @@ int main()
 	Check(pass.Filter({Y | B, 2345, -1200}).y == -1200);
 	// Holding A before entering custom focus does not generate a new confirm.
 	state.Sample({A}, 600); state.Sample({A}, 700); Check(!state.pressed);
+	Check(Move(2, 18, Direction::Up) == 17);
+	Check(Move(17, 18, Direction::Down) == 2);
+	Check(Move(17, 18, Direction::Right) == 15);
+	Check(Move(15, 18, Direction::Left) == 17);
+	Check(Move(16, 17, Direction::Right) == 15);
+	Check(Move(2, 17, Direction::Up) == 14); // skip nonexistent last-column cell
+	Check(Move(99, 19, Direction::Right) == 0);
+	for (unsigned count = 1; count <= pickergrid::kMaxChoices; ++count) {
+		bool seen[pickergrid::kMaxChoices]{};
+		seen[0] = true;
+		for (unsigned round = 0; round < count; ++round)
+			for (unsigned at = 0; at < count; ++at)
+				if (seen[at]) for (auto d : {Direction::Left, Direction::Right, Direction::Up, Direction::Down})
+					seen[Move(at, count, d)] = true;
+		for (unsigned at = 0; at < count; ++at) Check(seen[at]);
+	}
+	// Expanding Effect must not change navigation of existing 1..9-choice pickers.
+	const auto legacyMove = [](unsigned cursor, unsigned count, Direction direction) {
+		const unsigned row = cursor / 3, column = cursor % 3;
+		for (unsigned step = 1; step <= 3; ++step) {
+			unsigned r = row, c = column;
+			switch (direction) {
+			case Direction::Left: c = (column + 3 - step) % 3; break;
+			case Direction::Right: c = (column + step) % 3; break;
+			case Direction::Up: r = (row + 3 - step) % 3; break;
+			case Direction::Down: r = (row + step) % 3; break;
+			default: return cursor;
+			}
+			const auto candidate = r * 3 + c;
+			if (candidate < count) return candidate;
+		}
+		return cursor;
+	};
+	for (unsigned n = 1; n <= 9; ++n)
+		for (unsigned at = 0; at < n; ++at)
+			for (auto d : {Direction::Left, Direction::Right, Direction::Up, Direction::Down})
+				Check(Move(at, n, d) == legacyMove(at, n, d));
 	std::printf("%u controller policy checks passed\n", checks);
 }

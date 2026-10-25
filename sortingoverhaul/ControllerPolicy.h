@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <cstdlib>
+#include "PickerGrid.h"
 
 // Pure controller rules. No engine calls, hooks, or game state.
 namespace sortpad
@@ -30,19 +31,21 @@ namespace sortpad
 
 	inline unsigned Move(unsigned cursor, unsigned count, Direction direction)
 	{
-		if (!count || count > 9) return 0;
+		if (!count || count > pickergrid::kMaxChoices) return 0;
 		if (cursor >= count) cursor = 0;
-		const unsigned row = cursor / 3, column = cursor % 3;
-		for (unsigned step = 1; step <= 3; ++step) {
+		const unsigned columns = pickergrid::kColumns, rows = pickergrid::Rows(count);
+		const unsigned row = cursor / columns, column = cursor % columns;
+		const unsigned steps = direction == Direction::Left || direction == Direction::Right ? columns : rows;
+		for (unsigned step = 1; step <= steps; ++step) {
 			unsigned r = row, c = column;
 			switch (direction) {
-			case Direction::Left: c = (column + 3 - step) % 3; break;
-			case Direction::Right: c = (column + step) % 3; break;
-			case Direction::Up: r = (row + 3 - step) % 3; break;
-			case Direction::Down: r = (row + step) % 3; break;
+			case Direction::Left: c = (column + columns - step) % columns; break;
+			case Direction::Right: c = (column + step) % columns; break;
+			case Direction::Up: r = (row + rows - step) % rows; break;
+			case Direction::Down: r = (row + step) % rows; break;
 			default: return cursor;
 			}
-			const auto candidate = r * 3 + c;
+			const auto candidate = r * columns + c;
 			if (candidate < count) return candidate;
 		}
 		return cursor;

@@ -196,7 +196,7 @@ namespace gearfilter
 		{
 			int kind = -1;  // -1 inactive, 0 inventory tabs, 1 magic school, 2 magic effect
 			std::mutex inputLock;
-			Rect headerPx, popupPx, cellsPx[9];
+			Rect headerPx, popupPx, cellsPx[itemtags::kMaxChoices];
 			bool inputActive = false, inputOpen = false, swallowUp = false, swallowEscape = false;
 			std::uint64_t doubleClickUntil = 0;
 			int command = -1;
@@ -209,7 +209,7 @@ namespace gearfilter
 			itemtags::Tab tab = itemtags::Tab::Gear, view = itemtags::Tab::Gear;  // view: whose choices the popup shows
 			bool tabSet = false, styled = false, widgetWarning = false, fontsReady = false, fontWarning = false;
 			reflect::Handle menu, canvas, header, headerImage, headerFrame, popup, popupSlot, cache, nativeSchool;
-			reflect::Handle cells[9], icons[9], labels[9], title;
+			reflect::Handle cells[itemtags::kMaxChoices], icons[itemtags::kMaxChoices], labels[itemtags::kMaxChoices], title;
 			std::uint64_t nextLayout = 0, nextHitMeasure = 0, nextFontTry = 0;
 
 			unsigned Shift() const { return kind == 2 ? 32u : 0u; }
@@ -230,10 +230,10 @@ namespace gearfilter
 				auto* popupWidget = ui::AddToCanvas(a_canvas, L"/Script/UMG.CanvasPanel", (L"SlPiecePopup" + suffix).c_str(), &slot);
 				if (!popupWidget || !slot) return false;
 				ui::Visible(popupWidget, false);
-				ui::Vec2(slot, L"SetSize", 244, 242);
+				ui::Vec2(slot, L"SetSize", pickergrid::Width, pickergrid::Height(itemtags::Info(view).count));
 				const int z = 4000;
 				ui::CallFirst(slot, L"SetZOrder", &z, sizeof(z));
-				auto* background = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PiecePaper" + suffix).c_str(), 0, 0, 244, 242);
+				auto* background = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PiecePaper" + suffix).c_str(), 0, 0, pickergrid::Width, pickergrid::Height(itemtags::Info(view).count));
 				ui::RoundedBox(background, false, kPaper, kInk, 1.5f);
 				const std::uint8_t visible = 0;
 				ui::CallFirst(background, L"SetVisibility", &visible, sizeof(visible));
@@ -242,8 +242,8 @@ namespace gearfilter
 				BoundLabel(titleWidget);
 				uix::Ink(titleWidget, kInk);
 				title = reflect::Hold(titleWidget);
-				for (unsigned i = 0; i < 9; ++i) {
-					const double x = 8 + (i % 3) * 76, y = 34 + (i / 3) * 66;
+				for (unsigned i = 0; i < itemtags::kMaxChoices; ++i) {
+					const double x = pickergrid::CellX(i), y = pickergrid::CellY(i);
 					const auto name = std::to_wstring(i) + L"_" + suffix;
 					auto* cell = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PieceCell" + name).c_str(), x, y, 72, 62, 1);
 					ui::RoundedBox(cell, false, kClear, kClear, 0);
@@ -295,14 +295,15 @@ namespace gearfilter
 			{
 				const auto& info = itemtags::Info(view);
 				uix::SetText(reflect::Get(title), info.title);
-				for (unsigned i = 0; i < 9; ++i) {
+				for (unsigned i = 0; i < itemtags::kMaxChoices; ++i) {
 					const bool on = i < info.count;
 					ui::Visible(reflect::Get(cells[i]), on);
 					ui::Visible(reflect::Get(icons[i]), on);
 					ui::Visible(reflect::Get(labels[i]), on);
 					if (on) {
 						Brush(reflect::Get(icons[i]), info.icons[i]);
-						const auto display = view == itemtags::Tab::MagicSchool ? std::string(itemtags::SchoolPopupLabel(i)) : ShortLabel(info.names[i]);
+						const auto display = view == itemtags::Tab::MagicSchool ? std::string(itemtags::SchoolPopupLabel(i)) :
+							(view == itemtags::Tab::MagicEffect ? std::string(magiceffects::kChoices[i].label) : ShortLabel(info.names[i]));
 						uix::SetText(reflect::Get(labels[i]), display);
 						ui::Call tooltip(reflect::Get(labels[i]), L"SetToolTipText");
 						if (auto* at = tooltip.At("InToolTipText"); at && tooltip.Size("InToolTipText") == sizeof(UE::FText)) {
@@ -507,19 +508,22 @@ namespace gearfilter
 					if (ui::Measure(reflect::Get(header), x, y, w, h) && w > 0 && h > 0) {
 						double cx = 0, cy = 0, cw = 0, ch = 0;
 						ui::Measure(a_canvas, cx, cy, cw, ch);
-						ui::Vec2(reflect::Get(popupSlot), L"SetPosition", (std::max)(0.0, x - cx + w - 244), y - cy + h + 5);
+						const double popupHeight = pickergrid::Height(itemtags::Info(view).count);
+						ui::Vec2(reflect::Get(popupSlot), L"SetPosition",
+							pickergrid::Position(x - cx + w - pickergrid::Width, pickergrid::Width, cw),
+							pickergrid::Position(y - cy + h + 5, popupHeight, ch));
 						std::scoped_lock lock(inputLock);
 						headerPx = { x * a_viewportScale, y * a_viewportScale, w * a_viewportScale, h * a_viewportScale };
 					}
 				}
 				int cmd = -1;
 				{ std::scoped_lock lock(inputLock); cmd = command; command = -1; }
-				if (cmd == 9) {
+				if (cmd == pickergrid::kToggleCommand) {
 					open = !open; nextHitMeasure = 0;
 					if (open && view != tab) { view = tab; styled = false; }  // always open on the top level
 					cursor = Highlight() < itemtags::Info(tab).count ? Highlight() : 0;
 				}
-				else if (cmd >= 0 && cmd < static_cast<int>(itemtags::Info(view).count)) {
+				else if (pickergrid::IsSelection(cmd, itemtags::Info(view).count)) {
 					if (tab == itemtags::Tab::AllItems && view == itemtags::Tab::AllItems && cmd > 0) {
 						view = static_cast<itemtags::Tab>(cmd - 1); cursor = 0; styled = false; nextHitMeasure = 0;  // open the category's own choices
 					} else if (tab == itemtags::Tab::AllItems) {
@@ -541,7 +545,7 @@ namespace gearfilter
 
 				if (cmd >= 0) Brush(reflect::Get(headerImage), HeaderIcon());
 				if (cmd != -1) PaintController();
-				Rect popupRect, cellRects[9];
+				Rect popupRect, cellRects[itemtags::kMaxChoices];
 				const bool measure = open && now >= nextHitMeasure;
 				if (measure) {
 					nextHitMeasure = now + 100;
@@ -611,10 +615,10 @@ namespace gearfilter
 				if (a_message == WM_KEYDOWN && a_key == VK_ESCAPE && inputOpen) { command = -2; swallowEscape = true; return true; }
 				if (a_message != WM_LBUTTONDOWN) return false;
 				const double x = static_cast<short>(LOWORD(a_position)), y = static_cast<short>(HIWORD(a_position));
-				if (headerPx.Hit(x, y)) command = 9;
+				if (headerPx.Hit(x, y)) command = pickergrid::kToggleCommand;
 				else if (inputOpen) {
 					command = -2;
-					for (int i = 0; i < 9; ++i) if (cellsPx[i].Hit(x, y)) { command = i; break; }
+					for (int i = 0; i < itemtags::kMaxChoices; ++i) if (cellsPx[i].Hit(x, y)) { command = i; break; }
 				} else return false;
 				swallowUp = true;
 				doubleClickUntil = GetTickCount64() + GetDoubleClickTime();
@@ -742,7 +746,7 @@ namespace gearfilter
 				// Native methods retain their original A/up/down reversal. Only our focused header owns these.
 				g_pad.Consume(raw, sortpad::A | sortpad::Up | sortpad::Down | sortpad::Left | sortpad::Right, true);
 				if ((g_pad.pressed & sortpad::A) || g_pad.pulse == sortpad::Direction::Up || g_pad.pulse == sortpad::Direction::Down) {
-					picker.controllerPopup = true; picker.Queue(9);
+					picker.controllerPopup = true; picker.Queue(pickergrid::kToggleCommand);
 				}
 				else if (g_pad.pulse == sortpad::Direction::Left || g_pad.pulse == sortpad::Direction::Right) {
 					ui::Call navigate(reflect::Get(picker.carousel),

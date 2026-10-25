@@ -6,7 +6,7 @@ Build just this plugin with `xmake -y SortingOverhaul`. Install `SortingOverhaul
 
 ## Editable icons
 
-All 46 picker/header icons load from `OBSE/Plugins/SortingOverhaul/*.png`. Replace the matching PNG and restart the game. Keep filenames unchanged. Transparent square RGBA PNGs are recommended; supplied defaults are 128 by 128 and scale to the existing icon cells. Prefixes distinguish Weapon, Gear, Potion, Misc, Category, School and Effect. The selected choice's PNG also appears in the header. Missing/unreadable files log one warning and do not use a hidden game-asset fallback.
+All 57 current picker/header icons load from `OBSE/Plugins/SortingOverhaul/*.png`. Replace the matching PNG and restart the game. Keep filenames unchanged. Transparent square RGBA PNGs are recommended; supplied defaults are 128 by 128 and scale to the existing icon cells. Prefixes distinguish Weapon, Gear, Potion, Misc, Category, School and Effect. The selected choice's PNG also appears in the header. Missing/unreadable files log one warning and do not use a hidden game-asset fallback.
 
 This public source contains original procedural icon defaults. The owner's customized, game-derived School PNGs are kept only in the local installation, not redistributed here. Generate the eight missing procedural School placeholders before a separate installation; do not overwrite the owner's installed images. The remaining icons are original procedural defaults. `tools/generate_sorting_icons.py OUTPUT_DIRECTORY` recreates missing procedural placeholders with Pillow (it does not recreate the customized native school artwork); existing files are preserved unless `--replace` is explicitly supplied. The deployed folder is for owner customization and must never be overwritten by a later dev deploy without checking for changes.
 
@@ -24,3 +24,7 @@ The item/spell-name font and eight short School labels were owner-confirmed in a
 ## Standalone source build
 
 Clone with `--recurse-submodules` (CommonLibOB64 is pinned), then run `xmake f -y -p windows -a x64 -m releasedbg` and `xmake -y SortingOverhaul` in a Visual Studio x64 developer prompt. DLL: `build/windows/x64/releasedbg/SortingOverhaul.dll`. The default source icons are procedural; `python tools/generate_sorting_icons.py sortingoverhaul/assets/SortingOverhaul` fills missing placeholders without replacing existing files. This source commit is not a release package; do not deploy it over customized live PNGs.
+
+## Expanded spell-effect picker
+
+See [effect-family definitions and verification](docs/spell-effect-categories.md). Eighteen choices including All; new icons deliberately use Staff placeholders. Runtime validation pending.

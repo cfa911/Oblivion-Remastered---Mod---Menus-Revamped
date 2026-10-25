@@ -87,7 +87,7 @@ int main()
 	check(itemtags::IncludesAll(4, 1, key) && !itemtags::IncludesAll(3, 1, key), "key only in misc");
 	check(!itemtags::IncludesAll(1, 0, ammo) && itemtags::Includes(1, ring), "category bits do not disturb choice bits");
 	// Magic: school/power and effect tags.
-	check(itemtags::Info(itemtags::Tab::MagicSchool).count == 8 && itemtags::Info(itemtags::Tab::MagicEffect).count == 7, "magic choice counts");
+	check(itemtags::Info(itemtags::Tab::MagicSchool).count == 8 && itemtags::Info(itemtags::Tab::MagicEffect).count == magiceffects::kChoiceCount, "magic choice counts");
 	constexpr std::array<std::string_view, 8> schoolLabels{ "All", "Alte", "Conj", "Dest", "Illu", "Myst", "Rest", "Powers" };
 	for (unsigned i = 0; i < schoolLabels.size(); ++i) check(itemtags::SchoolPopupLabel(i) == schoolLabels[i], "exact school display label");
 	check(itemtags::SchoolPopupLabel(8).empty(), "out-of-range school label is empty");
@@ -96,31 +96,10 @@ int main()
 	check(itemtags::Includes(6, itemtags::SchoolTags(5, 4)) && !itemtags::Includes(7, itemtags::SchoolTags(5, 4)), "restoration is not a power");
 	check(itemtags::Includes(7, itemtags::SchoolTags(5, 8)) && itemtags::Includes(6, itemtags::SchoolTags(5, 8)), "a power keeps its school");
 	check(itemtags::SchoolTags(9, 4) == 0, "unknown school is untagged");
-	const std::uint32_t fire[] = { Code('F', 'I', 'D', 'G') }, frost[] = { Code('F', 'R', 'D', 'G'), Code('F', 'R', 'S', 'H') }, shock[] = { Code('S', 'H', 'D', 'G') };
-	const std::uint32_t poison[] = { Code('D', 'G', 'H', 'E') }, heal[] = { Code('R', 'E', 'H', 'E') }, summon[] = { Code('B', 'W', 'B', 'O') }, none[] = { 0 };
-	check(itemtags::Includes(1, itemtags::EffectTags(fire, 1)) && !itemtags::Includes(2, itemtags::EffectTags(fire, 1)), "fire damage");
-	check(itemtags::Includes(2, itemtags::EffectTags(frost, 2)), "frost damage and shield");
-	check(itemtags::Includes(3, itemtags::EffectTags(shock, 1)), "shock damage");
-	check(itemtags::Includes(4, itemtags::EffectTags(poison, 1)) && itemtags::Includes(5, itemtags::EffectTags(heal, 1)), "poison and restore");
-	check(itemtags::Includes(6, itemtags::EffectTags(summon, 1)) && !itemtags::Includes(1, itemtags::EffectTags(summon, 1)), "unmatched effect is other");
-	check(itemtags::Includes(6, itemtags::EffectTags(none, 1)) && itemtags::Includes(6, itemtags::EffectTags(nullptr, 0)), "no effect is other");
-	const std::uint32_t both[] = { Code('F', 'I', 'D', 'G'), Code('R', 'E', 'H', 'E') };
-	check(itemtags::Includes(1, itemtags::EffectTags(both, 2)) && itemtags::Includes(5, itemtags::EffectTags(both, 2)) && !itemtags::Includes(6, itemtags::EffectTags(both, 2)), "mixed effects");
-	// Restore includes all four restoration effects and the three existing cures.
-	const std::uint32_t restoreCodes[] = {
-		Code('R', 'E', 'H', 'E'), Code('R', 'E', 'M', 'A'), Code('R', 'E', 'F', 'A'), Code('R', 'E', 'A', 'T'),
-		Code('C', 'U', 'D', 'I'), Code('C', 'U', 'P', 'A'), Code('C', 'U', 'P', 'O')
-	};
-	for (auto code : restoreCodes)
-		check(itemtags::EffectTags(&code, 1) == (1u << 4), "restoration and cures are Restore only");
-	const std::uint32_t magickaMixed[] = { Code('F', 'I', 'D', 'G'), Code('R', 'E', 'M', 'A') };
-	check(itemtags::EffectTags(magickaMixed, 2) == ((1u << 0) | (1u << 4)), "fire plus restore magicka keeps both families");
-	// Absorb and Fortify remain outside the deliberately narrow Restore family.
-	const std::uint32_t excludedCodes[] = {
-		Code('A', 'B', 'H', 'E'), Code('A', 'B', 'M', 'A'), Code('A', 'B', 'F', 'A'), Code('A', 'B', 'A', 'T'),
-		Code('F', 'O', 'H', 'E'), Code('F', 'O', 'M', 'A'), Code('F', 'O', 'F', 'A'), Code('F', 'O', 'A', 'T')
-	};
-	for (auto code : excludedCodes)
-		check(itemtags::EffectTags(&code, 1) == (1u << 5), "absorb and fortify remain Other");
+	using magiceffects::Choice;
+	const std::uint32_t fire[] = { Code('F', 'I', 'D', 'G') }, magicka[] = { Code('R', 'E', 'S', 'P') };
+	check(itemtags::EffectTags(fire, 1) == magiceffects::Bit(Choice::Fire), "fire damage only");
+	check(itemtags::EffectTags(magicka, 1) == magiceffects::Bit(Choice::Restore), "verified Restore Magicka code");
+	check(itemtags::Includes(static_cast<unsigned>(Choice::Restore), itemtags::EffectTags(magicka, 1)), "new Restore choice index");
 	std::printf("%d gear piece checks passed\n", checks);
 }

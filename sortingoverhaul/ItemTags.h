@@ -1,6 +1,8 @@
 #pragma once
 
 #include "GearPieces.h"
+#include "MagicEffects.h"
+#include "PickerGrid.h"
 
 #include <array>
 #include <cstdint>
@@ -12,7 +14,8 @@
 namespace itemtags
 {
 	enum class Tab : unsigned { Weapons, Gear, Potions, Misc, AllItems, MagicSchool, MagicEffect };
-	constexpr unsigned kMaxChoices = 9;
+	constexpr unsigned kMaxChoices = pickergrid::kMaxChoices;
+	static_assert(magiceffects::kChoiceCount <= kMaxChoices);
 
 	// Only the Magic School popup uses these short display labels. TabInfo names stay
 	// complete for tooltips, selection identity, and all other pickers.
@@ -49,8 +52,14 @@ namespace itemtags
 			// Magic menu: two independent pickers (school, then effect family).
 			{ "Spell school", 8, { "All", "Alteration", "Conjuration", "Destruction", "Illusion", "Mysticism", "Restoration", "Powers" },
 				{ L"School-All.png", L"School-Alteration.png", L"School-Conjuration.png", L"School-Destruction.png", L"School-Illusion.png", L"School-Mysticism.png", L"School-Restoration.png", L"School-Powers.png" } },
-			{ "Spell effect", 7, { "All", "Fire", "Frost", "Shock", "Poison", "Restore", "Other" },
-				{ L"Effect-All.png", L"Effect-Fire.png", L"Effect-Frost.png", L"Effect-Shock.png", L"Effect-Poison.png", L"Effect-Restore.png", L"Effect-Other.png" } },
+			[] {
+				TabInfo info{ "Spell effect", magiceffects::kChoiceCount, {}, {} };
+				for (unsigned i = 0; i < info.count; ++i) {
+					info.names[i] = magiceffects::kChoices[i].name;
+					info.icons[i] = magiceffects::kChoices[i].icon;
+				}
+				return info;
+			}(),
 		};
 		return tabs[static_cast<unsigned>(a_tab)];
 	}
@@ -133,21 +142,10 @@ namespace itemtags
 		return tags;
 	}
 
-	// Effect choices: bit 0 Fire, 1 Frost, 2 Shock, 3 Poison, 4 Restore, 5 Other (no other bit matched). Codes seen on the player's spells:
-	// FIDG/FRDG/SHDG damage, FISH shield; DGHE damage health; REHE, REMA, REFA, REAT, CU** restore and cure.
+	// Effect-family membership comes from verified Remastered effect codes.
 	constexpr std::uint32_t EffectTags(const std::uint32_t* a_codes, unsigned a_count)
 	{
-		std::uint32_t tags = 0;
-		for (unsigned i = 0; i < a_count; ++i) {
-			const auto c = a_codes[i];
-			if (c == Code('F', 'I', 'D', 'G') || c == Code('F', 'I', 'S', 'H') || c == Code('W', 'K', 'F', 'I') || c == Code('R', 'S', 'F', 'I')) tags |= 1u << 0;
-			else if (c == Code('F', 'R', 'D', 'G') || c == Code('F', 'R', 'S', 'H') || c == Code('W', 'K', 'F', 'R') || c == Code('R', 'S', 'F', 'R')) tags |= 1u << 1;
-			else if (c == Code('S', 'H', 'D', 'G') || c == Code('S', 'H', 'S', 'H') || c == Code('W', 'K', 'S', 'H') || c == Code('R', 'S', 'S', 'H')) tags |= 1u << 2;
-			else if (c == Code('D', 'G', 'H', 'E') || c == Code('R', 'S', 'P', 'O') || c == Code('W', 'K', 'P', 'O')) tags |= 1u << 3;
-			else if (c == Code('R', 'E', 'H', 'E') || c == Code('R', 'E', 'M', 'A') || c == Code('R', 'E', 'F', 'A') || c == Code('R', 'E', 'A', 'T') ||
-				c == Code('C', 'U', 'D', 'I') || c == Code('C', 'U', 'P', 'A') || c == Code('C', 'U', 'P', 'O')) tags |= 1u << 4;
-		}
-		return tags != 0 ? tags : 1u << 5;
+		return magiceffects::Tags(a_codes, a_count);
 	}
 
 	// Misc: form type (RE::FormType) + base form id + book flags -> Keys, Soul gems, Books/Scrolls, Tools, Other.
