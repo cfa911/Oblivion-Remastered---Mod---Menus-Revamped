@@ -2,6 +2,9 @@
 
 
 #include "Menus.h"
+#ifdef SORTING_NAV_PROBE
+#include "SortNavigationProbe.h"
+#endif
 
 #include <Xinput.h>   // types and constants only - nothing is linked or loaded
 
@@ -19,6 +22,9 @@ namespace sortingdriver
 		{
 			const DWORD rc = g_previous ? g_previous(a_user, a_state) : ERROR_DEVICE_NOT_CONNECTED;
 			if (a_user == 0 && GetCurrentThreadId() == g_gameThread) {
+#ifdef SORTING_NAV_PROBE
+				if (rc == ERROR_SUCCESS && a_state) sortnavprobe::ObserveButtons(a_state->Gamepad.wButtons);
+#endif
 				sorting::Tick();   // on every read, a connected pad or not
 			}
 			return rc;
