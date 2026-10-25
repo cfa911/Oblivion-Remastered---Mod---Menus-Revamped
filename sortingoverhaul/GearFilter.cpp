@@ -4,6 +4,7 @@
 #include "ControllerPolicy.h"
 #include "ItemTags.h"
 #include "MagicRows.h"
+#include "PickerHighlight.h"
 #include "Icons.h"
 #include "PEHook.h"
 #include "Reflect.h"
@@ -19,10 +20,10 @@ namespace gearfilter
 {
 	namespace
 	{
-		constexpr float kInk[4] = { 0.20f, 0.14f, 0.09f, 1 }, kGold[4] = { 0.62f, 0.43f, 0.16f, 1 };
+		constexpr float kInk[4] = { 0.20f, 0.14f, 0.09f, 1 };
 		// sRGB #D6D0C8 converted to linear Slate colour.
 		constexpr float kPaper[4] = { 0.672443f, 0.630757f, 0.577580f, 1.0f }, kClear[4] = { 0, 0, 0, 0 };
-		constexpr float kSelected[4] = { 0.55f, 0.38f, 0.13f, 0.25f };
+		// Focus colour/flat geometry are defined in PickerHighlight.h; applied-filter state is not a highlight.
 		// Item masks: low 32 bits = the first picker's tags, high 32 bits = the second picker's (Magic effect). A row that is
 		// not a spell (for example an active effect) carries kPassAll and is never hidden.
 		constexpr std::uint64_t kPassAll = magicrows::kPassAll;
@@ -196,6 +197,11 @@ namespace gearfilter
 		}
 
 		std::vector<reflect::Handle> g_ownedHeaders;
+		bool IsOwnedHeader(UE::UObject* widget)
+		{
+			for (const auto& handle : g_ownedHeaders) if (reflect::Get(handle) == widget) return true;
+			return false;
+		}
 		bool OwnHeaderEvent(UE::UObject*, UE::UFunction*, void*);
 
 		// One header icon plus its popup. The Inventory has one; the Magic menu has two (school, effect).
@@ -211,6 +217,9 @@ namespace gearfilter
 			bool open = false, paintedOpen = false, controllerFocus = false, controllerPopup = false;
 			unsigned cursor = 0;
 			reflect::Handle carousel;
+			std::vector<reflect::Handle> nativePeers;
+			pickerhighlight::NativeHandoff nativeHandoff;
+			bool nativeFocusWarning = false;
 			unsigned choice = 0, appliedChoice = 0;  // 0 = All; choice k filters on tag bit k - 1 of the current tab
 			unsigned category = 0, appliedCategory = 0;  // All Items page only: 0 = none, else 1 weapons, 2 gear, 3 potions, 4 misc
 			itemtags::Tab tab = itemtags::Tab::Gear, view = itemtags::Tab::Gear;  // view: whose choices the popup shows
@@ -361,6 +370,9 @@ namespace gearfilter
 					children.push_back(child);
 				}
 				if (children.empty()) return false;
+				nativePeers.clear();
+				for (const auto& child : children)
+					if (!IsOwnedHeader(child.widget)) nativePeers.push_back(reflect::Hold(child.widget));
 				auto* box = reflect::Get(header);
 				if (!box) {
 					static unsigned serial = 0;
@@ -393,7 +405,7 @@ namespace gearfilter
 					if (!sizeBox) return false;
 					ui::Float(sizeBox, L"SetWidthOverride", 49);
 					ui::Float(sizeBox, L"SetHeightOverride", 49);
-					auto* frame = CanvasChild(inner, L"/Script/UMG.Image", (L"SlPieceHeaderFrame" + suffix).c_str(), 1, 1, 47, 47);
+					auto* frame = CanvasChild(inner, L"/Script/UMG.Image", (L"SlPieceHeaderFrame" + suffix).c_str(), 0, 0, 49, 49);
 					ui::RoundedBox(frame, false, kClear, kClear, 0);
 					auto* image = CanvasChild(inner, L"/Script/UMG.Image", (L"SlPieceHeaderIcon" + suffix).c_str(), 5, 4, 39, 40, 1);
 					Brush(image, itemtags::Info(tab).icons[0]);
@@ -426,11 +438,12 @@ namespace gearfilter
 				ResetShared();
 				choice = 0; appliedChoice = 0; category = 0; appliedCategory = 0; view = tab; open = false;
 				controllerFocus = controllerPopup = false; cursor = 0;
+				nativeHandoff.Reset(); nativeFocusWarning = false;
 				paintedOpen = false; nextLayout = 0; nextHitMeasure = 0;
 				widgetWarning = false;
 				if (auto* cacheList = reflect::Get(cache)) SetItems(cacheList, {}, false);
 				if (auto* image = reflect::Get(headerImage)) Brush(image, itemtags::Info(tab).icons[0]);
-				if (auto* frame = reflect::Get(headerFrame)) ui::RoundedBox(frame, false, kClear, kClear, 0);
+				if (auto* frame = reflect::Get(headerFrame)) ui::RoundedBox(frame, false, kClear, kClear, 0, 0);
 				{ std::scoped_lock lock(inputLock); headerPx = {}; popupPx = {}; command = -1; inputOpen = false; swallowUp = false; swallowEscape = false; doubleClickUntil = 0; }
 			}
 
@@ -479,7 +492,7 @@ namespace gearfilter
 				if (reflect::Get(menu) != a_menu || reflect::Get(canvas) != a_canvas) {
 					Reset();
 					for (const auto& handle : { popup, cache, header }) if (auto* old = reflect::Get(handle)) { ui::Call remove(old, L"RemoveFromParent"); remove.Run(); }
-					menu = reflect::Hold(a_menu); popup = {}; cache = {}; header = {}; carousel = {}; nativeSchool = {};
+					menu = reflect::Hold(a_menu); popup = {}; cache = {}; header = {}; carousel = {}; nativeSchool = {}; nativePeers.clear();
 					canvas = reflect::Hold(a_canvas); nextLayout = 0;
 				}
 				if (!reflect::Get(popup) && !BuildPopup(a_canvas)) {
@@ -573,7 +586,7 @@ namespace gearfilter
 				active.store(true);
 			}
 
-			bool ControllerFocused()
+			bool SortCarouselFocused()
 			{
 				if (!active.load() || !ui::ShownOnScreen(reflect::Get(header))) return false;
 				ui::Call mode(reflect::Get(menu), L"IsFilterFocused");
@@ -585,19 +598,83 @@ namespace gearfilter
 					if (!nativeFocus || nativeFocus.Size("ReturnValue") != 1 ||
 						!nativeFocus.RunGuarded() || !nativeFocus.Get<std::uint8_t>("ReturnValue")) return false;
 				}
+				return true;
+			}
+
+			bool ControllerFocused()
+			{
+				if (!SortCarouselFocused()) return false;
 				ui::Call focused(reflect::Get(carousel), L"GetFocusedElement");
 				return focused && focused.Size("ReturnValue") == 8 && focused.RunGuarded() &&
 					focused.Get<UE::UObject*>("ReturnValue") == reflect::Get(header);
 			}
 
+			UE::UObject* NativeInner(UE::UObject* wrapper)
+			{
+				if (!wrapper || IsOwnedHeader(wrapper) || ui::SizeOf(wrapper->GetClass(), "filterIcon") != 8) return nullptr;
+				auto** inner = reflect::At<UE::UObject*>(wrapper, reflect::Offset(wrapper->GetClass(), "filterIcon"));
+				return inner ? *inner : nullptr;
+			}
+
+			void WarnNativeFocus()
+			{
+				if (!nativeFocusWarning) {
+					logger::warn("Sorting Overhaul: square E6E4DF highlight native focus handoff unavailable");
+					nativeFocusWarning = true;
+				}
+			}
+
+			void ClearNativeFocus()
+			{
+				// Transition-only, scoped to this carousel's live native peers. Never touch our wrappers'
+				// uninitialized native Filter, native sort selection/reversal, or the navigation index.
+				const auto peers = nativePeers;
+				for (const auto& handle : peers) {
+					auto* wrapper = reflect::Get(handle);
+					if (!wrapper || !ui::ShownOnScreen(wrapper)) continue;
+					auto* inner = NativeInner(wrapper);
+					if (!inner) continue;
+					const auto held = reflect::Hold(inner);
+					ui::Call unfocus(inner, L"OnUnfocus");
+					if (!unfocus || !unfocus.RunGuarded()) { WarnNativeFocus(); continue; }
+					// Also invoke the inherited visual unfocus event exposed by the captured metadata.
+					ui::Call effect(reflect::Get(held), L"OnUnfocusEffect");
+					if (effect && !effect.RunGuarded()) WarnNativeFocus();
+				}
+			}
+
+			void RestoreNativeFocus()
+			{
+				// Mouse-opened popup + controller use can leave the carousel on a native wrapper.
+				// Restore only its real focused native peer, and only if normal navigation has not already done it.
+				if (!SortCarouselFocused()) return;
+				ui::Call focused(reflect::Get(carousel), L"GetFocusedElement");
+				if (!focused || focused.Size("ReturnValue") != 8 || !focused.RunGuarded()) return;
+				auto* wrapper = focused.Get<UE::UObject*>("ReturnValue");
+				auto* inner = NativeInner(wrapper);
+				if (!inner || !ui::ShownOnScreen(wrapper)) return;
+				ui::Call state(inner, L"GetIsFocused");
+				if (!state || state.Size("ReturnValue") != 1 || !state.RunGuarded()) { WarnNativeFocus(); return; }
+				if (!state.Get<std::uint8_t>("ReturnValue")) {
+					ui::Call focus(inner, L"OnFocus");
+					if (!focus || !focus.RunGuarded()) WarnNativeFocus();
+				}
+			}
+
 			void PaintController()
 			{
-				// Applied filter membership is not navigation focus.
-				const bool on = controllerFocus;
-				ui::RoundedBox(reflect::Get(headerFrame), false, on ? kSelected : kClear, on ? kGold : kClear, on ? 1.5f : 0.0f);
+				switch (nativeHandoff.Update(controllerFocus, open, controllerPopup)) {
+				case pickerhighlight::Transition::Enter: ClearNativeFocus(); break;
+				case pickerhighlight::Transition::Leave: RestoreNativeFocus(); break;
+				default: break;
+				}
+				// Applied membership is not focus. Match the owner's native square, borderless #E6E4DF reference.
+				ui::RoundedBox(reflect::Get(headerFrame), false, controllerFocus ? pickerhighlight::kFill.data() : kClear,
+					kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 				for (unsigned i = 0; i < itemtags::Info(view).count; ++i) {
 					const bool focused = open && controllerPopup && i == cursor;
-					ui::RoundedBox(reflect::Get(cells[i]), false, focused ? kSelected : kClear, focused ? kGold : kClear, focused ? 1.0f : 0.0f);
+					ui::RoundedBox(reflect::Get(cells[i]), false, focused ? pickerhighlight::kFill.data() : kClear,
+						kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 				}
 			}
 
@@ -639,9 +716,7 @@ namespace gearfilter
 		bool OwnHeaderEvent(UE::UObject* object, UE::UFunction* function, void*)
 		{
 			// Never cancel an event on a native widget or a class-default object.
-			bool owned = false;
-			for (const auto& handle : g_ownedHeaders) owned |= reflect::Get(handle) == object;
-			if (!owned) return false;
+			if (!IsOwnedHeader(object)) return false;
 			const auto name = pe::FunctionName(function);
 			return name == "OnFocus" || name == "OnUnfocus";
 		}

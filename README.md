@@ -32,3 +32,7 @@ See [effect-family definitions and verification](docs/spell-effect-categories.md
 ## Native power membership follow-up
 
 [Power row filtering](docs/power-row-filter.md) now derives type from resolved native spells rather than a UI-category allowlist. Targeted power-filter owner retest is pending; the expanded grid/controller/mouse scenario was already owner-confirmed.
+
+## Native-style focus highlight
+
+[Square borderless E6E4DF focus and native peer handoff](docs/native-highlight.md) is implemented for owner testing. Existing icons/background and filter membership are unchanged.

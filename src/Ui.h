@@ -89,5 +89,5 @@ namespace ui
 	bool         IsWithin(UE::UObject* a_obj, UE::UObject* a_ancestor);
 
 	// the brush drawn as a rounded box (a_circle: half-height radius) with a fill and an outline colour
-	bool RoundedBox(UE::UObject* a_image, bool a_circle, const float a_fill[4], const float a_outline[4], float a_width);
+	bool RoundedBox(UE::UObject* a_image, bool a_circle, const float a_fill[4], const float a_outline[4], float a_width, float a_radius = 6.0f);
 }
