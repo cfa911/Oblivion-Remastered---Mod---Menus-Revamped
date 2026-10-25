@@ -134,7 +134,7 @@ namespace itemtags
 	}
 
 	// Effect choices: bit 0 Fire, 1 Frost, 2 Shock, 3 Poison, 4 Restore, 5 Other (no other bit matched). Codes seen on the player's spells:
-	// FIDG/FRDG/SHDG damage, FISH shield; DGHE damage health; REHE, REFA, REAT, CU** restore and cure.
+	// FIDG/FRDG/SHDG damage, FISH shield; DGHE damage health; REHE, REMA, REFA, REAT, CU** restore and cure.
 	constexpr std::uint32_t EffectTags(const std::uint32_t* a_codes, unsigned a_count)
 	{
 		std::uint32_t tags = 0;
@@ -144,7 +144,7 @@ namespace itemtags
 			else if (c == Code('F', 'R', 'D', 'G') || c == Code('F', 'R', 'S', 'H') || c == Code('W', 'K', 'F', 'R') || c == Code('R', 'S', 'F', 'R')) tags |= 1u << 1;
 			else if (c == Code('S', 'H', 'D', 'G') || c == Code('S', 'H', 'S', 'H') || c == Code('W', 'K', 'S', 'H') || c == Code('R', 'S', 'S', 'H')) tags |= 1u << 2;
 			else if (c == Code('D', 'G', 'H', 'E') || c == Code('R', 'S', 'P', 'O') || c == Code('W', 'K', 'P', 'O')) tags |= 1u << 3;
-			else if (c == Code('R', 'E', 'H', 'E') || c == Code('R', 'E', 'F', 'A') || c == Code('R', 'E', 'A', 'T') ||
+			else if (c == Code('R', 'E', 'H', 'E') || c == Code('R', 'E', 'M', 'A') || c == Code('R', 'E', 'F', 'A') || c == Code('R', 'E', 'A', 'T') ||
 				c == Code('C', 'U', 'D', 'I') || c == Code('C', 'U', 'P', 'A') || c == Code('C', 'U', 'P', 'O')) tags |= 1u << 4;
 		}
 		return tags != 0 ? tags : 1u << 5;

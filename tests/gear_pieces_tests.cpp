@@ -106,5 +106,21 @@ int main()
 	check(itemtags::Includes(6, itemtags::EffectTags(none, 1)) && itemtags::Includes(6, itemtags::EffectTags(nullptr, 0)), "no effect is other");
 	const std::uint32_t both[] = { Code('F', 'I', 'D', 'G'), Code('R', 'E', 'H', 'E') };
 	check(itemtags::Includes(1, itemtags::EffectTags(both, 2)) && itemtags::Includes(5, itemtags::EffectTags(both, 2)) && !itemtags::Includes(6, itemtags::EffectTags(both, 2)), "mixed effects");
+	// Restore includes all four restoration effects and the three existing cures.
+	const std::uint32_t restoreCodes[] = {
+		Code('R', 'E', 'H', 'E'), Code('R', 'E', 'M', 'A'), Code('R', 'E', 'F', 'A'), Code('R', 'E', 'A', 'T'),
+		Code('C', 'U', 'D', 'I'), Code('C', 'U', 'P', 'A'), Code('C', 'U', 'P', 'O')
+	};
+	for (auto code : restoreCodes)
+		check(itemtags::EffectTags(&code, 1) == (1u << 4), "restoration and cures are Restore only");
+	const std::uint32_t magickaMixed[] = { Code('F', 'I', 'D', 'G'), Code('R', 'E', 'M', 'A') };
+	check(itemtags::EffectTags(magickaMixed, 2) == ((1u << 0) | (1u << 4)), "fire plus restore magicka keeps both families");
+	// Absorb and Fortify remain outside the deliberately narrow Restore family.
+	const std::uint32_t excludedCodes[] = {
+		Code('A', 'B', 'H', 'E'), Code('A', 'B', 'M', 'A'), Code('A', 'B', 'F', 'A'), Code('A', 'B', 'A', 'T'),
+		Code('F', 'O', 'H', 'E'), Code('F', 'O', 'M', 'A'), Code('F', 'O', 'F', 'A'), Code('F', 'O', 'A', 'T')
+	};
+	for (auto code : excludedCodes)
+		check(itemtags::EffectTags(&code, 1) == (1u << 5), "absorb and fortify remain Other");
 	std::printf("%d gear piece checks passed\n", checks);
 }
