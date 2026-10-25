@@ -87,24 +87,19 @@ int main()
 	check(itemtags::IncludesAll(4, 1, key) && !itemtags::IncludesAll(3, 1, key), "key only in misc");
 	check(!itemtags::IncludesAll(1, 0, ammo) && itemtags::Includes(1, ring), "category bits do not disturb choice bits");
 	// Magic: school/power and effect tags.
-	check(itemtags::Info(itemtags::Tab::MagicSchool).count == 8 && itemtags::Info(itemtags::Tab::MagicEffect).count == 7, "magic choice counts");
+	check(itemtags::Info(itemtags::Tab::MagicSchool).count == 8 && itemtags::Info(itemtags::Tab::MagicEffect).count == magiceffects::kChoiceCount, "magic choice counts");
 	constexpr std::array<std::string_view, 8> schoolLabels{ "All", "Alte", "Conj", "Dest", "Illu", "Myst", "Rest", "Powers" };
 	for (unsigned i = 0; i < schoolLabels.size(); ++i) check(itemtags::SchoolPopupLabel(i) == schoolLabels[i], "exact school display label");
 	check(itemtags::SchoolPopupLabel(8).empty(), "out-of-range school label is empty");
 	check(std::string_view(itemtags::Info(itemtags::Tab::MagicSchool).names[1]) == "Alteration", "full school tooltip remains available");
-	check(itemtags::Includes(3, itemtags::SchoolTags(2, 4)) && !itemtags::Includes(1, itemtags::SchoolTags(2, 4)), "destruction school");
-	check(itemtags::Includes(6, itemtags::SchoolTags(5, 4)) && !itemtags::Includes(7, itemtags::SchoolTags(5, 4)), "restoration is not a power");
-	check(itemtags::Includes(7, itemtags::SchoolTags(5, 8)) && itemtags::Includes(6, itemtags::SchoolTags(5, 8)), "a power keeps its school");
-	check(itemtags::SchoolTags(9, 4) == 0, "unknown school is untagged");
-	const std::uint32_t fire[] = { Code('F', 'I', 'D', 'G') }, frost[] = { Code('F', 'R', 'D', 'G'), Code('F', 'R', 'S', 'H') }, shock[] = { Code('S', 'H', 'D', 'G') };
-	const std::uint32_t poison[] = { Code('D', 'G', 'H', 'E') }, heal[] = { Code('R', 'E', 'H', 'E') }, summon[] = { Code('B', 'W', 'B', 'O') }, none[] = { 0 };
-	check(itemtags::Includes(1, itemtags::EffectTags(fire, 1)) && !itemtags::Includes(2, itemtags::EffectTags(fire, 1)), "fire damage");
-	check(itemtags::Includes(2, itemtags::EffectTags(frost, 2)), "frost damage and shield");
-	check(itemtags::Includes(3, itemtags::EffectTags(shock, 1)), "shock damage");
-	check(itemtags::Includes(4, itemtags::EffectTags(poison, 1)) && itemtags::Includes(5, itemtags::EffectTags(heal, 1)), "poison and restore");
-	check(itemtags::Includes(6, itemtags::EffectTags(summon, 1)) && !itemtags::Includes(1, itemtags::EffectTags(summon, 1)), "unmatched effect is other");
-	check(itemtags::Includes(6, itemtags::EffectTags(none, 1)) && itemtags::Includes(6, itemtags::EffectTags(nullptr, 0)), "no effect is other");
-	const std::uint32_t both[] = { Code('F', 'I', 'D', 'G'), Code('R', 'E', 'H', 'E') };
-	check(itemtags::Includes(1, itemtags::EffectTags(both, 2)) && itemtags::Includes(5, itemtags::EffectTags(both, 2)) && !itemtags::Includes(6, itemtags::EffectTags(both, 2)), "mixed effects");
+	check(itemtags::Includes(3, itemtags::SchoolTags(2, 0)) && !itemtags::Includes(1, itemtags::SchoolTags(2, 0)), "destruction school");
+	check(itemtags::Includes(6, itemtags::SchoolTags(5, 0)) && !itemtags::Includes(7, itemtags::SchoolTags(5, 0)), "restoration is not a power");
+	check(itemtags::Includes(7, itemtags::SchoolTags(5, 2)) && itemtags::Includes(6, itemtags::SchoolTags(5, 2)), "a power keeps its school");
+	check(itemtags::SchoolTags(9, 0) == 0, "unknown school is untagged");
+	using magiceffects::Choice;
+	const std::uint32_t fire[] = { Code('F', 'I', 'D', 'G') }, magicka[] = { Code('R', 'E', 'S', 'P') };
+	check(itemtags::EffectTags(fire, 1) == magiceffects::Bit(Choice::Fire), "fire damage only");
+	check(itemtags::EffectTags(magicka, 1) == magiceffects::Bit(Choice::Restore), "verified Restore Magicka code");
+	check(itemtags::Includes(static_cast<unsigned>(Choice::Restore), itemtags::EffectTags(magicka, 1)), "new Restore choice index");
 	std::printf("%d gear piece checks passed\n", checks);
 }

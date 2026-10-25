@@ -3,6 +3,8 @@
 #include "GearData.h"
 #include "ControllerPolicy.h"
 #include "ItemTags.h"
+#include "MagicRows.h"
+#include "PickerHighlight.h"
 #include "Icons.h"
 #include "PEHook.h"
 #include "Reflect.h"
@@ -13,18 +15,19 @@
 
 
 #include <unordered_map>
+#include <cmath>
 
 namespace gearfilter
 {
 	namespace
 	{
-		constexpr float kInk[4] = { 0.20f, 0.14f, 0.09f, 1 }, kGold[4] = { 0.62f, 0.43f, 0.16f, 1 };
+		constexpr float kInk[4] = { 0.20f, 0.14f, 0.09f, 1 };
 		// sRGB #D6D0C8 converted to linear Slate colour.
 		constexpr float kPaper[4] = { 0.672443f, 0.630757f, 0.577580f, 1.0f }, kClear[4] = { 0, 0, 0, 0 };
-		constexpr float kSelected[4] = { 0.55f, 0.38f, 0.13f, 0.25f };
+		// Focus colour/flat geometry are defined in PickerHighlight.h; applied-filter state is not a highlight.
 		// Item masks: low 32 bits = the first picker's tags, high 32 bits = the second picker's (Magic effect). A row that is
 		// not a spell (for example an active effect) carries kPassAll and is never hidden.
-		constexpr std::uint64_t kPassAll = 1ull << 63;
+		constexpr std::uint64_t kPassAll = magicrows::kPassAll;
 		struct Rect
 		{
 			double x = 0, y = 0, w = 0, h = 0;
@@ -132,10 +135,13 @@ namespace gearfilter
 			return get && get.Size("ReturnValue") == 4 && get.Run() ? get.Get<int>("ReturnValue") : -1;
 		}
 
-		// ---- Magic rows: school and category come from the row itself, effects from the player's spell list ----
+		// ---- Magic rows: school/range from the row, native spell type/effects from the player's spell list ----
 		// Row layout (VLegacyMagicMenuItem, 136 bytes, proven 2026-10-24): Category +0x50, Type +0x51, InventoryIndex +0x54, School +0x58.
 		// InventoryIndex - 1 is the spell's position in the player's list.
-		struct SpellRow { std::uint32_t codes[8]; unsigned count; };
+		using SpellRow = magicrows::Spell;
+		static_assert(static_cast<unsigned>(RE::MagicSystem::SpellType::kSpell) == 0);
+		static_assert(static_cast<unsigned>(RE::MagicSystem::SpellType::kPower) == 2);
+		static_assert(static_cast<unsigned>(RE::MagicSystem::SpellType::kLesserPower) == 3);
 
 		int ReadSpellsRaw(SpellRow* a_out, int a_max)
 		{
@@ -149,13 +155,15 @@ namespace gearfilter
 				for (auto* node = reinterpret_cast<Node*>(&list->spells); node && n < a_max; node = node->next) {
 					auto* spell = node->item;
 					SpellRow row{};
-					if (spell) {
+					if (spell && spell->Is(RE::FormType::Spell)) {
+						row.type = static_cast<unsigned>(spell->data.spellType);
 						auto** effect = reinterpret_cast<void**>(&spell->effectList);
 						for (int k = 0; effect && k < 8; ++k) {
 							auto* item = reinterpret_cast<std::uint8_t*>(effect[0]);
 							if (item) row.codes[row.count++] = *reinterpret_cast<std::uint32_t*>(item + 0x08);
 							effect = reinterpret_cast<void**>(effect[1]);
 						}
+						row.valid = true;
 					}
 					a_out[n++] = row;
 				}
@@ -176,19 +184,26 @@ namespace gearfilter
 			spells.resize(static_cast<std::size_t>(ReadSpellsRaw(spells.data(), 600)));
 			for (auto* item : a_items) {
 				const int index = Index(item);
-				std::uint8_t category = 0, school = 0;
-				const bool read = item && ReadByte(item, 0x50, category) && ReadByte(item, 0x58, school);
-				std::uint64_t mask = kPassAll;
-				if (read && (category == 4 || category == 8) && index >= 1 && static_cast<std::size_t>(index) <= spells.size()) {
-					const auto& spell = spells[static_cast<std::size_t>(index) - 1];
-					mask = static_cast<std::uint64_t>(itemtags::SchoolTags(school, category)) |
-					       (static_cast<std::uint64_t>(itemtags::EffectTags(spell.codes, spell.count)) << 32);
+				std::uint8_t range = 0, school = 0;
+				const bool read = item && ReadByte(item, 0x51, range) && ReadByte(item, 0x58, school);
+				const auto mask = read ? magicrows::Mask(range, school, index, spells.data(), spells.size()) : kPassAll;
+				// A genuine unresolved row still fails open; report once, never every row/menu tick.
+				static bool warned = false;
+				if (!warned && read && magicrows::CastableRange(range) && mask == kPassAll) {
+					warned = true;
+					logger::warn("Sorting Overhaul: native spell-type power filtering could not resolve a Magic row (index={}, range={}, captured={}); leaving it unfiltered", index, range, spells.size());
 				}
 				g_masks[index] = mask;
 			}
 		}
 
 		std::vector<reflect::Handle> g_ownedHeaders;
+		std::uint64_t g_nativePeerRevision = 0;
+		bool IsOwnedHeader(UE::UObject* widget)
+		{
+			for (const auto& handle : g_ownedHeaders) if (reflect::Get(handle) == widget) return true;
+			return false;
+		}
 		bool OwnHeaderEvent(UE::UObject*, UE::UFunction*, void*);
 
 		// One header icon plus its popup. The Inventory has one; the Magic menu has two (school, effect).
@@ -196,7 +211,7 @@ namespace gearfilter
 		{
 			int kind = -1;  // -1 inactive, 0 inventory tabs, 1 magic school, 2 magic effect
 			std::mutex inputLock;
-			Rect headerPx, popupPx, cellsPx[9];
+			Rect headerPx, popupPx, cellsPx[itemtags::kMaxChoices];
 			bool inputActive = false, inputOpen = false, swallowUp = false, swallowEscape = false;
 			std::uint64_t doubleClickUntil = 0;
 			int command = -1;
@@ -204,12 +219,14 @@ namespace gearfilter
 			bool open = false, paintedOpen = false, controllerFocus = false, controllerPopup = false;
 			unsigned cursor = 0;
 			reflect::Handle carousel;
+			std::vector<reflect::Handle> nativePeers;
+			bool nativeFocusWarning = false;
 			unsigned choice = 0, appliedChoice = 0;  // 0 = All; choice k filters on tag bit k - 1 of the current tab
 			unsigned category = 0, appliedCategory = 0;  // All Items page only: 0 = none, else 1 weapons, 2 gear, 3 potions, 4 misc
 			itemtags::Tab tab = itemtags::Tab::Gear, view = itemtags::Tab::Gear;  // view: whose choices the popup shows
 			bool tabSet = false, styled = false, widgetWarning = false, fontsReady = false, fontWarning = false;
 			reflect::Handle menu, canvas, header, headerImage, headerFrame, popup, popupSlot, cache, nativeSchool;
-			reflect::Handle cells[9], icons[9], labels[9], title;
+			reflect::Handle cells[itemtags::kMaxChoices], icons[itemtags::kMaxChoices], labels[itemtags::kMaxChoices], title;
 			std::uint64_t nextLayout = 0, nextHitMeasure = 0, nextFontTry = 0;
 
 			unsigned Shift() const { return kind == 2 ? 32u : 0u; }
@@ -230,10 +247,10 @@ namespace gearfilter
 				auto* popupWidget = ui::AddToCanvas(a_canvas, L"/Script/UMG.CanvasPanel", (L"SlPiecePopup" + suffix).c_str(), &slot);
 				if (!popupWidget || !slot) return false;
 				ui::Visible(popupWidget, false);
-				ui::Vec2(slot, L"SetSize", 244, 242);
+				ui::Vec2(slot, L"SetSize", pickergrid::Width, pickergrid::Height(itemtags::Info(view).count));
 				const int z = 4000;
 				ui::CallFirst(slot, L"SetZOrder", &z, sizeof(z));
-				auto* background = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PiecePaper" + suffix).c_str(), 0, 0, 244, 242);
+				auto* background = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PiecePaper" + suffix).c_str(), 0, 0, pickergrid::Width, pickergrid::Height(itemtags::Info(view).count));
 				ui::RoundedBox(background, false, kPaper, kInk, 1.5f);
 				const std::uint8_t visible = 0;
 				ui::CallFirst(background, L"SetVisibility", &visible, sizeof(visible));
@@ -242,8 +259,8 @@ namespace gearfilter
 				BoundLabel(titleWidget);
 				uix::Ink(titleWidget, kInk);
 				title = reflect::Hold(titleWidget);
-				for (unsigned i = 0; i < 9; ++i) {
-					const double x = 8 + (i % 3) * 76, y = 34 + (i / 3) * 66;
+				for (unsigned i = 0; i < itemtags::kMaxChoices; ++i) {
+					const double x = pickergrid::CellX(i), y = pickergrid::CellY(i);
 					const auto name = std::to_wstring(i) + L"_" + suffix;
 					auto* cell = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PieceCell" + name).c_str(), x, y, 72, 62, 1);
 					ui::RoundedBox(cell, false, kClear, kClear, 0);
@@ -295,14 +312,15 @@ namespace gearfilter
 			{
 				const auto& info = itemtags::Info(view);
 				uix::SetText(reflect::Get(title), info.title);
-				for (unsigned i = 0; i < 9; ++i) {
+				for (unsigned i = 0; i < itemtags::kMaxChoices; ++i) {
 					const bool on = i < info.count;
 					ui::Visible(reflect::Get(cells[i]), on);
 					ui::Visible(reflect::Get(icons[i]), on);
 					ui::Visible(reflect::Get(labels[i]), on);
 					if (on) {
 						Brush(reflect::Get(icons[i]), info.icons[i]);
-						const auto display = view == itemtags::Tab::MagicSchool ? std::string(itemtags::SchoolPopupLabel(i)) : ShortLabel(info.names[i]);
+						const auto display = view == itemtags::Tab::MagicSchool ? std::string(itemtags::SchoolPopupLabel(i)) :
+							(view == itemtags::Tab::MagicEffect ? std::string(magiceffects::kChoices[i].label) : ShortLabel(info.names[i]));
 						uix::SetText(reflect::Get(labels[i]), display);
 						ui::Call tooltip(reflect::Get(labels[i]), L"SetToolTipText");
 						if (auto* at = tooltip.At("InToolTipText"); at && tooltip.Size("InToolTipText") == sizeof(UE::FText)) {
@@ -353,6 +371,10 @@ namespace gearfilter
 					children.push_back(child);
 				}
 				if (children.empty()) return false;
+				nativePeers.clear();
+				++g_nativePeerRevision;
+				for (const auto& child : children)
+					if (!IsOwnedHeader(child.widget)) nativePeers.push_back(reflect::Hold(child.widget));
 				auto* box = reflect::Get(header);
 				if (!box) {
 					static unsigned serial = 0;
@@ -385,7 +407,7 @@ namespace gearfilter
 					if (!sizeBox) return false;
 					ui::Float(sizeBox, L"SetWidthOverride", 49);
 					ui::Float(sizeBox, L"SetHeightOverride", 49);
-					auto* frame = CanvasChild(inner, L"/Script/UMG.Image", (L"SlPieceHeaderFrame" + suffix).c_str(), 1, 1, 47, 47);
+					auto* frame = CanvasChild(inner, L"/Script/UMG.Image", (L"SlPieceHeaderFrame" + suffix).c_str(), 0, 0, 49, 49);
 					ui::RoundedBox(frame, false, kClear, kClear, 0);
 					auto* image = CanvasChild(inner, L"/Script/UMG.Image", (L"SlPieceHeaderIcon" + suffix).c_str(), 5, 4, 39, 40, 1);
 					Brush(image, itemtags::Info(tab).icons[0]);
@@ -418,11 +440,12 @@ namespace gearfilter
 				ResetShared();
 				choice = 0; appliedChoice = 0; category = 0; appliedCategory = 0; view = tab; open = false;
 				controllerFocus = controllerPopup = false; cursor = 0;
+				nativeFocusWarning = false;
 				paintedOpen = false; nextLayout = 0; nextHitMeasure = 0;
 				widgetWarning = false;
 				if (auto* cacheList = reflect::Get(cache)) SetItems(cacheList, {}, false);
 				if (auto* image = reflect::Get(headerImage)) Brush(image, itemtags::Info(tab).icons[0]);
-				if (auto* frame = reflect::Get(headerFrame)) ui::RoundedBox(frame, false, kClear, kClear, 0);
+				if (auto* frame = reflect::Get(headerFrame)) ui::RoundedBox(frame, false, kClear, kClear, 0, 0);
 				{ std::scoped_lock lock(inputLock); headerPx = {}; popupPx = {}; command = -1; inputOpen = false; swallowUp = false; swallowEscape = false; doubleClickUntil = 0; }
 			}
 
@@ -471,7 +494,7 @@ namespace gearfilter
 				if (reflect::Get(menu) != a_menu || reflect::Get(canvas) != a_canvas) {
 					Reset();
 					for (const auto& handle : { popup, cache, header }) if (auto* old = reflect::Get(handle)) { ui::Call remove(old, L"RemoveFromParent"); remove.Run(); }
-					menu = reflect::Hold(a_menu); popup = {}; cache = {}; header = {}; carousel = {}; nativeSchool = {};
+					menu = reflect::Hold(a_menu); popup = {}; cache = {}; header = {}; carousel = {}; nativeSchool = {}; nativePeers.clear();
 					canvas = reflect::Hold(a_canvas); nextLayout = 0;
 				}
 				if (!reflect::Get(popup) && !BuildPopup(a_canvas)) {
@@ -507,19 +530,22 @@ namespace gearfilter
 					if (ui::Measure(reflect::Get(header), x, y, w, h) && w > 0 && h > 0) {
 						double cx = 0, cy = 0, cw = 0, ch = 0;
 						ui::Measure(a_canvas, cx, cy, cw, ch);
-						ui::Vec2(reflect::Get(popupSlot), L"SetPosition", (std::max)(0.0, x - cx + w - 244), y - cy + h + 5);
+						const double popupHeight = pickergrid::Height(itemtags::Info(view).count);
+						ui::Vec2(reflect::Get(popupSlot), L"SetPosition",
+							pickergrid::Position(x - cx + w - pickergrid::Width, pickergrid::Width, cw),
+							pickergrid::Position(y - cy + h + 5, popupHeight, ch));
 						std::scoped_lock lock(inputLock);
 						headerPx = { x * a_viewportScale, y * a_viewportScale, w * a_viewportScale, h * a_viewportScale };
 					}
 				}
 				int cmd = -1;
 				{ std::scoped_lock lock(inputLock); cmd = command; command = -1; }
-				if (cmd == 9) {
+				if (cmd == pickergrid::kToggleCommand) {
 					open = !open; nextHitMeasure = 0;
 					if (open && view != tab) { view = tab; styled = false; }  // always open on the top level
 					cursor = Highlight() < itemtags::Info(tab).count ? Highlight() : 0;
 				}
-				else if (cmd >= 0 && cmd < static_cast<int>(itemtags::Info(view).count)) {
+				else if (pickergrid::IsSelection(cmd, itemtags::Info(view).count)) {
 					if (tab == itemtags::Tab::AllItems && view == itemtags::Tab::AllItems && cmd > 0) {
 						view = static_cast<itemtags::Tab>(cmd - 1); cursor = 0; styled = false; nextHitMeasure = 0;  // open the category's own choices
 					} else if (tab == itemtags::Tab::AllItems) {
@@ -541,7 +567,7 @@ namespace gearfilter
 
 				if (cmd >= 0) Brush(reflect::Get(headerImage), HeaderIcon());
 				if (cmd != -1) PaintController();
-				Rect popupRect, cellRects[9];
+				Rect popupRect, cellRects[itemtags::kMaxChoices];
 				const bool measure = open && now >= nextHitMeasure;
 				if (measure) {
 					nextHitMeasure = now + 100;
@@ -562,7 +588,7 @@ namespace gearfilter
 				active.store(true);
 			}
 
-			bool ControllerFocused()
+			bool SortCarouselFocused()
 			{
 				if (!active.load() || !ui::ShownOnScreen(reflect::Get(header))) return false;
 				ui::Call mode(reflect::Get(menu), L"IsFilterFocused");
@@ -574,19 +600,41 @@ namespace gearfilter
 					if (!nativeFocus || nativeFocus.Size("ReturnValue") != 1 ||
 						!nativeFocus.RunGuarded() || !nativeFocus.Get<std::uint8_t>("ReturnValue")) return false;
 				}
+				return true;
+			}
+
+			bool ControllerFocused()
+			{
+				if (!SortCarouselFocused()) return false;
 				ui::Call focused(reflect::Get(carousel), L"GetFocusedElement");
 				return focused && focused.Size("ReturnValue") == 8 && focused.RunGuarded() &&
 					focused.Get<UE::UObject*>("ReturnValue") == reflect::Get(header);
 			}
 
+			UE::UObject* NativeInner(UE::UObject* wrapper)
+			{
+				if (!wrapper || IsOwnedHeader(wrapper) || ui::SizeOf(wrapper->GetClass(), "filterIcon") != 8) return nullptr;
+				auto** inner = reflect::At<UE::UObject*>(wrapper, reflect::Offset(wrapper->GetClass(), "filterIcon"));
+				return inner ? *inner : nullptr;
+			}
+
+			void WarnNativeFocus()
+			{
+				if (!nativeFocusWarning) {
+					logger::warn("Sorting Overhaul: native activated-sort background mask unavailable");
+					nativeFocusWarning = true;
+				}
+			}
+
 			void PaintController()
 			{
-				// Applied filter membership is not navigation focus.
-				const bool on = controllerFocus;
-				ui::RoundedBox(reflect::Get(headerFrame), false, on ? kSelected : kClear, on ? kGold : kClear, on ? 1.5f : 0.0f);
+				// Applied membership is not focus. Match the owner's native square, borderless #E6E4DF reference.
+				ui::RoundedBox(reflect::Get(headerFrame), false, controllerFocus ? pickerhighlight::kFill.data() : kClear,
+					kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 				for (unsigned i = 0; i < itemtags::Info(view).count; ++i) {
 					const bool focused = open && controllerPopup && i == cursor;
-					ui::RoundedBox(reflect::Get(cells[i]), false, focused ? kSelected : kClear, focused ? kGold : kClear, focused ? 1.0f : 0.0f);
+					ui::RoundedBox(reflect::Get(cells[i]), false, focused ? pickerhighlight::kFill.data() : kClear,
+						kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 				}
 			}
 
@@ -611,10 +659,10 @@ namespace gearfilter
 				if (a_message == WM_KEYDOWN && a_key == VK_ESCAPE && inputOpen) { command = -2; swallowEscape = true; return true; }
 				if (a_message != WM_LBUTTONDOWN) return false;
 				const double x = static_cast<short>(LOWORD(a_position)), y = static_cast<short>(HIWORD(a_position));
-				if (headerPx.Hit(x, y)) command = 9;
+				if (headerPx.Hit(x, y)) command = pickergrid::kToggleCommand;
 				else if (inputOpen) {
 					command = -2;
-					for (int i = 0; i < 9; ++i) if (cellsPx[i].Hit(x, y)) { command = i; break; }
+					for (int i = 0; i < itemtags::kMaxChoices; ++i) if (cellsPx[i].Hit(x, y)) { command = i; break; }
 				} else return false;
 				swallowUp = true;
 				doubleClickUntil = GetTickCount64() + GetDoubleClickTime();
@@ -624,13 +672,84 @@ namespace gearfilter
 
 		Picker g_pickers[2];  // [0] inventory tabs or magic school (owns the filtered list), [1] magic effect
 
+		// One visual mask shared by both Magic pickers. No native focus/selection state changes.
+		struct NativeBackground
+		{
+			reflect::Handle widget;
+			pickerhighlight::OpacitySnapshot opacity;
+		};
+		std::vector<NativeBackground> g_nativeBackgrounds;
+		reflect::Handle g_maskCarousel;
+		Picker* g_maskOwner = nullptr;
+		std::uint64_t g_maskRevision = 0, g_maskRetryAt = 0;
+
+		bool SetNativeBackgroundOpacity(UE::UObject* widget, float value)
+		{
+			ui::Call fade(widget, L"SetRenderOpacity");
+			return fade && fade.Size("InOpacity") == 4 && fade.Set("InOpacity", value) && fade.RunGuarded();
+		}
+
+		void RestoreNativeBackgrounds()
+		{
+			for (auto& entry : g_nativeBackgrounds)
+				if (auto* widget = reflect::Get(entry.widget); widget && entry.opacity.HasValue())
+					SetNativeBackgroundOpacity(widget, entry.opacity.Original());
+			g_nativeBackgrounds.clear();
+			g_maskCarousel = {}; g_maskOwner = nullptr; g_maskRevision = 0; g_maskRetryAt = 0;
+		}
+
+		void UpdateNativeBackgroundMask()
+		{
+			Picker* owner = nullptr;
+			for (auto& picker : g_pickers)
+				if (picker.active.load() && pickerhighlight::Owns(picker.controllerFocus, picker.open, picker.controllerPopup)) {
+					owner = &picker; break;
+				}
+			if (!owner) { if (!g_nativeBackgrounds.empty()) RestoreNativeBackgrounds(); return; }
+			auto* carousel = reflect::Get(owner->carousel);
+			if (!carousel) { RestoreNativeBackgrounds(); return; }
+			if (reflect::Get(g_maskCarousel) != carousel) {
+				RestoreNativeBackgrounds(); g_maskCarousel = reflect::Hold(carousel);
+			}
+			const auto now = GetTickCount64();
+			if (g_maskOwner != owner || g_maskRevision != g_nativePeerRevision ||
+				(g_nativeBackgrounds.empty() && now >= g_maskRetryAt)) {
+				std::erase_if(g_nativeBackgrounds, [](const auto& entry) { return !reflect::Get(entry.widget); });
+				for (const auto& handle : owner->nativePeers) {
+					auto* wrapper = reflect::Get(handle);
+					auto* inner = owner->NativeInner(wrapper);
+					if (!inner) continue; // excludes every owned custom header before touching filterIcon
+					UE::UObject* background = nullptr;
+					if (ui::SizeOf(inner->GetClass(), "filterIcon_background") == 8) {
+						auto** property = reflect::At<UE::UObject*>(inner, reflect::Offset(inner->GetClass(), "filterIcon_background"));
+						if (property) background = *property;
+					}
+					if (!background) background = ui::ChildNamed(inner, L"filterIcon_background");
+					if (!background) background = ui::FindInTree(inner, "filterIcon_background");
+					if (!background) { owner->WarnNativeFocus(); continue; }
+					const bool known = std::any_of(g_nativeBackgrounds.begin(), g_nativeBackgrounds.end(),
+						[background](const auto& entry) { return reflect::Get(entry.widget) == background; });
+					if (known) continue; // preserve original snapshot across School/Effect handoff
+					const float original = ui::RenderOpacity(background);
+					if (!std::isfinite(original) || g_nativeBackgrounds.size() >= 32) { owner->WarnNativeFocus(); continue; }
+					NativeBackground entry{ reflect::Hold(background), {} };
+					entry.opacity.Capture(original);
+					g_nativeBackgrounds.push_back(entry);
+				}
+				g_maskOwner = owner; g_maskRevision = g_nativePeerRevision; g_maskRetryAt = now + 150;
+				if (g_nativeBackgrounds.empty()) owner->WarnNativeFocus();
+			}
+			// Cached tiles only. No ProcessEvent when opacity is already zero; no periodic tree/global scans.
+			for (const auto& entry : g_nativeBackgrounds)
+				if (auto* widget = reflect::Get(entry.widget); widget && ui::RenderOpacity(widget) != 0.0f)
+					if (!SetNativeBackgroundOpacity(widget, 0.0f)) owner->WarnNativeFocus();
+		}
+
 
 		bool OwnHeaderEvent(UE::UObject* object, UE::UFunction* function, void*)
 		{
 			// Never cancel an event on a native widget or a class-default object.
-			bool owned = false;
-			for (const auto& handle : g_ownedHeaders) owned |= reflect::Get(handle) == object;
-			if (!owned) return false;
+			if (!IsOwnedHeader(object)) return false;
 			const auto name = pe::FunctionName(function);
 			return name == "OnFocus" || name == "OnUnfocus";
 		}
@@ -653,6 +772,7 @@ namespace gearfilter
 			g_pickers[1].Tick(-1, nullptr, nullptr, 1.0f);
 			g_pickers[0].Tick(-1, nullptr, nullptr, 1.0f);
 		}
+		UpdateNativeBackgroundMask();
 	}
 
 	void Filter(UE::UObject* a_list, const std::vector<UE::UObject*>& a_live, const std::string& a_query, NameMatches a_nameMatches)
@@ -709,7 +829,15 @@ namespace gearfilter
 
 	void Controller(std::uint16_t& buttons, short& x, short& y, bool connected)
 	{
-		if (!connected) { g_pad.Disconnect(); return; }
+		if (!connected) {
+			g_pad.Disconnect();
+			for (auto& picker : g_pickers) {
+				if (picker.controllerFocus || picker.controllerPopup) {
+					picker.controllerFocus = picker.controllerPopup = false; picker.PaintController();
+				}
+			}
+			UpdateNativeBackgroundMask(); return;
+		}
 		const sortpad::Input raw{ buttons, x, y };
 		g_pad.Sample(raw, GetTickCount64());
 		Picker* owner = nullptr;
@@ -742,7 +870,7 @@ namespace gearfilter
 				// Native methods retain their original A/up/down reversal. Only our focused header owns these.
 				g_pad.Consume(raw, sortpad::A | sortpad::Up | sortpad::Down | sortpad::Left | sortpad::Right, true);
 				if ((g_pad.pressed & sortpad::A) || g_pad.pulse == sortpad::Direction::Up || g_pad.pulse == sortpad::Direction::Down) {
-					picker.controllerPopup = true; picker.Queue(9);
+					picker.controllerPopup = true; picker.Queue(pickergrid::kToggleCommand);
 				}
 				else if (g_pad.pulse == sortpad::Direction::Left || g_pad.pulse == sortpad::Direction::Right) {
 					ui::Call navigate(reflect::Get(picker.carousel),
@@ -751,6 +879,7 @@ namespace gearfilter
 				}
 			}
 		}
+		UpdateNativeBackgroundMask();
 		const auto filtered = g_pad.Filter(raw);
 		buttons = filtered.buttons; x = filtered.x; y = filtered.y;
 	}

@@ -215,7 +215,7 @@ namespace ui
 		CallFirst(a_slot, L"SetAnchors", a, sizeof(a));
 	}
 
-	bool RoundedBox(UE::UObject* a_image, bool a_circle, const float a_fill[4], const float a_outline[4], float a_width)
+	bool RoundedBox(UE::UObject* a_image, bool a_circle, const float a_fill[4], const float a_outline[4], float a_width, float a_radius)
 	{
 		static auto* brushStruct = reinterpret_cast<UE::UStruct*>(UE::StaticFindObject<UE::UObject>(nullptr, nullptr, L"/Script/SlateCore.SlateBrush"));
 		static auto* outlineStruct = reinterpret_cast<UE::UStruct*>(UE::StaticFindObject<UE::UObject>(nullptr, nullptr, L"/Script/SlateCore.SlateBrushOutlineSettings"));
@@ -243,12 +243,12 @@ namespace ui
 		b[tint + rule] = 0;
 		std::memcpy(b + outline + oColor + spec, a_outline, sizeof(float) * 4);
 		b[outline + oColor + rule] = 0;
-		const double r = 6.0;
+		const double r = a_radius;
 		if (radiiSize == 32) {
 			const double v[4] = { r, r, r, r };
 			std::memcpy(b + outline + radii, v, sizeof(v));
 		} else if (radiiSize == 16) {
-			const float v[4] = { 6, 6, 6, 6 };
+			const float v[4] = { a_radius, a_radius, a_radius, a_radius };
 			std::memcpy(b + outline + radii, v, sizeof(v));
 		}
 		b[outline + rounding] = a_circle ? 1 : 0;
