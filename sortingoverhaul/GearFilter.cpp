@@ -274,8 +274,6 @@ namespace gearfilter
 				return true;
 			}
 
-			bool HeaderActive() const { return tab == itemtags::Tab::AllItems ? category != 0 : choice != 0; }
-
 			const wchar_t* HeaderIcon() const
 			{
 				if (tab != itemtags::Tab::AllItems) return itemtags::Info(tab).icons[choice];
@@ -315,8 +313,7 @@ namespace gearfilter
 					}
 				}
 				if (auto* image = reflect::Get(headerImage)) Brush(image, HeaderIcon());
-				if (auto* frame = reflect::Get(headerFrame)) ui::RoundedBox(frame, false, HeaderActive() ? kSelected : kClear, HeaderActive() ? kGold : kClear, HeaderActive() ? 1.0f : 0.0f);
-				for (unsigned i = 0; i < info.count; ++i) ui::RoundedBox(reflect::Get(cells[i]), false, (controllerPopup ? i == cursor : i == Highlight()) ? kSelected : kClear, (controllerPopup ? i == cursor : i == Highlight()) ? kGold : kClear, (controllerPopup ? i == cursor : i == Highlight()) ? 1.0f : 0.0f);
+				PaintController();
 			}
 
 			bool InsertHeader(UE::UObject* a_panel, UE::UObject* navigation)
@@ -501,7 +498,7 @@ namespace gearfilter
 					const bool attached = parent && parent.Run() && parent.Get<UE::UObject*>("ReturnValue") == panel;
 					if (!panel) return;
 					if (!attached && !InsertHeader(panel, iconBox)) {
-						if (!widgetWarning) { logger::warn("Sorting Overhaul: native controller header registration/layout unsupported"); widgetWarning = true; }
+						if (!widgetWarning) { logger::warn("Sorting Overhaul: native controller focus-only header registration/layout unsupported"); widgetWarning = true; }
 						return;
 					}
 					ui::Visible(reflect::Get(header), true);
@@ -542,14 +539,8 @@ namespace gearfilter
 					paintedOpen = open;
 				}
 
-				if (cmd >= 0) {
-					Brush(reflect::Get(headerImage), HeaderIcon());
-					ui::RoundedBox(reflect::Get(headerFrame), false, HeaderActive() ? kSelected : kClear, HeaderActive() ? kGold : kClear, 1);
-				}
-				if (open && cmd >= 0) {
-					for (unsigned i = 0; i < itemtags::Info(view).count; ++i) ui::RoundedBox(reflect::Get(cells[i]), false, i == Highlight() ? kSelected : kClear, i == Highlight() ? kGold : kClear, 1);
-				}
-				if (controllerFocus && cmd != -1) PaintController();
+				if (cmd >= 0) Brush(reflect::Get(headerImage), HeaderIcon());
+				if (cmd != -1) PaintController();
 				Rect popupRect, cellRects[9];
 				const bool measure = open && now >= nextHitMeasure;
 				if (measure) {
@@ -590,11 +581,13 @@ namespace gearfilter
 
 			void PaintController()
 			{
-				const bool on = controllerFocus || HeaderActive();
+				// Applied filter membership is not navigation focus.
+				const bool on = controllerFocus;
 				ui::RoundedBox(reflect::Get(headerFrame), false, on ? kSelected : kClear, on ? kGold : kClear, on ? 1.5f : 0.0f);
-				if (open && controllerPopup)
-					for (unsigned i = 0; i < itemtags::Info(view).count; ++i)
-						ui::RoundedBox(reflect::Get(cells[i]), false, i == cursor ? kSelected : kClear, i == cursor ? kGold : kClear, 1);
+				for (unsigned i = 0; i < itemtags::Info(view).count; ++i) {
+					const bool focused = open && controllerPopup && i == cursor;
+					ui::RoundedBox(reflect::Get(cells[i]), false, focused ? kSelected : kClear, focused ? kGold : kClear, focused ? 1.0f : 0.0f);
+				}
 			}
 
 			void Queue(int cmd)
