@@ -8,7 +8,7 @@ namespace pe
 		using ProcessEvent_t = void (*)(UE::UObject*, UE::UFunction*, void*);
 
 		struct Swapped { void** vtable; ProcessEvent_t original; };
-		struct Watcher { UE::UClass* cls; Handler handler; bool post; };
+		struct Watcher { UE::UClass* cls; Handler handler; bool post; Interceptor intercept; };
 
 		// Small fixed tables, written only under the lock and only ever appended to; the detour reads them lock-free
 		// (a count published after the entry is complete).
@@ -30,17 +30,21 @@ namespace pe
 					break;
 				}
 			}
+			bool skip = false;
 			UE::UClass* cls = nullptr;
 			if (a_obj && a_fn) {
 				cls = a_obj->GetClass();
 				const std::size_t nw = g_watcherCount.load(std::memory_order_acquire);
 				for (std::size_t i = 0; i < nw; ++i) {
-					if (g_watchers[i].cls == cls && !g_watchers[i].post) {
+					if (g_watchers[i].cls != cls) continue;
+					if (g_watchers[i].intercept) {
+						skip = g_watchers[i].intercept(a_obj, a_fn, a_params) || skip;
+					} else if (!g_watchers[i].post) {
 						g_watchers[i].handler(a_obj, a_fn, a_params);
 					}
 				}
 			}
-			if (original) {
+			if (original && !skip) {
 				original(a_obj, a_fn, a_params);
 			}
 			if (cls) {   // after the body: the post watchers
@@ -75,10 +79,10 @@ namespace pe
 		return a_fn ? Utf8(a_fn->GetFName().ToString()) : std::string();
 	}
 
-	static bool WatchImpl(UE::UClass* a_class, Handler a_handler, bool a_post)
+	static bool WatchImpl(UE::UClass* a_class, Handler a_handler, bool a_post, Interceptor a_interceptor = nullptr)
 	{
 		auto* cdo = a_class ? a_class->GetDefaultObject(false) : nullptr;
-		if (!cdo || !a_handler) {
+		if (!cdo || (!a_handler && !a_interceptor)) {
 			return false;
 		}
 		void** vt = *reinterpret_cast<void***>(cdo);
@@ -89,7 +93,7 @@ namespace pe
 		std::scoped_lock l(g_lock);
 		const std::size_t nw = g_watcherCount.load(std::memory_order_relaxed);
 		for (std::size_t i = 0; i < nw; ++i) {
-			if (g_watchers[i].cls == a_class && g_watchers[i].handler == a_handler && g_watchers[i].post == a_post) {
+			if (g_watchers[i].cls == a_class && g_watchers[i].handler == a_handler && g_watchers[i].post == a_post && g_watchers[i].intercept == a_interceptor) {
 				return true;   // already watched
 			}
 		}
@@ -122,10 +126,12 @@ namespace pe
 				kProcessEventSlot, Utf8(a_class->GetFullName()), reinterpret_cast<void*>(g_swapped[ns].original),
 				GetModuleHandleW(L"UE4SS.dll") ? "loaded" : "not loaded");
 		}
-		g_watchers[nw] = { a_class, a_handler, a_post };
+		g_watchers[nw] = { a_class, a_handler, a_post, a_interceptor };
 		g_watcherCount.store(nw + 1, std::memory_order_release);
 		return true;
 	}
+
+	bool Intercept(UE::UClass* cls, Interceptor handler) { return WatchImpl(cls, nullptr, false, handler); }
 
 	bool Watch(UE::UClass* a_class, Handler a_handler) { return WatchImpl(a_class, a_handler, false); }
 	bool WatchPost(UE::UClass* a_class, Handler a_handler) { return WatchImpl(a_class, a_handler, true); }

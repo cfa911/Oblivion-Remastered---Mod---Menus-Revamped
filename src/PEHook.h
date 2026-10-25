@@ -1,7 +1,7 @@
 #pragma once
 
 // ============================================================================================================
-// ProcessEvent observers by class, through a vtable ENTRY swap (slot 0x4D) - no code is patched, so this coexists
+// ProcessEvent observers and ownership-scoped interceptors by class, through a vtable ENTRY swap (slot 0x4D) - no code is patched, so this coexists
 // with UE4SS's ProcessEvent hook on the shared body in either load order (logic library 7555, 2026-09-29).
 //
 // Several classes may share one native vtable; each vtable is swapped once, the original pointer is remembered per
@@ -12,6 +12,9 @@
 namespace pe
 {
 	using Handler = void (*)(UE::UObject* a_obj, UE::UFunction* a_fn, void* a_params);
+	using Interceptor = bool (*)(UE::UObject*, UE::UFunction*, void*);
+	// Returning true skips this call's body. Must restrict ownership to custom instances.
+	bool Intercept(UE::UClass* a_class, Interceptor a_interceptor);
 
 	// Watches calls on objects whose class is exactly a_class. False (logged) when its vtable cannot be swapped.
 	bool Watch(UE::UClass* a_class, Handler a_handler);

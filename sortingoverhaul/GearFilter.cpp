@@ -1,6 +1,7 @@
 #include "GearFilter.h"
 
 #include "GearData.h"
+#include "ControllerPolicy.h"
 #include "ItemTags.h"
 #include "Icons.h"
 #include "PEHook.h"
@@ -44,12 +45,6 @@ namespace gearfilter
 			geardata::Cancel();
 			g_source.clear(); g_applied.clear(); g_indices.clear(); g_masks.clear();
 			g_ticket = 0; g_dataReady = false; g_haveApplied = false; g_dirty = true; g_query.clear();
-		}
-
-		UE::UObject* New(UE::UObject* a_outer, const wchar_t* a_class, const wchar_t* a_name)
-		{
-			auto* cls = ui::Class(a_class);
-			return cls && a_outer ? UE::NewObject<UE::UObject>(a_outer, cls, UE::FName(a_name)) : nullptr;
 		}
 
 		void Brush(UE::UObject* a_image, const wchar_t* a_icon)
@@ -193,6 +188,9 @@ namespace gearfilter
 			}
 		}
 
+		std::vector<reflect::Handle> g_ownedHeaders;
+		bool OwnHeaderEvent(UE::UObject*, UE::UFunction*, void*);
+
 		// One header icon plus its popup. The Inventory has one; the Magic menu has two (school, effect).
 		struct Picker
 		{
@@ -203,7 +201,9 @@ namespace gearfilter
 			std::uint64_t doubleClickUntil = 0;
 			int command = -1;
 			std::atomic<bool> active{ false };
-			bool open = false, paintedOpen = false;
+			bool open = false, paintedOpen = false, controllerFocus = false, controllerPopup = false;
+			unsigned cursor = 0;
+			reflect::Handle carousel;
 			unsigned choice = 0, appliedChoice = 0;  // 0 = All; choice k filters on tag bit k - 1 of the current tab
 			unsigned category = 0, appliedCategory = 0;  // All Items page only: 0 = none, else 1 weapons, 2 gear, 3 potions, 4 misc
 			itemtags::Tab tab = itemtags::Tab::Gear, view = itemtags::Tab::Gear;  // view: whose choices the popup shows
@@ -274,8 +274,6 @@ namespace gearfilter
 				return true;
 			}
 
-			bool HeaderActive() const { return tab == itemtags::Tab::AllItems ? category != 0 : choice != 0; }
-
 			const wchar_t* HeaderIcon() const
 			{
 				if (tab != itemtags::Tab::AllItems) return itemtags::Info(tab).icons[choice];
@@ -315,11 +313,10 @@ namespace gearfilter
 					}
 				}
 				if (auto* image = reflect::Get(headerImage)) Brush(image, HeaderIcon());
-				if (auto* frame = reflect::Get(headerFrame)) ui::RoundedBox(frame, false, HeaderActive() ? kSelected : kClear, HeaderActive() ? kGold : kClear, HeaderActive() ? 1.0f : 0.0f);
-				for (unsigned i = 0; i < info.count; ++i) ui::RoundedBox(reflect::Get(cells[i]), false, i == Highlight() ? kSelected : kClear, i == Highlight() ? kGold : kClear, i == Highlight() ? 1.0f : 0.0f);
+				PaintController();
 			}
 
-			bool InsertHeader(UE::UObject* a_panel)
+			bool InsertHeader(UE::UObject* a_panel, UE::UObject* navigation)
 			{
 				ui::Call count(a_panel, L"GetChildrenCount");
 				if (!count || !count.Run()) return false;
@@ -360,18 +357,45 @@ namespace gearfilter
 				if (!box) {
 					static unsigned serial = 0;
 					const auto suffix = std::to_wstring(++serial);
-					auto* outer = a_panel->GetOuter();
-					box = New(outer, L"/Script/UMG.SizeBox", (L"SlPieceHeader" + suffix).c_str());
-					auto* inner = New(outer, L"/Script/UMG.CanvasPanel", (L"SlPieceHeaderCanvas" + suffix).c_str());
-					if (!box || !inner) return false;
-					ui::Float(box, L"SetWidthOverride", 49);
-					ui::Float(box, L"SetHeightOverride", 49);
-					ui::Call content(box, L"SetContent"); content.Set("Content", inner); if (!content.Run()) return false;
+					// Use the loaded native wrapper class, but never initialize or activate a native Filter.
+					// The instance-scoped interceptor replaces ONLY our wrapper's focus-forwarding body.
+					auto* templateWidget = children.front().widget;
+					for (const auto& child : children)
+						if (pe::Utf8(child.widget->GetFName().ToString()) == "Name") templateWidget = child.widget;
+					auto* cls = templateWidget->GetClass();
+					if (ui::SizeOf(cls, "filterIcon") != 8 || !pe::Intercept(cls, &OwnHeaderEvent)) return false;
+					const auto fullName = pe::Utf8(cls->GetFullName());
+					const auto classPath = textutil::Wide(fullName.substr(fullName.find(' ') + 1));
+					box = ui::CreateWidget(classPath.c_str());
+					if (!box) return false;
+					header = reflect::Hold(box); // establish ownership before registering/focusing
+					std::erase_if(g_ownedHeaders, [](const auto& h) { return !reflect::Get(h); });
+					g_ownedHeaders.push_back(header); // retain identity until GC, including detached/retired widgets
+					struct Rollback {
+						Picker& picker; bool complete = false;
+						~Rollback() {
+							if (complete) return;
+							if (auto* widget = reflect::Get(picker.header)) { ui::Call remove(widget, L"RemoveFromParent"); remove.Run(); }
+							picker.header = {}; picker.carousel = {}; picker.headerImage = {}; picker.headerFrame = {};
+						}
+					} rollback{ *this };
+					auto* inner = ui::RootCanvas(box, (L"SlPieceHeaderCanvas" + suffix).c_str());
+					if (!inner) return false;
+					auto* sizeBox = CanvasChild(inner, L"/Script/UMG.SizeBox", (L"SlPieceHeaderSize" + suffix).c_str(), 0, 0, 49, 49);
+					if (!sizeBox) return false;
+					ui::Float(sizeBox, L"SetWidthOverride", 49);
+					ui::Float(sizeBox, L"SetHeightOverride", 49);
 					auto* frame = CanvasChild(inner, L"/Script/UMG.Image", (L"SlPieceHeaderFrame" + suffix).c_str(), 1, 1, 47, 47);
 					ui::RoundedBox(frame, false, kClear, kClear, 0);
 					auto* image = CanvasChild(inner, L"/Script/UMG.Image", (L"SlPieceHeaderIcon" + suffix).c_str(), 5, 4, 39, 40, 1);
 					Brush(image, itemtags::Info(tab).icons[0]);
-					header = reflect::Hold(box); headerImage = reflect::Hold(image); headerFrame = reflect::Hold(frame);
+					if (!frame || !image) return false;
+					headerImage = reflect::Hold(image); headerFrame = reflect::Hold(frame);
+					ui::Call registerChild(navigation, L"AddChild");
+					if (registerChild.Size("ChildToAdd") != 8 ||
+						!registerChild.Set("ChildToAdd", box) || !registerChild.RunGuarded()) return false;
+					carousel = reflect::Hold(navigation);
+					rollback.complete = true;
 				}
 				// InsertChildAt/ShiftChild are not reflected: reattach the same native widgets preserving slot layout and existing
 				// bindings, with our icon first, before A-Z (and before the other picker's icon when both are attached).
@@ -393,12 +417,13 @@ namespace gearfilter
 			{
 				ResetShared();
 				choice = 0; appliedChoice = 0; category = 0; appliedCategory = 0; view = tab; open = false;
+				controllerFocus = controllerPopup = false; cursor = 0;
 				paintedOpen = false; nextLayout = 0; nextHitMeasure = 0;
 				widgetWarning = false;
 				if (auto* cacheList = reflect::Get(cache)) SetItems(cacheList, {}, false);
 				if (auto* image = reflect::Get(headerImage)) Brush(image, itemtags::Info(tab).icons[0]);
 				if (auto* frame = reflect::Get(headerFrame)) ui::RoundedBox(frame, false, kClear, kClear, 0);
-				{ std::scoped_lock lock(inputLock); headerPx = {}; popupPx = {}; swallowUp = false; swallowEscape = false; doubleClickUntil = 0; }
+				{ std::scoped_lock lock(inputLock); headerPx = {}; popupPx = {}; command = -1; inputOpen = false; swallowUp = false; swallowEscape = false; doubleClickUntil = 0; }
 			}
 
 			void Deactivate()
@@ -446,7 +471,7 @@ namespace gearfilter
 				if (reflect::Get(menu) != a_menu || reflect::Get(canvas) != a_canvas) {
 					Reset();
 					for (const auto& handle : { popup, cache, header }) if (auto* old = reflect::Get(handle)) { ui::Call remove(old, L"RemoveFromParent"); remove.Run(); }
-					menu = reflect::Hold(a_menu); popup = {}; cache = {}; header = {};
+					menu = reflect::Hold(a_menu); popup = {}; cache = {}; header = {}; carousel = {}; nativeSchool = {};
 					canvas = reflect::Hold(a_canvas); nextLayout = 0;
 				}
 				if (!reflect::Get(popup) && !BuildPopup(a_canvas)) {
@@ -472,8 +497,8 @@ namespace gearfilter
 					ui::Call parent(headerWidget, L"GetParent");
 					const bool attached = parent && parent.Run() && parent.Get<UE::UObject*>("ReturnValue") == panel;
 					if (!panel) return;
-					if (!attached && !InsertHeader(panel)) {
-						if (!widgetWarning) { logger::warn("gear piece filter: native sort-header layout is unsupported"); widgetWarning = true; }
+					if (!attached && !InsertHeader(panel, iconBox)) {
+						if (!widgetWarning) { logger::warn("Sorting Overhaul: native controller focus-only header registration/layout unsupported"); widgetWarning = true; }
 						return;
 					}
 					ui::Visible(reflect::Get(header), true);
@@ -492,30 +517,30 @@ namespace gearfilter
 				if (cmd == 9) {
 					open = !open; nextHitMeasure = 0;
 					if (open && view != tab) { view = tab; styled = false; }  // always open on the top level
+					cursor = Highlight() < itemtags::Info(tab).count ? Highlight() : 0;
 				}
 				else if (cmd >= 0 && cmd < static_cast<int>(itemtags::Info(view).count)) {
 					if (tab == itemtags::Tab::AllItems && view == itemtags::Tab::AllItems && cmd > 0) {
-						view = static_cast<itemtags::Tab>(cmd - 1); styled = false; nextHitMeasure = 0;  // open the category's own choices
+						view = static_cast<itemtags::Tab>(cmd - 1); cursor = 0; styled = false; nextHitMeasure = 0;  // open the category's own choices
 					} else if (tab == itemtags::Tab::AllItems) {
 						if (view == itemtags::Tab::AllItems) { category = 0; choice = 0; }
 						else { category = static_cast<unsigned>(view) + 1; choice = static_cast<unsigned>(cmd); }
 						open = false;
 					} else { choice = static_cast<unsigned>(cmd); open = false; }
 				}
-				else if (cmd == -2) open = false;
+				else if (cmd == -3 && tab == itemtags::Tab::AllItems && view != tab) {
+					cursor = static_cast<unsigned>(view) + 1; view = tab; styled = false; nextHitMeasure = 0;
+				}
+				else if (cmd == -2 || cmd == -3) open = false;
+				if (!open) controllerPopup = false;
 				const std::uint8_t popupVisibility = open ? 0 : 1;  // visible background blocks hover/click hit tests on rows below it
 				if (open != paintedOpen) {
 					ui::CallFirst(reflect::Get(popup), L"SetVisibility", &popupVisibility, sizeof(popupVisibility));
 					paintedOpen = open;
 				}
 
-				if (cmd >= 0) {
-					Brush(reflect::Get(headerImage), HeaderIcon());
-					ui::RoundedBox(reflect::Get(headerFrame), false, HeaderActive() ? kSelected : kClear, HeaderActive() ? kGold : kClear, 1);
-				}
-				if (open && cmd >= 0) {
-					for (unsigned i = 0; i < itemtags::Info(view).count; ++i) ui::RoundedBox(reflect::Get(cells[i]), false, i == Highlight() ? kSelected : kClear, i == Highlight() ? kGold : kClear, 1);
-				}
+				if (cmd >= 0) Brush(reflect::Get(headerImage), HeaderIcon());
+				if (cmd != -1) PaintController();
 				Rect popupRect, cellRects[9];
 				const bool measure = open && now >= nextHitMeasure;
 				if (measure) {
@@ -535,6 +560,39 @@ namespace gearfilter
 					if (measure) { popupPx = popupRect; std::copy(std::begin(cellRects), std::end(cellRects), cellsPx); }
 				}
 				active.store(true);
+			}
+
+			bool ControllerFocused()
+			{
+				if (!active.load() || !ui::ShownOnScreen(reflect::Get(header))) return false;
+				ui::Call mode(reflect::Get(menu), L"IsFilterFocused");
+				if (mode && mode.Size("IsClosed") == 1) {
+					if (!mode.RunGuarded() || !mode.Get<std::uint8_t>("IsClosed")) return false;
+				} else {
+					// Magic may not expose Inventory's Blueprint query: use the inherited focus getter.
+					ui::Call nativeFocus(reflect::Get(carousel), L"GetIsFocussed");
+					if (!nativeFocus || nativeFocus.Size("ReturnValue") != 1 ||
+						!nativeFocus.RunGuarded() || !nativeFocus.Get<std::uint8_t>("ReturnValue")) return false;
+				}
+				ui::Call focused(reflect::Get(carousel), L"GetFocusedElement");
+				return focused && focused.Size("ReturnValue") == 8 && focused.RunGuarded() &&
+					focused.Get<UE::UObject*>("ReturnValue") == reflect::Get(header);
+			}
+
+			void PaintController()
+			{
+				// Applied filter membership is not navigation focus.
+				const bool on = controllerFocus;
+				ui::RoundedBox(reflect::Get(headerFrame), false, on ? kSelected : kClear, on ? kGold : kClear, on ? 1.5f : 0.0f);
+				for (unsigned i = 0; i < itemtags::Info(view).count; ++i) {
+					const bool focused = open && controllerPopup && i == cursor;
+					ui::RoundedBox(reflect::Get(cells[i]), false, focused ? kSelected : kClear, focused ? kGold : kClear, focused ? 1.0f : 0.0f);
+				}
+			}
+
+			void Queue(int cmd)
+			{
+				std::scoped_lock lock(inputLock); command = cmd;
 			}
 
 			bool Contains(double a_x, double a_y)
@@ -565,6 +623,18 @@ namespace gearfilter
 		};
 
 		Picker g_pickers[2];  // [0] inventory tabs or magic school (owns the filtered list), [1] magic effect
+
+
+		bool OwnHeaderEvent(UE::UObject* object, UE::UFunction* function, void*)
+		{
+			// Never cancel an event on a native widget or a class-default object.
+			bool owned = false;
+			for (const auto& handle : g_ownedHeaders) owned |= reflect::Get(handle) == object;
+			if (!owned) return false;
+			const auto name = pe::FunctionName(function);
+			return name == "OnFocus" || name == "OnUnfocus";
+		}
+		sortpad::State g_pad;
 	}
 
 
@@ -635,6 +705,54 @@ namespace gearfilter
 		g_applied = std::move(keep); g_haveApplied = true; g_dirty = false; g_query = a_query;
 		primary.appliedChoice = primary.choice; primary.appliedCategory = primary.category;
 		second.appliedChoice = second.choice; second.appliedCategory = second.category;
+	}
+
+	void Controller(std::uint16_t& buttons, short& x, short& y, bool connected)
+	{
+		if (!connected) { g_pad.Disconnect(); return; }
+		const sortpad::Input raw{ buttons, x, y };
+		g_pad.Sample(raw, GetTickCount64());
+		Picker* owner = nullptr;
+		for (auto& picker : g_pickers) {
+			const bool focused = picker.ControllerFocused();
+			if (picker.controllerFocus != focused) {
+				picker.controllerFocus = focused;
+				if (!focused && picker.controllerPopup) {
+					picker.Queue(-2); picker.controllerPopup = false; picker.PaintController();
+					continue; // cancellation cannot be replaced by a confirm in the same sample
+				}
+				picker.PaintController();
+			}
+			// A mouse-opened picker is modal for the pad too, but only while its menu is active.
+			if (!owner && picker.active.load() && ui::ShownOnScreen(reflect::Get(picker.menu)) && (focused || picker.open)) owner = &picker;
+		}
+		if (owner) {
+			auto& picker = *owner;
+			if (picker.open) {
+				const bool newlyOwned = !picker.controllerPopup;
+				const auto previousCursor = picker.cursor;
+				picker.controllerPopup = true;
+				g_pad.Consume(raw, 0xFFFF, true);
+				if (g_pad.pressed & (sortpad::B | sortpad::Y)) picker.Queue(-3);
+				else if (g_pad.pressed & sortpad::A) picker.Queue(static_cast<int>(picker.cursor));
+				else if (g_pad.pulse != sortpad::Direction::None)
+					picker.cursor = sortpad::Move(picker.cursor, itemtags::Info(picker.view).count, g_pad.pulse);
+				if (newlyOwned || picker.cursor != previousCursor) picker.PaintController();
+			} else {
+				// Native methods retain their original A/up/down reversal. Only our focused header owns these.
+				g_pad.Consume(raw, sortpad::A | sortpad::Up | sortpad::Down | sortpad::Left | sortpad::Right, true);
+				if ((g_pad.pressed & sortpad::A) || g_pad.pulse == sortpad::Direction::Up || g_pad.pulse == sortpad::Direction::Down) {
+					picker.controllerPopup = true; picker.Queue(9);
+				}
+				else if (g_pad.pulse == sortpad::Direction::Left || g_pad.pulse == sortpad::Direction::Right) {
+					ui::Call navigate(reflect::Get(picker.carousel),
+						g_pad.pulse == sortpad::Direction::Left ? L"NavigateToPrevElement" : L"NavigateToNextElement");
+					navigate.RunGuarded();
+				}
+			}
+		}
+		const auto filtered = g_pad.Filter(raw);
+		buttons = filtered.buttons; x = filtered.x; y = filtered.y;
 	}
 
 	bool Contains(double a_x, double a_y)

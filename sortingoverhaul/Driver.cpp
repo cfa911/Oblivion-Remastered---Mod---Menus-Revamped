@@ -2,6 +2,7 @@
 
 
 #include "Menus.h"
+#include "GearFilter.h"
 
 #include <Xinput.h>   // types and constants only - nothing is linked or loaded
 
@@ -20,6 +21,13 @@ namespace sortingdriver
 			const DWORD rc = g_previous ? g_previous(a_user, a_state) : ERROR_DEVICE_NOT_CONNECTED;
 			if (a_user == 0 && GetCurrentThreadId() == g_gameThread) {
 				sorting::Tick();   // on every read, a connected pad or not
+				if (rc == ERROR_SUCCESS && a_state) {
+					auto& pad = a_state->Gamepad;
+					gearfilter::Controller(pad.wButtons, pad.sThumbLX, pad.sThumbLY, true);
+				} else {
+					std::uint16_t buttons = 0; short x = 0, y = 0;
+					gearfilter::Controller(buttons, x, y, false);
+				}
 			}
 			return rc;
 		}
@@ -51,7 +59,7 @@ namespace sortingdriver
 				*slot = &Chained;
 				VirtualProtect(slot, sizeof(void*), old, &old);
 				g_installed.store(true);
-				logger::info("driver: the game's {} XInputGetState import now ticks Sorting Overhaul every read (it changes nothing the game reads)", dll);
+				logger::info("driver: the game's {} XInputGetState import now ticks Sorting Overhaul every read (owns input only for the custom carousel header/popup)", dll);
 				return true;
 			}
 		}

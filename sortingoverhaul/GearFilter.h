@@ -6,6 +6,7 @@ namespace gearfilter
 	enum class Mode { None, Inventory, Magic };
 	// Inventory: one picker per tab. Magic: two pickers (school, effect) that filter the same list together.
 	void Tick(Mode a_mode, UE::UObject* a_menu, UE::UObject* a_canvas, float a_viewportScale);
+	void Controller(std::uint16_t& buttons, short& leftX, short& leftY, bool connected);
 	bool Active();
 	void Invalidate();  // native inventory/list rebuild, on the UE thread
 	void Filter(UE::UObject* a_list, const std::vector<UE::UObject*>& a_live, const std::string& a_query, NameMatches a_nameMatches);
