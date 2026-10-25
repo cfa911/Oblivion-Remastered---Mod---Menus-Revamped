@@ -28,3 +28,7 @@ Clone with `--recurse-submodules` (CommonLibOB64 is pinned), then run `xmake f -
 ## Expanded spell-effect picker
 
 See [effect-family definitions and verification](docs/spell-effect-categories.md). Eighteen choices including All; new icons deliberately use Staff placeholders. Runtime validation pending.
+
+## Native power membership follow-up
+
+[Power row filtering](docs/power-row-filter.md) now derives type from resolved native spells rather than a UI-category allowlist. Targeted power-filter owner retest is pending; the expanded grid/controller/mouse scenario was already owner-confirmed.

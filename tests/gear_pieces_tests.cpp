@@ -92,10 +92,10 @@ int main()
 	for (unsigned i = 0; i < schoolLabels.size(); ++i) check(itemtags::SchoolPopupLabel(i) == schoolLabels[i], "exact school display label");
 	check(itemtags::SchoolPopupLabel(8).empty(), "out-of-range school label is empty");
 	check(std::string_view(itemtags::Info(itemtags::Tab::MagicSchool).names[1]) == "Alteration", "full school tooltip remains available");
-	check(itemtags::Includes(3, itemtags::SchoolTags(2, 4)) && !itemtags::Includes(1, itemtags::SchoolTags(2, 4)), "destruction school");
-	check(itemtags::Includes(6, itemtags::SchoolTags(5, 4)) && !itemtags::Includes(7, itemtags::SchoolTags(5, 4)), "restoration is not a power");
-	check(itemtags::Includes(7, itemtags::SchoolTags(5, 8)) && itemtags::Includes(6, itemtags::SchoolTags(5, 8)), "a power keeps its school");
-	check(itemtags::SchoolTags(9, 4) == 0, "unknown school is untagged");
+	check(itemtags::Includes(3, itemtags::SchoolTags(2, 0)) && !itemtags::Includes(1, itemtags::SchoolTags(2, 0)), "destruction school");
+	check(itemtags::Includes(6, itemtags::SchoolTags(5, 0)) && !itemtags::Includes(7, itemtags::SchoolTags(5, 0)), "restoration is not a power");
+	check(itemtags::Includes(7, itemtags::SchoolTags(5, 2)) && itemtags::Includes(6, itemtags::SchoolTags(5, 2)), "a power keeps its school");
+	check(itemtags::SchoolTags(9, 0) == 0, "unknown school is untagged");
 	using magiceffects::Choice;
 	const std::uint32_t fire[] = { Code('F', 'I', 'D', 'G') }, magicka[] = { Code('R', 'E', 'S', 'P') };
 	check(itemtags::EffectTags(fire, 1) == magiceffects::Bit(Choice::Fire), "fire damage only");

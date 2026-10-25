@@ -133,12 +133,16 @@ namespace itemtags
 		return tags;
 	}
 
-	// Magic rows (VLegacyMagicMenuItem): School byte 0 alteration .. 5 restoration; Category 4 spell, 8 power (proven 2026-10-24).
-	// School choices: bits 0-5 the schools, bit 6 Powers (a power also keeps its school bit).
-	constexpr std::uint32_t SchoolTags(unsigned a_school, unsigned a_category)
+	// Native RE::MagicSystem::SpellType, NOT the unrelated UI Category byte.
+	// CommonLib enum + captured native spell list: 0 spell, 2 power, 3 lesser power.
+	constexpr bool IsPowerSpell(unsigned a_type) { return a_type == 2 || a_type == 3; }
+	constexpr bool IsCastableSpell(unsigned a_type) { return a_type == 0 || IsPowerSpell(a_type); }
+	// School byte comes from the row. Both native power types keep that school and the Powers bit.
+	constexpr std::uint32_t SchoolTags(unsigned a_school, unsigned a_spellType)
 	{
+		if (!IsCastableSpell(a_spellType)) return 0;
 		std::uint32_t tags = a_school <= 5 ? 1u << a_school : 0u;
-		if (a_category == 8) tags |= 1u << 6;
+		if (IsPowerSpell(a_spellType)) tags |= 1u << 6;
 		return tags;
 	}
 

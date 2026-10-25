@@ -3,6 +3,7 @@
 #include "GearData.h"
 #include "ControllerPolicy.h"
 #include "ItemTags.h"
+#include "MagicRows.h"
 #include "Icons.h"
 #include "PEHook.h"
 #include "Reflect.h"
@@ -24,7 +25,7 @@ namespace gearfilter
 		constexpr float kSelected[4] = { 0.55f, 0.38f, 0.13f, 0.25f };
 		// Item masks: low 32 bits = the first picker's tags, high 32 bits = the second picker's (Magic effect). A row that is
 		// not a spell (for example an active effect) carries kPassAll and is never hidden.
-		constexpr std::uint64_t kPassAll = 1ull << 63;
+		constexpr std::uint64_t kPassAll = magicrows::kPassAll;
 		struct Rect
 		{
 			double x = 0, y = 0, w = 0, h = 0;
@@ -132,10 +133,13 @@ namespace gearfilter
 			return get && get.Size("ReturnValue") == 4 && get.Run() ? get.Get<int>("ReturnValue") : -1;
 		}
 
-		// ---- Magic rows: school and category come from the row itself, effects from the player's spell list ----
+		// ---- Magic rows: school/range from the row, native spell type/effects from the player's spell list ----
 		// Row layout (VLegacyMagicMenuItem, 136 bytes, proven 2026-10-24): Category +0x50, Type +0x51, InventoryIndex +0x54, School +0x58.
 		// InventoryIndex - 1 is the spell's position in the player's list.
-		struct SpellRow { std::uint32_t codes[8]; unsigned count; };
+		using SpellRow = magicrows::Spell;
+		static_assert(static_cast<unsigned>(RE::MagicSystem::SpellType::kSpell) == 0);
+		static_assert(static_cast<unsigned>(RE::MagicSystem::SpellType::kPower) == 2);
+		static_assert(static_cast<unsigned>(RE::MagicSystem::SpellType::kLesserPower) == 3);
 
 		int ReadSpellsRaw(SpellRow* a_out, int a_max)
 		{
@@ -149,13 +153,15 @@ namespace gearfilter
 				for (auto* node = reinterpret_cast<Node*>(&list->spells); node && n < a_max; node = node->next) {
 					auto* spell = node->item;
 					SpellRow row{};
-					if (spell) {
+					if (spell && spell->Is(RE::FormType::Spell)) {
+						row.type = static_cast<unsigned>(spell->data.spellType);
 						auto** effect = reinterpret_cast<void**>(&spell->effectList);
 						for (int k = 0; effect && k < 8; ++k) {
 							auto* item = reinterpret_cast<std::uint8_t*>(effect[0]);
 							if (item) row.codes[row.count++] = *reinterpret_cast<std::uint32_t*>(item + 0x08);
 							effect = reinterpret_cast<void**>(effect[1]);
 						}
+						row.valid = true;
 					}
 					a_out[n++] = row;
 				}
@@ -176,13 +182,14 @@ namespace gearfilter
 			spells.resize(static_cast<std::size_t>(ReadSpellsRaw(spells.data(), 600)));
 			for (auto* item : a_items) {
 				const int index = Index(item);
-				std::uint8_t category = 0, school = 0;
-				const bool read = item && ReadByte(item, 0x50, category) && ReadByte(item, 0x58, school);
-				std::uint64_t mask = kPassAll;
-				if (read && (category == 4 || category == 8) && index >= 1 && static_cast<std::size_t>(index) <= spells.size()) {
-					const auto& spell = spells[static_cast<std::size_t>(index) - 1];
-					mask = static_cast<std::uint64_t>(itemtags::SchoolTags(school, category)) |
-					       (static_cast<std::uint64_t>(itemtags::EffectTags(spell.codes, spell.count)) << 32);
+				std::uint8_t range = 0, school = 0;
+				const bool read = item && ReadByte(item, 0x51, range) && ReadByte(item, 0x58, school);
+				const auto mask = read ? magicrows::Mask(range, school, index, spells.data(), spells.size()) : kPassAll;
+				// A genuine unresolved row still fails open; report once, never every row/menu tick.
+				static bool warned = false;
+				if (!warned && read && magicrows::CastableRange(range) && mask == kPassAll) {
+					warned = true;
+					logger::warn("Sorting Overhaul: native spell-type power filtering could not resolve a Magic row (index={}, range={}, captured={}); leaving it unfiltered", index, range, spells.size());
 				}
 				g_masks[index] = mask;
 			}
