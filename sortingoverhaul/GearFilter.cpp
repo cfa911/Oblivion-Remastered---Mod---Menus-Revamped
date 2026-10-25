@@ -491,6 +491,17 @@ namespace gearfilter
 					tab = wanted; view = wanted; styled = false;
 				}
 				tabSet = true;
+				// The game re-shows the native School wrapper when its filters update. Collapse it
+				// on every tick (not only the 150 ms layout pass) so its glyph never renders beside ours.
+				if (auto* native = reflect::Get(nativeSchool)) {
+					ui::Call visible(native, L"IsVisible");
+					if (!visible || visible.Size("ReturnValue") != 1 || !visible.Run() || visible.Get<bool>("ReturnValue")) {
+						ui::Call hide(native, L"SetVisibility");
+						const bool hidden = hide && hide.Size("InVisibility") == 1 &&
+							hide.Set("InVisibility", static_cast<std::uint8_t>(1)) && hide.Run();
+						if (!hidden) logger::warn("Sorting Overhaul: SO-SCHOOL-FLASH-20261025 could not collapse the native School wrapper");
+					}
+				}
 				if (reflect::Get(menu) != a_menu || reflect::Get(canvas) != a_canvas) {
 					Reset();
 					for (const auto& handle : { popup, cache, header }) if (auto* old = reflect::Get(handle)) { ui::Call remove(old, L"RemoveFromParent"); remove.Run(); }
