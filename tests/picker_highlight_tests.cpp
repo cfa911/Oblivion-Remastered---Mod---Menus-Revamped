@@ -44,5 +44,32 @@ int main()
 		Check(state.Update(header, open, controller) == Transition::None);
 		Check(state.Update(false, false, false) == (owns ? Transition::Leave : Transition::None));
 	}
+	for (float original : { 0.0f, 0.25f, 0.7f, 1.0f }) {
+		OpacitySnapshot tile;
+		Check(!tile.HasValue());
+		Check(tile.Capture(original));
+		Check(tile.HasValue() && tile.Original() == original);
+		Check(!tile.Capture(0.0f)); // second custom picker sees masked zero; must NOT replace backup
+		Check(tile.Original() == original);
+		Check(!tile.Capture(1.0f));
+		Check(tile.Original() == original);
+		tile.Reset();
+		Check(!tile.HasValue());
+		Check(tile.Capture(0.4f) && tile.Original() == 0.4f);
+	}
+	NativeHandoff shared;
+	OpacitySnapshot background;
+	Check(shared.Update(true, false, false) == Transition::Enter);
+	Check(background.Capture(0.7f));
+	// School -> Effect and Effect -> School share one owner union and one original opacity.
+	for (unsigned owners : { 1u, 2u, 3u, 2u, 1u }) {
+		Check(shared.Update(owners != 0, false, false) == Transition::None);
+		Check(!background.Capture(0.0f) && background.Original() == 0.7f);
+	}
+	Check(shared.Update(false, false, false) == Transition::Leave);
+	Check(background.Original() == 0.7f); // exact restoration value, not a guessed1 or captured0
+	Check(!Owns(false, true, false));
+	Check(Owns(false, true, true));
+	Check(Owns(true, false, false));
 	std::printf("%u picker highlight checks passed\n", checks);
 }

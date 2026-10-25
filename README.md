@@ -35,4 +35,4 @@ See [effect-family definitions and verification](docs/spell-effect-categories.md
 
 ## Native-style focus highlight
 
-[Square borderless E6E4DF focus and native peer handoff](docs/native-highlight.md) is implemented for owner testing. Existing icons/background and filter membership are unchanged.
+[Square borderless E6E4DF focus and reversible native background mask](docs/native-highlight.md) is implemented for owner testing. Existing icons/background and filter membership are unchanged.
