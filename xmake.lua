@@ -12,12 +12,6 @@ set_languages("c++23")
 set_warnings("allextra")
 add_rules("mode.debug", "mode.releasedbg")
 
-option("sort_navigation_probe")
-    set_default(false)
-    set_showmenu(true)
-    set_description("TEMP-DIAG: manual bounded native sorting navigation capture")
-option_end()
-
 -- Independent development plugin. No SearchLight or MagicLoader linkage.
 target("SortingOverhaul")
     set_version("0.0.0")
@@ -29,11 +23,6 @@ target("SortingOverhaul")
     add_syslinks("user32")
     add_files("sortingoverhaul/Icons.cpp", "sortingoverhaul/GearFilter.cpp", "sortingoverhaul/GearData.cpp", "sortingoverhaul/Runtime.cpp", "sortingoverhaul/Driver.cpp", "sortingoverhaul/main.cpp")
     add_files("src/Ui.cpp", "src/Reflect.cpp", "src/PEHook.cpp", "src/Menus.cpp", "src/UiText.cpp")
-
-    if has_config("sort_navigation_probe") then
-        add_defines("SORTING_NAV_PROBE")
-        add_files("sortingoverhaul/SortNavigationProbe.cpp")
-    end
 
     add_headerfiles("sortingoverhaul/*.h")
     add_includedirs("src", "sortingoverhaul")

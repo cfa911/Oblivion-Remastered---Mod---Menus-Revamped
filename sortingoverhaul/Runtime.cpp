@@ -5,9 +5,6 @@
 #include "PEHook.h"
 #include "Reflect.h"
 #include "Ui.h"
-#ifdef SORTING_NAV_PROBE
-#include "SortNavigationProbe.h"
-#endif
 
 namespace sorting
 {
@@ -98,9 +95,6 @@ namespace sorting
 				if (list && Count(list) >= 0) context.list = reflect::Hold(list);
 			}
 			gearfilter::Tick(menu == 2 ? gearfilter::Mode::Magic : gearfilter::Mode::Inventory, widget, reflect::Get(context.canvas), Scale());
-#ifdef SORTING_NAV_PROBE
-			sortnavprobe::Tick(menu, widget);  // TEMP-DIAG: manual, bounded native carousel capture
-#endif
 			return reflect::Get(context.list);
 		}
 
