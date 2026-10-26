@@ -1,3 +1,44 @@
+# Menus Revamped
+
+Unified search, category pickers and controller keyboard for Oblivion Remastered.
+Formerly Sorting Overhaul; the repository is now
+`cfa911/Oblivion-Remastered---Mod---Menus-Revamped`.
+The standalone Sorting baseline is preserved on `deprecated/sorting-overhaul`.
+
+- One plugin: `MenusRevamped.dll`, one `MenusRevamped.ini` and one log.
+- Shared native list ownership; text and category filtering combine internally.
+- Search in Inventory, Magic, Quests and both container/barter sides.
+- Existing picker appearance, controller gestures and custom artwork retained.
+- Asset folders: `MenusRevamped/Search`, `Keyboard` and `Sorting`.
+- Improved Wheels Plus uses three read-only `MenusRevamped_*` exports.
+- Smooth Menus is not part of this build. Remaining flash/stutter bugs are not
+  claimed fixed. No copied display rows or menu-input freeze is included.
+
+## Development build and cutover
+
+Build with xmake windows/x64/releasedbg, target `MenusRevamped`.
+Before deploying, run `tools/stage_menus_revamped.py --plugins <old Plugins>
+--destination <staging folder>` to import settings/artwork without editing the
+live install. Repeat staging never overwrites unified customization.
+
+With the game completely closed, back up and remove the old `MenuSearch.dll`,
+`MenuSearchControllerKeyboard.dll` and `SortingOverhaul.dll` and their PDBs.
+Install the unified build and the matching Improved Wheels lookup update;
+never run the old and new menu plugins together. Keep original settings/artwork
+and the wheel's assignments for rollback. Runtime reads only unified paths.
+
+## Provenance and tests
+
+Sorting baseline: `53ca72a`; SearchLight/controller keyboard baseline: `45063dc`.
+All imported sources retain GPL-3.0-or-later notices. Credit: `cfa911`.
+Focused tests cover real internal adapters, the unified filter and input driver,
+source generations, one-time migration and the existing native resolver.
+
+## Historical Sorting feature reference
+
+The documentation below predates integration. Standalone DLL names and
+cross-plugin compatibility descriptions are historical, not current packaging.
+
 # Sorting Overhaul (development source)
 
 Independent OBSE64 plugin for Inventory and container/barter category/item pickers and Magic School/Effect pickers. Requires OBSE64 and the Address Library; uses the game UI through reflection. No SearchLight, MagicLoader, MISS, or third-party mod runtime dependency. Development version 0.0.0; not a release.

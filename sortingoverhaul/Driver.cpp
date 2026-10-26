@@ -4,6 +4,8 @@
 #include "Menus.h"
 #include "GearFilter.h"
 #include "ControllerPolicy.h"
+#include "../searchkb/XInputHook.h"
+#include "../searchkb/SearchKeyboard.h"
 
 #include <Xinput.h>   // types and constants only - nothing is linked or loaded
 
@@ -25,10 +27,18 @@ namespace sortingdriver
 				sorting::Tick();   // on every read, a connected pad or not
 				if (rc == ERROR_SUCCESS && a_state) {
 					auto& pad = a_state->Gamepad;
-					gearfilter::Controller(pad.wButtons, pad.sThumbLX, pad.sThumbLY, true);
-					a_state->dwPacketNumber = g_packets.Update(a_state->dwPacketNumber, { pad.wButtons, pad.sThumbLX, pad.sThumbLY });
+					const bool keyboardHadInput = osk::Taking();
+					keyboardinput::Process(*a_state, !gearfilter::PopupOpen(), true);
+					if (!keyboardHadInput && !osk::Taking())
+						gearfilter::Controller(pad.wButtons, pad.sThumbLX, pad.sThumbLY, true);
+					a_state->dwPacketNumber = g_packets.Update(a_state->dwPacketNumber,
+						{ pad.wButtons, pad.sThumbLX, pad.sThumbLY, pad.sThumbRX, pad.sThumbRY, pad.bLeftTrigger, pad.bRightTrigger });
+					sorting::PublishInputState();
 				} else {
 					g_packets.Reset();
+					XINPUT_STATE empty{};
+					keyboardinput::Process(empty, false, false);
+					sorting::PublishInputState();
 					std::uint16_t buttons = 0; short x = 0, y = 0;
 					gearfilter::Controller(buttons, x, y, false);
 				}

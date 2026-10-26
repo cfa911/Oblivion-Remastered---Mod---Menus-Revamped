@@ -1,31 +1,34 @@
-// Sorting Overhaul - independent OBSE64 plugin. SPDX-License-Identifier: GPL-3.0-or-later
+// Menus Revamped: search, category pickers and controller keyboard.
+// SPDX-License-Identifier: GPL-3.0-or-later
 #include "Runtime.h"
-namespace {
+#include "../revamped/Config.h"
+#include "../menusearch/MenuSearch.h"
+
+namespace
+{
 	void OnMessage(OBSE::MessagingInterface::Message* message)
 	{
-		if (message && message->type == OBSE::MessagingInterface::kPostLoad) sortingdriver::Install();
+		if (message && message->type == OBSE::MessagingInterface::kPostLoad) {
+			msearch::SetGameThread(GetCurrentThreadId());
+			sortingdriver::Install();
+		}
 	}
 }
-extern "C" __declspec(dllexport) bool SortingOverhaul_FilterList(int menu, UE::UObject* list, const char* query, bool (*matches)(UE::UObject*, const char*))
+
+extern "C"
 {
-	return sorting::FilterList(menu, list, query, matches);
+	__declspec(dllexport) bool MenusRevamped_IsTyping() { return msearch::Typing(); }
+	__declspec(dllexport) bool MenusRevamped_CursorOverBar() { return msearch::CursorOverBar(); }
+	__declspec(dllexport) bool MenusRevamped_IsControllerKeyboardOpen() { return sorting::ControllerKeyboardOpen(); }
 }
+
 OBSE_PLUGIN_LOAD(const OBSE::LoadInterface* obse)
 {
-	OBSE::Init(obse, { .logRotate = 3 });  // preserve preceding test runs instead of truncating them
-	logger::set_level(spdlog::level::warn, spdlog::level::warn);
-	sorting::LoadSettings();
-	logger::info("Sorting Overhaul: SO-CONTAINER-NATIVE-RESOLVER-20261026 uses side/index/barter from native ContainerMenu DoIdle");
-	logger::info("Sorting Overhaul: SO-CONTAINER-BARTER-20261026 isolates both side lists and resolves native row form IDs");
-	logger::info("Sorting Overhaul: SO-POTION-MAGICKA-20261025 uses verified RESP/FOSP potion effects");
-	logger::info("Sorting Overhaul: SO-ARROWS-20261026 classifies native AMMO as Weapons / Arrows");
-	logger::info("Sorting Overhaul: SO-PICKER-4COL-20261026 fits full labels and resizes panel/paper per view");
-	logger::info("Sorting Overhaul: SO-PICKER-ANCHOR-TITLE-20261026 shifts popup right and centers dark title");
-	logger::info("Sorting Overhaul: SO-PICKER-CUSTOM-GRID-20261026 uses 1x1, 2-column up to4, 3-column up to9, otherwise4");
-	logger::info("Sorting Overhaul: SO-CONTROLLER-RETURN-20261026 reads bReturnToListAfterFilter and returns after controller leaf selection");
-	logger::info("Sorting Overhaul: SO-WEAPON-KINDS-20261025 uses bounded model/icon hints with Other fallback");
-	logger::info("Sorting Overhaul: SO-ALCHEMY-TREE-20261025 nests potion families; Ingredients/Tools and Misc hammer/torch tools");
-
+	OBSE::Init(obse, { .logRotate = 3 });
+	mrconfig::Load();
+	const auto level = static_cast<spdlog::level::level_enum>(std::clamp(mrconfig::Get().search.logLevel, 0, 4));
+	logger::set_level(level, level);
+	logger::warn("Menus Revamped MR-INTEGRATION-20261026: unified search/pickers/controller keyboard; one list owner; no display-copy/input-freeze experiment");
 	if (auto* messages = OBSE::GetMessagingInterface()) return messages->RegisterListener(&OnMessage);
 	return false;
 }
