@@ -14,6 +14,9 @@ OBSE_PLUGIN_LOAD(const OBSE::LoadInterface* obse)
 {
 	OBSE::Init(obse);
 	logger::set_level(spdlog::level::warn, spdlog::level::warn);
+	logger::info("Sorting Overhaul: SO-POTION-MAGICKA-20261025 uses verified RESP/FOSP potion effects");
+	logger::info("Sorting Overhaul: SO-WEAPON-KINDS-20261025 uses bounded model/icon hints with Other fallback");
+	logger::info("Sorting Overhaul: SO-ALCHEMY-TREE-20261025 nests potion families; Ingredients/Tools and Misc hammer/torch tools");
 
 	if (auto* messages = OBSE::GetMessagingInterface()) return messages->RegisterListener(&OnMessage);
 	return false;

@@ -43,47 +43,65 @@ int main()
 	check(itemtags::TabFromPage(2, tab) && tab == itemtags::Tab::Potions, "page 2 is potions");
 	check(itemtags::TabFromPage(3, tab) && tab == itemtags::Tab::Misc, "page 3 is misc");
 	check(itemtags::TabFromPage(4, tab) && tab == itemtags::Tab::AllItems && !itemtags::TabFromPage(5, tab) && !itemtags::TabFromPage(-1, tab), "page 4 is all items");
-	check(itemtags::Info(itemtags::Tab::Weapons).count == 5 && itemtags::Info(itemtags::Tab::Gear).count == 9 &&
-		itemtags::Info(itemtags::Tab::Potions).count == 6 && itemtags::Info(itemtags::Tab::Misc).count == 6, "choice counts");
+	check(itemtags::Info(itemtags::Tab::Weapons).count == weaponkinds::kCount && itemtags::Info(itemtags::Tab::Gear).count == 9 &&
+		itemtags::Info(itemtags::Tab::Potions).count == 4 && itemtags::Info(itemtags::Tab::Misc).count == 6, "choice counts");
 	// Gear tags still agree with the captured masks: Ring is choice 1, Shield choice 8.
 	check(itemtags::Includes(1, itemtags::GearTags(0xC0)) && itemtags::Includes(7, itemtags::GearTags(12)) && !itemtags::Includes(6, itemtags::GearTags(8)), "gear tags");
 	check(itemtags::Includes(0, 0), "All keeps untagged items");
 	check(!itemtags::Includes(1, 0), "untagged item is not choice 1");
-	// Weapons: blade 0/1, blunt 2/3, staff 4, bow 5.
-	check(itemtags::Includes(1, itemtags::WeaponTags(0)) && itemtags::Includes(1, itemtags::WeaponTags(1)), "blades");
-	check(itemtags::Includes(2, itemtags::WeaponTags(2)) && itemtags::Includes(2, itemtags::WeaponTags(3)), "blunts");
-	check(itemtags::Includes(3, itemtags::WeaponTags(5)) && itemtags::Includes(4, itemtags::WeaponTags(4)), "bow and staff");
-	check(!itemtags::Includes(2, itemtags::WeaponTags(0)) && itemtags::WeaponTags(-1) == 0 && itemtags::WeaponTags(9) == 0, "weapon type isolation");
-	// Potions: codes seen in the capture (REHE restore health, FOHE fortify health, REFA, CUPO, DGHE damage health).
+	// Detailed melee tags use model/icon hints within native skill/handedness boundaries.
+	check(itemtags::Includes(1, itemtags::WeaponTags(0, "Dagger.NIF")) && itemtags::Includes(4, itemtags::WeaponTags(1, "Claymore.NIF")), "blade subtypes");
+	check(itemtags::Includes(5, itemtags::WeaponTags(2, "WarAxe.NIF")) && itemtags::Includes(6, itemtags::WeaponTags(3, "Battleaxe.NIF")), "axe subtypes");
+	check(itemtags::Includes(9, itemtags::WeaponTags(5)) && itemtags::Includes(10, itemtags::WeaponTags(4)), "bow and staff unchanged");
+	check(!itemtags::Includes(2, itemtags::WeaponTags(0)) && itemtags::Includes(11, itemtags::WeaponTags(-1)) && itemtags::Includes(11, itemtags::WeaponTags(9)), "unknown weapon fallback");
+	// Potion family IDs are flat applied tags, independent of the nested popup.
 	using itemtags::Code;
+	using itemtags::Alchemy;
+	using itemtags::AlchemyBit;
+	using itemtags::Index;
 	const std::uint32_t rest[] = { Code('R', 'E', 'H', 'E') };
 	const std::uint32_t mixed[] = { Code('R', 'E', 'H', 'E'), Code('D', 'G', 'F', 'A') };
 	const std::uint32_t cure[] = { Code('C', 'U', 'P', 'O') };
 	const std::uint32_t fatigue[] = { Code('R', 'E', 'F', 'A') };
 	const std::uint32_t damage[] = { Code('D', 'G', 'H', 'E') };
 	check(Code('R', 'S', 'M', 'A') == 0x414D5352u, "effect code byte order matches the dump");
-	check(itemtags::Includes(1, itemtags::PotionTags(rest, 1, 0)) && !itemtags::Includes(5, itemtags::PotionTags(rest, 1, 0)), "restore health");
-	check(itemtags::Includes(1, itemtags::PotionTags(mixed, 2, 1)) && itemtags::Includes(5, itemtags::PotionTags(mixed, 2, 1)), "mixed potion is health and poison");
-	check(itemtags::Includes(4, itemtags::PotionTags(cure, 1, 0)) && itemtags::Includes(3, itemtags::PotionTags(fatigue, 1, 0)), "cure and fatigue");
-	check(itemtags::Includes(5, itemtags::PotionTags(damage, 1, 2)) && !itemtags::Includes(1, itemtags::PotionTags(damage, 1, 2)), "poison is not health");
-	check(itemtags::PotionTags(nullptr, 0, 0) == 0, "ingredient has no potion tag");
-	// Misc: key 39, soul gem 38, book 21, misc 27 (lockpick 0xA), light 26, sigil stone 42, apparatus 19 (potions page).
+	check(itemtags::Includes(Index(Alchemy::Health), itemtags::PotionTags(rest, 1, 0)) && !itemtags::Includes(Index(Alchemy::Poison), itemtags::PotionTags(rest, 1, 0)), "restore health");
+	check(itemtags::Includes(Index(Alchemy::Health), itemtags::PotionTags(mixed, 2, 1)) && itemtags::Includes(Index(Alchemy::Poison), itemtags::PotionTags(mixed, 2, 1)), "mixed potion is health and poison");
+	check(itemtags::Includes(Index(Alchemy::Cure), itemtags::PotionTags(cure, 1, 0)) && itemtags::Includes(Index(Alchemy::Fatigue), itemtags::PotionTags(fatigue, 1, 0)), "cure and fatigue");
+	check(itemtags::Includes(Index(Alchemy::Poison), itemtags::PotionTags(damage, 1, 2)) && !itemtags::Includes(Index(Alchemy::Health), itemtags::PotionTags(damage, 1, 2)), "poison is not health");
+	check(itemtags::PotionTags(nullptr, 0, 0) == AlchemyBit(Alchemy::Potions), "unclassified potion stays in Potions");
+	// Actual master ALCH records: 00098499 PotionRestoreMagicka and 00098477 PotionFortifyMagicka.
+	const std::uint32_t potionRESP[] = { Code('R', 'E', 'S', 'P') };
+	check(itemtags::PotionTags(potionRESP, 1, 0) == (AlchemyBit(Alchemy::Potions) | AlchemyBit(Alchemy::Magicka)), "vanilla RESP potion is Magicka");
+	check(itemtags::IncludesAll(3, Index(Alchemy::Magicka), itemtags::PotionTags(potionRESP, 1, 0) | (3u << 28)), "All Items Magicka RESP");
+	const std::uint32_t potionFOSP[] = { Code('F', 'O', 'S', 'P') };
+	check(itemtags::PotionTags(potionFOSP, 1, 0) == (AlchemyBit(Alchemy::Potions) | AlchemyBit(Alchemy::Magicka)), "vanilla FOSP potion is Magicka");
+	check(itemtags::IncludesAll(3, Index(Alchemy::Magicka), itemtags::PotionTags(potionFOSP, 1, 0) | (3u << 28)), "All Items Magicka FOSP");
+	const std::uint32_t inventedMagicka[] = { Code('R', 'E', 'M', 'A'), Code('F', 'O', 'M', 'A') };
+	check(itemtags::PotionTags(inventedMagicka, 2, 0) == AlchemyBit(Alchemy::Potions), "invented codes add no family");
+	const std::uint32_t mixedMagicka[] = { Code('R', 'E', 'S', 'P'), Code('R', 'E', 'H', 'E'), Code('R', 'E', 'F', 'A'), Code('C', 'U', 'P', 'O') };
+	const auto mixedTags = AlchemyBit(Alchemy::Potions) | AlchemyBit(Alchemy::Magicka) | AlchemyBit(Alchemy::Health) | AlchemyBit(Alchemy::Fatigue) | AlchemyBit(Alchemy::Cure);
+	check(itemtags::PotionTags(mixedMagicka, 4, 0) == mixedTags, "mixed potion retains all four families");
+	check(itemtags::PotionTags(mixedMagicka, 4, 1) == (mixedTags | AlchemyBit(Alchemy::Poison)), "hostile mixed potion also retains Poison");
+	check(!itemtags::IncludesAll(2, Index(Alchemy::Magicka), itemtags::PotionTags(potionRESP, 1, 0) | (3u << 28)), "Magicka cannot leak into Gear");
+	// Misc: stable native item kinds and the independently verified base repair-hammer form.
 	check(itemtags::Includes(1, itemtags::MiscTags(39, 0x123, 0)), "key");
 	check(itemtags::Includes(2, itemtags::MiscTags(38, 0x2CF9F, 0)), "soul gem");
 	check(itemtags::Includes(3, itemtags::MiscTags(21, 0x5, 1)), "book or scroll");
-	check(itemtags::Includes(4, itemtags::MiscTags(27, 0x0A, 0)) && itemtags::Includes(4, itemtags::MiscTags(27, 0xFF00000A, 0)), "lockpick with any load-order byte");
+	check(itemtags::Includes(4, itemtags::MiscTags(27, 0x0A, 0)) && itemtags::Includes(4, itemtags::MiscTags(27, 0xFF00000A, 0)), "existing lockpick rule retained");
+	check(itemtags::Includes(4, itemtags::MiscTags(27, 0x0C, 0)) && !itemtags::Includes(5, itemtags::MiscTags(27, 0x0C, 0)), "base repair hammer moves to Tools");
 	check(itemtags::Includes(5, itemtags::MiscTags(27, 0x191, 0)) && !itemtags::Includes(4, itemtags::MiscTags(27, 0x191, 0)), "other misc");
-	check(itemtags::Includes(5, itemtags::MiscTags(26, 0x2CF9F, 0)) && itemtags::Includes(5, itemtags::MiscTags(42, 0x41FD3, 0)), "light and sigil stone are other");
-	check(itemtags::MiscTags(19, 1, 0) == 0 && itemtags::MiscTags(25, 1, 0) == 0, "apparatus and ingredients stay untagged");
-	// All Items: category from form type, then the sub-choice inside it.
+	check(itemtags::Includes(4, itemtags::MiscTags(26, 0x2CF9F, 0)) && itemtags::Includes(5, itemtags::MiscTags(42, 0x41FD3, 0)), "torch Tools and sigil stone Other");
+	check(itemtags::MiscTags(19, 1, 0) == 0 && itemtags::MiscTags(25, 1, 0) == 0, "alchemy tools and ingredients do not become Misc");
+// All Items: category from form type, then the sub-choice inside it.
 	check(itemtags::Info(itemtags::Tab::AllItems).count == 5, "category count");
 	check(itemtags::Category(33) == 1 && itemtags::Category(20) == 2 && itemtags::Category(22) == 2 && itemtags::Category(40) == 3 &&
 		itemtags::Category(25) == 3 && itemtags::Category(19) == 3 && itemtags::Category(39) == 4 && itemtags::Category(21) == 4 && itemtags::Category(34) == 0, "categories");
 	const std::uint32_t ring = itemtags::GearTags(0x40) | (2u << 28), bow = itemtags::WeaponTags(5) | (1u << 28), key = itemtags::MiscTags(39, 1, 0) | (4u << 28), ammo = 0;
-	check(itemtags::IncludesAll(0, 0, ammo) && itemtags::IncludesAll(0, 3, bow), "no category keeps everything");
+	check(itemtags::IncludesAll(0, 0, ammo) && itemtags::IncludesAll(0, 9, bow), "no category keeps everything");
 	check(itemtags::IncludesAll(2, 0, ring) && !itemtags::IncludesAll(2, 0, bow), "whole gear category");
 	check(itemtags::IncludesAll(2, 1, ring) && !itemtags::IncludesAll(2, 2, ring), "ring inside gear");
-	check(itemtags::IncludesAll(1, 3, bow) && !itemtags::IncludesAll(1, 3, key), "bow only inside weapons");
+	check(itemtags::IncludesAll(1, 9, bow) && !itemtags::IncludesAll(1, 9, key), "bow only inside weapons");
 	check(itemtags::IncludesAll(4, 1, key) && !itemtags::IncludesAll(3, 1, key), "key only in misc");
 	check(!itemtags::IncludesAll(1, 0, ammo) && itemtags::Includes(1, ring), "category bits do not disturb choice bits");
 	// Magic: school/power and effect tags.

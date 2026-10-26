@@ -3,6 +3,7 @@
 #include "GearData.h"
 #include "ControllerPolicy.h"
 #include "ItemTags.h"
+#include "PickerNavigation.h"
 #include "MagicRows.h"
 #include "PickerHighlight.h"
 #include "Icons.h"
@@ -221,7 +222,7 @@ namespace gearfilter
 			reflect::Handle carousel;
 			std::vector<reflect::Handle> nativePeers;
 			bool nativeFocusWarning = false;
-			unsigned choice = 0, appliedChoice = 0;  // 0 = All; choice k filters on tag bit k - 1 of the current tab
+			unsigned choice = 0, appliedChoice = 0;  // flat membership ID, independent of popup depth
 			unsigned category = 0, appliedCategory = 0;  // All Items page only: 0 = none, else 1 weapons, 2 gear, 3 potions, 4 misc
 			itemtags::Tab tab = itemtags::Tab::Gear, view = itemtags::Tab::Gear;  // view: whose choices the popup shows
 			bool tabSet = false, styled = false, widgetWarning = false, fontsReady = false, fontWarning = false;
@@ -293,18 +294,16 @@ namespace gearfilter
 
 			const wchar_t* HeaderIcon() const
 			{
-				if (tab != itemtags::Tab::AllItems) return itemtags::Info(tab).icons[choice];
+				if (tab != itemtags::Tab::AllItems) return itemtags::SelectionIcon(tab, choice);
 				if (category == 0 || category > 4) return itemtags::Info(tab).icons[0];
 				if (choice == 0) return itemtags::Info(tab).icons[category];  // the whole category
-				return itemtags::Info(static_cast<itemtags::Tab>(category - 1)).icons[choice];
+				return itemtags::SelectionIcon(static_cast<itemtags::Tab>(category - 1), choice);
 			}
 
 			// Which cell of the popup's current view is the active selection (99 = none).
 			unsigned Highlight() const
 			{
-				if (tab != itemtags::Tab::AllItems) return choice;
-				if (view == itemtags::Tab::AllItems) return category;
-				return category == static_cast<unsigned>(view) + 1 ? choice : 99;
+				return pickernav::Highlight(tab, view, category, choice);
 			}
 
 			// Labels, icons and visible cells follow the popup's view; the header icon follows the current selection.
@@ -557,18 +556,21 @@ namespace gearfilter
 					cursor = Highlight() < itemtags::Info(tab).count ? Highlight() : 0;
 				}
 				else if (pickergrid::IsSelection(cmd, itemtags::Info(view).count)) {
-					if (tab == itemtags::Tab::AllItems && view == itemtags::Tab::AllItems && cmd > 0) {
-						view = static_cast<itemtags::Tab>(cmd - 1); cursor = 0; styled = false; nextHitMeasure = 0;  // open the category's own choices
-					} else if (tab == itemtags::Tab::AllItems) {
-						if (view == itemtags::Tab::AllItems) { category = 0; choice = 0; }
-						else { category = static_cast<unsigned>(view) + 1; choice = static_cast<unsigned>(cmd); }
-						open = false;
-					} else { choice = static_cast<unsigned>(cmd); open = false; }
+					const auto next = pickernav::Choose(tab, view, category, choice, static_cast<unsigned>(cmd));
+					if (view != next.view) { view = next.view; styled = false; nextHitMeasure = 0; nextLayout = 0; }
+					category = next.category; choice = next.choice; cursor = next.cursor;
+					open = !next.close;
 				}
-				else if (cmd == -3 && tab == itemtags::Tab::AllItems && view != tab) {
-					cursor = static_cast<unsigned>(view) + 1; view = tab; styled = false; nextHitMeasure = 0;
+				else if (cmd == -3) {
+					const auto next = pickernav::Back(tab, view, category, choice);
+					if (view != next.view) { view = next.view; styled = false; nextHitMeasure = 0; nextLayout = 0; }
+					cursor = next.cursor;
+					if (next.close) open = false;
 				}
-				else if (cmd == -2 || cmd == -3) open = false;
+				else if (cmd == -2) open = false;
+				// A nested view changed after the normal style pass. Update visible cells
+				// before measuring input regions, not a tick later with stale parent cells.
+				if (!styled) { StyleCells(); styled = true; }
 				if (!open) controllerPopup = false;
 				const std::uint8_t popupVisibility = open ? 0 : 1;  // visible background blocks hover/click hit tests on rows below it
 				if (open != paintedOpen) {
