@@ -19,7 +19,7 @@ This public source contains original procedural icon defaults. The owner's custo
 
 ## Optional SearchLight integration
 
-The paired development SearchLight build exports `MenuSearch_DrivesSorting` and optionally calls `SortingOverhaul_FilterList`. Sorting Overhaul then owns the combined Inventory/Magic list filter while SearchLight supplies its exact text matcher. Without SearchLight, Sorting Overhaul drives its own list filter with no search text. Without Sorting Overhaul, SearchLight uses its ordinary filter. Older SearchLight releases have no coordination API; simultaneous filtering with those builds is not validated.
+The paired development SearchLight build exports `MenuSearch_DrivesSorting` and optionally calls `SortingOverhaul_FilterList`. Sorting Overhaul then owns the combined Inventory/Magic list filter while SearchLight supplies its exact text matcher. Without SearchLight, Sorting Overhaul drives its own list filter with no search text. Without Sorting Overhaul, SearchLight uses its ordinary filter. With an older SearchLight build, the validated container/barter sequence is picker first, then search: the picker leaves a filtered list, and nonempty legacy SearchLight text pauses further Sorting Overhaul list writes while SearchLight searches the remaining rows.
 
 ## Container and barter pickers
 
@@ -29,10 +29,13 @@ indices resolve against the player's inventory or the other container/merchant,
 including the barter flag; null row-form pointers do not disable filtering.
 Owner-confirmed in development. Existing Inventory/Magic behavior is retained.
 
-Leave older SearchLight container searches empty when using these pickers:
-nonempty legacy search pauses this plugin's standalone container list writer.
-The existing delegated FilterList API accepts side IDs3/4 for clients that support
-combined filtering. No SearchLight source change is included.
+With older SearchLight, choose a container/barter sort/filter before typing:
+the search then applies to the remaining filtered rows because nonempty legacy
+text pauses this plugin's standalone container list writer. Changing the picker
+while search text remains, clearing the search, changing tabs or sides, and
+transfer-triggered rebuilds are not established by that test. The existing
+delegated FilterList API accepts side IDs3/4 for coordinating clients. No
+SearchLight source change is included.
 
 Logs stay warnings/errors only and retain three previous runs. Temporary row
 diagnostics are removed from this source. Focused native-boundary and dispatch
