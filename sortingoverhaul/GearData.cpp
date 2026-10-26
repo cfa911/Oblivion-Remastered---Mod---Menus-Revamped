@@ -59,6 +59,7 @@ namespace geardata
 				if (!object) return false;
 				a_tags = 0;
 				a_type = static_cast<unsigned>(object->GetFormType());
+				if (a_type == 34) { a_tags = itemtags::AmmoTags(a_type); return true; }
 				if (a_type == 19 || a_type == 25) { a_tags = itemtags::AlchemyTags(a_type); return true; }
 				if (auto* armor = object->As<RE::TESObjectARMO>()) { a_tags = itemtags::GearTags(armor->bipedModelData.bipedObjectSlots); return true; }
 				if (auto* clothing = object->As<RE::TESObjectCLOT>()) { a_tags = itemtags::GearTags(clothing->bipedModelData.bipedObjectSlots); return true; }

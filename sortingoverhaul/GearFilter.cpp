@@ -1,4 +1,5 @@
 #include "GearFilter.h"
+#include "Runtime.h"
 
 #include "GearData.h"
 #include "ControllerPolicy.h"
@@ -23,6 +24,7 @@ namespace gearfilter
 	namespace
 	{
 		constexpr float kInk[4] = { 0.20f, 0.14f, 0.09f, 1 };
+		constexpr float kTitleInk[4] = { 0.06f, 0.035f, 0.016f, 1 };
 		// sRGB #D6D0C8 converted to linear Slate colour.
 		constexpr float kPaper[4] = { 0.672443f, 0.630757f, 0.577580f, 1.0f }, kClear[4] = { 0, 0, 0, 0 };
 		// Focus colour/flat geometry are defined in PickerHighlight.h; applied-filter state is not a highlight.
@@ -61,15 +63,24 @@ namespace gearfilter
 			}
 		}
 
-		UE::UObject* CanvasChild(UE::UObject* a_canvas, const wchar_t* a_class, const wchar_t* a_name, double x, double y, double w, double h, int z = 0)
+		UE::UObject* CanvasChild(UE::UObject* a_canvas, const wchar_t* a_class, const wchar_t* a_name, double x, double y, double w, double h, int z = 0, UE::UObject** a_slot = nullptr)
 		{
 			UE::UObject* slot = nullptr;
 			auto* child = ui::AddToCanvas(a_canvas, a_class, a_name, &slot);
 			if (!child || !slot) return nullptr;
+			if (a_slot) *a_slot = slot;
 			ui::Vec2(slot, L"SetPosition", x, y);
 			ui::Vec2(slot, L"SetSize", w, h);
 			ui::CallFirst(slot, L"SetZOrder", &z, sizeof(z));
 			return child;
+		}
+
+		void LayoutChild(UE::UObject* widget, double x, double y, double width, double height)
+		{
+			auto** slot = widget ? reflect::At<UE::UObject*>(widget, reflect::Offset(widget->GetClass(), "Slot")) : nullptr;
+			if (!slot || !*slot) return;
+			ui::Vec2(*slot, L"SetPosition", x, y);
+			ui::Vec2(*slot, L"SetSize", width, height);
 		}
 
 		// The shipped Inventory and Magic item-name widgets use this asset and face.
@@ -105,18 +116,12 @@ namespace gearfilter
 			return ui::CallFirst(label, L"SetFont", copy.data(), copy.size());
 		}
 
-		std::string ShortLabel(std::string_view full)
-		{
-			// Category names are fixed English strings. Keep the beginning and an explicit ellipsis.
-			return full.size() > 7 ? std::string(full.substr(0, 4)) + "..." : std::string(full);
-		}
-
 		void BoundLabel(UE::UObject* label)
 		{
-			const std::uint8_t clipToBounds = 1, ellipsis = 1;
+			const std::uint8_t clipToBounds = 1, clipOverflow = 0;
 			const bool wrap = false;
 			ui::CallFirst(label, L"SetClipping", &clipToBounds, sizeof(clipToBounds));
-			ui::CallFirst(label, L"SetTextOverflowPolicy", &ellipsis, sizeof(ellipsis));
+			ui::CallFirst(label, L"SetTextOverflowPolicy", &clipOverflow, sizeof(clipOverflow));
 			ui::CallFirst(label, L"SetAutoWrapText", &wrap, sizeof(wrap));
 		}
 
@@ -216,9 +221,11 @@ namespace gearfilter
 			bool inputActive = false, inputOpen = false, swallowUp = false, swallowEscape = false;
 			std::uint64_t doubleClickUntil = 0;
 			int command = -1;
+			bool commandFromController = false;
 			std::atomic<bool> active{ false };
 			bool open = false, paintedOpen = false, controllerFocus = false, controllerPopup = false;
 			unsigned cursor = 0;
+			sortpad::ReturnToList returnToList;
 			reflect::Handle carousel;
 			std::vector<reflect::Handle> nativePeers;
 			bool nativeFocusWarning = false;
@@ -226,7 +233,7 @@ namespace gearfilter
 			unsigned category = 0, appliedCategory = 0;  // All Items page only: 0 = none, else 1 weapons, 2 gear, 3 potions, 4 misc
 			itemtags::Tab tab = itemtags::Tab::Gear, view = itemtags::Tab::Gear;  // view: whose choices the popup shows
 			bool tabSet = false, styled = false, widgetWarning = false, fontsReady = false, fontWarning = false;
-			reflect::Handle menu, canvas, header, headerImage, headerFrame, popup, popupSlot, cache, nativeSchool;
+			reflect::Handle menu, canvas, header, headerImage, headerFrame, popup, popupSlot, paperSlot, cache, nativeSchool;
 			reflect::Handle cells[itemtags::kMaxChoices], icons[itemtags::kMaxChoices], labels[itemtags::kMaxChoices], title;
 			std::uint64_t nextLayout = 0, nextHitMeasure = 0, nextFontTry = 0;
 
@@ -248,27 +255,34 @@ namespace gearfilter
 				auto* popupWidget = ui::AddToCanvas(a_canvas, L"/Script/UMG.CanvasPanel", (L"SlPiecePopup" + suffix).c_str(), &slot);
 				if (!popupWidget || !slot) return false;
 				ui::Visible(popupWidget, false);
-				ui::Vec2(slot, L"SetSize", pickergrid::Width, pickergrid::Height(itemtags::Info(view).count));
+				const auto count = itemtags::Info(view).count;
+				const auto width = pickergrid::Width(count), height = pickergrid::Height(count);
+				ui::Vec2(slot, L"SetSize", width, height);
 				const int z = 4000;
 				ui::CallFirst(slot, L"SetZOrder", &z, sizeof(z));
-				auto* background = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PiecePaper" + suffix).c_str(), 0, 0, pickergrid::Width, pickergrid::Height(itemtags::Info(view).count));
+				UE::UObject* backgroundSlot = nullptr;
+				auto* background = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PiecePaper" + suffix).c_str(), 0, 0, width, height, 0, &backgroundSlot);
+				if (!background || !backgroundSlot) return false;
+				paperSlot = reflect::Hold(backgroundSlot);
 				ui::RoundedBox(background, false, kPaper, kInk, 1.5f);
 				const std::uint8_t visible = 0;
 				ui::CallFirst(background, L"SetVisibility", &visible, sizeof(visible));
-				auto* titleWidget = CanvasChild(popupWidget, L"/Script/UMG.TextBlock", (L"PieceTitle" + suffix).c_str(), 12, 6, 224, 24, 1);
+				auto* titleWidget = CanvasChild(popupWidget, L"/Script/UMG.TextBlock", (L"PieceTitle" + suffix).c_str(), 12, 6, width - 24, 24, 1);
 				uix::SetText(titleWidget, itemtags::Info(view).title);
 				BoundLabel(titleWidget);
-				uix::Ink(titleWidget, kInk);
+				uix::Ink(titleWidget, kTitleInk);
+				const std::uint8_t titleCenter = 1;
+				ui::CallFirst(titleWidget, L"SetJustification", &titleCenter, sizeof(titleCenter));
 				title = reflect::Hold(titleWidget);
 				for (unsigned i = 0; i < itemtags::kMaxChoices; ++i) {
-					const double x = pickergrid::CellX(i), y = pickergrid::CellY(i);
+					const double x = pickergrid::CellX(i, count), y = pickergrid::CellY(i, count);
 					const auto name = std::to_wstring(i) + L"_" + suffix;
-					auto* cell = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PieceCell" + name).c_str(), x, y, 72, 62, 1);
+					auto* cell = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PieceCell" + name).c_str(), x, y, pickergrid::CellWidth, pickergrid::CellHeight, 1);
 					ui::RoundedBox(cell, false, kClear, kClear, 0);
 					cells[i] = reflect::Hold(cell);
-					auto* image = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PieceIcon" + name).c_str(), x + 15, y + 1, 42, 40, 2);
+					auto* image = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PieceIcon" + name).c_str(), x + (pickergrid::CellWidth - 42) / 2.0, y + 1, 42, 40, 2);
 					icons[i] = reflect::Hold(image);
-					auto* label = CanvasChild(popupWidget, L"/Script/UMG.TextBlock", (L"PieceLabel" + name).c_str(), x, y + 41, 72, 21, 2);
+					auto* label = CanvasChild(popupWidget, L"/Script/UMG.TextBlock", (L"PieceLabel" + name).c_str(), x, y + 41, pickergrid::CellWidth, 21, 2);
 					labels[i] = reflect::Hold(label);
 					uix::SetText(label, "");
 					BoundLabel(label);
@@ -310,6 +324,12 @@ namespace gearfilter
 			void StyleCells()
 			{
 				const auto& info = itemtags::Info(view);
+				// Resize both the hit-test panel and its paper whenever a parent/submenu changes.
+				const auto width = pickergrid::Width(info.count), height = pickergrid::Height(info.count);
+				ui::Vec2(reflect::Get(popupSlot), L"SetSize", width, height);
+				ui::Vec2(reflect::Get(paperSlot), L"SetSize", width, height);
+				LayoutChild(reflect::Get(title), 12, 6, width - 24, 24);
+				nextLayout = nextHitMeasure = 0;
 				uix::SetText(reflect::Get(title), info.title);
 				for (unsigned i = 0; i < itemtags::kMaxChoices; ++i) {
 					const bool on = i < info.count;
@@ -317,9 +337,12 @@ namespace gearfilter
 					ui::Visible(reflect::Get(icons[i]), on);
 					ui::Visible(reflect::Get(labels[i]), on);
 					if (on) {
+						const double x = pickergrid::CellX(i, info.count), y = pickergrid::CellY(i, info.count);
+						LayoutChild(reflect::Get(cells[i]), x, y, pickergrid::CellWidth, pickergrid::CellHeight);
+						LayoutChild(reflect::Get(icons[i]), x + (pickergrid::CellWidth - 42) / 2.0, y + 1, 42, 40);
+						LayoutChild(reflect::Get(labels[i]), x, y + 41, pickergrid::CellWidth, 21);
 						Brush(reflect::Get(icons[i]), info.icons[i]);
-						const auto display = view == itemtags::Tab::MagicSchool ? std::string(itemtags::SchoolPopupLabel(i)) :
-							(view == itemtags::Tab::MagicEffect ? std::string(magiceffects::kChoices[i].label) : ShortLabel(info.names[i]));
+						const auto display = std::string(itemtags::PopupLabel(view, i));
 						uix::SetText(reflect::Get(labels[i]), display);
 						ui::Call tooltip(reflect::Get(labels[i]), L"SetToolTipText");
 						if (auto* at = tooltip.At("InToolTipText"); at && tooltip.Size("InToolTipText") == sizeof(UE::FText)) {
@@ -439,13 +462,14 @@ namespace gearfilter
 				ResetShared();
 				choice = 0; appliedChoice = 0; category = 0; appliedCategory = 0; view = tab; open = false;
 				controllerFocus = controllerPopup = false; cursor = 0;
+				returnToList.Cancel();
 				nativeFocusWarning = false;
 				paintedOpen = false; nextLayout = 0; nextHitMeasure = 0;
 				widgetWarning = false;
 				if (auto* cacheList = reflect::Get(cache)) SetItems(cacheList, {}, false);
 				if (auto* image = reflect::Get(headerImage)) Brush(image, itemtags::Info(tab).icons[0]);
 				if (auto* frame = reflect::Get(headerFrame)) ui::RoundedBox(frame, false, kClear, kClear, 0, 0);
-				{ std::scoped_lock lock(inputLock); headerPx = {}; popupPx = {}; command = -1; inputOpen = false; swallowUp = false; swallowEscape = false; doubleClickUntil = 0; }
+				{ std::scoped_lock lock(inputLock); headerPx = {}; popupPx = {}; command = -1; commandFromController = false; inputOpen = false; swallowUp = false; swallowEscape = false; doubleClickUntil = 0; }
 			}
 
 			void Deactivate()
@@ -504,7 +528,7 @@ namespace gearfilter
 				if (reflect::Get(menu) != a_menu || reflect::Get(canvas) != a_canvas) {
 					Reset();
 					for (const auto& handle : { popup, cache, header }) if (auto* old = reflect::Get(handle)) { ui::Call remove(old, L"RemoveFromParent"); remove.Run(); }
-					menu = reflect::Hold(a_menu); popup = {}; cache = {}; header = {}; carousel = {}; nativeSchool = {}; nativePeers.clear();
+					menu = reflect::Hold(a_menu); popup = {}; paperSlot = {}; cache = {}; header = {}; carousel = {}; nativeSchool = {}; nativePeers.clear();
 					canvas = reflect::Hold(a_canvas); nextLayout = 0;
 				}
 				if (!reflect::Get(popup) && !BuildPopup(a_canvas)) {
@@ -542,14 +566,15 @@ namespace gearfilter
 						ui::Measure(a_canvas, cx, cy, cw, ch);
 						const double popupHeight = pickergrid::Height(itemtags::Info(view).count);
 						ui::Vec2(reflect::Get(popupSlot), L"SetPosition",
-							pickergrid::Position(x - cx + w - pickergrid::Width, pickergrid::Width, cw),
+							pickergrid::PopupLeft(x - cx, w, cw, itemtags::Info(view).count),
 							pickergrid::Position(y - cy + h + 5, popupHeight, ch));
 						std::scoped_lock lock(inputLock);
 						headerPx = { x * a_viewportScale, y * a_viewportScale, w * a_viewportScale, h * a_viewportScale };
 					}
 				}
 				int cmd = -1;
-				{ std::scoped_lock lock(inputLock); cmd = command; command = -1; }
+				bool fromController = false;
+				{ std::scoped_lock lock(inputLock); cmd = command; fromController = commandFromController; command = -1; commandFromController = false; }
 				if (cmd == pickergrid::kToggleCommand) {
 					open = !open; nextHitMeasure = 0;
 					if (open && view != tab) { view = tab; styled = false; }  // always open on the top level
@@ -560,6 +585,8 @@ namespace gearfilter
 					if (view != next.view) { view = next.view; styled = false; nextHitMeasure = 0; nextLayout = 0; }
 					category = next.category; choice = next.choice; cursor = next.cursor;
 					open = !next.close;
+					if (sortpad::ShouldReturnToList(sorting::ReturnToListAfterFilter(), fromController, next.close))
+						returnToList.Request();
 				}
 				else if (cmd == -3) {
 					const auto next = pickernav::Back(tab, view, category, choice);
@@ -653,7 +680,7 @@ namespace gearfilter
 
 			void Queue(int cmd)
 			{
-				std::scoped_lock lock(inputLock); command = cmd;
+				std::scoped_lock lock(inputLock); command = cmd; commandFromController = true;
 			}
 
 			bool Contains(double a_x, double a_y)
@@ -669,8 +696,9 @@ namespace gearfilter
 				if (a_message == WM_KEYUP && a_key == VK_ESCAPE && swallowEscape) { swallowEscape = false; return true; }
 				if (!inputActive) return false;
 				if (a_message == WM_LBUTTONDBLCLK && GetTickCount64() <= doubleClickUntil) { swallowUp = true; return true; }
-				if (a_message == WM_KEYDOWN && a_key == VK_ESCAPE && inputOpen) { command = -2; swallowEscape = true; return true; }
+				if (a_message == WM_KEYDOWN && a_key == VK_ESCAPE && inputOpen) { command = -2; commandFromController = false; swallowEscape = true; return true; }
 				if (a_message != WM_LBUTTONDOWN) return false;
+				commandFromController = false;
 				const double x = static_cast<short>(LOWORD(a_position)), y = static_cast<short>(HIWORD(a_position));
 				if (headerPx.Hit(x, y)) command = pickergrid::kToggleCommand;
 				else if (inputOpen) {
@@ -845,6 +873,7 @@ namespace gearfilter
 		if (!connected) {
 			g_pad.Disconnect();
 			for (auto& picker : g_pickers) {
+				picker.returnToList.Cancel();
 				if (picker.controllerFocus || picker.controllerPopup) {
 					picker.controllerFocus = picker.controllerPopup = false; picker.PaintController();
 				}
@@ -895,6 +924,15 @@ namespace gearfilter
 		UpdateNativeBackgroundMask();
 		const auto filtered = g_pad.Filter(raw);
 		buttons = filtered.buttons; x = filtered.x; y = filtered.y;
+		for (auto& picker : g_pickers) {
+			if (!picker.returnToList.Pending()) continue;
+			if (!sorting::ReturnToListAfterFilter()) { picker.returnToList.Cancel(); continue; }
+			const bool focused = picker.active.load() && ui::ShownOnScreen(reflect::Get(picker.menu)) && picker.SortCarouselFocused();
+			const auto action = picker.returnToList.Update(raw.buttons, focused, GetTickCount64());
+			if (action == sortpad::ReturnAction::PressY) buttons |= sortpad::Y;
+			else if (action == sortpad::ReturnAction::TimedOut)
+				logger::warn("Sorting Overhaul: controller return-to-list was not acknowledged by native sorting focus; press Y to exit");
+		}
 	}
 
 	bool Contains(double a_x, double a_y)

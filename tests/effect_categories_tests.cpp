@@ -57,16 +57,16 @@ int main()
 		Check(std::string_view(kChoices[i].label).size() <= 7, "short display label, full tooltip preserved");
 		Check(pickergrid::IsSelection(static_cast<int>(i), kChoiceCount), "every cell is a selection");
 		Check(!pickergrid::IsSelection(pickergrid::kToggleCommand, kChoiceCount), "toggle cannot collide with choice index nine");
-		Check(pickergrid::CellX(i) + 72 <= pickergrid::Width, "cell fits popup width");
-		Check(pickergrid::CellY(i) + 62 <= pickergrid::Height(kChoiceCount), "cell fits expanded popup height");
+		Check(pickergrid::CellX(i, kChoiceCount) + pickergrid::CellWidth <= pickergrid::Width(kChoiceCount), "cell fits popup width");
+		Check(pickergrid::CellY(i, kChoiceCount) + pickergrid::CellHeight <= pickergrid::Height(kChoiceCount), "cell fits expanded popup height");
 		if (i) {
 			const auto tag = Bit(static_cast<Choice>(i));
 			Check(itemtags::Includes(i, tag), "selected effect bit includes matching spell");
 			Check((static_cast<std::uint64_t>(tag) << 32 & (1ull << 63)) == 0, "effect bits cannot set pass-all sentinel");
 		}
 	}
-	Check(pickergrid::Height(9) == 242 && pickergrid::Height(8) == 242, "existing inventory/school dimensions unchanged");
-	Check(pickergrid::Height(18) == 440, "six-row effect popup");
+	Check(pickergrid::Height(9) == 242 && pickergrid::Height(8) == 242, "count-based inventory/school dimensions");
+	Check(pickergrid::Height(18) == 374, "five-row effect popup");
 	Check(pickergrid::Position(1000, 244, 1280) == 1000, "popup fits canvas");
 	Check(pickergrid::Position(1200, 244, 1280) == 1036, "right edge clamp");
 	Check(pickergrid::Position(500, 440, 720) == 280, "bottom edge clamp");
