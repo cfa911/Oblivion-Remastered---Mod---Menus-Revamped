@@ -1,6 +1,6 @@
 # Sorting Overhaul (development source)
 
-Independent OBSE64 plugin for Inventory category/item pickers and Magic School/Effect pickers. Requires OBSE64 and the Address Library; uses the game UI through reflection. No SearchLight, MagicLoader, MISS, or third-party mod runtime dependency. Development version 0.0.0; not a release.
+Independent OBSE64 plugin for Inventory and container/barter category/item pickers and Magic School/Effect pickers. Requires OBSE64 and the Address Library; uses the game UI through reflection. No SearchLight, MagicLoader, MISS, or third-party mod runtime dependency. Development version 0.0.0; not a release.
 
 Build just this plugin with `xmake -y SortingOverhaul`. Install `SortingOverhaul.dll` beside the other OBSE plugins and copy `sortingoverhaul/assets/SortingOverhaul/` beside it. Log: `SortingOverhaul.log`; warnings/errors only (level 3). The plugin has its own input driver, window-message chain, menu detection, native item resolver and popup canvas lookup.
 
@@ -20,6 +20,25 @@ This public source contains original procedural icon defaults. The owner's custo
 ## Optional SearchLight integration
 
 The paired development SearchLight build exports `MenuSearch_DrivesSorting` and optionally calls `SortingOverhaul_FilterList`. Sorting Overhaul then owns the combined Inventory/Magic list filter while SearchLight supplies its exact text matcher. Without SearchLight, Sorting Overhaul drives its own list filter with no search text. Without Sorting Overhaul, SearchLight uses its ordinary filter. Older SearchLight releases have no coordination API; simultaneous filtering with those builds is not validated.
+
+## Container and barter pickers
+
+Each visible side has its own picker, filter choice and list snapshot. Both sides
+offer the full category/subtype tree, independent of the native tab. Native row
+indices resolve against the player's inventory or the other container/merchant,
+including the barter flag; null row-form pointers do not disable filtering.
+Owner-confirmed in development. Existing Inventory/Magic behavior is retained.
+
+Leave older SearchLight container searches empty when using these pickers:
+nonempty legacy search pauses this plugin's standalone container list writer.
+The existing delegated FilterList API accepts side IDs3/4 for clients that support
+combined filtering. No SearchLight source change is included.
+
+Logs stay warnings/errors only and retain three previous runs. Temporary row
+diagnostics are removed from this source. Focused native-boundary and dispatch
+checks (MSVC x64 developer prompt):
+`python tests/container_native_tests.py <output-directory>` and
+`python tests/container_runtime_tests.py <output-directory>`.
 
 Magic picker visibility follows `VMagicMenuViewModel.GetCurrentPage`: 0 Self, 1 Touch, 2 Target, 3 All, 4 Active effects. Both headers and popups deactivate on page 4, including their mouse hit regions. Empty or powers-only spell results do not decide visibility.
 

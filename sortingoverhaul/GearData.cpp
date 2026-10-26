@@ -10,18 +10,24 @@ namespace geardata
 	{
 		using Idle = void (*)(void*);
 		Idle g_original = nullptr;
+		Idle g_originalContainer = nullptr;
 		std::mutex g_lock;
-		std::atomic<std::uint64_t> g_epoch{ 0 };
-		std::atomic<bool> g_pending{ false };
+		std::atomic<std::uint64_t> g_epoch[3]{};
+		std::atomic<bool> g_pending[3]{};
 		struct Work
 		{
 			std::uint64_t ticket = 0, deadline = 0;
 			RE::PlayerCharacter* player = nullptr;
 			std::vector<int> indices;
+			std::vector<int> nativeIndices;
+			std::vector<std::uint32_t> forms;
 			std::vector<Entry> entries;
+			void* menu = nullptr;
+			RE::TESObjectREFR* owner = nullptr;
+			bool barter = false;
 		};
-		std::unique_ptr<Work> g_queued, g_ready;  // lock protected
-		std::unique_ptr<Work> g_work;             // TES callback only
+		std::unique_ptr<Work> g_queued[3], g_ready[3];  // lock protected
+		std::unique_ptr<Work> g_work[3];               // TES callback only
 
 		bool Read(const void* a_source, void* a_target, std::size_t a_size)
 		{
@@ -96,19 +102,33 @@ namespace geardata
 			return true;
 		}
 
-		void AfterIdle(void* a_menu)
+		void Process(unsigned slot, void* containerMenu = nullptr)
 		{
-			g_original(a_menu);
-			if (!g_pending.load(std::memory_order_acquire) || !TesThread()) return;
-			if (g_work && g_work->ticket != g_epoch.load()) g_work.reset();
-			if (!g_work) {
+			if (!g_pending[slot].load(std::memory_order_acquire)) return;
+			if (g_work[slot] && g_work[slot]->ticket != g_epoch[slot].load()) g_work[slot].reset();
+			if (!g_work[slot]) {
 				std::scoped_lock lock(g_lock);
-				g_work = std::move(g_queued);
-				if (!g_work) return;
+				g_work[slot] = std::move(g_queued[slot]);
+				if (!g_work[slot]) return;
 			}
-			auto& work = *g_work;
+			auto& work = *g_work[slot];
 			auto* player = RE::PlayerCharacter::GetSingleton();
-			const bool context = player && player == work.player && GetTickCount64() <= work.deadline;
+			bool context = player && player == work.player && GetTickCount64() <= work.deadline;
+			RE::TESObjectREFR* owner = player;
+			bool barter = false;
+			if (slot) {
+				// Match ContainerMenu::DoEnter at 06758CB4/06758CC3 (1.512.105.0):
+				// player,false versus native menu's other reference +88/barter +A9.
+				context = context && containerMenu;
+				if (slot == 2) {
+					std::uint8_t flag = 0;
+					context = context && Read(static_cast<std::uint8_t*>(containerMenu) + 0x88, &owner, sizeof(owner)) &&
+						Read(static_cast<std::uint8_t*>(containerMenu) + 0xA9, &flag, sizeof(flag)) && owner && flag <= 1;
+					barter = flag != 0;
+				}
+				if (work.entries.empty()) { work.menu = containerMenu; work.owner = owner; work.barter = barter; }
+				context = context && work.menu == containerMenu && work.owner == owner && work.barter == barter;
+			}
 			static REL::Relocation<RE::ItemChange* (*)(RE::TESObjectREFR*, int, bool)> resolve{ REL::ID(405455) };
 			static REL::Relocation<void (*)(RE::ItemChange*)> destroy{ REL::ID(407566) };
 			static REL::Relocation<void (*)(void*, std::size_t)> deallocate{ REL::ID(106342) };
@@ -116,69 +136,107 @@ namespace geardata
 			while (work.entries.size() < end) {
 				const int index = work.indices[work.entries.size()];
 				Entry entry{ index, 0, false };
-				auto* copy = context ? resolve(player, index, false) : nullptr;
-				entry.valid = Tags(copy, entry.tags);
-				if (copy) { destroy(copy); deallocate(copy, sizeof(RE::ItemChange)); }
+				if (slot != 0) {
+					// A form is optional in container/barter rows. If it is null, resolve
+					// the real native index against THIS side, never the player's other list.
+					const auto formID = work.forms[work.entries.size()];
+					if (formID) {
+						RE::ItemChange item{};
+						item.object = context ? RE::TESForm::LookupByID<RE::TESBoundObject>(formID) : nullptr;
+						entry.valid = Tags(&item, entry.tags);
+					} else {
+						const int nativeIndex = work.nativeIndices.empty() ? index : work.nativeIndices[work.entries.size()];
+						auto* copy = context && nativeIndex >= 0 && nativeIndex < 1000000 ? resolve(owner, nativeIndex, barter) : nullptr;
+						entry.valid = Tags(copy, entry.tags);
+						if (copy) { destroy(copy); deallocate(copy, sizeof(RE::ItemChange)); }
+					}
+				} else {
+					auto* copy = context ? resolve(player, index, false) : nullptr;
+					entry.valid = Tags(copy, entry.tags);
+					if (copy) { destroy(copy); deallocate(copy, sizeof(RE::ItemChange)); }
+				}
 				work.entries.push_back(entry);
 			}
 			if (work.entries.size() == work.indices.size()) {
 				std::scoped_lock lock(g_lock);
-				if (work.ticket == g_epoch.load()) {
-					g_ready = std::move(g_work);
-					g_pending.store(false, std::memory_order_release);
-				} else g_work.reset();
+				if (work.ticket == g_epoch[slot].load()) {
+					g_ready[slot] = std::move(g_work[slot]);
+					g_pending[slot].store(false, std::memory_order_release);
+				} else g_work[slot].reset();
 			}
 		}
 
-		bool Install()
+		void AfterIdle(void* a_menu)
 		{
-			if (g_original) return true;
-			static REL::Relocation<std::uintptr_t> vtable{ REL::ID(1043093) };
-			static REL::Relocation<std::uintptr_t> idle{ REL::ID(410647) };
+			g_original(a_menu);
+			if (g_pending[0].load() && TesThread()) Process(0);
+		}
+
+		void AfterContainerIdle(void* menu)
+		{
+			g_originalContainer(menu);
+			if ((!g_pending[1].load() && !g_pending[2].load()) || !TesThread()) return;
+			Process(1, menu); Process(2, menu);
+		}
+
+		bool Install(unsigned context)
+		{
+			auto& original = context ? g_originalContainer : g_original;
+			if (original) return true;
+			REL::Relocation<std::uintptr_t> vtable{ REL::ID(context ? 1042934 : 1043093) };
+			REL::Relocation<std::uintptr_t> idle{ REL::ID(context ? 410455 : 410647) };
 			auto* slot = reinterpret_cast<Idle*>(vtable.address() + 0x12 * sizeof(void*));
 			if (reinterpret_cast<std::uintptr_t>(*slot) != idle.address()) return false;
 			DWORD previous = 0;
 			if (!VirtualProtect(slot, sizeof(void*), PAGE_READWRITE, &previous)) return false;
-			g_original = *slot;
-			InterlockedExchangePointer(reinterpret_cast<void* volatile*>(slot), reinterpret_cast<void*>(&AfterIdle));
+			original = *slot;
+			InterlockedExchangePointer(reinterpret_cast<void* volatile*>(slot),
+				reinterpret_cast<void*>(context ? &AfterContainerIdle : &AfterIdle));
 			DWORD ignored = 0;
 			VirtualProtect(slot, sizeof(void*), previous, &ignored);
 			return true;
 		}
 	}
 
-	std::uint64_t Request(std::vector<int> a_indices)
+	std::uint64_t Request(std::vector<int> a_indices, std::vector<std::uint32_t> a_forms, unsigned a_slot, std::vector<int> a_nativeIndices)
 	{
-		if (a_indices.empty() || a_indices.size() > 4000 ||
-			std::any_of(a_indices.begin(), a_indices.end(), [](int i) { return i < 0 || i >= 1000000; }) || !Install()) return 0;
+		if (a_slot >= 3 || (a_slot != 0 && (a_forms.size() != a_indices.size() || a_nativeIndices.size() != a_indices.size())) ||
+			a_indices.empty() || a_indices.size() > 4000 ||
+			std::any_of(a_indices.begin(), a_indices.end(), [](int i) { return i < 0 || i >= 1000000; }) || !Install(a_slot)) return 0;
 		std::scoped_lock lock(g_lock);
 		auto work = std::make_unique<Work>();
-		work->ticket = ++g_epoch;
+		// Encode the slot in the low bits so Take cannot consume the other side's reply.
+		work->ticket = ((g_epoch[a_slot].load() >> 2) + 1) * 4 + a_slot;
+		g_epoch[a_slot].store(work->ticket);
 		work->deadline = GetTickCount64() + 2000;
 		work->player = RE::PlayerCharacter::GetSingleton();
 		work->indices = std::move(a_indices);
+		work->nativeIndices = std::move(a_nativeIndices);
+		work->forms = std::move(a_forms);
 		const auto ticket = work->ticket;
-		g_queued = std::move(work);
-		g_ready.reset();
-		g_pending.store(true, std::memory_order_release);
+		g_queued[a_slot] = std::move(work);
+		g_ready[a_slot].reset();
+		g_pending[a_slot].store(true, std::memory_order_release);
 		return ticket;
 	}
 
 	bool Take(std::uint64_t a_ticket, std::vector<Entry>& a_entries)
 	{
 		std::scoped_lock lock(g_lock);
-		if (!g_ready || g_ready->ticket != a_ticket) return false;
-		a_entries = std::move(g_ready->entries);
-		g_ready.reset();
+		const auto slot = static_cast<unsigned>(a_ticket & 3);
+		if (slot >= 3 || !g_ready[slot] || g_ready[slot]->ticket != a_ticket) return false;
+		a_entries = std::move(g_ready[slot]->entries);
+		g_ready[slot].reset();
 		return true;
 	}
 
-	void Cancel()
+	void Cancel(unsigned a_slot)
 	{
+		if (a_slot >= 3) return;
 		std::scoped_lock lock(g_lock);
-		++g_epoch;
-		g_queued.reset();
-		g_ready.reset();
-		g_pending.store(false, std::memory_order_release);
+		g_epoch[a_slot].store(((g_epoch[a_slot].load() >> 2) + 1) * 4 + a_slot);
+		g_queued[a_slot].reset();
+		g_ready[a_slot].reset();
+		g_pending[a_slot].store(false, std::memory_order_release);
 	}
 }

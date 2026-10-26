@@ -12,9 +12,11 @@ extern "C" __declspec(dllexport) bool SortingOverhaul_FilterList(int menu, UE::U
 }
 OBSE_PLUGIN_LOAD(const OBSE::LoadInterface* obse)
 {
-	OBSE::Init(obse);
+	OBSE::Init(obse, { .logRotate = 3 });  // preserve preceding test runs instead of truncating them
 	logger::set_level(spdlog::level::warn, spdlog::level::warn);
 	sorting::LoadSettings();
+	logger::info("Sorting Overhaul: SO-CONTAINER-NATIVE-RESOLVER-20261026 uses side/index/barter from native ContainerMenu DoIdle");
+	logger::info("Sorting Overhaul: SO-CONTAINER-BARTER-20261026 isolates both side lists and resolves native row form IDs");
 	logger::info("Sorting Overhaul: SO-POTION-MAGICKA-20261025 uses verified RESP/FOSP potion effects");
 	logger::info("Sorting Overhaul: SO-ARROWS-20261026 classifies native AMMO as Weapons / Arrows");
 	logger::info("Sorting Overhaul: SO-PICKER-4COL-20261026 fits full labels and resizes panel/paper per view");

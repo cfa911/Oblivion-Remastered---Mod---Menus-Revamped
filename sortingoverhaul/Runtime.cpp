@@ -2,6 +2,7 @@
 #include "Runtime.h"
 #include "GearFilter.h"
 #include "Menus.h"
+#include "Container.h"
 #include "PEHook.h"
 #include "Reflect.h"
 #include "Ui.h"
@@ -11,7 +12,7 @@ namespace sorting
 	namespace
 	{
 		struct Context { reflect::Handle menu, canvas, list; bool watched = false; };
-		Context g_contexts[3];
+		Context g_contexts[5];
 		WNDPROC g_previous = nullptr;
 		DWORD g_thread = 0;
 		bool g_inside = false;
@@ -27,6 +28,17 @@ namespace sorting
 			auto module = GetModuleHandleW(L"MenuSearch.dll");
 			auto drives = module ? reinterpret_cast<Drives>(GetProcAddress(module, "MenuSearch_DrivesSorting")) : nullptr;
 			return drives && drives(menu);
+		}
+
+		bool LegacyContainerSearch(int menu)
+		{
+			// Older SearchLight builds do not delegate these lists. Do not let two
+			// independent writers alternate restoring/removing each other's rows.
+			if (menu < 3 || menu > 4) return false;
+			using GetText = int (*)(int, char*, int);
+			const auto module = GetModuleHandleW(L"MenuSearch.dll");
+			const auto get = module ? reinterpret_cast<GetText>(GetProcAddress(module, "MenuSearch_GetText")) : nullptr;
+			return get && get(menu, nullptr, 0) > 0;
 		}
 
 		int Count(UE::UObject* list)
@@ -76,17 +88,22 @@ namespace sorting
 
 		UE::UObject* Prepare(int menu)
 		{
-			if (menu != 1 && menu != 2) return nullptr;
+			if (menu < 1 || menu > 4) return nullptr;
 			if (!reflect::Ok() && !reflect::SelfCheck()) return nullptr;
 			const auto type = static_cast<menus::Menu>(menu);
-			auto* widget = menus::Widget(type);
+			const bool side = menu >= 3;
+			auto* widget = side ? container::SideContent(menu) : menus::Widget(type);
 			if (!widget) return nullptr;
 			auto& context = g_contexts[menu];
 			if (reflect::Get(context.menu) != widget) {
 				context.menu = reflect::Hold(widget); context.canvas = {}; context.list = {};
 			}
-			if (!context.watched) if (auto* cls = menus::ClassOf(type)) context.watched = pe::WatchPost(cls, &AfterMenu);
-			if (!reflect::Get(context.canvas)) if (auto* canvas = RootCanvas(widget)) context.canvas = reflect::Hold(canvas);
+			if (!context.watched) {
+				auto* cls = side ? widget->GetClass() : menus::ClassOf(type);
+				if (cls) context.watched = pe::WatchPost(cls, &AfterMenu);
+				if (side && container::Class()) pe::WatchPost(container::Class(), &AfterMenu);
+			}
+			if (!reflect::Get(context.canvas)) if (auto* canvas = RootCanvas(side ? container::Widget() : widget)) context.canvas = reflect::Hold(canvas);
 			if (!reflect::Get(context.list)) {
 				auto* list = ui::FindInTree(widget, menu == 2 ? "Magic_Spell_List" : "inv_cont_listview");
 				if (list && Count(list) < 0) {
@@ -95,7 +112,10 @@ namespace sorting
 				}
 				if (list && Count(list) >= 0) context.list = reflect::Hold(list);
 			}
-			gearfilter::Tick(menu == 2 ? gearfilter::Mode::Magic : gearfilter::Mode::Inventory, widget, reflect::Get(context.canvas), Scale());
+			if (side)
+				gearfilter::Tick(gearfilter::Mode::Container, container::SideContent(3),
+					reflect::Get(context.canvas), Scale(), container::SideContent(4));
+			else gearfilter::Tick(menu == 2 ? gearfilter::Mode::Magic : gearfilter::Mode::Inventory, widget, reflect::Get(context.canvas), Scale());
 			return reflect::Get(context.list);
 		}
 
@@ -143,15 +163,16 @@ namespace sorting
 
 	bool FilterList(int menu, UE::UObject* list, const char* query, Match matches)
 	{
-		if (g_inside || (menu != 1 && menu != 2) || !list) return false;
+		if (g_inside || menu < 1 || menu > 4 || !list) return false;
 		g_inside = true;
 		struct Exit { ~Exit() { g_match = nullptr; g_inside = false; } } exit;
 		menus::Tick();
-		if (Prepare(menu) != list || !gearfilter::Active()) return false; // Active effects retains SearchLight's ordinary text search.
+		container::Tick();
+		if (Prepare(menu) != list || !gearfilter::Active(menu)) return false; // Active effects retains SearchLight's ordinary text search.
 		std::vector<UE::UObject*> items;
 		if (!Items(list, items)) return true; // Never partially rewrite an unreadable/oversized list.
 		g_match = matches;
-		gearfilter::Filter(list, items, query ? query : "", &MatchName);
+		gearfilter::Filter(list, items, query ? query : "", &MatchName, menu);
 		return true;
 	}
 
@@ -167,9 +188,20 @@ namespace sorting
 		if (GetTickCount64() >= next) {
 			next = GetTickCount64() + 200;
 			if (!reflect::Ok()) reflect::SelfCheck();
-			if (reflect::Ok()) menus::Tick();
+			if (reflect::Ok()) { menus::Tick(); container::Tick(); }
 		}
 		if (!reflect::Ok()) return;
+		if (container::Open()) {
+			for (int side = 3; side <= 4; ++side) {
+				auto* content = container::SideContent(side);
+				if (!content || !ui::ShownOnScreen(content)) continue;
+				auto* list = Prepare(side);
+				if (!list || !gearfilter::Active(side) || SearchDrives(side) || LegacyContainerSearch(side)) continue;
+				std::vector<UE::UObject*> items;
+				if (Items(list, items)) gearfilter::Filter(list, items, "", &MatchName, side);
+			}
+			return;
+		}
 		const int menu = static_cast<int>(menus::Active());
 		if (menu != 1 && menu != 2) { gearfilter::Tick(gearfilter::Mode::None, nullptr, nullptr, 1); return; }
 		auto* list = Prepare(menu);

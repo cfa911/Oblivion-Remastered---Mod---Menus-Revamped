@@ -21,7 +21,7 @@ target("SortingOverhaul")
         description = "Independent Inventory and Magic category pickers"
     })
     add_syslinks("user32")
-    add_files("sortingoverhaul/Icons.cpp", "sortingoverhaul/GearFilter.cpp", "sortingoverhaul/GearData.cpp", "sortingoverhaul/Runtime.cpp", "sortingoverhaul/Driver.cpp", "sortingoverhaul/main.cpp")
+    add_files("sortingoverhaul/Icons.cpp", "sortingoverhaul/GearFilter.cpp", "sortingoverhaul/GearData.cpp", "sortingoverhaul/Runtime.cpp", "sortingoverhaul/Container.cpp", "sortingoverhaul/Driver.cpp", "sortingoverhaul/main.cpp")
     add_files("src/Ui.cpp", "src/Reflect.cpp", "src/PEHook.cpp", "src/Menus.cpp", "src/UiText.cpp")
 
     add_headerfiles("sortingoverhaul/*.h")
