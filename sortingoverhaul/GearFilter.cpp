@@ -37,20 +37,25 @@ namespace gearfilter
 			bool Hit(double px, double py) const { return w > 0 && h > 0 && px >= x && py >= y && px < x + w && py < y + h; }
 		};
 
-		// One filtered list shared by every picker of the open menu.
-		bool g_inside = false, g_dirty = true, g_haveApplied = false, g_dataReady = false;
-		std::string g_query;
-		std::vector<reflect::Handle> g_source;
-		std::vector<UE::UObject*> g_applied;
-		std::vector<int> g_indices;
-		std::unordered_map<int, std::uint64_t> g_masks;
-		std::uint64_t g_ticket = 0, g_dataDeadline = 0;
-
-		void ResetShared()
+		// Inventory/Magic share slot 0; player and merchant/container each own an
+		// independent snapshot and TES request. Clearing one side cannot clear the other.
+		bool g_inside = false;
+		struct FilterState
 		{
-			geardata::Cancel();
-			g_source.clear(); g_applied.clear(); g_indices.clear(); g_masks.clear();
-			g_ticket = 0; g_dataReady = false; g_haveApplied = false; g_dirty = true; g_query.clear();
+			bool dirty = true, haveApplied = false, dataReady = false;
+			std::string query;
+			std::vector<reflect::Handle> source;
+			std::vector<UE::UObject*> applied;
+			std::vector<int> indices;
+			std::unordered_map<int, std::uint64_t> masks;
+			std::uint64_t ticket = 0, dataDeadline = 0;
+		};
+		FilterState g_states[3];
+
+		void ResetShared(unsigned slot)
+		{
+			geardata::Cancel(slot);
+			g_states[slot] = {};
 		}
 
 		void Brush(UE::UObject* a_image, const wchar_t* a_icon)
@@ -141,6 +146,30 @@ namespace gearfilter
 			return get && get.Size("ReturnValue") == 4 && get.Run() ? get.Get<int>("ReturnValue") : -1;
 		}
 
+		std::uint32_t FormID(UE::UObject* form)
+		{
+			// UTESForm::m_formID +0x28, recorded in docs/inventory/internals.md
+			// for game 1.512.105.0. This native member need not be a UPROPERTY.
+			__try { return form ? *reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uint8_t*>(form) + 0x28) : 0; }
+			__except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
+		}
+
+		std::uint32_t ContainerForm(UE::UObject* item)
+		{
+			auto* properties = reinterpret_cast<UE::UStruct*>(UE::StaticFindObject<UE::UObject>(
+				nullptr, nullptr, L"/Script/Altar.OriginalInventoryMenuItemProperties"));
+			ui::Call get(item, L"GetProperties");
+			auto* result = get.At("ReturnValue");
+			const auto formOffset = properties ? reflect::Offset(properties, "form") : -1;
+			const auto nameOffset = properties ? reflect::Offset(properties, "Name") : -1;
+			if (!result || formOffset < 0 || nameOffset < 0 ||
+				get.Size("ReturnValue") != properties->propertiesSize || !get.Run()) return 0;
+			auto* form = *reinterpret_cast<UE::UObject**>(static_cast<std::uint8_t*>(result) + formOffset);
+			const auto value = FormID(form);
+			reinterpret_cast<UE::FText*>(static_cast<std::uint8_t*>(result) + nameOffset)->~FText();
+			return value;
+		}
+
 		// ---- Magic rows: school/range from the row, native spell type/effects from the player's spell list ----
 		// Row layout (VLegacyMagicMenuItem, 136 bytes, proven 2026-10-24): Category +0x50, Type +0x51, InventoryIndex +0x54, School +0x58.
 		// InventoryIndex - 1 is the spell's position in the player's list.
@@ -184,7 +213,7 @@ namespace gearfilter
 			__except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 		}
 
-		void ComputeMagicMasks(const std::vector<UE::UObject*>& a_items)
+		void ComputeMagicMasks(const std::vector<UE::UObject*>& a_items, FilterState& state)
 		{
 			std::vector<SpellRow> spells(600);
 			spells.resize(static_cast<std::size_t>(ReadSpellsRaw(spells.data(), 600)));
@@ -199,7 +228,7 @@ namespace gearfilter
 					warned = true;
 					logger::warn("Sorting Overhaul: native spell-type power filtering could not resolve a Magic row (index={}, range={}, captured={}); leaving it unfiltered", index, range, spells.size());
 				}
-				g_masks[index] = mask;
+				state.masks[index] = mask;
 			}
 		}
 
@@ -215,7 +244,7 @@ namespace gearfilter
 		// One header icon plus its popup. The Inventory has one; the Magic menu has two (school, effect).
 		struct Picker
 		{
-			int kind = -1;  // -1 inactive, 0 inventory tabs, 1 magic school, 2 magic effect
+			int kind = -1;  // -1 inactive, 0 inventory, 1/2 Magic, 3 player side, 4 other side
 			std::mutex inputLock;
 			Rect headerPx, popupPx, cellsPx[itemtags::kMaxChoices];
 			bool inputActive = false, inputOpen = false, swallowUp = false, swallowEscape = false;
@@ -459,7 +488,7 @@ namespace gearfilter
 
 			void Reset()
 			{
-				ResetShared();
+				ResetShared(kind >= 3 ? static_cast<unsigned>(kind - 2) : 0);
 				choice = 0; appliedChoice = 0; category = 0; appliedCategory = 0; view = tab; open = false;
 				controllerFocus = controllerPopup = false; cursor = 0;
 				returnToList.Cancel();
@@ -489,7 +518,10 @@ namespace gearfilter
 				bool show = false;
 				itemtags::Tab wanted = itemtags::Tab::Gear;
 				if (a_kind >= 0 && a_menu && a_canvas) {
-					if (a_kind == 0) {
+					if (a_kind >= 3) {
+						show = ui::ShownOnScreen(a_menu);
+						wanted = itemtags::Tab::AllItems;
+					} else if (a_kind == 0) {
 						auto** vm = reflect::At<UE::UObject*>(a_menu, reflect::Offset(a_menu->GetClass(), "VInventoryMenuViewModel"));
 						if (vm && *vm) {
 							auto* page = reflect::At<std::uint8_t>(*vm, reflect::Offset((*vm)->GetClass(), "CurrentPageInventory"));
@@ -549,11 +581,18 @@ namespace gearfilter
 				if (now >= nextLayout) {
 					nextLayout = now + 150;
 					auto* iconBox = ui::FindInTree(a_menu, "FilterIconBox");
+					if (!iconBox && kind >= 3) iconBox = ui::FindInTree(a_menu, "inv_cont_filter");
 					auto* panel = iconBox ? ui::FindInTree(iconBox, "ScrollBox") : nullptr;  // FilterIconBox is a user widget wrapping the real panel
 					auto* headerWidget = reflect::Get(header);
 					ui::Call parent(headerWidget, L"GetParent");
 					const bool attached = parent && parent.Run() && parent.Get<UE::UObject*>("ReturnValue") == panel;
-					if (!panel) return;
+					if (!panel) {
+						if (kind >= 3 && !widgetWarning) {
+							logger::warn("Sorting Overhaul: container side {} has no supported native filter ScrollBox; picker not attached", kind);
+							widgetWarning = true;
+						}
+						return;
+					}
 					if (!attached && !InsertHeader(panel, iconBox)) {
 						if (!widgetWarning) { logger::warn("Sorting Overhaul: native controller focus-only header registration/layout unsupported"); widgetWarning = true; }
 						return;
@@ -711,7 +750,7 @@ namespace gearfilter
 			}
 		};
 
-		Picker g_pickers[2];  // [0] inventory tabs or magic school (owns the filtered list), [1] magic effect
+		Picker g_pickers[4];  // Inventory/Magic school, Magic effect, player side, other side
 
 		// One visual mask shared by both Magic pickers. No native focus/selection state changes.
 		struct NativeBackground
@@ -798,17 +837,27 @@ namespace gearfilter
 	}
 
 
-	bool Active() { return g_pickers[0].active.load() || g_pickers[1].active.load(); }
-	void Invalidate() { if (!g_inside) g_dirty = true; }
+	bool Active(int side) { return side >= 3 && side <= 4 ? g_pickers[side - 1].active.load() :
+		g_pickers[0].active.load() || g_pickers[1].active.load(); }
+	void Invalidate() { if (!g_inside) for (auto& state : g_states) state.dirty = true; }
 
-	void Tick(Mode a_mode, UE::UObject* a_menu, UE::UObject* a_canvas, float a_viewportScale)
+	void Tick(Mode a_mode, UE::UObject* a_menu, UE::UObject* a_canvas, float a_viewportScale, UE::UObject* a_other)
 	{
+		if (a_mode != Mode::Container) {
+			g_pickers[2].Tick(-1, nullptr, nullptr, 1);
+			g_pickers[3].Tick(-1, nullptr, nullptr, 1);
+		}
 		if (a_mode == Mode::Magic) {
 			g_pickers[1].Tick(2, a_menu, a_canvas, a_viewportScale);  // attached first so the school icon ends up before it
 			g_pickers[0].Tick(1, a_menu, a_canvas, a_viewportScale);
 		} else if (a_mode == Mode::Inventory) {
 			g_pickers[1].Tick(-1, nullptr, nullptr, 1.0f);
 			g_pickers[0].Tick(0, a_menu, a_canvas, a_viewportScale);
+		} else if (a_mode == Mode::Container) {
+			g_pickers[1].Tick(-1, nullptr, nullptr, 1);
+			g_pickers[0].Tick(-1, nullptr, nullptr, 1);
+			g_pickers[2].Tick(3, a_menu, a_canvas, a_viewportScale);
+			g_pickers[3].Tick(4, a_other, a_canvas, a_viewportScale);
 		} else {
 			g_pickers[1].Tick(-1, nullptr, nullptr, 1.0f);
 			g_pickers[0].Tick(-1, nullptr, nullptr, 1.0f);
@@ -816,54 +865,65 @@ namespace gearfilter
 		UpdateNativeBackgroundMask();
 	}
 
-	void Filter(UE::UObject* a_list, const std::vector<UE::UObject*>& a_live, const std::string& a_query, NameMatches a_nameMatches)
+	void Filter(UE::UObject* a_list, const std::vector<UE::UObject*>& a_live, const std::string& a_query, NameMatches a_nameMatches, int side)
 	{
-		auto& primary = g_pickers[0];
+		const unsigned slot = side >= 3 && side <= 4 ? static_cast<unsigned>(side - 2) : 0;
+		auto& state = g_states[slot];
+		auto& primary = g_pickers[slot ? slot + 1 : 0];
 		auto& second = g_pickers[1];
-		if (g_inside || !Active() || primary.kind < 0) return;
+		if (g_inside || !Active(side) || primary.kind < 0) return;
 		g_inside = true;
 		struct Exit { ~Exit() { g_inside = false; } } exit;
-		const bool magic = primary.kind != 0;
+		const bool magic = primary.kind == 1;
 		bool changed = false;
-		if (!g_haveApplied || a_live != g_applied) {
-			g_source.clear();
+		if (!state.haveApplied || a_live != state.applied) {
+			state.source.clear();
 			std::vector<int> indices;
-			for (auto* item : a_live) { g_source.push_back(reflect::Hold(item)); indices.push_back(Index(item)); }
+			std::vector<int> nativeIndices;
+			std::vector<std::uint32_t> forms;
+			for (auto* item : a_live) {
+				state.source.push_back(reflect::Hold(item));
+				indices.push_back(slot ? static_cast<int>(indices.size()) : Index(item));
+				if (slot) nativeIndices.push_back(Index(item));
+				if (slot) forms.push_back(ContainerForm(item));
+			}
 			SetItems(reflect::Get(primary.cache), a_live, false);
 			if (magic) {
-				g_indices = std::move(indices); g_masks.clear();
-				ComputeMagicMasks(a_live);
-				g_dataReady = true; g_ticket = 0;
-			} else if (indices != g_indices || !g_ticket) {
-				g_indices = std::move(indices); g_masks.clear(); g_dataReady = g_indices.empty();
-				g_ticket = geardata::Request(g_indices); g_dataDeadline = GetTickCount64() + 2500;
+				state.indices = std::move(indices); state.masks.clear();
+				ComputeMagicMasks(a_live, state);
+				state.dataReady = true; state.ticket = 0;
+			} else if (slot || indices != state.indices || !state.ticket) {
+				state.indices = std::move(indices); state.masks.clear(); state.dataReady = state.indices.empty();
+				state.ticket = geardata::Request(state.indices, std::move(forms), slot, std::move(nativeIndices)); state.dataDeadline = GetTickCount64() + 2500;
 			}
 			changed = true;
 		}
 		std::vector<geardata::Entry> entries;
-		if (!magic && g_ticket && geardata::Take(g_ticket, entries)) {
-			g_dataReady = entries.size() == g_indices.size() && std::all_of(entries.begin(), entries.end(), [](const auto& e) { return e.valid; });
-			if (g_dataReady) for (const auto& e : entries) g_masks[e.index] = e.tags;
+		if (!magic && state.ticket && geardata::Take(state.ticket, entries)) {
+			state.dataReady = entries.size() == state.indices.size() && (slot || std::all_of(entries.begin(), entries.end(), [](const auto& e) { return e.valid; }));
+			if (state.dataReady) { for (const auto& e : entries) if (e.valid) state.masks[e.index] = e.tags; }
 			else logger::warn("gear piece filter: some equipment identities could not be resolved; leaving piece membership unfiltered");
 			changed = true;
 		}
-		if (!magic && !g_dataReady && g_dataDeadline && GetTickCount64() > g_dataDeadline) {
-			g_dataDeadline = 0;
+		if (!magic && !state.dataReady && state.dataDeadline && GetTickCount64() > state.dataDeadline) {
+			state.dataDeadline = 0;
 			logger::warn("gear piece filter: equipment identities are unavailable; leaving piece membership unfiltered");
 		}
 		const bool useSecond = second.kind == 2;
-		if (!changed && !g_dirty && a_query == g_query && primary.choice == primary.appliedChoice && primary.category == primary.appliedCategory &&
+		if (!changed && !state.dirty && a_query == state.query && primary.choice == primary.appliedChoice && primary.category == primary.appliedCategory &&
 			(!useSecond || second.choice == second.appliedChoice)) return;
 		std::vector<UE::UObject*> keep;
-		for (const auto& handle : g_source) {
+		int position = 0;
+		for (const auto& handle : state.source) {
 			auto* item = reflect::Get(handle);
-			if (!item) { g_haveApplied = false; return; }
-			const auto mask = g_masks.find(Index(item));
-			const bool pieces = !g_dataReady || mask == g_masks.end() || (primary.Passes(mask->second) && (!useSecond || second.Passes(mask->second)));
+			if (!item) { state.haveApplied = false; return; }
+			const auto mask = state.masks.find(slot ? position : Index(item));
+			++position;
+			const bool pieces = !state.dataReady || mask == state.masks.end() || (primary.Passes(mask->second) && (!useSecond || second.Passes(mask->second)));
 			if (pieces && (a_query.empty() || a_nameMatches(item, a_query))) keep.push_back(item);
 		}
 		if (keep != a_live) SetItems(a_list, keep, true);
-		g_applied = std::move(keep); g_haveApplied = true; g_dirty = false; g_query = a_query;
+		state.applied = std::move(keep); state.haveApplied = true; state.dirty = false; state.query = a_query;
 		primary.appliedChoice = primary.choice; primary.appliedCategory = primary.category;
 		second.appliedChoice = second.choice; second.appliedCategory = second.category;
 	}
@@ -937,11 +997,13 @@ namespace gearfilter
 
 	bool Contains(double a_x, double a_y)
 	{
-		return g_pickers[0].Contains(a_x, a_y) || g_pickers[1].Contains(a_x, a_y);
+		for (auto& picker : g_pickers) if (picker.Contains(a_x, a_y)) return true;
+		return false;
 	}
 
 	bool Message(UINT a_message, WPARAM a_key, LPARAM a_position)
 	{
-		return g_pickers[1].Message(a_message, a_key, a_position) || g_pickers[0].Message(a_message, a_key, a_position);
+		for (int i = 3; i >= 0; --i) if (g_pickers[i].Message(a_message, a_key, a_position)) return true;
+		return false;
 	}
 }
