@@ -18,7 +18,7 @@ namespace icons
 			reinterpret_cast<LPCWSTR>(&Texture), &module);
 		wchar_t location[32768]{};
 		if (!module || !GetModuleFileNameW(module, location, 32768)) return nullptr;
-		const auto path = std::filesystem::path(location).parent_path() / L"SortingOverhaul" / filename;
+		const auto path = std::filesystem::path(location).parent_path() / L"MenusRevamped" / L"Sorting" / filename;
 		UE::UObject* texture = nullptr;
 		if (std::filesystem::is_regular_file(path)) {
 			auto* library = ui::Class(L"/Script/Engine.KismetRenderingLibrary");

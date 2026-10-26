@@ -10,7 +10,7 @@ namespace sortpad
 	constexpr std::uint16_t A = 0x1000, B = 0x2000, Y = 0x8000;
 	constexpr int Deadzone = 16000;
 	enum class Direction { None, Left, Right, Up, Down };
-	struct Input { std::uint16_t buttons = 0; short x = 0, y = 0; };
+	struct Input { std::uint16_t buttons = 0; short x = 0, y = 0, rx = 0, ry = 0; std::uint8_t lt = 0, rt = 0; };
 
 	inline Direction Axis(const Input& input)
 	{
@@ -89,7 +89,8 @@ namespace sortpad
 		std::uint32_t Update(std::uint32_t nativePacket, Input forwarded)
 		{
 			if (!have) { packet = nativePacket; have = true; }
-			else if (nativePacket != lastNative || forwarded.buttons != last.buttons || forwarded.x != last.x || forwarded.y != last.y)
+			else if (nativePacket != lastNative || forwarded.buttons != last.buttons || forwarded.x != last.x || forwarded.y != last.y ||
+				forwarded.rx != last.rx || forwarded.ry != last.ry || forwarded.lt != last.lt || forwarded.rt != last.rt)
 				++packet;
 			lastNative = nativePacket; last = forwarded;
 			return packet;

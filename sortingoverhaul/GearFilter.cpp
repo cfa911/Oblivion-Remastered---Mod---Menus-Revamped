@@ -39,16 +39,14 @@ namespace gearfilter
 
 		// Inventory/Magic share slot 0; player and merchant/container each own an
 		// independent snapshot and TES request. Clearing one side cannot clear the other.
-		bool g_inside = false;
 		struct FilterState
 		{
-			bool dirty = true, haveApplied = false, dataReady = false;
-			std::string query;
-			std::vector<reflect::Handle> source;
-			std::vector<UE::UObject*> applied;
+			bool dirty = true, dataReady = false;
+			int menu = 0;
 			std::vector<int> indices;
 			std::unordered_map<int, std::uint64_t> masks;
-			std::uint64_t ticket = 0, dataDeadline = 0;
+			std::vector<UE::UObject*> filtered;
+			std::uint64_t generation = 0, ticket = 0, dataDeadline = 0;
 		};
 		FilterState g_states[3];
 
@@ -130,15 +128,7 @@ namespace gearfilter
 			ui::CallFirst(label, L"SetAutoWrapText", &wrap, sizeof(wrap));
 		}
 
-		void SetItems(UE::UObject* a_list, const std::vector<UE::UObject*>& a_items, bool a_refresh)
-		{
-			ui::Call clear(a_list, L"ClearListItems"); clear.Run();
-			for (auto* item : a_items) ui::CallFirst(a_list, L"AddItem", &item, sizeof(item));
-			if (a_refresh) {
-				ui::Call regenerate(a_list, L"RegenerateAllEntries"); regenerate.Run();
-				ui::Call refresh(a_list, L"RequestRefresh"); refresh.Run();
-			}
-		}
+
 
 		int Index(UE::UObject* a_item)
 		{
@@ -262,7 +252,7 @@ namespace gearfilter
 			unsigned category = 0, appliedCategory = 0;  // All Items page only: 0 = none, else 1 weapons, 2 gear, 3 potions, 4 misc
 			itemtags::Tab tab = itemtags::Tab::Gear, view = itemtags::Tab::Gear;  // view: whose choices the popup shows
 			bool tabSet = false, styled = false, widgetWarning = false, fontsReady = false, fontWarning = false;
-			reflect::Handle menu, canvas, header, headerImage, headerFrame, popup, popupSlot, paperSlot, cache, nativeSchool;
+			reflect::Handle menu, canvas, header, headerImage, headerFrame, popup, popupSlot, paperSlot, nativeSchool;
 			reflect::Handle cells[itemtags::kMaxChoices], icons[itemtags::kMaxChoices], labels[itemtags::kMaxChoices], title;
 			std::uint64_t nextLayout = 0, nextHitMeasure = 0, nextFontTry = 0;
 
@@ -321,10 +311,6 @@ namespace gearfilter
 				}
 				// A collapsed ListView owns strong UE references to the full source list while its visible list is filtered.
 				// It generates no visible rows; handles alone would not keep removed list items alive through GC.
-				auto* cacheWidget = CanvasChild(a_canvas, L"/Script/UMG.ListView", (L"SlPieceSource" + suffix).c_str(), 0, 0, 0, 0);
-				if (!cacheWidget) return false;
-				ui::Visible(cacheWidget, false);
-				cache = reflect::Hold(cacheWidget);
 				popup = reflect::Hold(popupWidget);
 				popupSlot = reflect::Hold(slot);
 				canvas = reflect::Hold(a_canvas);
@@ -495,7 +481,6 @@ namespace gearfilter
 				nativeFocusWarning = false;
 				paintedOpen = false; nextLayout = 0; nextHitMeasure = 0;
 				widgetWarning = false;
-				if (auto* cacheList = reflect::Get(cache)) SetItems(cacheList, {}, false);
 				if (auto* image = reflect::Get(headerImage)) Brush(image, itemtags::Info(tab).icons[0]);
 				if (auto* frame = reflect::Get(headerFrame)) ui::RoundedBox(frame, false, kClear, kClear, 0, 0);
 				{ std::scoped_lock lock(inputLock); headerPx = {}; popupPx = {}; command = -1; commandFromController = false; inputOpen = false; swallowUp = false; swallowEscape = false; doubleClickUntil = 0; }
@@ -559,8 +544,8 @@ namespace gearfilter
 				}
 				if (reflect::Get(menu) != a_menu || reflect::Get(canvas) != a_canvas) {
 					Reset();
-					for (const auto& handle : { popup, cache, header }) if (auto* old = reflect::Get(handle)) { ui::Call remove(old, L"RemoveFromParent"); remove.Run(); }
-					menu = reflect::Hold(a_menu); popup = {}; paperSlot = {}; cache = {}; header = {}; carousel = {}; nativeSchool = {}; nativePeers.clear();
+					for (const auto& handle : { popup, header }) if (auto* old = reflect::Get(handle)) { ui::Call remove(old, L"RemoveFromParent"); remove.Run(); }
+					menu = reflect::Hold(a_menu); popup = {}; paperSlot = {}; header = {}; carousel = {}; nativeSchool = {}; nativePeers.clear();
 					canvas = reflect::Hold(a_canvas); nextLayout = 0;
 				}
 				if (!reflect::Get(popup) && !BuildPopup(a_canvas)) {
@@ -839,7 +824,7 @@ namespace gearfilter
 
 	bool Active(int side) { return side >= 3 && side <= 4 ? g_pickers[side - 1].active.load() :
 		g_pickers[0].active.load() || g_pickers[1].active.load(); }
-	void Invalidate() { if (!g_inside) for (auto& state : g_states) state.dirty = true; }
+	void Invalidate() { for (auto& state : g_states) state.dirty = true; }
 
 	void Tick(Mode a_mode, UE::UObject* a_menu, UE::UObject* a_canvas, float a_viewportScale, UE::UObject* a_other)
 	{
@@ -865,67 +850,61 @@ namespace gearfilter
 		UpdateNativeBackgroundMask();
 	}
 
-	void Filter(UE::UObject* a_list, const std::vector<UE::UObject*>& a_live, const std::string& a_query, NameMatches a_nameMatches, int side)
+	const std::vector<UE::UObject*>& Evaluate(int side,
+		const std::vector<UE::UObject*>& source, std::uint64_t generation)
 	{
 		const unsigned slot = side >= 3 && side <= 4 ? static_cast<unsigned>(side - 2) : 0;
 		auto& state = g_states[slot];
 		auto& primary = g_pickers[slot ? slot + 1 : 0];
 		auto& second = g_pickers[1];
-		if (g_inside || !Active(side) || primary.kind < 0) return;
-		g_inside = true;
-		struct Exit { ~Exit() { g_inside = false; } } exit;
-		const bool magic = primary.kind == 1;
+		const bool magic = side == 2;
 		bool changed = false;
-		if (!state.haveApplied || a_live != state.applied) {
-			state.source.clear();
-			std::vector<int> indices;
+		if (state.generation != generation || state.menu != side) {
+			geardata::Cancel(slot);
+			state = {}; state.generation = generation; state.menu = side;
 			std::vector<int> nativeIndices;
 			std::vector<std::uint32_t> forms;
-			for (auto* item : a_live) {
-				state.source.push_back(reflect::Hold(item));
-				indices.push_back(slot ? static_cast<int>(indices.size()) : Index(item));
-				if (slot) nativeIndices.push_back(Index(item));
-				if (slot) forms.push_back(ContainerForm(item));
+			for (auto* item : source) {
+				state.indices.push_back(slot ? static_cast<int>(state.indices.size()) : Index(item));
+				if (slot) { nativeIndices.push_back(Index(item)); forms.push_back(ContainerForm(item)); }
 			}
-			SetItems(reflect::Get(primary.cache), a_live, false);
-			if (magic) {
-				state.indices = std::move(indices); state.masks.clear();
-				ComputeMagicMasks(a_live, state);
-				state.dataReady = true; state.ticket = 0;
-			} else if (slot || indices != state.indices || !state.ticket) {
-				state.indices = std::move(indices); state.masks.clear(); state.dataReady = state.indices.empty();
-				state.ticket = geardata::Request(state.indices, std::move(forms), slot, std::move(nativeIndices)); state.dataDeadline = GetTickCount64() + 2500;
+			if (magic) { ComputeMagicMasks(source, state); state.dataReady = true; }
+			else if (source.empty()) state.dataReady = true;
+			else {
+				state.ticket = geardata::Request(state.indices, std::move(forms), slot, std::move(nativeIndices));
+				state.dataDeadline = GetTickCount64() + 2500;
 			}
 			changed = true;
 		}
 		std::vector<geardata::Entry> entries;
 		if (!magic && state.ticket && geardata::Take(state.ticket, entries)) {
-			state.dataReady = entries.size() == state.indices.size() && (slot || std::all_of(entries.begin(), entries.end(), [](const auto& e) { return e.valid; }));
-			if (state.dataReady) { for (const auto& e : entries) if (e.valid) state.masks[e.index] = e.tags; }
-			else logger::warn("gear piece filter: some equipment identities could not be resolved; leaving piece membership unfiltered");
+			state.dataReady = entries.size() == state.indices.size();
+			if (state.dataReady) for (const auto& entry : entries) if (entry.valid) state.masks[entry.index] = entry.tags;
+			state.ticket = state.dataDeadline = 0;
 			changed = true;
 		}
-		if (!magic && !state.dataReady && state.dataDeadline && GetTickCount64() > state.dataDeadline) {
-			state.dataDeadline = 0;
-			logger::warn("gear piece filter: equipment identities are unavailable; leaving piece membership unfiltered");
+		if (state.ticket && GetTickCount64() > state.dataDeadline) {
+			geardata::Cancel(slot); state.ticket = state.dataDeadline = 0;
+			changed = true;
+			logger::warn("Menus Revamped: item classification timed out; unresolved categories remain visible");
 		}
 		const bool useSecond = second.kind == 2;
-		if (!changed && !state.dirty && a_query == state.query && primary.choice == primary.appliedChoice && primary.category == primary.appliedCategory &&
-			(!useSecond || second.choice == second.appliedChoice)) return;
-		std::vector<UE::UObject*> keep;
+		if (!changed && !state.dirty && primary.choice == primary.appliedChoice &&
+			primary.category == primary.appliedCategory && (!useSecond || second.choice == second.appliedChoice))
+			return state.filtered;
+		state.filtered.clear();
 		int position = 0;
-		for (const auto& handle : state.source) {
-			auto* item = reflect::Get(handle);
-			if (!item) { state.haveApplied = false; return; }
+		for (auto* item : source) {
 			const auto mask = state.masks.find(slot ? position : Index(item));
 			++position;
-			const bool pieces = !state.dataReady || mask == state.masks.end() || (primary.Passes(mask->second) && (!useSecond || second.Passes(mask->second)));
-			if (pieces && (a_query.empty() || a_nameMatches(item, a_query))) keep.push_back(item);
+			if (!Active(side) || primary.kind < 0 || !state.dataReady || mask == state.masks.end() ||
+				(primary.Passes(mask->second) && (!useSecond || second.Passes(mask->second))))
+				state.filtered.push_back(item);
 		}
-		if (keep != a_live) SetItems(a_list, keep, true);
-		state.applied = std::move(keep); state.haveApplied = true; state.dirty = false; state.query = a_query;
+		state.dirty = false;
 		primary.appliedChoice = primary.choice; primary.appliedCategory = primary.category;
-		second.appliedChoice = second.choice; second.appliedCategory = second.category;
+		second.appliedChoice = second.choice;
+		return state.filtered;
 	}
 
 	void Controller(std::uint16_t& buttons, short& x, short& y, bool connected)
@@ -993,6 +972,12 @@ namespace gearfilter
 			else if (action == sortpad::ReturnAction::TimedOut)
 				logger::warn("Sorting Overhaul: controller return-to-list was not acknowledged by native sorting focus; press Y to exit");
 		}
+	}
+
+	bool PopupOpen()
+	{
+		for (const auto& picker : g_pickers) if (picker.active.load() && picker.open) return true;
+		return false;
 	}
 
 	bool Contains(double a_x, double a_y)
