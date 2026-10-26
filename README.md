@@ -6,7 +6,7 @@ Build just this plugin with `xmake -y SortingOverhaul`. Install `SortingOverhaul
 
 ## Editable icons
 
-All 57 current picker/header icons load from `OBSE/Plugins/SortingOverhaul/*.png`. Replace the matching PNG and restart the game. Keep filenames unchanged. Transparent square RGBA PNGs are recommended; supplied defaults are 128 by 128 and scale to the existing icon cells. Prefixes distinguish Weapon, Gear, Potion, Misc, Category, School and Effect. The selected choice's PNG also appears in the header. Missing/unreadable files log one warning and do not use a hidden game-asset fallback.
+All current picker/header icons load from `OBSE/Plugins/SortingOverhaul/*.png`. Replace the matching PNG and restart the game. Keep filenames unchanged. Transparent square RGBA PNGs are recommended; supplied defaults are 128 by 128 and scale to the existing icon cells. Prefixes distinguish Weapon, Gear, Potion, Misc, Category, School and Effect. The selected choice's PNG also appears in the header. Missing/unreadable files log one warning and do not use a hidden game-asset fallback.
 
 This public source contains original procedural icon defaults. The owner's customized, game-derived School PNGs are kept only in the local installation, not redistributed here. Generate the eight missing procedural School placeholders before a separate installation; do not overwrite the owner's installed images. The remaining icons are original procedural defaults. `tools/generate_sorting_icons.py OUTPUT_DIRECTORY` recreates missing procedural placeholders with Pillow (it does not recreate the customized native school artwork); existing files are preserved unless `--replace` is explicitly supplied. The deployed folder is for owner customization and must never be overwritten by a later dev deploy without checking for changes.
 
@@ -36,3 +36,18 @@ See [effect-family definitions and verification](docs/spell-effect-categories.md
 ## Native-style focus highlight
 
 [Square borderless E6E4DF focus and reversible native background mask](docs/native-highlight.md) is implemented for owner testing. Existing icons/background and filter membership are unchanged.
+
+## Detailed melee subfilters
+
+[Detailed weapon kinds](docs/weapon-kinds.md) expands Blade/Blunt to eight melee
+choices plus Other weapons, retaining Bows/Staves. Nine additional editable PNGs
+are provisional defaults for the owner to replace. Existing icons are preserved.
+SO-009 potion Magicka correction is retained.Development candidate awaiting owner runtime confirmation; Arrows is approved but queued separately.
+
+## Nested Alchemy and Misc Tools
+
+[Alchemy/Misc filter design](docs/alchemy-misc.md): All/Potions/Ingredients/Tools,
+with potion families nested under Potions, including Attributes. Apparatus Tools
+is one combined leaf. Misc Tools also includes the base repair hammer and inventory
+lights/torches. Four additional provisional icons, existing PNGs preserved.
+Candidate requires owner runtime testing; no release or deployment implied.

@@ -3,6 +3,7 @@
 #include "GearPieces.h"
 #include "MagicEffects.h"
 #include "PickerGrid.h"
+#include "WeaponKinds.h"
 
 #include <array>
 #include <cstdint>
@@ -13,7 +14,24 @@
 // Page numbers (CurrentPageInventory, proven in game 1.512.105.0): 0 weapons, 1 gear, 2 potions, 3 misc, 4 all items.
 namespace itemtags
 {
-	enum class Tab : unsigned { Weapons, Gear, Potions, Misc, AllItems, MagicSchool, MagicEffect };
+	enum class Tab : unsigned { Weapons, Gear, Potions, Misc, AllItems, MagicSchool, MagicEffect, PotionEffects };
+	// Flat tag/selection IDs keep parent navigation separate from applied membership.
+	// Potions is the native page-2 enum; its popup root is now Alchemy.
+	enum class Alchemy : unsigned { All, Potions, Ingredients, Tools, Health, Magicka, Fatigue, Attributes, Cure, Poison };
+	constexpr unsigned Index(Alchemy choice) { return static_cast<unsigned>(choice); }
+	constexpr std::uint32_t AlchemyBit(Alchemy choice)
+	{
+		const auto index = Index(choice);
+		return index > 0 && index <= Index(Alchemy::Poison) ? 1u << (index - 1) : 0u;
+	}
+	constexpr std::uint32_t AlchemyTags(unsigned formType)
+	{
+		return formType == 40 ? AlchemyBit(Alchemy::Potions) :
+			formType == 25 ? AlchemyBit(Alchemy::Ingredients) :
+			formType == 19 ? AlchemyBit(Alchemy::Tools) : 0u;
+	}
+	// Potion submenu: All potions=1; Health..Poison are flat IDs 4..9.
+	constexpr unsigned PotionSelection(unsigned choice) { return choice == 0 ? Index(Alchemy::Potions) : choice + 3; }
 	constexpr unsigned kMaxChoices = pickergrid::kMaxChoices;
 	static_assert(magiceffects::kChoiceCount <= kMaxChoices);
 
@@ -38,16 +56,17 @@ namespace itemtags
 	inline const TabInfo& Info(Tab a_tab)
 	{
 		static const TabInfo tabs[] = {
-			{ "Weapon type", 5, { "All", "Blade", "Blunt", "Bow", "Staff" },
-				{ L"Weapon-All.png", L"Weapon-Blade.png", L"Weapon-Blunt.png", L"Weapon-Bow.png", L"Weapon-Staff.png" } },
+			{ "Weapon type", weaponkinds::kCount,
+				{ "All", "Daggers", "Shortswords", "Longswords", "Claymores", "War axes", "Battleaxes", "Maces", "Warhammers", "Bows", "Staves", "Other weapons" },
+				{ L"Weapon-All.png", L"Weapon-Dagger.png", L"Weapon-Shortsword.png", L"Weapon-Longsword.png", L"Weapon-Claymore.png", L"Weapon-WarAxe.png", L"Weapon-Battleaxe.png", L"Weapon-Mace.png", L"Weapon-Warhammer.png", L"Weapon-Bow.png", L"Weapon-Staff.png", L"Weapon-Other.png" } },
 			{ "Equipment piece", 9, { "All", "Ring", "Amulet", "Head", "Torso", "Arms", "Feet", "Legwear", "Shield" },
 				{ L"Gear-All.png", L"Gear-Ring.png", L"Gear-Amulet.png", L"Gear-Head.png", L"Gear-Torso.png", L"Gear-Arms.png", L"Gear-Feet.png", L"Gear-Legwear.png", L"Gear-Shield.png" } },
-			{ "Potion type", 6, { "All", "Health", "Magicka", "Fatigue", "Cure", "Poison" },
-				{ L"Potion-All.png", L"Potion-Health.png", L"Potion-Magicka.png", L"Potion-Fatigue.png", L"Potion-Cure.png", L"Potion-Poison.png" } },
+			{ "Alchemy", 4, { "All", "Potions", "Ingredients", "Tools" },
+				{ L"Potion-All.png", L"Alchemy-Potions.png", L"Alchemy-Ingredients.png", L"Alchemy-Tools.png" } },
 			{ "Item type", 6, { "All", "Keys", "Soul gems", "Books", "Tools", "Other" },
 				{ L"Misc-All.png", L"Misc-Keys.png", L"Misc-SoulGems.png", L"Misc-Books.png", L"Misc-Tools.png", L"Misc-Other.png" } },
 			// All Items: the four tab categories first; a category then opens its own choices.
-			{ "Item category", 5, { "All", "Weapons", "Gear", "Potions", "Misc" },
+			{ "Item category", 5, { "All", "Weapons", "Gear", "Alchemy", "Misc" },
 				{ L"Category-All.png", L"Category-Weapons.png", L"Category-Gear.png", L"Category-Potions.png", L"Category-Misc.png" } },
 			// Magic menu: two independent pickers (school, then effect family).
 			{ "Spell school", 8, { "All", "Alteration", "Conjuration", "Destruction", "Illusion", "Mysticism", "Restoration", "Powers" },
@@ -60,8 +79,18 @@ namespace itemtags
 				}
 				return info;
 			}(),
+			{ "Potion type", 7, { "All potions", "Health", "Magicka", "Fatigue", "Attributes", "Cure", "Poison" },
+				{ L"Alchemy-Potions.png", L"Potion-Health.png", L"Potion-Magicka.png", L"Potion-Fatigue.png", L"Potion-Attributes.png", L"Potion-Cure.png", L"Potion-Poison.png" } },
 		};
 		return tabs[static_cast<unsigned>(a_tab)];
+	}
+
+	inline const wchar_t* SelectionIcon(Tab tab, unsigned choice)
+	{
+		if (tab == Tab::Potions && choice >= Index(Alchemy::Health) && choice <= Index(Alchemy::Poison))
+			return Info(Tab::PotionEffects).icons[choice - 3];
+		const auto& info = Info(tab);
+		return info.icons[choice < info.count ? choice : 0];
 	}
 
 	constexpr bool TabFromPage(int a_page, Tab& a_tab)
@@ -84,7 +113,7 @@ namespace itemtags
 		}
 	}
 	constexpr unsigned CategoryOf(std::uint32_t a_tags) { return a_tags >> 28; }
-	constexpr bool Includes(unsigned a_choice, std::uint32_t a_tags) { return a_choice == 0 || ((a_tags & kTagBits) >> (a_choice - 1) & 1u) != 0; }
+	constexpr bool Includes(unsigned a_choice, std::uint32_t a_tags) { return a_choice == 0 || (a_choice <= 28 && ((a_tags & kTagBits) >> (a_choice - 1) & 1u) != 0); }
 	// All Items page: a_category 0 = unfiltered, else the item must be in that category and (choice 0 = whole category) in the sub-choice.
 	constexpr bool IncludesAll(unsigned a_category, unsigned a_choice, std::uint32_t a_tags)
 	{
@@ -99,16 +128,10 @@ namespace itemtags
 		return tags;
 	}
 
-	// Weapons: OBJ_WEAP.type (RE::WEAPON_TYPE) -> Blade, Blunt, Bow, Staff.
-	constexpr std::uint32_t WeaponTags(int a_type)
+	// Native type plus nonlocalized asset filenames; ambiguous/custom assets stay Other.
+	constexpr std::uint32_t WeaponTags(int a_type, std::string_view a_model = {}, std::string_view a_icon = {})
 	{
-		switch (a_type) {
-		case 0: case 1: return 1u << 0;  // blade one/two hand
-		case 2: case 3: return 1u << 1;  // blunt one/two hand
-		case 5: return 1u << 2;          // marksman bow
-		case 4: return 1u << 3;          // staff
-		default: return 0;
-		}
+		return weaponkinds::Tags(a_type, a_model, a_icon);
 	}
 
 	constexpr std::uint32_t Code(char a, char b, char c, char d)
@@ -117,19 +140,22 @@ namespace itemtags
 		       (static_cast<std::uint32_t>(static_cast<unsigned char>(c)) << 16) | (static_cast<std::uint32_t>(static_cast<unsigned char>(d)) << 24);
 	}
 
-	// Potions: effect codes (EffectItem + 0x08, proven on 1.512.105.0) -> Health, Magicka, Fatigue, Cure, Poison.
+	// Potion records always belong to Potions, including unclassified/scripted effects.
+	// Families are independent of Ingredients and alchemy apparatus/Tools.
 	// A potion with several kinds of effect belongs to every matching choice; Poison means "has a hostile effect".
 	constexpr std::uint32_t PotionTags(const std::uint32_t* a_codes, unsigned a_count, int a_hostileCount)
 	{
-		std::uint32_t tags = 0;
+		std::uint32_t tags = AlchemyBit(Alchemy::Potions);
 		for (unsigned i = 0; i < a_count; ++i) {
 			const auto code = a_codes[i];
-			if (code == Code('R', 'E', 'H', 'E') || code == Code('F', 'O', 'H', 'E')) tags |= 1u << 0;
-			else if (code == Code('F', 'O', 'M', 'A') || code == Code('R', 'E', 'M', 'A')) tags |= 1u << 1;
-			else if (code == Code('R', 'E', 'F', 'A') || code == Code('F', 'O', 'F', 'A')) tags |= 1u << 2;
-			else if (code == Code('C', 'U', 'D', 'I') || code == Code('C', 'U', 'P', 'O') || code == Code('C', 'U', 'P', 'A')) tags |= 1u << 3;
+			if (code == Code('R', 'E', 'H', 'E') || code == Code('F', 'O', 'H', 'E')) tags |= AlchemyBit(Alchemy::Health);
+			else if (code == Code('F', 'O', 'S', 'P') || code == Code('R', 'E', 'S', 'P')) tags |= AlchemyBit(Alchemy::Magicka);
+			else if (code == Code('R', 'E', 'F', 'A') || code == Code('F', 'O', 'F', 'A')) tags |= AlchemyBit(Alchemy::Fatigue);
+			else if (code == Code('C', 'U', 'D', 'I') || code == Code('C', 'U', 'P', 'O') || code == Code('C', 'U', 'P', 'A')) tags |= AlchemyBit(Alchemy::Cure);
+			else if (code == Code('F', 'O', 'A', 'T') || code == Code('R', 'E', 'A', 'T') ||
+				code == Code('D', 'G', 'A', 'T') || code == Code('D', 'R', 'A', 'T') || code == Code('A', 'B', 'A', 'T')) tags |= AlchemyBit(Alchemy::Attributes);
 		}
-		if (a_hostileCount > 0) tags |= 1u << 4;
+		if (a_hostileCount > 0) tags |= AlchemyBit(Alchemy::Poison);
 		return tags;
 	}
 
@@ -153,15 +179,17 @@ namespace itemtags
 	}
 
 	// Misc: form type (RE::FormType) + base form id + book flags -> Keys, Soul gems, Books/Scrolls, Tools, Other.
-	// Lockpicks are the Misc form 0x0000000A. Alchemy apparatus and ingredients live on the potions page and have no misc tag.
+	// Installed master: Lockpick 0xA and RepairHammer 0xC. Inventory lights (including
+	// torches) are Tools. Alchemy apparatus/ingredients have their own Alchemy groups.
 	constexpr std::uint32_t MiscTags(unsigned a_formType, std::uint32_t a_formId, std::uint8_t)
 	{
 		switch (a_formType) {
 		case 39: return 1u << 0;  // key
 		case 38: return 1u << 1;  // soul gem
 		case 21: return 1u << 2;  // book or scroll
-		case 27: return (a_formId & 0x00FFFFFFu) == 0x0Au ? (1u << 3) : (1u << 4);
-		case 26: case 42: return 1u << 4;  // light, sigil stone
+		case 27: return ((a_formId & 0x00FFFFFFu) == 0x0Au || a_formId == 0x0Cu) ? (1u << 3) : (1u << 4);
+		case 26: return 1u << 3;  // inventory light/torch
+		case 42: return 1u << 4;  // sigil stone
 		default: return 0;
 		}
 	}

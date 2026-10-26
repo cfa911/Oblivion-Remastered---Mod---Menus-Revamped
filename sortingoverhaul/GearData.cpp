@@ -38,8 +38,20 @@ namespace geardata
 			       Read(reinterpret_cast<void*>(main + 0x18), &id, sizeof(id)) && id == GetCurrentThreadId();
 		}
 
+		// Bounded copies on the existing TES-thread item path, never UE-thread model calls.
+		bool AssetPath(const RE::BSString& a_source, char (&a_target)[1024])
+		{
+			__try {
+				const auto size = a_source.size();
+				if (size >= sizeof(a_target)) return false;
+				if (size && !Read(a_source.c_str(), a_target, size)) return false;
+				a_target[size] = '\0';
+				return true;
+			} __except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) { return false; }
+		}
+
 		// Every native item kind gets the tag bits of the choice(s) it belongs to on its own tab. An item with no tag is
-		// valid but belongs to no specific choice (for example an ingredient on the potions tab).
+		// Ingredients and apparatus have explicit Alchemy membership, independent of effects.
 		bool SubTags(RE::ItemChange* a_item, std::uint32_t& a_tags, unsigned& a_type)
 		{
 			__try {
@@ -47,9 +59,17 @@ namespace geardata
 				if (!object) return false;
 				a_tags = 0;
 				a_type = static_cast<unsigned>(object->GetFormType());
+				if (a_type == 19 || a_type == 25) { a_tags = itemtags::AlchemyTags(a_type); return true; }
 				if (auto* armor = object->As<RE::TESObjectARMO>()) { a_tags = itemtags::GearTags(armor->bipedModelData.bipedObjectSlots); return true; }
 				if (auto* clothing = object->As<RE::TESObjectCLOT>()) { a_tags = itemtags::GearTags(clothing->bipedModelData.bipedObjectSlots); return true; }
-				if (auto* weapon = object->As<RE::TESObjectWEAP>()) { a_tags = itemtags::WeaponTags(weapon->data.type); return true; }
+				if (auto* weapon = object->As<RE::TESObjectWEAP>()) {
+					const auto type = weapon->data.type;
+					if (type == 4 || type == 5) { a_tags = itemtags::WeaponTags(type); return true; }
+					char model[1024]{}, icon[1024]{};
+					const bool paths = AssetPath(weapon->model, model) && AssetPath(weapon->textureName, icon);
+					a_tags = paths ? itemtags::WeaponTags(type, model, icon) : itemtags::WeaponTags(type);
+					return true;
+				}
 				if (auto* potion = object->As<RE::AlchemyItem>()) {
 					std::uint32_t codes[8]{};
 					unsigned count = 0;

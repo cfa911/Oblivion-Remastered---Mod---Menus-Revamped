@@ -3,21 +3,31 @@ Usage: python tools/generate_sorting_icons.py <output-directory>
 Only creates absent files; pass --replace to deliberately regenerate defaults.
 """
 import argparse
+import shutil
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 GROUPS = {
- 'Weapon': ['All','Blade','Blunt','Bow','Staff'],
+ 'Weapon': ['All','Bow','Staff','Dagger','Shortsword','Longsword','Claymore','WarAxe','Battleaxe','Mace','Warhammer','Other'],
  'Gear': ['All','Ring','Amulet','Head','Torso','Arms','Feet','Legwear','Shield'],
- 'Potion': ['All','Health','Magicka','Fatigue','Cure','Poison'],
+ 'Potion': ['All','Health','Magicka','Fatigue','Attributes','Cure','Poison'],
+ 'Alchemy': ['Potions','Ingredients','Tools'],
  'Misc': ['All','Keys','SoulGems','Books','Tools','Other'],
  'Category': ['All','Weapons','Gear','Potions','Misc'],
  'School': ['All','Alteration','Conjuration','Destruction','Illusion','Mysticism','Restoration','Powers'],
  'Effect': ['All','Fire','Frost','Shock','Damage','Drain','Absorb','Restore','Fortify','Shield','Resistance','Weakness','Summon','Bound','Control','Stealth','Utility','Other'],
 }
 INK='#30281e'; GOLD='#ab8544'
+BLUNT_PLACEHOLDERS = {
+ 'Weapon-Dagger','Weapon-Shortsword','Weapon-Longsword','Weapon-Claymore',
+ 'Weapon-WarAxe','Weapon-Battleaxe','Weapon-Mace','Weapon-Warhammer','Weapon-Other',
+ 'Alchemy-Potions','Alchemy-Ingredients','Alchemy-Tools','Potion-Attributes',
+}
 
 def icon(group, name):
+ # Every new filter uses the same Blunt placeholder until the owner replaces it.
+ if f'{group}-{name}' in BLUNT_PLACEHOLDERS:
+  return icon('Weapon','Blunt')
  # New effect defaults intentionally use Staff placeholders; the owner supplies final artwork.
  if group=='Effect' and name not in ['All','Fire','Frost','Shock','Restore','Other']:
   return icon('Weapon','Staff')
@@ -93,6 +103,11 @@ def main():
   for name in names:
    path=a.output/f'{group}-{name}.png'
    if path.exists() and not a.replace:continue
-   icon(group,name).save(path);count+=1
+   donor=a.output/'Weapon-Blunt.png'
+   if f'{group}-{name}' in BLUNT_PLACEHOLDERS and donor.exists():
+    shutil.copyfile(donor,path)
+   else:
+    icon(group,name).save(path)
+   count+=1
  print(f'Created {count} icons; existing customized files preserved unless --replace was used.')
 if __name__=='__main__':main()
