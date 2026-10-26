@@ -8,19 +8,19 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 GROUPS = {
- 'Weapon': ['All','Bow','Staff','Dagger','Shortsword','Longsword','Claymore','WarAxe','Battleaxe','Mace','Warhammer','Other'],
+ 'Weapon': ['All','Bow','Arrow','Staff','Dagger','Shortsword','Longsword','Claymore','WarAxe','Battleaxe','Mace','Warhammer','Other'],
  'Gear': ['All','Ring','Amulet','Head','Torso','Arms','Feet','Legwear','Shield'],
  'Potion': ['All','Health','Magicka','Fatigue','Attributes','Cure','Poison'],
- 'Alchemy': ['Potions','Ingredients','Tools'],
+ 'Alchemy': ['All','Potions','Ingredients','Tools'],
  'Misc': ['All','Keys','SoulGems','Books','Tools','Other'],
- 'Category': ['All','Weapons','Gear','Potions','Misc'],
+ 'Category': ['All','Weapons','Gear','Alchemy','Misc'],
  'School': ['All','Alteration','Conjuration','Destruction','Illusion','Mysticism','Restoration','Powers'],
  'Effect': ['All','Fire','Frost','Shock','Damage','Drain','Absorb','Restore','Fortify','Shield','Resistance','Weakness','Summon','Bound','Control','Stealth','Utility','Other'],
 }
 INK='#30281e'; GOLD='#ab8544'
 BLUNT_PLACEHOLDERS = {
  'Weapon-Dagger','Weapon-Shortsword','Weapon-Longsword','Weapon-Claymore',
- 'Weapon-WarAxe','Weapon-Battleaxe','Weapon-Mace','Weapon-Warhammer','Weapon-Other',
+ 'Weapon-WarAxe','Weapon-Battleaxe','Weapon-Mace','Weapon-Warhammer','Weapon-Other','Weapon-Arrow',
  'Alchemy-Potions','Alchemy-Ingredients','Alchemy-Tools','Potion-Attributes',
 }
 
@@ -37,8 +37,8 @@ def icon(group, name):
  def ellipse(box,fill=None,outline=INK,width=5):d.ellipse(tuple(int(x*4) for x in box),fill=fill,outline=outline,width=width*4)
  def rect(box,fill=None,outline=INK,width=5):d.rectangle(tuple(int(x*4) for x in box),fill=fill,outline=outline,width=width*4)
  key=name
- if group=='Category':key={'All':'Grid','Weapons':'Blade','Gear':'Torso','Potions':'Bottle','Misc':'Keys'}[name]
- if name=='All' and group!='Category':key={'Weapon':'Crossed','Gear':'Torso','Potion':'Bottle','Misc':'Coins','School':'Scroll','Effect':'Spark'}[group]
+ if group=='Category':key={'All':'Grid','Weapons':'Blade','Gear':'Torso','Alchemy':'Bottle','Misc':'Keys'}[name]
+ if name=='All' and group!='Category':key={'Weapon':'Crossed','Gear':'Torso','Alchemy':'Bottle','Potion':'Bottle','Misc':'Coins','School':'Scroll','Effect':'Spark'}[group]
  if key in ['Blade','Crossed']:
   poly([(27,96),(36,103),(103,25),(104,12),(91,17)]);line([(25,75),(52,99)],GOLD,26);line([(24,99),(35,85)],INK,30)
   if key=='Crossed':

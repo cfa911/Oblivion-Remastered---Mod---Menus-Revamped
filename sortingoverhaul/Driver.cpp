@@ -3,6 +3,7 @@
 
 #include "Menus.h"
 #include "GearFilter.h"
+#include "ControllerPolicy.h"
 
 #include <Xinput.h>   // types and constants only - nothing is linked or loaded
 
@@ -15,6 +16,7 @@ namespace sortingdriver
 		XInputGetState_t  g_previous = nullptr;
 		DWORD             g_gameThread = 0;
 		std::atomic<bool> g_installed{ false };
+		sortpad::PacketStamp g_packets;
 
 		DWORD WINAPI Chained(DWORD a_user, XINPUT_STATE* a_state)
 		{
@@ -24,7 +26,9 @@ namespace sortingdriver
 				if (rc == ERROR_SUCCESS && a_state) {
 					auto& pad = a_state->Gamepad;
 					gearfilter::Controller(pad.wButtons, pad.sThumbLX, pad.sThumbLY, true);
+					a_state->dwPacketNumber = g_packets.Update(a_state->dwPacketNumber, { pad.wButtons, pad.sThumbLX, pad.sThumbLY });
 				} else {
+					g_packets.Reset();
 					std::uint16_t buttons = 0; short x = 0, y = 0;
 					gearfilter::Controller(buttons, x, y, false);
 				}

@@ -7,7 +7,7 @@
 // model/icon filenames, never localized display text, speed/reach or guessed IDs.
 namespace weaponkinds
 {
-	enum class Kind : unsigned { All, Dagger, Shortsword, Longsword, Claymore, WarAxe, Battleaxe, Mace, Warhammer, Bow, Staff, Other, Count, Ambiguous };
+	enum class Kind : unsigned { All, Dagger, Shortsword, Longsword, Claymore, WarAxe, Battleaxe, Mace, Warhammer, Bow, Arrow, Staff, Other, Count, Ambiguous };
 	constexpr unsigned kCount = static_cast<unsigned>(Kind::Count);
 	constexpr std::uint32_t Bit(Kind kind)
 	{

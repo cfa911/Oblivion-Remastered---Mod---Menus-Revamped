@@ -2,6 +2,8 @@
 #include <initializer_list>
 #include <cstdio>
 #include <cstdlib>
+#include <vector>
+#include <algorithm>
 using namespace sortpad;
 unsigned checks = 0;
 void Check(bool ok) { ++checks; if (!ok) { std::printf("FAIL check %u\n", checks); std::exit(1); } }
@@ -67,11 +69,11 @@ int main()
 	Check(pass.Filter({Y | B, 2345, -1200}).y == -1200);
 	// Holding A before entering custom focus does not generate a new confirm.
 	state.Sample({A}, 600); state.Sample({A}, 700); Check(!state.pressed);
-	Check(Move(2, 18, Direction::Up) == 17);
-	Check(Move(17, 18, Direction::Down) == 2);
-	Check(Move(17, 18, Direction::Right) == 15);
-	Check(Move(15, 18, Direction::Left) == 17);
-	Check(Move(16, 17, Direction::Right) == 15);
+	Check(Move(2, 18, Direction::Up) == 14);
+	Check(Move(17, 18, Direction::Down) == 1);
+	Check(Move(17, 18, Direction::Right) == 16);
+	Check(Move(15, 18, Direction::Left) == 14);
+	Check(Move(16, 17, Direction::Right) == 16);
 	Check(Move(2, 17, Direction::Up) == 14); // skip nonexistent last-column cell
 	Check(Move(99, 19, Direction::Right) == 0);
 	for (unsigned count = 1; count <= pickergrid::kMaxChoices; ++count) {
@@ -83,26 +85,53 @@ int main()
 					seen[Move(at, count, d)] = true;
 		for (unsigned at = 0; at < count; ++at) Check(seen[at]);
 	}
-	// Expanding Effect must not change navigation of existing 1..9-choice pickers.
-	const auto legacyMove = [](unsigned cursor, unsigned count, Direction direction) {
-		const unsigned row = cursor / 3, column = cursor % 3;
-		for (unsigned step = 1; step <= 3; ++step) {
-			unsigned r = row, c = column;
-			switch (direction) {
-			case Direction::Left: c = (column + 3 - step) % 3; break;
-			case Direction::Right: c = (column + step) % 3; break;
-			case Direction::Up: r = (row + 3 - step) % 3; break;
-			case Direction::Down: r = (row + step) % 3; break;
-			default: return cursor;
-			}
-			const auto candidate = r * 3 + c;
-			if (candidate < count) return candidate;
-		}
-		return cursor;
+	// Independent reference: cycle only the real cells sharing this row/column.
+	const auto referenceMove = [](unsigned cursor, unsigned count, Direction direction) {
+		std::vector<unsigned> line;
+		const unsigned columns = count <= 1 ? 1 : count <= 4 ? 2 : count <= 9 ? 3 : 4;
+		const bool horizontal = direction == Direction::Left || direction == Direction::Right;
+		for (unsigned i = 0; i < count; ++i)
+			if (horizontal ? i / columns == cursor / columns : i % columns == cursor % columns) line.push_back(i);
+		const auto at = static_cast<unsigned>(std::find(line.begin(), line.end(), cursor) - line.begin());
+		const auto size = static_cast<unsigned>(line.size());
+		const bool forward = direction == Direction::Right || direction == Direction::Down;
+		return line[(at + (forward ? 1 : size - 1)) % size];
 	};
-	for (unsigned n = 1; n <= 9; ++n)
+	for (unsigned n = 1; n <= pickergrid::kMaxChoices; ++n)
 		for (unsigned at = 0; at < n; ++at)
 			for (auto d : {Direction::Left, Direction::Right, Direction::Up, Direction::Down})
-				Check(Move(at, n, d) == legacyMove(at, n, d));
+				Check(Move(at, n, d) == referenceMove(at, n, d));
+	for (bool enabled : { false, true })
+		for (bool controller : { false, true })
+			for (bool finalSelection : { false, true })
+				Check(ShouldReturnToList(enabled, controller, finalSelection) == (enabled && controller && finalSelection));
+	ReturnToList returning;
+	Check(!returning.Pending());
+	returning.Request();
+	Check(returning.Update(A, true, 0) == ReturnAction::None && returning.Pending());
+	Check(returning.Update(0, true, 10) == ReturnAction::PressY);
+	Check(returning.Update(0, true, 20) == ReturnAction::PressY);
+	Check(returning.Update(0, false, 30) == ReturnAction::None && !returning.Pending());
+	Check(returning.Update(0, true, 40) == ReturnAction::None); // no second exit press
+	returning.Request();
+	Check(returning.Update(Y, true, 50) == ReturnAction::None && !returning.Pending());
+	returning.Request();
+	Check(returning.Update(B, true, 60) == ReturnAction::None && !returning.Pending());
+	returning.Request();
+	Check(returning.Update(0, true, 100) == ReturnAction::PressY);
+	Check(returning.Update(0, true, 600) == ReturnAction::TimedOut && !returning.Pending());
+	Check(returning.Update(0, true, 601) == ReturnAction::None); // warns once only
+	returning.Request(); returning.Cancel();
+	Check(returning.Update(0, true, 700) == ReturnAction::None);
+	PacketStamp packets;
+	Check(packets.Update(10, {}) == 10);
+	Check(packets.Update(10, {}) == 10);
+	Check(packets.Update(10, {Y}) == 11); // synthetic Y changes even with unchanged physical packet
+	Check(packets.Update(10, {Y}) == 11); // repeated polls are one held press
+	Check(packets.Update(10, {}) == 12); // release must be observable too
+	Check(packets.Update(11, {}) == 13);
+	Check(packets.Update(11, {0, 123, -42}) == 14);
+	packets.Reset(); Check(packets.Update(0xFFFFFFFFu, {}) == 0xFFFFFFFFu);
+	Check(packets.Update(0xFFFFFFFFu, {Y}) == 0); // defined uint32 wrap
 	std::printf("%u controller policy checks passed\n", checks);
 }

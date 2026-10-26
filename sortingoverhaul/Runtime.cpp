@@ -15,6 +15,7 @@ namespace sorting
 		WNDPROC g_previous = nullptr;
 		DWORD g_thread = 0;
 		bool g_inside = false;
+		std::atomic<bool> g_returnToListAfterFilter{ true };
 		constexpr UINT_PTR kTimer = 0x534F;
 		using Match = bool (*)(UE::UObject*, const char*);
 		Match g_match = nullptr;
@@ -124,6 +125,21 @@ namespace sorting
 			if (g_previous && GetWindowThreadProcessId(window, nullptr) == g_thread) SetTimer(window, kTimer, 8, nullptr);
 		}
 	}
+
+	void LoadSettings()
+	{
+		HMODULE module = nullptr;
+		const auto flags = GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT;
+		if (!GetModuleHandleExW(flags, reinterpret_cast<LPCWSTR>(&g_returnToListAfterFilter), &module)) return;
+		std::array<wchar_t, 32768> filename{};
+		const auto size = GetModuleFileNameW(module, filename.data(), static_cast<DWORD>(filename.size()));
+		if (!size || size >= filename.size()) return;
+		auto ini = std::filesystem::path(filename.data());
+		ini.replace_extension(L".ini");
+		g_returnToListAfterFilter.store(GetPrivateProfileIntW(L"Controller", L"bReturnToListAfterFilter", 1, ini.c_str()) != 0);
+	}
+
+	bool ReturnToListAfterFilter() { return g_returnToListAfterFilter.load(); }
 
 	bool FilterList(int menu, UE::UObject* list, const char* query, Match matches)
 	{

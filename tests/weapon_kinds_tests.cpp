@@ -1,6 +1,9 @@
 #include "../sortingoverhaul/ItemTags.h"
 
+#include "../sortingoverhaul/ControllerPolicy.h"
+
 #include <bit>
+#include <string_view>
 #include <cstdio>
 #include <cstdlib>
 
@@ -61,7 +64,31 @@ int main()
 	check(itemtags::WeaponTags(0) == Bit(Kind::Other), "missing paths stay accessible");
 	const auto& info = itemtags::Info(itemtags::Tab::Weapons);
 	check(info.count == weaponkinds::kCount && info.count <= pickergrid::kMaxChoices, "picker bounds");
-	check(pickergrid::Rows(info.count) == 4 && pickergrid::Height(info.count) == 308, "expanded grid geometry");
+	check(info.count == 13 && pickergrid::Rows(info.count) == 4 && pickergrid::Height(info.count) == 308, "four-column weapon grid geometry");
+	const auto arrow = static_cast<unsigned>(Kind::Arrow);
+	const auto ammo = itemtags::AmmoTags(34) | (itemtags::Category(34) << 28);
+	check(itemtags::AmmoTags(34) == Bit(Kind::Arrow), "AMMO has the Arrow tag only");
+	check(itemtags::CategoryOf(ammo) == 1, "AMMO belongs to Weapons");
+	check(itemtags::Includes(0, ammo) && itemtags::Includes(arrow, ammo), "Weapons All and Arrows include ammo");
+	check(itemtags::IncludesAll(0, 0, ammo) && itemtags::IncludesAll(1, 0, ammo) && itemtags::IncludesAll(1, arrow, ammo), "All Items / Weapons / Arrows includes ammo");
+	check(std::string_view(info.names[arrow]) == "Arrows" && std::wstring_view(info.icons[arrow]) == L"Weapon-Arrow.png", "Arrow label and editable icon match selection ID");
+	for (unsigned form = 0; form < 256; ++form) {
+		if (form != 34) check(itemtags::AmmoTags(form) == 0, "non-AMMO cannot gain Arrow membership");
+	}
+	for (unsigned i = 1; i < info.count; ++i) {
+		check(itemtags::Includes(i, ammo) == (i == arrow), "ammo excluded from every other weapon subtype");
+		check(itemtags::Includes(arrow, Bit(static_cast<Kind>(i))) == (i == arrow), "other weapon tags excluded from Arrows");
+	}
+	for (unsigned category = 2; category <= 4; ++category)
+		check(!itemtags::IncludesAll(category, 0, ammo), "ammo cannot leak into nonweapon categories");
+	bool reached[pickergrid::kMaxChoices]{};
+	reached[0] = true;
+	for (unsigned round = 0; round < info.count; ++round)
+		for (unsigned at = 0; at < info.count; ++at)
+			if (reached[at]) for (auto direction : { sortpad::Direction::Left, sortpad::Direction::Right, sortpad::Direction::Up, sortpad::Direction::Down })
+				reached[sortpad::Move(at, info.count, direction)] = true;
+	for (unsigned i = 0; i < info.count; ++i)
+		check(reached[i], "controller reaches every choice in partial fourth row");
 	for (unsigned i = 0; i < info.count; ++i) {
 		check(info.names[i] && info.icons[i], "each choice has a label and editable icon");
 		check(pickergrid::IsSelection(static_cast<int>(i), info.count), "each choice has a mouse/controller selection");

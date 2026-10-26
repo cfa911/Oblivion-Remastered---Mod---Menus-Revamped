@@ -6,7 +6,14 @@ Build just this plugin with `xmake -y SortingOverhaul`. Install `SortingOverhaul
 
 ## Editable icons
 
-All current picker/header icons load from `OBSE/Plugins/SortingOverhaul/*.png`. Replace the matching PNG and restart the game. Keep filenames unchanged. Transparent square RGBA PNGs are recommended; supplied defaults are 128 by 128 and scale to the existing icon cells. Prefixes distinguish Weapon, Gear, Potion, Misc, Category, School and Effect. The selected choice's PNG also appears in the header. Missing/unreadable files log one warning and do not use a hidden game-asset fallback.
+All current picker/header icons load from `OBSE/Plugins/SortingOverhaul/*.png`. Replace the matching PNG and restart the game. Keep filenames unchanged. Transparent square RGBA PNGs are recommended; supplied defaults are 128 by 128 and scale to the existing icon cells. Prefixes distinguish Weapon, Gear, Alchemy, Potion, Misc, Category, School and Effect. The selected choice's PNG also appears in the header. Missing/unreadable files log one warning and do not use a hidden game-asset fallback.
+
+Alchemy filenames: All Items **Alchemy** uses `Category-Alchemy.png`;
+Alchemy root **All** uses `Alchemy-All.png`; the **Potions** parent uses
+`Alchemy-Potions.png`; submenu **All potions** and its selected header use
+`Potion-All.png` (singular). Back up custom art before updating. Older installs
+need the new `Alchemy-All.png` and `Category-Alchemy.png` names; do not replace
+custom art with procedural defaults.
 
 This public source contains original procedural icon defaults. The owner's customized, game-derived School PNGs are kept only in the local installation, not redistributed here. Generate the eight missing procedural School placeholders before a separate installation; do not overwrite the owner's installed images. The remaining icons are original procedural defaults. `tools/generate_sorting_icons.py OUTPUT_DIRECTORY` recreates missing procedural placeholders with Pillow (it does not recreate the customized native school artwork); existing files are preserved unless `--replace` is explicitly supplied. The deployed folder is for owner customization and must never be overwritten by a later dev deploy without checking for changes.
 
@@ -42,7 +49,10 @@ See [effect-family definitions and verification](docs/spell-effect-categories.md
 [Detailed weapon kinds](docs/weapon-kinds.md) expands Blade/Blunt to eight melee
 choices plus Other weapons, retaining Bows/Staves. Nine additional editable PNGs
 are provisional defaults for the owner to replace. Existing icons are preserved.
-SO-009 potion Magicka correction is retained.Development candidate awaiting owner runtime confirmation; Arrows is approved but queued separately.
+SO-009 potion Magicka correction is retained. Arrows now classify native AMMO
+as Weapons with a dedicated Arrows choice on both picker paths. The thirteen-choice
+popup now has four columns and four rows; Weapon-Arrow.png is a provisional Blunt-art default.
+Owner accepted the development work; this is not a release.
 
 ## Nested Alchemy and Misc Tools
 
@@ -51,3 +61,24 @@ with potion families nested under Potions, including Attributes. Apparatus Tools
 is one combined leaf. Misc Tools also includes the base repair hammer and inventory
 lights/torches. Four additional provisional icons, existing PNGs preserved.
 Candidate requires owner runtime testing; no release or deployment implied.
+
+
+## Count-based picker layout and controller focus
+
+One filter uses1x1;2-4 use2 columns;5-9 use3 columns;10+ use4 columns.
+Rows are ceil(filter count /columns):6 uses3x2 and9 uses3x3. Root/paper, title,
+cells and hit regions resize/reflow together. Full inventory labels, centered
+darker titles and the revised horizontal anchor preserve all icon files.
+
+`SortingOverhaul.ini` beside the DLL has `[Controller] bReturnToListAfterFilter=1`.
+By default, committing a final custom filter through the controller returns to
+the item list using the native sorting toggle. Parent/submenu steps, cancellations,
+mouse picks and native sort-method buttons do not trigger this automatic return.
+Set0 to retain sorting-bar focus until you exit it. Restart after changing the INI.
+Owner accepted the layout/controller batch and All Items Alchemy icon correction.
+The final Alchemy-All/Potion-All filename follow-up is built/deployed for retest.
+
+Focused checks: compile/run `tests/category_icon_tests.cpp`, `tests/picker_layout_tests.cpp`,
+`tests/controller_policy_tests.cpp`, `tests/alchemy_navigation_tests.cpp`,
+`tests/weapon_kinds_tests.cpp` and `tests/effect_categories_tests.cpp` with C++ latest;
+run `python -B tests/icon_names_tests.py` for generator/default filename checks.

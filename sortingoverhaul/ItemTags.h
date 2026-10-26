@@ -57,17 +57,17 @@ namespace itemtags
 	{
 		static const TabInfo tabs[] = {
 			{ "Weapon type", weaponkinds::kCount,
-				{ "All", "Daggers", "Shortswords", "Longswords", "Claymores", "War axes", "Battleaxes", "Maces", "Warhammers", "Bows", "Staves", "Other weapons" },
-				{ L"Weapon-All.png", L"Weapon-Dagger.png", L"Weapon-Shortsword.png", L"Weapon-Longsword.png", L"Weapon-Claymore.png", L"Weapon-WarAxe.png", L"Weapon-Battleaxe.png", L"Weapon-Mace.png", L"Weapon-Warhammer.png", L"Weapon-Bow.png", L"Weapon-Staff.png", L"Weapon-Other.png" } },
+				{ "All", "Daggers", "Shortswords", "Longswords", "Claymores", "War axes", "Battleaxes", "Maces", "Warhammers", "Bows", "Arrows", "Staves", "Other weapons" },
+				{ L"Weapon-All.png", L"Weapon-Dagger.png", L"Weapon-Shortsword.png", L"Weapon-Longsword.png", L"Weapon-Claymore.png", L"Weapon-WarAxe.png", L"Weapon-Battleaxe.png", L"Weapon-Mace.png", L"Weapon-Warhammer.png", L"Weapon-Bow.png", L"Weapon-Arrow.png", L"Weapon-Staff.png", L"Weapon-Other.png" } },
 			{ "Equipment piece", 9, { "All", "Ring", "Amulet", "Head", "Torso", "Arms", "Feet", "Legwear", "Shield" },
 				{ L"Gear-All.png", L"Gear-Ring.png", L"Gear-Amulet.png", L"Gear-Head.png", L"Gear-Torso.png", L"Gear-Arms.png", L"Gear-Feet.png", L"Gear-Legwear.png", L"Gear-Shield.png" } },
 			{ "Alchemy", 4, { "All", "Potions", "Ingredients", "Tools" },
-				{ L"Potion-All.png", L"Alchemy-Potions.png", L"Alchemy-Ingredients.png", L"Alchemy-Tools.png" } },
+				{ L"Alchemy-All.png", L"Alchemy-Potions.png", L"Alchemy-Ingredients.png", L"Alchemy-Tools.png" } },
 			{ "Item type", 6, { "All", "Keys", "Soul gems", "Books", "Tools", "Other" },
 				{ L"Misc-All.png", L"Misc-Keys.png", L"Misc-SoulGems.png", L"Misc-Books.png", L"Misc-Tools.png", L"Misc-Other.png" } },
 			// All Items: the four tab categories first; a category then opens its own choices.
 			{ "Item category", 5, { "All", "Weapons", "Gear", "Alchemy", "Misc" },
-				{ L"Category-All.png", L"Category-Weapons.png", L"Category-Gear.png", L"Category-Potions.png", L"Category-Misc.png" } },
+				{ L"Category-All.png", L"Category-Weapons.png", L"Category-Gear.png", L"Category-Alchemy.png", L"Category-Misc.png" } },
 			// Magic menu: two independent pickers (school, then effect family).
 			{ "Spell school", 8, { "All", "Alteration", "Conjuration", "Destruction", "Illusion", "Mysticism", "Restoration", "Powers" },
 				{ L"School-All.png", L"School-Alteration.png", L"School-Conjuration.png", L"School-Destruction.png", L"School-Illusion.png", L"School-Mysticism.png", L"School-Restoration.png", L"School-Powers.png" } },
@@ -80,13 +80,24 @@ namespace itemtags
 				return info;
 			}(),
 			{ "Potion type", 7, { "All potions", "Health", "Magicka", "Fatigue", "Attributes", "Cure", "Poison" },
-				{ L"Alchemy-Potions.png", L"Potion-Health.png", L"Potion-Magicka.png", L"Potion-Fatigue.png", L"Potion-Attributes.png", L"Potion-Cure.png", L"Potion-Poison.png" } },
+				{ L"Potion-All.png", L"Potion-Health.png", L"Potion-Magicka.png", L"Potion-Fatigue.png", L"Potion-Attributes.png", L"Potion-Cure.png", L"Potion-Poison.png" } },
 		};
 		return tabs[static_cast<unsigned>(a_tab)];
 	}
 
+	inline std::string_view PopupLabel(Tab tab, unsigned choice)
+	{
+		const auto& info = Info(tab);
+		if (choice >= info.count) return {};
+		if (tab == Tab::MagicSchool) return SchoolPopupLabel(choice);
+		if (tab == Tab::MagicEffect) return magiceffects::kChoices[choice].label;
+		return info.names[choice];
+	}
+
 	inline const wchar_t* SelectionIcon(Tab tab, unsigned choice)
 	{
+		if (tab == Tab::Potions && choice == Index(Alchemy::Potions))
+			return Info(Tab::PotionEffects).icons[0];
 		if (tab == Tab::Potions && choice >= Index(Alchemy::Health) && choice <= Index(Alchemy::Poison))
 			return Info(Tab::PotionEffects).icons[choice - 3];
 		const auto& info = Info(tab);
@@ -105,7 +116,7 @@ namespace itemtags
 	constexpr unsigned Category(unsigned a_formType)
 	{
 		switch (a_formType) {
-		case 33: return 1;                          // weapon
+		case 33: case 34: return 1;                 // weapon, ammo
 		case 20: case 22: return 2;                 // armor, clothing
 		case 40: case 25: case 19: return 3;        // alchemy, ingredient, apparatus
 		case 27: case 26: case 42: case 38: case 21: case 39: return 4;  // misc, light, sigil stone, soul gem, book, key
@@ -126,6 +137,12 @@ namespace itemtags
 		std::uint32_t tags = 0;
 		for (unsigned i = 1; i <= 8; ++i) if (gearpieces::Includes(static_cast<gearpieces::Piece>(i), a_biped)) tags |= 1u << (i - 1);
 		return tags;
+	}
+
+	// AMMO is a separate native form, not a WEAP type or a filename hint.
+	constexpr std::uint32_t AmmoTags(unsigned formType)
+	{
+		return formType == 34 ? weaponkinds::Bit(weaponkinds::Kind::Arrow) : 0u;
 	}
 
 	// Native type plus nonlocalized asset filenames; ambiguous/custom assets stay Other.

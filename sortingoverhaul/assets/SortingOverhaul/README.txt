@@ -18,3 +18,10 @@ Provisional Alchemy icons (also for owner replacement):
 Alchemy-Potions.png, Alchemy-Ingredients.png, Alchemy-Tools.png, Potion-Attributes.png.
 These are also exact Weapon-Blunt.png duplicates, as requested by the owner.
 Alchemy Tools is one combined apparatus filter, not an apparatus-type submenu.
+
+Alchemy naming:
+Category-Alchemy.png: Alchemy category on All Items (replaces Category-Potions.png).
+Alchemy-All.png: All at the Alchemy root.
+Alchemy-Potions.png: Potions parent, opens the potion submenu.
+Potion-All.png: All potions submenu choice and selected header (singular Potion).
+Back up customized artwork before migrating older filenames; restart after changes.

@@ -52,8 +52,8 @@ int main()
 	// Detailed melee tags use model/icon hints within native skill/handedness boundaries.
 	check(itemtags::Includes(1, itemtags::WeaponTags(0, "Dagger.NIF")) && itemtags::Includes(4, itemtags::WeaponTags(1, "Claymore.NIF")), "blade subtypes");
 	check(itemtags::Includes(5, itemtags::WeaponTags(2, "WarAxe.NIF")) && itemtags::Includes(6, itemtags::WeaponTags(3, "Battleaxe.NIF")), "axe subtypes");
-	check(itemtags::Includes(9, itemtags::WeaponTags(5)) && itemtags::Includes(10, itemtags::WeaponTags(4)), "bow and staff unchanged");
-	check(!itemtags::Includes(2, itemtags::WeaponTags(0)) && itemtags::Includes(11, itemtags::WeaponTags(-1)) && itemtags::Includes(11, itemtags::WeaponTags(9)), "unknown weapon fallback");
+	check(itemtags::Includes(9, itemtags::WeaponTags(5)) && itemtags::Includes(static_cast<unsigned>(weaponkinds::Kind::Staff), itemtags::WeaponTags(4)), "bow and staff unchanged");
+	check(!itemtags::Includes(2, itemtags::WeaponTags(0)) && itemtags::Includes(static_cast<unsigned>(weaponkinds::Kind::Other), itemtags::WeaponTags(-1)) && itemtags::Includes(static_cast<unsigned>(weaponkinds::Kind::Other), itemtags::WeaponTags(9)), "unknown weapon fallback");
 	// Potion family IDs are flat applied tags, independent of the nested popup.
 	using itemtags::Code;
 	using itemtags::Alchemy;
@@ -96,14 +96,14 @@ int main()
 // All Items: category from form type, then the sub-choice inside it.
 	check(itemtags::Info(itemtags::Tab::AllItems).count == 5, "category count");
 	check(itemtags::Category(33) == 1 && itemtags::Category(20) == 2 && itemtags::Category(22) == 2 && itemtags::Category(40) == 3 &&
-		itemtags::Category(25) == 3 && itemtags::Category(19) == 3 && itemtags::Category(39) == 4 && itemtags::Category(21) == 4 && itemtags::Category(34) == 0, "categories");
-	const std::uint32_t ring = itemtags::GearTags(0x40) | (2u << 28), bow = itemtags::WeaponTags(5) | (1u << 28), key = itemtags::MiscTags(39, 1, 0) | (4u << 28), ammo = 0;
+		itemtags::Category(25) == 3 && itemtags::Category(19) == 3 && itemtags::Category(39) == 4 && itemtags::Category(21) == 4 && itemtags::Category(34) == 1, "categories");
+	const std::uint32_t ring = itemtags::GearTags(0x40) | (2u << 28), bow = itemtags::WeaponTags(5) | (1u << 28), key = itemtags::MiscTags(39, 1, 0) | (4u << 28), ammo = itemtags::AmmoTags(34) | (itemtags::Category(34) << 28);
 	check(itemtags::IncludesAll(0, 0, ammo) && itemtags::IncludesAll(0, 9, bow), "no category keeps everything");
 	check(itemtags::IncludesAll(2, 0, ring) && !itemtags::IncludesAll(2, 0, bow), "whole gear category");
 	check(itemtags::IncludesAll(2, 1, ring) && !itemtags::IncludesAll(2, 2, ring), "ring inside gear");
 	check(itemtags::IncludesAll(1, 9, bow) && !itemtags::IncludesAll(1, 9, key), "bow only inside weapons");
 	check(itemtags::IncludesAll(4, 1, key) && !itemtags::IncludesAll(3, 1, key), "key only in misc");
-	check(!itemtags::IncludesAll(1, 0, ammo) && itemtags::Includes(1, ring), "category bits do not disturb choice bits");
+	check(itemtags::IncludesAll(1, 0, ammo) && itemtags::Includes(1, ring), "category bits do not disturb choice bits");
 	// Magic: school/power and effect tags.
 	check(itemtags::Info(itemtags::Tab::MagicSchool).count == 8 && itemtags::Info(itemtags::Tab::MagicEffect).count == magiceffects::kChoiceCount, "magic choice counts");
 	constexpr std::array<std::string_view, 8> schoolLabels{ "All", "Alte", "Conj", "Dest", "Illu", "Myst", "Rest", "Powers" };
