@@ -13,8 +13,8 @@ The standalone Sorting baseline is preserved on `deprecated/sorting-overhaul`.
 - Improved Wheels Plus uses three read-only `MenusRevamped_*` exports.
 - Smooth Menus hover throttling and object guard are compiled in, including
   independent barter/container-side replay and container-first discovery.
-  This development candidate still needs live performance/details acceptance;
-  remaining flash/stutter bugs are not claimed fixed.
+  Owner-accepted in the development build (container/barter performance and
+  the idle-focus flicker); see Validation status.
 
 ## Development build and cutover
 
@@ -42,6 +42,15 @@ Smooth Menus baseline: `17ed7b1`.
 All imported sources retain GPL-3.0-or-later notices. Credit: `cfa911`.
 Focused tests cover real internal adapters, the unified filter and input driver,
 source generations, one-time migration and the existing native resolver.
+Hover behavior (replay, per-side ownership) is covered by `python tests/hover_integration_tests.py <output-directory>`
+and `python tests/hover_side_ownership_tests.py <output-directory>`; migration by `tests/test_smooth_migration.py`
+and `tests/test_stage_menus_revamped.py`.
+
+## Validation status
+
+This is a development build, not a release. The owner has accepted the integrated development build (SearchLight, SearchLight - Controller Keyboard, Sorting Overhaul and the Smooth Menus hover fix as one plugin) in the ordinary integration scenarios, including container/barter performance and the idle-focus flicker. Exhaustive input-device and lifecycle coverage is not claimed.
+
+Open and fixed issues are tracked per bug in the knowledge-base repository (`bugs/menus-revamped`, `RMI-` series; older entries `SL-` and `SO-`). Do not rely on this README for the list of open problems. No research probe sources are part of this repository and no diagnostic is deployed.
 
 ## Historical Sorting feature reference
 
@@ -52,11 +61,11 @@ cross-plugin compatibility descriptions are historical, not current packaging.
 
 Independent OBSE64 plugin for Inventory and container/barter category/item pickers and Magic School/Effect pickers. Requires OBSE64 and the Address Library; uses the game UI through reflection. No SearchLight, MagicLoader, MISS, or third-party mod runtime dependency. Development version 0.0.0; not a release.
 
-Build just this plugin with `xmake -y SortingOverhaul`. Install `SortingOverhaul.dll` beside the other OBSE plugins and copy `sortingoverhaul/assets/SortingOverhaul/` beside it. Log: `SortingOverhaul.log`; warnings/errors only (level 3). The plugin has its own input driver, window-message chain, menu detection, native item resolver and popup canvas lookup.
+Historical standalone instructions (superseded by the unified build above): the Sorting module now ships inside `MenusRevamped.dll`; its artwork is copied to `OBSE/Plugins/MenusRevamped/Sorting/` and settings are in `MenusRevamped.ini`. The unified log is `MenusRevamped.log`; warnings/errors only (level 3). The plugin has its own input driver, window-message chain, menu detection, native item resolver and popup canvas lookup.
 
 ## Editable icons
 
-All current picker/header icons load from `OBSE/Plugins/SortingOverhaul/*.png`. Replace the matching PNG and restart the game. Keep filenames unchanged. Transparent square RGBA PNGs are recommended; supplied defaults are 128 by 128 and scale to the existing icon cells. Prefixes distinguish Weapon, Gear, Alchemy, Potion, Misc, Category, School and Effect. The selected choice's PNG also appears in the header. Missing/unreadable files log one warning and do not use a hidden game-asset fallback.
+All current picker/header icons load from `OBSE/Plugins/MenusRevamped/Sorting/*.png` (formerly `OBSE/Plugins/SortingOverhaul/`; `tools/stage_menus_revamped.py` imports the old folder). Replace the matching PNG and restart the game. Keep filenames unchanged. Transparent square RGBA PNGs are recommended; supplied defaults are 128 by 128 and scale to the existing icon cells. Prefixes distinguish Weapon, Gear, Alchemy, Potion, Misc, Category, School and Effect. The selected choice's PNG also appears in the header. Missing/unreadable files log one warning and do not use a hidden game-asset fallback.
 
 Alchemy filenames: All Items **Alchemy** uses `Category-Alchemy.png`;
 Alchemy root **All** uses `Alchemy-All.png`; the **Potions** parent uses
@@ -91,20 +100,13 @@ Logs stay warnings/errors only and retain three previous runs. Temporary row
 diagnostics are removed from this source. Focused native-boundary and dispatch
 checks (MSVC x64 developer prompt):
 `python tests/container_native_tests.py <output-directory>` and
-`python tests/container_runtime_tests.py <output-directory>`.
+`python tests/container_discovery_tests.py <output-directory>`.
 
 Magic picker visibility follows `VMagicMenuViewModel.GetCurrentPage`: 0 Self, 1 Touch, 2 Target, 3 All, 4 Active effects. Both headers and popups deactivate on page 4, including their mouse hit regions. Empty or powers-only spell results do not decide visibility.
 
-## Validation status
-
-This is a development build, not a release. The owner has accepted the integrated development build (SearchLight, SearchLight - Controller Keyboard, Sorting Overhaul and the Smooth Menus hover fix as one plugin) in the ordinary integration scenarios, including container/barter performance and the idle-focus flicker. Exhaustive input-device and lifecycle coverage is not claimed.
-
-Open and fixed issues are tracked per bug in the knowledge-base repository (`bugs/menus-revamped`, `RMI-` series; older entries `SL-` and `SO-`). Do not rely on this README for the list of open problems. No research probe sources are part of this repository and no diagnostic is deployed.
-
-
 ## Standalone source build
 
-Clone with `--recurse-submodules` (CommonLibOB64 is pinned), then run `xmake f -y -p windows -a x64 -m releasedbg` and `xmake -y SortingOverhaul` in a Visual Studio x64 developer prompt. DLL: `build/windows/x64/releasedbg/SortingOverhaul.dll`. The default source icons are procedural; `python tools/generate_sorting_icons.py sortingoverhaul/assets/SortingOverhaul` fills missing placeholders without replacing existing files. This source commit is not a release package; do not deploy it over customized live PNGs.
+Clone with `--recurse-submodules` (CommonLibOB64 is pinned), then run `xmake f -y -p windows -a x64 -m releasedbg` and `xmake -y MenusRevamped` in a Visual Studio x64 developer prompt. DLL: `build/windows/x64/releasedbg/MenusRevamped.dll` (there is no separate `SortingOverhaul` target any more). The default source icons are procedural; `python tools/generate_sorting_icons.py sortingoverhaul/assets/SortingOverhaul` fills missing placeholders without replacing existing files. This source commit is not a release package; do not deploy it over customized live PNGs.
 
 ## Expanded spell-effect picker
 
@@ -144,7 +146,7 @@ Rows are ceil(filter count /columns):6 uses3x2 and9 uses3x3. Root/paper, title,
 cells and hit regions resize/reflow together. Full inventory labels, centered
 darker titles and the revised horizontal anchor preserve all icon files.
 
-`SortingOverhaul.ini` beside the DLL has `[Controller] bReturnToListAfterFilter=1`.
+`MenusRevamped.ini` beside the DLL has `[Controller] bReturnToListAfterFilter=1` (formerly `SortingOverhaul.ini`; staging imports it).
 By default, committing a final custom filter through the controller returns to
 the item list using the native sorting toggle. Parent/submenu steps, cancellations,
 mouse picks and native sort-method buttons do not trigger this automatic return.
