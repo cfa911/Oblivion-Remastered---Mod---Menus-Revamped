@@ -1,5 +1,6 @@
 #include "GearFilter.h"
 #include "Runtime.h"
+#include "Container.h"
 
 #include "GearData.h"
 #include "ControllerPolicy.h"
@@ -565,9 +566,12 @@ namespace gearfilter
 				}
 				if (now >= nextLayout) {
 					nextLayout = now + 150;
-					auto* iconBox = ui::FindInTree(a_menu, "FilterIconBox");
-					if (!iconBox && kind >= 3) iconBox = ui::FindInTree(a_menu, "inv_cont_filter");
-					auto* panel = iconBox ? ui::FindInTree(iconBox, "ScrollBox") : nullptr;  // FilterIconBox is a user widget wrapping the real panel
+					auto find = [&](UE::UObject* owner, std::string_view name) {
+						return kind >= 3 ? container::FindWidget(owner, name) : ui::FindInTree(owner, name);
+					};
+					auto* iconBox = find(a_menu, "FilterIconBox");
+					if (!iconBox && kind >= 3) iconBox = find(a_menu, "inv_cont_filter");
+					auto* panel = iconBox ? find(iconBox, "ScrollBox") : nullptr;  // FilterIconBox is a user widget wrapping the real panel
 					auto* headerWidget = reflect::Get(header);
 					ui::Call parent(headerWidget, L"GetParent");
 					const bool attached = parent && parent.Run() && parent.Get<UE::UObject*>("ReturnValue") == panel;
