@@ -46,11 +46,16 @@ namespace gearfilter
 			bool dirty = true, dataReady = false;
 			int menu = 0;
 			std::vector<int> indices;
+			std::vector<std::uint64_t> keys;
 			std::unordered_map<int, std::uint64_t> masks;
 			std::vector<UE::UObject*> filtered;
 			std::uint64_t generation = 0, ticket = 0, dataDeadline = 0;
 		};
 		FilterState g_states[3];
+		// Container/barter tags depend only on the base item, so both sides share them across rebuilds: a transfer
+		// rebuilds the list and known rows stay filtered while the new TES request runs (RMI-005). Rows there have
+		// null forms, so the key is the row's name, weight and type; a wrong match lasts only until the reply.
+		std::unordered_map<std::uint64_t, std::uint64_t> g_rowTags;
 
 		void ResetShared(unsigned slot)
 		{
@@ -132,6 +137,16 @@ namespace gearfilter
 
 
 
+		// Native tab (page byte) of a container/barter side: kind 3 player, 4 container/merchant; -1 when not readable.
+		int ContainerPage(int a_kind)
+		{
+			auto* menu = container::Widget();
+			auto** vm = menu ? reflect::At<UE::UObject*>(menu, reflect::Offset(menu->GetClass(), "VContainerMenuViewModel")) : nullptr;
+			auto* page = vm && *vm ? reflect::At<std::uint8_t>(*vm, reflect::Offset((*vm)->GetClass(),
+				a_kind == 3 ? "CurrentPageInventory" : "CurrentPageContainer")) : nullptr;
+			return page ? *page : -1;
+		}
+
 		int Index(UE::UObject* a_item)
 		{
 			ui::Call get(a_item, L"GetInventoryIndex");
@@ -146,7 +161,7 @@ namespace gearfilter
 			__except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
 		}
 
-		std::uint32_t ContainerForm(UE::UObject* item)
+		std::uint32_t ContainerForm(UE::UObject* item, std::uint64_t* a_key = nullptr)
 		{
 			auto* properties = reinterpret_cast<UE::UStruct*>(UE::StaticFindObject<UE::UObject>(
 				nullptr, nullptr, L"/Script/Altar.OriginalInventoryMenuItemProperties"));
@@ -158,7 +173,17 @@ namespace gearfilter
 				get.Size("ReturnValue") != properties->propertiesSize || !get.Run()) return 0;
 			auto* form = *reinterpret_cast<UE::UObject**>(static_cast<std::uint8_t*>(result) + formOffset);
 			const auto value = FormID(form);
-			reinterpret_cast<UE::FText*>(static_cast<std::uint8_t*>(result) + nameOffset)->~FText();
+			auto* name = reinterpret_cast<UE::FText*>(static_cast<std::uint8_t*>(result) + nameOffset);
+			if (a_key) {
+				static const auto weightOffset = reflect::Offset(properties, "Weight"), typeOffset = reflect::Offset(properties, "Type");
+				std::string key = value ? std::to_string(value) : reflect::Text(*name);
+				if (!value && weightOffset >= 0 && typeOffset >= 0) {
+					key.append(reinterpret_cast<const char*>(static_cast<std::uint8_t*>(result) + weightOffset), sizeof(float));
+					key.push_back(static_cast<char>(*(static_cast<std::uint8_t*>(result) + typeOffset)));
+				}
+				*a_key = key.empty() ? 0 : std::hash<std::string>{}(key) | 1;
+			}
+			name->~FText();
 			return value;
 		}
 
@@ -514,6 +539,7 @@ namespace gearfilter
 			{
 				ResetShared(kind >= 3 ? static_cast<unsigned>(kind - 2) : 0);
 				choice = 0; appliedChoice = 0; category = 0; appliedCategory = 0; view = tab; open = false;
+				styled = false;  // the popup cells were built for the old view (stale Weapon type page, RMI-006)
 				controllerFocus = controllerPopup = false; cursor = 0;
 				returnToList.Cancel();
 				nativeFocusWarning = false;
@@ -544,7 +570,9 @@ namespace gearfilter
 				if (a_kind >= 0 && a_menu && a_canvas) {
 					if (a_kind >= 3) {
 						show = ui::ShownOnScreen(a_menu);
-						wanted = itemtags::Tab::AllItems;
+						wanted = itemtags::Tab::AllItems;  // full tree when the side's page cannot be read
+						// RMI-006: follow the side's native tab like the Inventory (Misc tab -> Misc choices).
+						itemtags::TabFromPage(ContainerPage(a_kind), wanted);
 					} else if (a_kind == 0) {
 						auto** vm = reflect::At<UE::UObject*>(a_menu, reflect::Offset(a_menu->GetClass(), "VInventoryMenuViewModel"));
 						if (vm && *vm) {
@@ -566,7 +594,7 @@ namespace gearfilter
 				}
 				active.store(true);  // page identity is independent of whether its new widgets have finished layout
 				if (!tabSet || tab != wanted) {  // another tab: its own choices and filter
-					if (tabSet) Reset();
+					if (tabSet) { const auto hold = transfer; Reset(); transfer = hold; }  // the RMI-004 Transfer hold may span a page change
 					tab = wanted; view = wanted; styled = false;
 				}
 				tabSet = true;
@@ -915,7 +943,12 @@ namespace gearfilter
 			std::vector<std::uint32_t> forms;
 			for (auto* item : source) {
 				state.indices.push_back(slot ? static_cast<int>(state.indices.size()) : Index(item));
-				if (slot) { nativeIndices.push_back(Index(item)); forms.push_back(ContainerForm(item)); }
+				if (slot) {
+					std::uint64_t key = 0;
+					nativeIndices.push_back(Index(item)); forms.push_back(ContainerForm(item, &key)); state.keys.push_back(key);
+					if (const auto known = key ? g_rowTags.find(key) : g_rowTags.end(); known != g_rowTags.end())
+						state.masks[static_cast<int>(state.keys.size() - 1)] = known->second;
+				}
 			}
 			if (magic) { ComputeMagicMasks(source, state); state.dataReady = true; }
 			else if (source.empty()) state.dataReady = true;
@@ -928,7 +961,13 @@ namespace gearfilter
 		std::vector<geardata::Entry> entries;
 		if (!magic && state.ticket && geardata::Take(state.ticket, entries)) {
 			state.dataReady = entries.size() == state.indices.size();
-			if (state.dataReady) for (const auto& entry : entries) if (entry.valid) state.masks[entry.index] = entry.tags;
+			if (state.dataReady) for (const auto& entry : entries) if (entry.valid) {
+				state.masks[entry.index] = entry.tags;
+				if (slot && entry.index >= 0 && static_cast<std::size_t>(entry.index) < state.keys.size() && state.keys[entry.index]) {
+					if (g_rowTags.size() > 16384) g_rowTags.clear();
+					g_rowTags[state.keys[entry.index]] = entry.tags;
+				}
+			}
 			state.ticket = state.dataDeadline = 0;
 			changed = true;
 		}
@@ -946,7 +985,7 @@ namespace gearfilter
 		for (auto* item : source) {
 			const auto mask = state.masks.find(slot ? position : Index(item));
 			++position;
-			if (!Active(side) || primary.kind < 0 || !state.dataReady || mask == state.masks.end() ||
+			if (!Active(side) || primary.kind < 0 || mask == state.masks.end() ||
 				(primary.Passes(mask->second) && (!useSecond || second.Passes(mask->second))))
 				state.filtered.push_back(item);
 		}
