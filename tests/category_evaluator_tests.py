@@ -26,7 +26,7 @@ prefix = r"""
 #include <unordered_map>
 #include <utility>
 #include <vector>
-namespace UE { struct UObject { int index=0; std::uint32_t form=0; }; }
+namespace UE { struct UObject { int index=0; std::uint32_t form=0; std::uint64_t key=0; }; }
 using Rows=std::vector<UE::UObject*>;
 std::uint64_t now=1000;
 #define GetTickCount64() now
@@ -52,6 +52,7 @@ namespace gearfilter {
 """
 middle = r"""
 FilterState g_states[3];
+std::unordered_map<std::uint64_t,std::uint64_t> g_rowTags;
 struct Picker {
     int kind=0; unsigned choice=0,appliedChoice=0,category=0,appliedCategory=0;
     bool Passes(std::uint64_t mask) const { return !category || (mask & category)!=0; }
@@ -59,7 +60,9 @@ struct Picker {
 bool active=true;
 bool Active(int) { return active; }
 int Index(UE::UObject* item) { return item->index; }
-std::uint32_t ContainerForm(UE::UObject* item) { return item->form; }
+std::uint32_t ContainerForm(UE::UObject* item,std::uint64_t* key=nullptr) {
+    if(key) *key=item->key ? item->key : item->form; return item->form;
+}
 void ComputeMagicMasks(const Rows& items,FilterState& state) {
     for(auto* item:items) state.masks[item->index]=item->form;
 }
@@ -84,26 +87,47 @@ int main() {
     gearfilter::Evaluate(3,source,1);
     check(geardata::requests.size()==1,"same generation never requeues consumed classification");
     geardata::replies[1]={{0,1,true},{1,2,true}}; // stale old generation
+    first.form=3; second.form=4; // reused wrappers now hold other items
     check(gearfilter::Evaluate(3,source,2)==source,"reused wrappers start new generation rather than old tag projection");
     check(gearfilter::g_states[1].ticket==2,"new generation owns a different classification ticket");
     geardata::replies[2]={{0,2,true},{1,1,true}};
     check(gearfilter::Evaluate(3,source,2)==Rows{&second},"only current generation reply affects category");
     gearfilter::g_pickers[3].category=2;
-    gearfilter::Evaluate(4,source,1);
+    UE::UObject m1{7,60},m2{9,61};
+    Rows merchant{&m1,&m2};
+    gearfilter::Evaluate(4,merchant,1);
     check(geardata::requests.back().slot==2,"merchant has its own request slot");
     geardata::replies[3]={{0,2,true},{1,0,false}};
-    check(gearfilter::Evaluate(4,source,1)==source,"unresolved merchant rows fail open");
+    check(gearfilter::Evaluate(4,merchant,1)==merchant,"unresolved merchant rows fail open");
     check(gearfilter::Evaluate(3,source,2)==Rows{&second},"merchant state cannot replace player tags");
-    gearfilter::Evaluate(4,source,2);
+    gearfilter::Evaluate(4,merchant,2);
     now+=3000;
-    check(gearfilter::Evaluate(4,source,2)==source && !gearfilter::g_states[2].ticket,
+    check(gearfilter::Evaluate(4,merchant,2)==merchant && !gearfilter::g_states[2].ticket,
           "timeout cancels pending request and leaves native rows usable");
     const auto count=geardata::requests.size();
-    gearfilter::Evaluate(4,source,2);
+    gearfilter::Evaluate(4,merchant,2);
     check(geardata::requests.size()==count,"timed-out generation cannot requeue forever");
+    // RMI-005: a rebuild after a sale/deposit must not show rows already known to fail the category.
+    // Container/barter rows have null forms (docs/inventory/internals.md section 4): only the row key identifies them.
+    UE::UObject keep{20,0,50},drop{21,0,51},fresh{22,0,52};
+    gearfilter::Evaluate(3,Rows{&keep,&drop},10);
+    geardata::replies[geardata::next]={{0,1,true},{1,2,true}};
+    check(gearfilter::Evaluate(3,Rows{&keep,&drop},10)==Rows{&keep},"classified player rows filter");
+    check(gearfilter::Evaluate(3,Rows{&drop,&keep},11)==Rows{&keep},
+          "rebuild keeps known rows filtered while the new request is pending");
+    check(gearfilter::Evaluate(3,Rows{&drop,&keep,&fresh},12)==Rows{&keep,&fresh},
+          "rows never classified stay visible while pending");
+    UE::UObject sold{30,0,51};
+    check(gearfilter::Evaluate(4,Rows{&sold},20)==Rows{&sold},"merchant category 2 keeps the sold row");
+    gearfilter::g_pickers[3].category=1;
+    check(gearfilter::Evaluate(4,Rows{&sold},21).empty(),"row moved to the other side uses its known tags at once");
+    geardata::replies[geardata::next]={{0,1,true}};
+    check(gearfilter::Evaluate(4,Rows{&sold},21)==Rows{&sold},"fresh reply replaces carried tags");
+    gearfilter::g_pickers[3].category=2;
+    const auto magicCount=geardata::requests.size();
     gearfilter::g_pickers[0].kind=1; gearfilter::g_pickers[0].category=1;
     check(gearfilter::Evaluate(2,source,1)==Rows{&first},"Magic category tags remain supported");
-    check(geardata::requests.size()==count,"Magic does not use inventory/container request path");
+    check(geardata::requests.size()==magicCount,"Magic does not use inventory/container request path");
     std::cout<<checks<<" checks, "<<failed<<" failures\n";
     return failed ? 1 : 0;
 }
