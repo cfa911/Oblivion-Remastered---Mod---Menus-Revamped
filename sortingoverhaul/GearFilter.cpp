@@ -14,6 +14,7 @@
 #include "Ui.h"
 #include "UiText.h"
 #include "TextUtil.h"
+#include "TransferHold.h"
 
 
 
@@ -256,8 +257,44 @@ namespace gearfilter
 			reflect::Handle menu, canvas, header, headerImage, headerFrame, popup, popupSlot, paperSlot, nativeSchool;
 			reflect::Handle cells[itemtags::kMaxChoices], icons[itemtags::kMaxChoices], labels[itemtags::kMaxChoices], title;
 			std::uint64_t nextLayout = 0, nextHitMeasure = 0, nextFontTry = 0;
+			transferhold::Hold transfer;  // RMI-004: container side only
 
 			unsigned Shift() const { return kind == 2 ? 32u : 0u; }
+
+			// RMI-004: the native Transfer action is about to run. Take our header out of the container side's sort row
+			// so the native A-Z button is placed as without the mod; the layout pass puts it back once the hold ends.
+			void DetachForTransfer()
+			{
+				if (kind != 4 || !active.load() || transfer.Held()) return;
+				auto* iconBox = container::FindWidget(reflect::Get(menu), "FilterIconBox");
+				if (!iconBox) iconBox = container::FindWidget(reflect::Get(menu), "inv_cont_filter");
+				auto* panel = iconBox ? container::FindWidget(iconBox, "ScrollBox") : nullptr;
+				if (!panel || !transferhold::ShouldDetach(NativeNameShown(panel))) return;
+				if (auto* own = reflect::Get(header)) { ui::Call remove(own, L"RemoveFromParent"); remove.Run(); }
+				{ std::scoped_lock lock(inputLock); headerPx = {}; }  // no clicks on where the header was
+				transfer.Start(GetTickCount64());
+			}
+
+			// Whether the native A-Z (Name) button in this sort row has been given a size.
+			static bool NativeNameShown(UE::UObject* a_panel)
+			{
+				ui::Call count(a_panel, L"GetChildrenCount");
+				if (!count || !count.Run()) return false;
+				const int n = count.Get<int>("ReturnValue");
+				for (int i = 0; i < n && i < 12; ++i) {
+					ui::Call get(a_panel, L"GetChildAt"); get.Set("Index", i);
+					if (!get.Run()) return false;
+					auto* widget = get.Get<UE::UObject*>("ReturnValue");
+					if (!widget || pe::Utf8(widget->GetFName().ToString()) != "Name") continue;
+					ui::Call desired(widget, L"GetDesiredSize");
+					const auto bytes = desired.Size("ReturnValue");
+					if (!desired || (bytes != 8 && bytes != 16) || !desired.Run()) return false;
+					struct Vec2f { float x, y; };
+					struct Vec2d { double x, y; };
+					return bytes == 8 ? desired.Get<Vec2f>("ReturnValue").x > 0 : desired.Get<Vec2d>("ReturnValue").x > 0;
+				}
+				return false;
+			}
 
 			// does an item with this mask pass this picker's choice?
 			bool Passes(std::uint64_t a_mask) const
@@ -482,6 +519,7 @@ namespace gearfilter
 				nativeFocusWarning = false;
 				paintedOpen = false; nextLayout = 0; nextHitMeasure = 0;
 				widgetWarning = false;
+				transfer = {};
 				if (auto* image = reflect::Get(headerImage)) Brush(image, itemtags::Info(tab).icons[0]);
 				if (auto* frame = reflect::Get(headerFrame)) ui::RoundedBox(frame, false, kClear, kClear, 0, 0);
 				{ std::scoped_lock lock(inputLock); headerPx = {}; popupPx = {}; command = -1; commandFromController = false; inputOpen = false; swallowUp = false; swallowEscape = false; doubleClickUntil = 0; }
@@ -582,6 +620,7 @@ namespace gearfilter
 						}
 						return;
 					}
+					if (!attached && transfer.Held() && !transfer.MayReinsert(now, NativeNameShown(panel))) return;
 					if (!attached && !InsertHeader(panel, iconBox)) {
 						if (!widgetWarning) { logger::warn("Sorting Overhaul: native controller focus-only header registration/layout unsupported"); widgetWarning = true; }
 						return;
@@ -741,6 +780,10 @@ namespace gearfilter
 
 		Picker g_pickers[4];  // Inventory/Magic school, Magic effect, player side, other side
 
+		// RMI-004: the native container Transfer action and the end of its sequence, before their native bodies.
+		void OnTransferStarted() { g_pickers[3].DetachForTransfer(); }
+		void OnTransferSettled() { g_pickers[3].transfer.Settle(GetTickCount64()); }
+
 		// One visual mask shared by both Magic pickers. No native focus/selection state changes.
 		struct NativeBackground
 		{
@@ -832,6 +875,8 @@ namespace gearfilter
 
 	void Tick(Mode a_mode, UE::UObject* a_menu, UE::UObject* a_canvas, float a_viewportScale, UE::UObject* a_other)
 	{
+		static const bool s_transferHooked = (container::SetTransferHandlers(&OnTransferStarted, &OnTransferSettled), true);
+		(void)s_transferHooked;
 		if (a_mode != Mode::Container) {
 			g_pickers[2].Tick(-1, nullptr, nullptr, 1);
 			g_pickers[3].Tick(-1, nullptr, nullptr, 1);

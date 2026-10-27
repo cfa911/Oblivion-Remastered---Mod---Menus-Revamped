@@ -2,6 +2,7 @@
 #include "Menus.h"
 #include "PEHook.h"
 #include "Reflect.h"
+#include "TransferHold.h"
 #include "Ui.h"
 
 namespace container
@@ -19,6 +20,8 @@ namespace container
 			std::uint64_t nextLook = 0;
 		};
 		std::vector<CachedWidget> g_widgets;
+		void (*g_transferStarted)() = nullptr;
+		void (*g_transferSettled)() = nullptr;
 
 		void OnEvent(UE::UObject* object, UE::UFunction* function, void*)
 		{
@@ -28,6 +31,10 @@ namespace container
 				g_widget = reflect::Hold(object); g_active = true;
 			} else if (name == "BP_OnDeactivated") {
 				g_active = false; g_widgets.clear();
+			} else if (transferhold::IsTransferAction(name)) {
+				if (g_transferStarted) g_transferStarted();
+			} else if (transferhold::IsSettled(name)) {
+				if (g_transferSettled) g_transferSettled();
 			}
 		}
 	}
@@ -82,5 +89,11 @@ namespace container
 		auto* widget = Widget();
 		return widget && (side == 3 || side == 4) ?
 			FindWidget(widget, side == 3 ? "cont_give_maincontent" : "cont_take_maincontent") : nullptr;
+	}
+
+	void SetTransferHandlers(void (*a_started)(), void (*a_settled)())
+	{
+		g_transferStarted = a_started;
+		g_transferSettled = a_settled;
 	}
 }
