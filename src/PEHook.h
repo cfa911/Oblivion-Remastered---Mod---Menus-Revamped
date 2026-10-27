@@ -13,7 +13,8 @@ namespace pe
 {
 	using Handler = void (*)(UE::UObject* a_obj, UE::UFunction* a_fn, void* a_params);
 	using Interceptor = bool (*)(UE::UObject*, UE::UFunction*, void*);
-	// Returning true skips this call's body. Must restrict ownership to custom instances.
+	// Returning true skips this call's body. Restrict to owned custom instances,
+	// or the exact native hover callback validated by the performance throttle.
 	bool Intercept(UE::UClass* a_class, Interceptor a_interceptor);
 
 	// Watches calls on objects whose class is exactly a_class. False (logged) when its vtable cannot be swapped.

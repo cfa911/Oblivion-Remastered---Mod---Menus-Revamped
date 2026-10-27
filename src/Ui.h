@@ -81,6 +81,8 @@ namespace ui
 	// a widget by its name anywhere under a user widget - its tree, panels' slots and nested user widgets' trees - found
 	// by walking them and comparing names here (GetWidgetFromName found nothing in game, 2026-09-30)
 	UE::UObject* FindInTree(UE::UObject* a_userWidget, std::string_view a_name);
+	// Bounded, fault-guarded discovery; used only until performance hooks are installed.
+	std::vector<UE::UClass*> TreeClasses(UE::UObject* a_userWidget, int a_maxNodes);
 	void         DumpTree(UE::UObject* a_userWidget, int a_maxNodes);   // diagnostic: logs the widget tree (name, class), fault-guarded
 
 	// the widget and every widget above it visible and not faded out (a parent collapsing hides it too)

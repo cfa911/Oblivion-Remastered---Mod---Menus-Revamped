@@ -11,8 +11,10 @@ The standalone Sorting baseline is preserved on `deprecated/sorting-overhaul`.
 - Existing picker appearance, controller gestures and custom artwork retained.
 - Asset folders: `MenusRevamped/Search`, `Keyboard` and `Sorting`.
 - Improved Wheels Plus uses three read-only `MenusRevamped_*` exports.
-- Smooth Menus is not part of this build. Remaining flash/stutter bugs are not
-  claimed fixed. No copied display rows or menu-input freeze is included.
+- Smooth Menus hover throttling and object guard are compiled in, including
+  independent barter/container-side replay and container-first discovery.
+  This development candidate still needs live performance/details acceptance;
+  remaining flash/stutter bugs are not claimed fixed.
 
 ## Development build and cutover
 
@@ -22,14 +24,21 @@ Before deploying, run `tools/stage_menus_revamped.py --plugins <old Plugins>
 live install. Repeat staging never overwrites unified customization.
 
 With the game completely closed, back up and remove the old `MenuSearch.dll`,
-`MenuSearchControllerKeyboard.dll` and `SortingOverhaul.dll` and their PDBs.
+`MenuSearchControllerKeyboard.dll`, `SortingOverhaul.dll` and `SmoothMenus.dll`
+and their PDBs.
 Install the unified build and the matching Improved Wheels lookup update;
 never run the old and new menu plugins together. Keep original settings/artwork
 and the wheel's assignments for rollback. Runtime reads only unified paths.
 
 ## Provenance and tests
 
-Sorting baseline: `53ca72a`; SearchLight/controller keyboard baseline: `45063dc`.
+Performance options are in `[Hover]`, `[Guard]` and `[Metrics]` in the unified INI.
+`[Hover] bContainer` controls both barter/container sides independently of
+`bInventory`/`bMagic`. The migration imports missing Smooth settings without
+replacing existing unified values; keep the old INI for rollback.
+
+Sorting baseline: `53ca72a`; SearchLight/controller keyboard baseline: `45063dc`;
+Smooth Menus baseline: `17ed7b1`.
 All imported sources retain GPL-3.0-or-later notices. Credit: `cfa911`.
 Focused tests cover real internal adapters, the unified filter and input driver,
 source generations, one-time migration and the existing native resolver.
