@@ -349,14 +349,14 @@ for (UE::UStruct* c = a_item->GetClass(); c; c = c->GetSuperStruct()) {
 		bool ContainerBarRect(menus::Menu a_side, UE::UObject* a_canvas, double& a_x, double& a_y, double& a_w, double& a_h, bool a_log)
 		{
 			auto* content = container::SideContent(a_side);
-			auto* header = content ? ui::FindInTree(content, "inv_cont_header") : nullptr;
+			auto* header = content ? container::FindWidget(content, "inv_cont_header") : nullptr;
 			double hx = 0, hy = 0, hw = 0, hh = 0, cx = 0, cy = 0, cw = 0, ch = 0;
 			if (!header || !ui::Measure(header, hx, hy, hw, hh) || !ui::Measure(a_canvas, cx, cy, cw, ch) || hw < 10 || hh < 1) return false;
 			const auto& c = searchcfg::Get();
 			// the container's list without the tab row above it (a plain container, nothing to give) has a place of its own; with the tabs (beside yours in a
 			// transfer or a barter, or beside an item's details) it sits like the barter's
 			auto*       menuW = container::Widget();
-			auto*       tabs = menuW ? ui::FindInTree(menuW, a_side == menus::Menu::kContainerYours ? "cont_give_tabs" : "cont_take_tabs") : nullptr;
+			auto*       tabs = menuW ? container::FindWidget(menuW, a_side == menus::Menu::kContainerYours ? "cont_give_tabs" : "cont_take_tabs") : nullptr;
 			const bool  take = a_side == menus::Menu::kContainerTheirs && !(tabs && ui::ShownOnScreen(tabs));
 			const auto& p = take ? c.takeBar : a_side == menus::Menu::kContainerYours ? c.yoursBar : c.theirsBar;
 			a_h = p.h;
@@ -487,7 +487,7 @@ bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
 					// yours says Player; the other side Seller in a barter (the merchant's gold row is on screen), else Container
 					std::string want = "Player";
 					if (a_menu == menus::Menu::kContainerTheirs) {
-						auto* money = container::Widget() ? ui::FindInTree(container::Widget(), "cont_take_money_verticalbox") : nullptr;
+						auto* money = container::FindWidget(container::Widget(), "cont_take_money_verticalbox");
 						want = money && ui::ShownOnScreen(money) ? "Seller" : "Container";
 					}
 					if (want != B.hint) {
