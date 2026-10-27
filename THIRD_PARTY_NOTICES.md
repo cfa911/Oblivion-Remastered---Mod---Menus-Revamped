@@ -1,6 +1,6 @@
 # Third-party components and their notices
 
-Sorting Overhaul is GPL-3.0-or-later (`LICENSE`, `NOTICE.md`). The components below are linked into
+Menus Revamped is GPL-3.0-or-later (`LICENSE`, `NOTICE.md`). The components below are linked into
 the DLL; each is under a GPL-compatible licence and its notice is reproduced as that licence requires.
 
 ## CommonLibOB64 and commonlib-shared - GPL-3.0
