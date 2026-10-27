@@ -519,6 +519,49 @@ namespace ui
 			logger::warn("ui tree: the widget tree could not be read to the end (access violation)");
 		}
 	}
+	// the same walk, collecting the distinct classes of the widgets met
+	static void CollectClasses(UE::UObject* a_w, int a_depth, int& a_budget, std::vector<UE::UClass*>* a_out)
+	{
+		static auto* userWidget = Class(L"/Script/UMG.UserWidget");
+		static auto* panelWidget = Class(L"/Script/UMG.PanelWidget");
+		static auto* treeClass = Class(L"/Script/UMG.WidgetTree");
+		static auto* panelSlot = Class(L"/Script/UMG.PanelSlot");
+		if (!a_w || a_depth > 24 || a_budget <= 0) return;
+		--a_budget;
+		auto* c = a_w->GetClass();
+		if (c && std::find(a_out->begin(), a_out->end(), c) == a_out->end()) a_out->push_back(c);
+		if (IsA(a_w, userWidget)) {
+			auto* tree = PropObj(a_w, userWidget, "WidgetTree");
+			if (auto* root = tree ? PropObj(tree, treeClass, "RootWidget") : nullptr) CollectClasses(root, a_depth + 1, a_budget, a_out);
+		}
+		if (IsA(a_w, panelWidget)) {
+			const auto slotsOff = reflect::Ok() ? reflect::Offset(reinterpret_cast<UE::UStruct*>(panelWidget), "Slots") : -1;
+			if (slotsOff < 0) return;
+			struct RawArray { UE::UObject** data; std::int32_t num; std::int32_t max; };
+			const auto* arr = reinterpret_cast<const RawArray*>(reinterpret_cast<const std::uint8_t*>(a_w) + slotsOff);
+			for (std::int32_t i = 0; arr->data && i < arr->num && i < 256; ++i) {
+				if (auto* content = PropObj(arr->data[i], panelSlot, "Content")) CollectClasses(content, a_depth + 1, a_budget, a_out);
+			}
+		}
+	}
+
+	static bool CollectGuarded(UE::UObject* a_w, int a_max, std::vector<UE::UClass*>* a_out)
+	{
+		__try {
+			int budget = a_max;
+			CollectClasses(a_w, 0, budget, a_out);
+			return true;
+		} __except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
+			return false;
+		}
+	}
+
+	std::vector<UE::UClass*> TreeClasses(UE::UObject* a_userWidget, int a_maxNodes)
+	{
+		std::vector<UE::UClass*> out;
+		CollectGuarded(a_userWidget, a_maxNodes, &out);
+		return out;
+	}
 }
 
 namespace ui

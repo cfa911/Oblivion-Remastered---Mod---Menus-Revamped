@@ -1,12 +1,14 @@
 #pragma once
 #include "../menusearch/Config.h"
 #include "../searchkb/Config.h"
+#include "SmoothConfig.h"
 
 namespace mrconfig
 {
 	struct Values
 	{
 		searchcfg::Values search;
+		smoothcfg::Values smooth;
 		kbcfg::Values keyboard;
 		bool returnToListAfterFilter = true;
 	};

@@ -12,7 +12,7 @@ namespace pe
 
 		// Small fixed tables, written only under the lock and only ever appended to; the detour reads them lock-free
 		// (a count published after the entry is complete).
-		constexpr std::size_t kMax = 16;
+		constexpr std::size_t kMax = 32;
 		std::array<Swapped, kMax> g_swapped{};
 		std::atomic<std::size_t>  g_swappedCount{ 0 };
 		std::array<Watcher, kMax> g_watchers{};

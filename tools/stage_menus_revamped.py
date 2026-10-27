@@ -56,6 +56,49 @@ def copy_missing(source, destination):
         shutil.copy2(file, target)
 
 
+
+def import_smooth_missing(plugins, unified, template):
+    """Add only absent performance keys; keep all unified values and comments."""
+    legacy = plugins / "SmoothMenus.ini"
+    if not legacy.exists():
+        return
+    source = read_ini(legacy)
+    current = read_ini(unified)
+    imported = parser()
+    merge_known(imported, source, template, ("Hover", "Guard", "Metrics"))
+    raw = unified.read_bytes()
+    if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        text = raw.decode("utf-16")
+    else:
+        try:
+            text = raw.decode("utf-8-sig")
+        except UnicodeDecodeError:
+            text = raw.decode("cp1252")
+    changed = False
+    for section in imported.sections():
+        existing = next((s for s in current.sections() if s.casefold() == section.casefold()), None)
+        known = {k.casefold() for k in current[existing]} if existing else set()
+        missing = [(k, v) for k, v in imported[section].items() if k.casefold() not in known]
+        if not missing:
+            continue
+        additions = "".join(f"{k}={v}\n" for k, v in missing)
+        if existing is None:
+            text = text.rstrip("\r\n") + f"\n\n[{section}]\n" + additions
+        else:
+            lines = text.splitlines(keepends=True)
+            begin = next(i for i, line in enumerate(lines)
+                         if line.strip().casefold() == f"[{existing}]".casefold())
+            end = next((i for i in range(begin + 1, len(lines))
+                        if lines[i].lstrip().startswith("[")), len(lines))
+            if end and not lines[end - 1].endswith(("\r", "\n")):
+                lines[end - 1] += "\n"
+            lines.insert(end, additions)
+            text = "".join(lines)
+        changed = True
+    if changed:
+        unified.write_text(text, encoding="utf-8", newline="")
+
+
 def stage(plugins, destination, root=ROOT):
     plugins = Path(plugins).resolve()
     destination = Path(destination).resolve()
@@ -86,6 +129,7 @@ def stage(plugins, destination, root=ROOT):
             with unified.open("w", encoding="utf-8", newline="\n") as stream:
                 stream.write("; Menus Revamped - imported once; originals left untouched.\n")
                 merged.write(stream)
+    import_smooth_missing(plugins, unified, template)
     assets = destination / "MenusRevamped"
     # Existing unified customization wins, then legacy customization, then defaults.
     copy_missing(plugins / "MenusRevamped", assets)

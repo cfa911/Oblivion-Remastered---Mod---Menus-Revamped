@@ -6,6 +6,7 @@
 #include "Reflect.h"
 #include "Ui.h"
 #include "../revamped/Config.h"
+#include "../revamped/HoverFix.h"
 #include "../menusearch/MenuSearch.h"
 #include "../menusearch/Quests.h"
 #include "../searchkb/SearchKeyboard.h"
@@ -103,6 +104,7 @@ namespace sorting
 				if (msearch::Context() == 0) osk::Close("menu closed");
 			}
 		}
+		hoverfix::Tick(menus::Active());
 		msearch::Tick(menus::Active());
 		PublishInputState();
 	}
