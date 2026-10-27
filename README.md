@@ -95,9 +95,11 @@ checks (MSVC x64 developer prompt):
 
 Magic picker visibility follows `VMagicMenuViewModel.GetCurrentPage`: 0 Self, 1 Touch, 2 Target, 3 All, 4 Active effects. Both headers and popups deactivate on page 4, including their mouse hit regions. Empty or powers-only spell results do not decide visibility.
 
-## Pending validation
+## Validation status
 
-The item/spell-name font and eight short School labels were owner-confirmed in a development build; standalone installation, Active effects and coexistence still need separate testing. Native-sort flash SL-006, crowded popup labels, selected-detail synchronization and other video-review issues remain open. Research GearProbe/GearNativeProbe sources are retained for reference but excluded from both production targets; no diagnostic is deployed. The previous probe build launcher is retired pending a standalone research target.
+This is a development build, not a release. The owner has accepted the integrated development build (SearchLight, SearchLight - Controller Keyboard, Sorting Overhaul and the Smooth Menus hover fix as one plugin) in the ordinary integration scenarios, including container/barter performance and the idle-focus flicker. Exhaustive input-device and lifecycle coverage is not claimed.
+
+Open and fixed issues are tracked per bug in the knowledge-base repository (`bugs/menus-revamped`, `RMI-` series; older entries `SL-` and `SO-`). Do not rely on this README for the list of open problems. No research probe sources are part of this repository and no diagnostic is deployed.
 
 
 ## Standalone source build
