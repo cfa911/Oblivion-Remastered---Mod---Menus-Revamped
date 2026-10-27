@@ -2,9 +2,6 @@
 
 Copyright (C) 2026 cfa911 (the Sorting Overhaul plugin code).
 
-Portions: Copyright (C) 2026 ApocryphaRealm - the shared helper source files in src/ (`Ui`, `Reflect`, `PEHook`, `Menus`: reading and calling the game's Unreal objects, watching their calls) were taken from, and
-adapted from, Improved Wheel Menu (Oblivion Remastered) by ApocryphaRealm, which is GPL-3.0-or-later. Those files keep that notice.
-
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
 version.
