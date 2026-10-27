@@ -1,6 +1,6 @@
-# Sorting Overhaul - copyright and licence
+# Menus Revamped - copyright and licence
 
-Copyright (C) 2026 cfa911 (the Sorting Overhaul plugin code).
+Copyright (C) 2026 cfa911 (the Menus Revamped plugin code).
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public
 License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later
