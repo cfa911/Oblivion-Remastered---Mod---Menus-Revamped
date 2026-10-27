@@ -209,7 +209,7 @@ int main() {
  check(collections==2,"guard can collect again after cooldown");
  UE::liveObjects=100000;hoverfix::Guard(now+24s);
  check(collections==2,"guard ignores low object count");
- // SO-019: both list receivers have deferred hovers; no further input arrives.
+ // RMI-003 (formerly SO-019): both list receivers have deferred hovers; no further input arrives.
  // Each deferred native call rebuilds rows and synchronously emits more hovers.
  hoverfix::g_state.clear();settings.hoverIntervalMs=200;
  settings.inventoryHover=true;settings.containerHover=true;containerOpen=true;
