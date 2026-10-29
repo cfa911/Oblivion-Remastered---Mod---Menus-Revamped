@@ -61,6 +61,8 @@ namespace ui
 
 	// a UserWidget with a CanvasPanel root: returns the canvas, or nullptr
 	UE::UObject* RootCanvas(UE::UObject* a_userWidget, const wchar_t* a_name);
+	UE::UObject* TreeRootCanvas(UE::UObject* a_userWidget);   // the widget tree's root when it is a CanvasPanel (never creates one)
+	float        ViewportScale();   // WidgetLayoutLibrary.GetViewportScale; 1 when it cannot be read
 	// a new widget of a_class inside a canvas; *a_slot gets its CanvasPanelSlot
 	UE::UObject* AddToCanvas(UE::UObject* a_canvas, const wchar_t* a_class, const wchar_t* a_name, UE::UObject** a_slot);
 	void         Anchors(UE::UObject* a_slot, double a_minX, double a_minY, double a_maxX, double a_maxY);

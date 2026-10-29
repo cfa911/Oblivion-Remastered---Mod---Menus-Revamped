@@ -31,44 +31,24 @@ namespace search::detail
 			return nullptr;
 		}
 
-		float ViewportScale()
-		{
-			static auto* lib = ui::Class(L"/Script/UMG.WidgetLayoutLibrary");
-			auto*        cdo = lib ? lib->GetDefaultObject(false) : nullptr;
-			auto*        pc = ui::PlayerController();
-			if (!cdo || !pc) return 1.0f;
-			ui::Call c(cdo, L"GetViewportScale");
-			if (!c) return 1.0f;
-			c.Set("WorldContextObject", pc);
-			return c.RunGuarded() ? c.Get<float>("ReturnValue") : 1.0f;
-		}
-
 	}
 
 	// the root canvas the bar goes into: that of the user widget that holds the list (the Inventory's search bar is in a widget inside the
 	// menu), else the menu's own
 	UE::UObject* BarCanvasFor(menus::Menu a_menu, bool a_log)
 	{
-		static auto* canvasClass = ui::Class(L"/Script/UMG.CanvasPanel");
-		static auto* treeClass = ui::Class(L"/Script/UMG.WidgetTree");
-		auto*        menuW = MenuWidget(a_menu);
-						if (!menuW || !canvasClass || !treeClass || !reflect::Ok()) return nullptr;
+		auto* menuW = MenuWidget(a_menu);
+		if (!menuW || !reflect::Ok()) return nullptr;
 		auto* wrapper = IsSide(a_menu) || a_menu == menus::Menu::kQuests ? nullptr : ui::FindInTree(menuW, a_menu == menus::Menu::kMagic ? "Magic_Spell_List" : "inv_cont_listview");
 		auto* owner = wrapper ? OwnerWidget(wrapper) : nullptr;
 		std::vector<UE::UObject*> cands{ menuW, owner };
-					if (a_menu == menus::Menu::kQuests) {
-						for (auto* p = OwnerWidget(menuW); p; p = OwnerWidget(p)) cands.push_back(p);
-					}
-					for (auto* w : cands) {
-			if (!w || !w->GetClass()) continue;
-			const auto wsOff = reflect::Offset(w->GetClass(), "WidgetTree");
-			auto**      tree = wsOff >= 0 ? reflect::At<UE::UObject*>(w, wsOff) : nullptr;
-			if (!tree || !*tree) continue;
-			const auto rootOff = reflect::Offset(treeClass, "RootWidget");
-			auto**      root = rootOff >= 0 ? reflect::At<UE::UObject*>(*tree, rootOff) : nullptr;
-			if (root && *root && (*root)->GetClass() && (*root)->GetClass()->IsChildOf(canvasClass)) {
+		if (a_menu == menus::Menu::kQuests) {
+			for (auto* p = OwnerWidget(menuW); p; p = OwnerWidget(p)) cands.push_back(p);
+		}
+		for (auto* w : cands) {
+			if (auto* canvas = ui::TreeRootCanvas(w)) {
 				if (a_log) logger::debug("own bar: the {}'s bar goes into the root canvas of {}", menus::Name(a_menu), pe::Utf8(w->GetClass()->GetFName().ToString()));
-				return *root;
+				return canvas;
 			}
 		}
 		return nullptr;
@@ -267,7 +247,7 @@ bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
 				}
 				double x = 0, y = 0, w = 0, h = 0;
 				if (ui::Measure(frame, x, y, w, h)) {
-					const double s = ViewportScale();
+					const double s = ui::ViewportScale();
 					std::scoped_lock l(g_qMutex);
 					g_barPx[static_cast<int>(a_menu)] = { x * s, y * s, w * s, h * s, true };
 				}
