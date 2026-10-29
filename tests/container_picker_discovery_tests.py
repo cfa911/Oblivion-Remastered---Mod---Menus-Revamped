@@ -9,8 +9,8 @@ root = Path(__file__).resolve().parents[1]
 out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
 source = source_paths.read("picker")
-start = source.index("\t\t\t\t\tauto find =")
-end = source.index("\n\t\t\t\t\tauto* headerWidget", start)
+start = source.index("\t\t\tauto find =")
+end = source.index("\n\t\t\tauto* headerWidget", start)
 body = source[start:end]
 cpp = out / "container_picker_discovery_tests.cpp"
 cpp.write_text(r"""

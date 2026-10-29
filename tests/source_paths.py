@@ -8,7 +8,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 UNITS = {
-    "picker": ["src/sorting/Picker.cpp"],
+    "picker": ["src/sorting/PickerInternal.h", "src/sorting/Picker.cpp", "src/sorting/PickerWidgets.cpp",
+               "src/sorting/ItemRows.cpp", "src/sorting/PickerHeader.cpp", "src/sorting/PickerPopup.cpp",
+               "src/sorting/PickerTick.cpp", "src/sorting/CategoryEvaluator.cpp", "src/sorting/PickerInput.cpp",
+               "src/sorting/NativeBackground.cpp"],
     "container": ["src/engine/ContainerMenu.cpp"],
     "gear-data": ["src/sorting/GearData.cpp"],
     "hover": ["src/hover/HoverFix.cpp"],
@@ -33,6 +36,21 @@ def paths(unit):
 
 def read(unit, encoding="utf-8-sig"):
     return "\n".join(p.read_text(encoding=encoding) for p in paths(unit))
+
+
+def function(text, head):
+    """The definition starting with `head` (declarations ending in ';' are skipped), through its closing brace."""
+    start = text.find(head)
+    while start >= 0:
+        brace, semicolon = text.find("{", start), text.find(";", start)
+        if brace >= 0 and (semicolon < 0 or brace < semicolon):
+            depth, end = 1, brace + 1
+            while depth:
+                depth += (text[end] == "{") - (text[end] == "}")
+                end += 1
+            return text[start:end]
+        start = text.find(head, start + 1)
+    return ""
 
 
 def include_flags():
