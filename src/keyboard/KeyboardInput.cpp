@@ -3,7 +3,7 @@
 #include "keyboard/KeyboardConfig.h"
 #include "engine/Menus.h"
 #include "engine/Reflect.h"
-#include "keyboard/SearchApi.h"
+#include "search/Search.h"
 #include "keyboard/Keyboard.h"
 
 #include <Xinput.h>   // types and constants only - nothing is linked or loaded

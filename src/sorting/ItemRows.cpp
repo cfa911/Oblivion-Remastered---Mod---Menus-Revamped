@@ -38,10 +38,17 @@ namespace sorting
 			__except (EXCEPTION_EXECUTE_HANDLER) { return 0; }
 		}
 
+		// The Inventory / container row's GetProperties() struct (native, so it never goes away).
+		static UE::UStruct* ItemProperties()
+		{
+			static auto* properties = reinterpret_cast<UE::UStruct*>(UE::StaticFindObject<UE::UObject>(
+				nullptr, nullptr, L"/Script/Altar.OriginalInventoryMenuItemProperties"));
+			return properties;
+		}
+
 		std::uint32_t ContainerForm(UE::UObject* item, std::uint64_t* a_key)
 		{
-			auto* properties = reinterpret_cast<UE::UStruct*>(UE::StaticFindObject<UE::UObject>(
-				nullptr, nullptr, L"/Script/Altar.OriginalInventoryMenuItemProperties"));
+			auto* properties = ItemProperties();
 			ui::Call get(item, L"GetProperties");
 			auto* result = get.At("ReturnValue");
 			const auto formOffset = properties ? reflect::Offset(properties, "form") : -1;
@@ -66,8 +73,7 @@ namespace sorting
 
 		stolenfilter::Status StolenStatus(UE::UObject* item)
 		{
-			auto* properties = reinterpret_cast<UE::UStruct*>(UE::StaticFindObject<UE::UObject>(
-				nullptr, nullptr, L"/Script/Altar.OriginalInventoryMenuItemProperties"));
+			auto* properties = ItemProperties();
 			ui::Call get(item, L"GetProperties");
 			auto* result = get.At("ReturnValue");
 			const auto flagsOffset = properties ? reflect::Offset(properties, "StatusFlags") : -1;

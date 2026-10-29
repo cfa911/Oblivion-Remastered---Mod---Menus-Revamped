@@ -8,7 +8,7 @@
 
 #include <mutex>
 
-namespace msearch::detail
+namespace search::detail
 {
 	using Clock = std::chrono::steady_clock;
 
@@ -66,7 +66,7 @@ namespace msearch::detail
 
 }
 
-namespace msearch
+namespace search
 {
 	void FilterTick(menus::Menu menu, detail::Clock::time_point now);   // the list filter (ListFilter.cpp)
 }

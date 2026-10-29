@@ -61,6 +61,8 @@ namespace ui
 
 	// a UserWidget with a CanvasPanel root: returns the canvas, or nullptr
 	UE::UObject* RootCanvas(UE::UObject* a_userWidget, const wchar_t* a_name);
+	UE::UObject* TreeRootCanvas(UE::UObject* a_userWidget);   // the widget tree's root when it is a CanvasPanel (never creates one)
+	float        ViewportScale();   // WidgetLayoutLibrary.GetViewportScale; 1 when it cannot be read
 	// a new widget of a_class inside a canvas; *a_slot gets its CanvasPanelSlot
 	UE::UObject* AddToCanvas(UE::UObject* a_canvas, const wchar_t* a_class, const wchar_t* a_name, UE::UObject** a_slot);
 	void         Anchors(UE::UObject* a_slot, double a_minX, double a_minY, double a_maxX, double a_maxY);
@@ -77,13 +79,15 @@ namespace ui
 	void         SetMidScalar(UE::UObject* a_mid, const wchar_t* a_name, float a_v);
 	void         SetMidTexture(UE::UObject* a_mid, const wchar_t* a_name, UE::UObject* a_texture);
 	UE::UObject* MidTexture(UE::UObject* a_mid, const wchar_t* a_name);
+	// A texture the engine imports from a PNG file (KismetRenderingLibrary.ImportFileAsTexture2D); nullptr when the file
+	// is missing or unreadable. Not cached: the caller keeps a reflect::Handle.
+	UE::UObject* ImportTexture(const std::filesystem::path& a_png);
 
 	// a widget by its name anywhere under a user widget - its tree, panels' slots and nested user widgets' trees - found
 	// by walking them and comparing names here (GetWidgetFromName found nothing in game, 2026-09-30)
 	UE::UObject* FindInTree(UE::UObject* a_userWidget, std::string_view a_name);
 	// Bounded, fault-guarded discovery; used only until performance hooks are installed.
 	std::vector<UE::UClass*> TreeClasses(UE::UObject* a_userWidget, int a_maxNodes);
-	void         DumpTree(UE::UObject* a_userWidget, int a_maxNodes);   // diagnostic: logs the widget tree (name, class), fault-guarded
 
 	// the widget and every widget above it visible and not faded out (a parent collapsing hides it too)
 	bool         ShownOnScreen(UE::UObject* a_widget);

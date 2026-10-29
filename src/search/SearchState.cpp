@@ -9,7 +9,7 @@
 #include "engine/Ui.h"
 #include "engine/UiText.h"
 
-namespace msearch::detail
+namespace search::detail
 {
 	std::mutex        g_qMutex;
 	std::string       g_queries[6];
@@ -43,12 +43,12 @@ namespace msearch::detail
 		return g_queries[static_cast<int>(a_menu) % 6];
 	}
 	bool SelAllOf(menus::Menu a_menu)
-			{
-				std::scoped_lock l(g_qMutex);
-				return g_selAll[static_cast<int>(a_menu) % 6];
-			}
-			void SetQuery(menus::Menu a_menu, const std::string& a_text)
-{
+	{
+		std::scoped_lock l(g_qMutex);
+		return g_selAll[static_cast<int>(a_menu) % 6];
+	}
+	void SetQuery(menus::Menu a_menu, const std::string& a_text)
+	{
 		std::scoped_lock l(g_qMutex);
 		g_queries[static_cast<int>(a_menu) % 6] = a_text;
 	}

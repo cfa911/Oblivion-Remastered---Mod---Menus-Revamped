@@ -199,6 +199,45 @@ namespace ui
 
 namespace ui
 {
+	UE::UObject* TreeRootCanvas(UE::UObject* a_userWidget)
+	{
+		static auto* canvasClass = Class(L"/Script/UMG.CanvasPanel");
+		static auto* treeClass = Class(L"/Script/UMG.WidgetTree");
+		if (!a_userWidget || !a_userWidget->GetClass() || !canvasClass || !treeClass) return nullptr;
+		const auto treeOff = reflect::Offset(a_userWidget->GetClass(), "WidgetTree");
+		auto**     tree = treeOff >= 0 ? reflect::At<UE::UObject*>(a_userWidget, treeOff) : nullptr;
+		if (!tree || !*tree) return nullptr;
+		const auto rootOff = reflect::Offset(treeClass, "RootWidget");
+		auto**     root = rootOff >= 0 ? reflect::At<UE::UObject*>(*tree, rootOff) : nullptr;
+		return root && *root && (*root)->GetClass() && (*root)->GetClass()->IsChildOf(canvasClass) ? *root : nullptr;
+	}
+
+	float ViewportScale()
+	{
+		static auto* lib = Class(L"/Script/UMG.WidgetLayoutLibrary");
+		auto*        cdo = lib ? lib->GetDefaultObject(false) : nullptr;
+		auto*        pc = PlayerController();
+		if (!cdo || !pc) return 1.0f;
+		Call c(cdo, L"GetViewportScale");
+		if (!c) return 1.0f;
+		c.Set("WorldContextObject", pc);
+		return c.RunGuarded() ? c.Get<float>("ReturnValue") : 1.0f;
+	}
+
+	UE::UObject* ImportTexture(const std::filesystem::path& a_png)
+	{
+		if (!std::filesystem::is_regular_file(a_png)) return nullptr;
+		static auto* lib = Class(L"/Script/Engine.KismetRenderingLibrary");
+		Call          c(lib ? lib->GetDefaultObject(false) : nullptr, L"ImportFileAsTexture2D");
+		void*         file = c.At("Filename");
+		if (!c || !file) return nullptr;
+		c.Set("WorldContextObject", PlayerController());
+		auto* name = new (file) UE::FString(a_png.wstring().c_str());
+		auto* texture = c.RunGuarded() ? c.Get<UE::UObject*>("ReturnValue") : nullptr;
+		name->~FString();
+		return texture;
+	}
+
 	UE::UObject* MidTexture(UE::UObject* a_mid, const wchar_t* a_name)
 	{
 		Call c(a_mid, L"K2_GetTextureParameterValue");

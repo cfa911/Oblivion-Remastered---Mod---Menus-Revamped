@@ -126,7 +126,6 @@ namespace sorting
 			bool ControllerFocused() { return Focused(header); }
 			bool StolenFocused() { return Focused(stolenHeader); }
 			void Queue(int cmd);
-			bool Contains(double a_x, double a_y);
 			bool Message(UINT a_message, WPARAM a_key, LPARAM a_position);
 
 			// NativeBackground.cpp: the native tiles' background mask

@@ -3,28 +3,8 @@
 
 namespace searchcfg
 {
-	namespace
-	{
-
-
-
-
-		double ReadDouble(const std::filesystem::path& a_ini, const wchar_t* a_section, const wchar_t* a_key, double a_default, double a_min, double a_max)
-		{
-			wchar_t buf[64]{};
-			GetPrivateProfileStringW(a_section, a_key, L"", buf, 64, a_ini.c_str());
-			if (!buf[0]) return a_default;
-			wchar_t*     end = nullptr;
-			const double v = std::wcstod(buf, &end);
-			return end == buf ? a_default : std::clamp(v, a_min, a_max);
-		}
-
-		int ReadInt(const std::filesystem::path& a_ini, const wchar_t* a_section, const wchar_t* a_key, int a_default, int a_min, int a_max)
-		{
-			const int v = static_cast<int>(GetPrivateProfileIntW(a_section, a_key, a_default, a_ini.c_str()));
-			return std::clamp(v, a_min, a_max);
-		}
-	}
+	using mrconfig::ReadDouble;
+	using mrconfig::ReadInt;
 
 	Values ReadIni(const std::filesystem::path& ini)
 	{
@@ -62,7 +42,7 @@ namespace searchcfg
 				v.questBar = place(L"Quest", v.magicBar, false);   // the Magic menu's place (as it is set above) unless [Quest] says otherwise
 			}
 			v.ownFilter = ReadInt(ini, L"Filter", L"bEnabled", v.ownFilter ? 1 : 0, 0, 1) != 0;
-logger::info("config: {} read", ini.string());
+			logger::info("config: {} read", ini.string());
 		} else {
 			logger::warn("config: {} not found - compiled defaults in use", ini.string());
 		}
@@ -70,9 +50,6 @@ logger::info("config: {} read", ini.string());
 		logger::info("config: search in the Inventory {}, in the Magic menu {},in the container / barter menu {}, in the quests tab {}, filter {}", v.inventory ? "on" : "off", v.magic ? "on" : "off", v.container ? "on" : "off", v.quests ? "on" : "off", v.ownFilter ? "on" : "off");
 		return v;
 	}
-
-
-	std::filesystem::path PluginFolder() { return mrconfig::PluginFolder(); }
 
 
 	const Values& Get() { return mrconfig::Get().search; }

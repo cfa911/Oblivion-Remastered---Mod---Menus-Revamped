@@ -3,18 +3,7 @@
 
 namespace kbcfg
 {
-	namespace
-	{
-
-
-
-
-		int ReadInt(const std::filesystem::path& a_ini, const wchar_t* a_section, const wchar_t* a_key, int a_default, int a_min, int a_max)
-		{
-			const int v = static_cast<int>(GetPrivateProfileIntW(a_section, a_key, a_default, a_ini.c_str()));
-			return std::clamp(v, a_min, a_max);
-		}
-	}
+	using mrconfig::ReadInt;
 
 	Values ReadIni(const std::filesystem::path& ini)
 	{
@@ -38,9 +27,6 @@ namespace kbcfg
 			v.leftPercent, v.topPercent, v.rightPercent, v.bottomPercent, v.textPercent);
 		return v;
 	}
-
-
-	std::filesystem::path PluginFolder() { return mrconfig::PluginFolder(); }
 
 
 	const Values& Get() { return mrconfig::Get().keyboard; }

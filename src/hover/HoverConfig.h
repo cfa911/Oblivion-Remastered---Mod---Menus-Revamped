@@ -6,8 +6,6 @@ namespace smoothcfg
 {
 	struct Values
 	{
-		int logLevel = 3;   // [Log] uLogLevel: 0 trace, 1 debug, 2 info, 3 warn (the default: warnings and errors only), 4 error
-
 		bool inventoryHover = true;   // [Hover] bInventory: the Inventory list's hover events are throttled
 		bool containerHover = true;   // [Hover] bContainer: both barter/container lists
 		bool magicHover = true;       // [Hover] bMagic: the same in the Magic menu

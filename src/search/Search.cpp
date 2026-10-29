@@ -9,7 +9,7 @@
 #include "engine/Ui.h"
 #include "engine/UiText.h"
 
-namespace msearch
+namespace search
 {
 	using namespace detail;
 
@@ -31,11 +31,11 @@ namespace msearch
 				}
 			}
 		}
-const bool quest = !cont && a_menu == menus::Menu::kNone && quests::Open();   // the quests tab: a bar and the quest list
-if (g_typing.load()) {
-	const auto typed = static_cast<menus::Menu>(g_typingMenu.load());
-	if ((typed != a_menu && !(cont && IsSide(typed)) && !(quest && typed == menus::Menu::kQuests)) || g_external.load()) g_typing = false;
-}
+		const bool quest = !cont && a_menu == menus::Menu::kNone && quests::Open();   // the quests tab: a bar and the quest list
+		if (g_typing.load()) {
+			const auto typed = static_cast<menus::Menu>(g_typingMenu.load());
+			if ((typed != a_menu && !(cont && IsSide(typed)) && !(quest && typed == menus::Menu::kQuests)) || g_external.load()) g_typing = false;
+		}
 		if (cont) {
 			for (const auto side : { menus::Menu::kContainerYours, menus::Menu::kContainerTheirs }) {
 				BarTick(side, now);
@@ -48,7 +48,7 @@ if (g_typing.load()) {
 			BarTick(a_menu, now);
 			FilterTick(a_menu, now);
 		}
-}
+	}
 
 	void SetGameThread(DWORD a_id) { g_gameThread = a_id; }
 	bool Enabled(menus::Menu a_menu) { return MenuEnabled(a_menu); }
@@ -66,11 +66,11 @@ if (g_typing.load()) {
 		return a_menu != menus::Menu::kContainerTheirs;
 	}
 
-	int Context()
-{
+	menus::Menu Context()
+	{
 		const auto m = menus::Active();
-		if (m != menus::Menu::kNone) return static_cast<int>(m);
-		if (searchcfg::Get().container && container::Open()) return 3;
-				return searchcfg::Get().quests && quests::Open() ? 5 : 0;
+		if (m != menus::Menu::kNone) return m;
+		if (searchcfg::Get().container && container::Open()) return menus::Menu::kContainerYours;
+		return searchcfg::Get().quests && quests::Open() ? menus::Menu::kQuests : menus::Menu::kNone;
 	}
 }

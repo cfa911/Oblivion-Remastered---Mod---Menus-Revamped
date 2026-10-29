@@ -11,7 +11,7 @@
 
 #include <imm.h>
 
-namespace msearch
+namespace search
 {
 	namespace detail
 	{
@@ -98,8 +98,6 @@ namespace msearch
 			return menus::Menu::kContainerYours;
 		}
 
-		constexpr UINT_PTR kTimerId = 0x4D53;
-
 		// ---- the IME (Japanese, Chinese ...) ----
 		// A game window normally takes the input method away from the window (no text field wants it), so the keys of a Japanese or Chinese IME arrive as plain
 		// Latin letters. While a bar is being typed into the window gets its default input context back; the committed text arrives in WM_IME_COMPOSITION
@@ -168,17 +166,17 @@ namespace msearch
 						switch (a_m) {
 						case WM_KEYDOWN:   // a key typed into the bar: nothing else sees it (the menu's hotkeys stay quiet)
 							if (a_w == 'A' && (GetKeyState(VK_CONTROL) & 0x8000)) {   // Ctrl+A: select all
-															std::scoped_lock l(g_qMutex);
-															g_selAll[static_cast<int>(menu) % 6] = !g_queries[static_cast<int>(menu) % 6].empty();
-															return true;
-														}
-														if (a_w == VK_DELETE) {   // Delete clears a selected text
-															std::scoped_lock l(g_qMutex);
-															if (g_selAll[static_cast<int>(menu) % 6]) g_queries[static_cast<int>(menu) % 6].clear();
-															g_selAll[static_cast<int>(menu) % 6] = false;
-															return true;
-														}
-														if (a_w == VK_ESCAPE || a_w == VK_RETURN) g_typing = false;
+								std::scoped_lock l(g_qMutex);
+								g_selAll[static_cast<int>(menu) % 6] = !g_queries[static_cast<int>(menu) % 6].empty();
+								return true;
+							}
+							if (a_w == VK_DELETE) {   // Delete clears a selected text
+								std::scoped_lock l(g_qMutex);
+								if (g_selAll[static_cast<int>(menu) % 6]) g_queries[static_cast<int>(menu) % 6].clear();
+								g_selAll[static_cast<int>(menu) % 6] = false;
+								return true;
+							}
+							if (a_w == VK_ESCAPE || a_w == VK_RETURN) g_typing = false;
 							return true;
 						case WM_CHAR:
 							Typed(static_cast<wchar_t>(a_w), menu);
@@ -269,7 +267,7 @@ namespace msearch
 	}
 
 	void SetExternalInput(bool a_open)
-{
+	{
 		g_external = a_open;
 		if (a_open) g_typing = false;
 	}

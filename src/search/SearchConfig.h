@@ -28,13 +28,12 @@ namespace searchcfg
 		};
 		Place inventoryBar{ 293, 109.5, 482, 36 }, magicBar{ 294, 110.25, 481, 36 };
 		Place yoursBar{ -48, -90, 825, 37 }, theirsBar{ -48, -90, 823, 37 };
-				Place questBar{ 294, 110.25, 481, 36 };   // the quests tab: the same place and size as the Magic menu's bar unless [Quest] says otherwise
-				Place takeBar{ -48, -11, 0, 37 };   // the container's own list alone on the screen (nothing to give): width 0 = the header's plus the offset on both sides
+		Place questBar{ 294, 110.25, 481, 36 };   // the quests tab: the same place and size as the Magic menu's bar unless [Quest] says otherwise
+		Place takeBar{ -48, -11, 0, 37 };   // the container's own list alone on the screen (nothing to give): width 0 = the header's plus the offset on both sides
 
-bool ownFilter = true;  // [Filter] bEnabled: filter the lists (and filter again at once when the game rebuilds one)
+		bool ownFilter = true;  // [Filter] bEnabled: filter the lists (and filter again at once when the game rebuilds one)
 	};
 
 	Values        ReadIni(const std::filesystem::path& ini);
-	std::filesystem::path PluginFolder();   // the folder the DLL is in (OBSE\Plugins)
 	const Values& Get();
 }

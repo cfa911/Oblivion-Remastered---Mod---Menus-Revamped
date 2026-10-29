@@ -1,6 +1,7 @@
 #include "search/SearchInternal.h"
 
 #include "search/SearchConfig.h"
+#include "core/Config.h"
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
 #include "engine/QuestsMenu.h"
@@ -9,7 +10,7 @@
 #include "engine/Ui.h"
 #include "engine/UiText.h"
 
-namespace msearch::detail
+namespace search::detail
 {
 	namespace
 	{
@@ -30,44 +31,24 @@ namespace msearch::detail
 			return nullptr;
 		}
 
-		float ViewportScale()
-		{
-			static auto* lib = ui::Class(L"/Script/UMG.WidgetLayoutLibrary");
-			auto*        cdo = lib ? lib->GetDefaultObject(false) : nullptr;
-			auto*        pc = ui::PlayerController();
-			if (!cdo || !pc) return 1.0f;
-			ui::Call c(cdo, L"GetViewportScale");
-			if (!c) return 1.0f;
-			c.Set("WorldContextObject", pc);
-			return c.RunGuarded() ? c.Get<float>("ReturnValue") : 1.0f;
-		}
-
 	}
 
 	// the root canvas the bar goes into: that of the user widget that holds the list (the Inventory's search bar is in a widget inside the
 	// menu), else the menu's own
 	UE::UObject* BarCanvasFor(menus::Menu a_menu, bool a_log)
 	{
-		static auto* canvasClass = ui::Class(L"/Script/UMG.CanvasPanel");
-		static auto* treeClass = ui::Class(L"/Script/UMG.WidgetTree");
-		auto*        menuW = MenuWidget(a_menu);
-						if (!menuW || !canvasClass || !treeClass || !reflect::Ok()) return nullptr;
+		auto* menuW = MenuWidget(a_menu);
+		if (!menuW || !reflect::Ok()) return nullptr;
 		auto* wrapper = IsSide(a_menu) || a_menu == menus::Menu::kQuests ? nullptr : ui::FindInTree(menuW, a_menu == menus::Menu::kMagic ? "Magic_Spell_List" : "inv_cont_listview");
 		auto* owner = wrapper ? OwnerWidget(wrapper) : nullptr;
 		std::vector<UE::UObject*> cands{ menuW, owner };
-					if (a_menu == menus::Menu::kQuests) {
-						for (auto* p = OwnerWidget(menuW); p; p = OwnerWidget(p)) cands.push_back(p);
-					}
-					for (auto* w : cands) {
-			if (!w || !w->GetClass()) continue;
-			const auto wsOff = reflect::Offset(w->GetClass(), "WidgetTree");
-			auto**      tree = wsOff >= 0 ? reflect::At<UE::UObject*>(w, wsOff) : nullptr;
-			if (!tree || !*tree) continue;
-			const auto rootOff = reflect::Offset(treeClass, "RootWidget");
-			auto**      root = rootOff >= 0 ? reflect::At<UE::UObject*>(*tree, rootOff) : nullptr;
-			if (root && *root && (*root)->GetClass() && (*root)->GetClass()->IsChildOf(canvasClass)) {
+		if (a_menu == menus::Menu::kQuests) {
+			for (auto* p = OwnerWidget(menuW); p; p = OwnerWidget(p)) cands.push_back(p);
+		}
+		for (auto* w : cands) {
+			if (auto* canvas = ui::TreeRootCanvas(w)) {
 				if (a_log) logger::debug("own bar: the {}'s bar goes into the root canvas of {}", menus::Name(a_menu), pe::Utf8(w->GetClass()->GetFName().ToString()));
-				return *root;
+				return canvas;
 			}
 		}
 		return nullptr;
@@ -85,17 +66,8 @@ namespace msearch::detail
 			if (auto* t = reflect::Get(s_tex[slot])) return t;
 			if (s_failed[slot]) return slot ? BarTexture(menus::Menu::kInventory) : nullptr;
 			const wchar_t* file = slot == 1 ? L"SearchBarYours.png" : slot == 2 ? L"SearchBarTheirs.png" : L"SearchBar.png";
-			const auto     path = searchcfg::PluginFolder() / L"MenusRevamped" / L"Search" / file;
-			static auto*   lib = ui::Class(L"/Script/Engine.KismetRenderingLibrary");
-			ui::Call       c(lib ? lib->GetDefaultObject(false) : nullptr, L"ImportFileAsTexture2D");
-			void*          fname = c.At("Filename");
-			UE::UObject*   tex = nullptr;
-			if (c && fname && std::filesystem::exists(path)) {
-				c.Set("WorldContextObject", ui::PlayerController());
-				auto* str = new (fname) UE::FString(path.wstring().c_str());
-				tex = c.RunGuarded() ? c.Get<UE::UObject*>("ReturnValue") : nullptr;
-				str->~FString();
-			}
+			const auto     path = mrconfig::PluginFolder() / L"MenusRevamped" / L"Search" / file;
+			auto*          tex = ui::ImportTexture(path);
 			if (!tex) {
 				s_failed[slot] = true;
 				logger::warn("own bar: the bar image could not be loaded ({}{}) - {}", path.string(), std::filesystem::exists(path) ? "" : ", missing", slot ? "the black one is used" : "a plain box is used");
@@ -146,8 +118,8 @@ namespace msearch::detail
 			if (auto* list = quests::ListWrapper(); list && ui::Measure(list, x, y, w, h)) logger::debug("own bar:   quest list at {:.0f},{:.0f} {:.0f}x{:.0f}", x, y, w, h);
 		}
 
-bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
-{
+		bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
+		{
 			static int         s_n = 0;
 			const std::wstring n = std::to_wstring(++s_n);
 			const auto&        c = searchcfg::Get();
@@ -155,7 +127,7 @@ bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
 			double             barX = place.x, barW = place.w, barH = place.h;
 			double             barY = place.y;
 			if (IsSide(a_menu) && !ContainerBarRect(a_menu, a_canvas, barX, barY, barW, barH, true)) return false;
-				if (a_menu == menus::Menu::kQuests) LogQuestLayout(a_canvas);
+			if (a_menu == menus::Menu::kQuests) LogQuestLayout(a_canvas);
 			UE::UObject* slot = nullptr;
 			auto*        frame = ui::AddToCanvas(a_canvas, L"/Script/UMG.Image", (L"IwmBarFrame" + n).c_str(), &slot);
 			if (!frame || !slot) return false;
@@ -223,16 +195,16 @@ bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
 				B.visible = true;
 			}
 			const bool        typing = g_typing.load() && g_typingMenu.load() == static_cast<int>(a_menu);
-				if (!typing) {
-					std::scoped_lock l(g_qMutex);
-					g_selAll[static_cast<int>(a_menu) % 6] = false;
-				}
-				const std::string q = QueryOf(a_menu);
+			if (!typing) {
+				std::scoped_lock l(g_qMutex);
+				g_selAll[static_cast<int>(a_menu) % 6] = false;
+			}
+			const std::string q = QueryOf(a_menu);
 			const bool        caret = typing && (GetTickCount64() / 500) % 2 == 0;
 			const bool        hint = q.empty() && !typing;
 			const std::string show = hint ? B.hint : q + (typing ? (caret ? "|" : " ") : "");
 			const bool        sel = typing && !q.empty() && SelAllOf(a_menu);   // selected: drawn in the bar's gold
-				const std::string key = std::string(hint ? "#" : sel ? "*" : "=") + show;
+			const std::string key = std::string(hint ? "#" : sel ? "*" : "=") + show;
 			if (key != B.shown) {
 				uix::SetText(label, show);
 				uix::Ink(label, hint ? kBarHint : sel ? kBarFocus : kBarInk);
@@ -275,7 +247,7 @@ bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
 				}
 				double x = 0, y = 0, w = 0, h = 0;
 				if (ui::Measure(frame, x, y, w, h)) {
-					const double s = ViewportScale();
+					const double s = ui::ViewportScale();
 					std::scoped_lock l(g_qMutex);
 					g_barPx[static_cast<int>(a_menu)] = { x * s, y * s, w * s, h * s, true };
 				}
@@ -292,8 +264,8 @@ bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
 			if (IsSide(a_menu)) HideBar(a_menu);
 			return;
 		}
-BarWidgets& B = g_bar[static_cast<int>(a_menu)];
-const bool  have = reflect::Get(B.frame) && reflect::Get(B.label);
+		BarWidgets& B = g_bar[static_cast<int>(a_menu)];
+		const bool  have = reflect::Get(B.frame) && reflect::Get(B.label);
 		if (!have || a_now >= B.nextLook) {   // built, and looked at twice a second: it must still sit in the menu's canvas (a menu that was rebuilt or replaced does not take it along)
 			B.nextLook = a_now + 500ms;
 			auto* canvas = BarCanvasFor(a_menu, !have);

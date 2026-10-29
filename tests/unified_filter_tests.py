@@ -96,7 +96,7 @@ const Rows& Evaluate(int menu,const Rows& source,std::uint64_t generation) {
     return out;
 }
 }
-namespace msearch {
+namespace search {
 """
 middle = r"""
 FilterState g_filter[6];
@@ -132,7 +132,7 @@ int main() {
     sword.name="iron sword"; sword.category=1;
     armor.name="iron armor"; armor.category=2;
     steel.name="steel sword"; steel.category=1;
-    auto tick=[](int id) { msearch::FilterTick(static_cast<menus::Menu>(id),Clock::now()+1s); };
+    auto tick=[](int id) { search::FilterTick(static_cast<menus::Menu>(id),Clock::now()+1s); };
     lists[1].rows={&sword,&armor,&steel};
     sorting::category[1]=1; queries[1]="iron"; tick(1);
     check(lists[1].rows==Rows{&sword},"search and category are combined by one list owner");
@@ -153,11 +153,11 @@ int main() {
     ownFilter=true; sorting::category[1]=0; queries[1]="iron";
     lists[1].rows={&sword,&armor,&steel};
     UE::UFunction nativeAdd{"AddItem"};
-    msearch::OnListPost(&lists[1],&nativeAdd,nullptr); tick(1);
+    search::OnListPost(&lists[1],&nativeAdd,nullptr); tick(1);
     const auto previous=sorting::observed[1];
     sword.name="steel sword"; steel.name="iron axe";
     lists[1].rows={&sword,&armor,&steel};
-    msearch::OnListPost(&lists[1],&nativeAdd,nullptr); tick(1);
+    search::OnListPost(&lists[1],&nativeAdd,nullptr); tick(1);
     check(sorting::observed[1]>previous,"same-count reused-wrapper native refresh advances classification generation");
     check(lists[1].rows==Rows({&armor,&steel}),"reused wrapper names are searched again");
     active=0; queries[3]="iron"; queries[4]="steel";
@@ -167,14 +167,14 @@ int main() {
           "container queries and sources are independent");
     queries[4]=""; tick(4);
     check(lists[4].rows.size()==2 && lists[3].rows.size()==2,"clearing merchant restores only merchant source");
-    lists[4].rows.clear(); msearch::OnListPost(&lists[4],&nativeAdd,nullptr); tick(4);
-    check(lists[4].rows.empty() && msearch::g_filter[4].roots.empty(),"empty native sale/transfer refresh cannot resurrect removed items");
+    lists[4].rows.clear(); search::OnListPost(&lists[4],&nativeAdd,nullptr); tick(4);
+    check(lists[4].rows.empty() && search::g_filter[4].roots.empty(),"empty native sale/transfer refresh cannot resurrect removed items");
     active=1; queries[1]=""; lists[1].rows={&sword}; tick(1);
-    check(!msearch::g_filter[3].watching && !msearch::g_filter[4].watching,"leaving container clears both source contexts");
+    check(!search::g_filter[3].watching && !search::g_filter[4].watching,"leaving container clears both source contexts");
     active=5; queries[5]="quest"; lists[5].rows={&sword,&armor}; tick(5);
     check(lists[5].rows.empty(),"quests use text matching without category predicate");
     sword.name=armor.name=""; lists[5].rows={&sword,&armor};
-    msearch::OnListPost(&lists[5],&nativeAdd,nullptr); tick(5);
+    search::OnListPost(&lists[5],&nativeAdd,nullptr); tick(5);
     check(lists[5].rows.size()==2,"unreadable quest names fail open");
     std::cout<<checks<<" checks, "<<failed<<" failures\n";
     return failed ? 1 : 0;

@@ -21,28 +21,12 @@ namespace core
 		std::atomic<bool> g_keyboardOpen{ false };
 		constexpr UINT_PTR kTimer = 0x4D52;
 
-		UE::UObject* RootCanvas(UE::UObject* widget)
-		{
-			auto** tree = widget ? reflect::At<UE::UObject*>(widget, reflect::Offset(widget->GetClass(), "WidgetTree")) : nullptr;
-			auto** root = tree && *tree ? reflect::At<UE::UObject*>(*tree, reflect::Offset((*tree)->GetClass(), "RootWidget")) : nullptr;
-			auto* canvas = ui::Class(L"/Script/UMG.CanvasPanel");
-			return root && *root && canvas && (*root)->GetClass()->IsChildOf(canvas) ? *root : nullptr;
-		}
-
-		float Scale()
-		{
-			auto* lib = ui::Class(L"/Script/UMG.WidgetLayoutLibrary");
-			ui::Call scale(lib ? lib->GetDefaultObject(false) : nullptr, L"GetViewportScale");
-			scale.Set("WorldContextObject", ui::PlayerController());
-			return scale && scale.RunGuarded() ? scale.Get<float>("ReturnValue") : 1.0f;
-		}
-
 		LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM key, LPARAM position)
 		{
 			if (message == WM_TIMER && key == kTimer && GetCurrentThreadId() == g_thread) { Tick(); return 0; }
 			if (sorting::PopupOpen() && sorting::Message(message, key, position)) return 0;
 			LRESULT result = 0;
-			if (msearch::HandleMessage(window, message, key, position, result)) return result;
+			if (search::HandleMessage(window, message, key, position, result)) return result;
 			if (sorting::Message(message, key, position)) return 0;
 			return CallWindowProcW(g_previous, window, message, key, position);
 		}
@@ -66,7 +50,7 @@ namespace core
 			if (!window) return;
 			g_previous = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&WindowProc)));
 			if (!g_previous) return;
-			msearch::SetWindow(window);
+			search::SetWindow(window);
 			if (GetWindowThreadProcessId(window, nullptr) == g_thread) SetTimer(window, kTimer, 8, nullptr);
 		}
 	}
@@ -92,20 +76,20 @@ namespace core
 		if (!reflect::Ok()) return;
 		if (container::Open()) {
 			sorting::Tick(sorting::Mode::Container, container::SideContent(3),
-				RootCanvas(container::Widget()), Scale(), container::SideContent(4));
+				ui::TreeRootCanvas(container::Widget()), ui::ViewportScale(), container::SideContent(4));
 		} else {
 			const auto menu = menus::Active();
 			if (menu == menus::Menu::kInventory || menu == menus::Menu::kMagic) {
 				auto* widget = menus::Widget(menu);
 				sorting::Tick(menu == menus::Menu::kMagic ? sorting::Mode::Magic : sorting::Mode::Inventory,
-					widget, RootCanvas(widget), Scale());
+					widget, ui::TreeRootCanvas(widget), ui::ViewportScale());
 			} else {
 				sorting::Tick(sorting::Mode::None, nullptr, nullptr, 1);
-				if (msearch::Context() == 0) keyboard::Close("menu closed");
+				if (search::Context() == menus::Menu::kNone) keyboard::Close("menu closed");
 			}
 		}
 		hoverfix::Tick(menus::Active());
-		msearch::Tick(menus::Active());
+		search::Tick(menus::Active());
 		PublishInputState();
 	}
 }

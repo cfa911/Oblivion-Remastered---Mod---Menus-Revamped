@@ -26,6 +26,22 @@ namespace mrconfig
 	}
 
 	const Values& Get() { return g_values; }
+
+	int ReadInt(const std::filesystem::path& a_ini, const wchar_t* a_section, const wchar_t* a_key, int a_default, int a_min, int a_max)
+	{
+		const int v = static_cast<int>(GetPrivateProfileIntW(a_section, a_key, a_default, a_ini.c_str()));
+		return std::clamp(v, a_min, a_max);
+	}
+
+	double ReadDouble(const std::filesystem::path& a_ini, const wchar_t* a_section, const wchar_t* a_key, double a_default, double a_min, double a_max)
+	{
+		wchar_t buf[64]{};
+		GetPrivateProfileStringW(a_section, a_key, L"", buf, 64, a_ini.c_str());
+		if (!buf[0]) return a_default;
+		wchar_t*     end = nullptr;
+		const double v = std::wcstod(buf, &end);
+		return end == buf ? a_default : std::clamp(v, a_min, a_max);
+	}
 }
 
 
@@ -35,7 +51,7 @@ namespace smoothcfg
 	{
 		Values v;
 		const auto read = [&](const wchar_t* section, const wchar_t* key, int fallback, int low, int high) {
-			return std::clamp(static_cast<int>(GetPrivateProfileIntW(section, key, fallback, ini.c_str())), low, high);
+			return mrconfig::ReadInt(ini, section, key, fallback, low, high);
 		};
 		v.inventoryHover = read(L"Hover", L"bInventory", 1, 0, 1) != 0;
 		v.magicHover = read(L"Hover", L"bMagic", 1, 0, 1) != 0;
