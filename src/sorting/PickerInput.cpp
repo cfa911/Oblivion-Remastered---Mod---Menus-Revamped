@@ -44,12 +44,6 @@ namespace sorting
 			std::scoped_lock lock(inputLock); command = cmd; commandFromController = true;
 		}
 
-		bool Picker::Contains(double a_x, double a_y)
-		{
-			std::scoped_lock lock(inputLock);
-			return inputActive && (swallowUp || headerPx.Hit(a_x, a_y) || stolenPx.Hit(a_x, a_y) || (inputOpen && popupPx.Hit(a_x, a_y)));
-		}
-
 		bool Picker::Message(UINT a_message, WPARAM a_key, LPARAM a_position)
 		{
 			std::scoped_lock lock(inputLock);
@@ -156,12 +150,6 @@ namespace sorting
 	bool PopupOpen()
 	{
 		for (const auto& picker : g_pickers) if (picker.active.load() && picker.open) return true;
-		return false;
-	}
-
-	bool Contains(double a_x, double a_y)
-	{
-		for (auto& picker : g_pickers) if (picker.Contains(a_x, a_y)) return true;
 		return false;
 	}
 

@@ -88,7 +88,6 @@ namespace ui
 	UE::UObject* FindInTree(UE::UObject* a_userWidget, std::string_view a_name);
 	// Bounded, fault-guarded discovery; used only until performance hooks are installed.
 	std::vector<UE::UClass*> TreeClasses(UE::UObject* a_userWidget, int a_maxNodes);
-	void         DumpTree(UE::UObject* a_userWidget, int a_maxNodes);   // diagnostic: logs the widget tree (name, class), fault-guarded
 
 	// the widget and every widget above it visible and not faded out (a parent collapsing hides it too)
 	bool         ShownOnScreen(UE::UObject* a_widget);

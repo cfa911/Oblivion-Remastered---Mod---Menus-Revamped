@@ -98,8 +98,6 @@ namespace search
 			return menus::Menu::kContainerYours;
 		}
 
-		constexpr UINT_PTR kTimerId = 0x4D53;
-
 		// ---- the IME (Japanese, Chinese ...) ----
 		// A game window normally takes the input method away from the window (no text field wants it), so the keys of a Japanese or Chinese IME arrive as plain
 		// Latin letters. While a bar is being typed into the window gets its default input context back; the committed text arrives in WM_IME_COMPOSITION

@@ -29,8 +29,6 @@ namespace sorting
 
 	using namespace detail;
 
-	void Invalidate() { for (auto& state : g_states) state.dirty = true; }
-
 	const std::vector<UE::UObject*>& Evaluate(int side,
 		const std::vector<UE::UObject*>& source, std::uint64_t generation)
 	{
