@@ -2,6 +2,8 @@
 
 #include "engine/PEHook.h"
 
+#include <unordered_map>
+
 namespace reflect
 {
 	namespace
@@ -11,19 +13,50 @@ namespace reflect
 		constexpr std::ptrdiff_t kPropertyOffsetInternal = 0x44;
 
 		std::atomic<int> g_state{ 0 };   // 0 unchecked, 1 proven, -1 failed
+
+		// Walking a struct's fields converts every name to a string: 315,000 lookups a second in the container menu
+		// (2026-10-29). Found fields are kept by struct; a struct unloaded and another loaded at its address is told apart
+		// by its object slot and its first field. Misses are never kept: a class exists before its fields are linked.
+		struct NameHash
+		{
+			using is_transparent = void;
+			std::size_t operator()(std::string_view a_name) const { return std::hash<std::string_view>{}(a_name); }
+		};
+		struct KnownFields
+		{
+			std::int32_t index = -1;
+			void*        first = nullptr;
+			std::unordered_map<std::string, const std::uint8_t*, NameHash, std::equal_to<>> byName;
+		};
+		std::unordered_map<UE::UStruct*, KnownFields> g_fields;
 	}
 
-	std::int32_t Offset(UE::UStruct* a_struct, std::string_view a_name)
+	const std::uint8_t* FindField(UE::UStruct* a_struct, std::string_view a_name)
 	{
+		if (!a_struct) return nullptr;
+		static const DWORD s_thread = GetCurrentThreadId();   // the game thread (the first lookup is the tick's self-check)
+		KnownFields  uncached;
+		auto&        known = GetCurrentThreadId() == s_thread ? g_fields[a_struct] : uncached;
+		if (known.index != a_struct->internalIndex || known.first != a_struct->childProperties) {
+			known = { a_struct->internalIndex, a_struct->childProperties, {} };
+		}
+		if (auto it = known.byName.find(a_name); it != known.byName.end()) return it->second;
 		for (UE::UStruct* s = a_struct; s; s = s->superStruct) {
 			for (auto* f = reinterpret_cast<std::uint8_t*>(s->childProperties); f; f = *reinterpret_cast<std::uint8_t**>(f + kFieldNext)) {
 				const auto& name = *reinterpret_cast<const UE::FName*>(f + kFieldName);
 				if (pe::Utf8(name.ToString()) == a_name) {
-					return *reinterpret_cast<const std::int32_t*>(f + kPropertyOffsetInternal);
+					known.byName.emplace(std::string(a_name), f);
+					return f;
 				}
 			}
 		}
-		return -1;
+		return nullptr;
+	}
+
+	std::int32_t Offset(UE::UStruct* a_struct, std::string_view a_name)
+	{
+		const auto* f = FindField(a_struct, a_name);
+		return f ? *reinterpret_cast<const std::int32_t*>(f + kPropertyOffsetInternal) : -1;
 	}
 
 	std::vector<std::pair<std::string, std::int32_t>> Fields(UE::UStruct* a_struct)

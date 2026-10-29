@@ -8,18 +8,7 @@ namespace ui
 {
 	namespace
 	{
-		constexpr std::ptrdiff_t kFieldNext = 0x18;
-		constexpr std::ptrdiff_t kFieldName = 0x20;
-		constexpr std::ptrdiff_t kElementSize = 0x34;
-
-		std::string Narrow(const UE::FName& a_n)
-		{
-			const auto s = a_n.ToString();
-			const wchar_t* d = UE::GetData(s);
-			std::string out;
-			for (int i = 0, n = UE::GetNum(s); d && i < n && d[i]; ++i) out.push_back(d[i] < 0x80 ? static_cast<char>(d[i]) : '?');
-			return out;
-		}
+		constexpr std::ptrdiff_t kElementSize = 0x34;   // FProperty::ElementSize
 
 		bool ProcessEventGuarded(UE::UObject* a_obj, UE::UFunction* a_fn, void* a_params)
 		{
@@ -34,14 +23,8 @@ namespace ui
 
 	std::int32_t SizeOf(UE::UStruct* a_struct, std::string_view a_name)
 	{
-		for (UE::UStruct* s = a_struct; s; s = s->superStruct) {
-			for (auto* f = reinterpret_cast<std::uint8_t*>(s->childProperties); f; f = *reinterpret_cast<std::uint8_t**>(f + kFieldNext)) {
-				if (Narrow(*reinterpret_cast<const UE::FName*>(f + kFieldName)) == a_name) {
-					return *reinterpret_cast<const std::int32_t*>(f + kElementSize);
-				}
-			}
-		}
-		return -1;
+		const auto* f = reflect::FindField(a_struct, a_name);
+		return f ? *reinterpret_cast<const std::int32_t*>(f + kElementSize) : -1;
 	}
 
 	Call::Call(UE::UObject* a_obj, const wchar_t* a_fn) :
