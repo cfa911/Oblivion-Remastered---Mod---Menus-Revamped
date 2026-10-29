@@ -45,6 +45,24 @@ source generations, one-time migration and the existing native resolver.
 Hover behavior (replay, per-side ownership) is covered by `python tests/hover_integration_tests.py <output-directory>`
 and `python tests/hover_side_ownership_tests.py <output-directory>`; migration by `tests/test_smooth_migration.py`
 and `tests/test_stage_menus_revamped.py`.
+Run every suite from an MSVC x64 developer prompt with
+`python tests/run_all.py <output-directory> [<Improved Wheels Plus checkout>]`.
+
+## Source layout
+
+One include root, `src/`; includes are paths from it (`"engine/Ui.h"`).
+
+| Folder | What it holds |
+|---|---|
+| `src/core` | Plugin entry and exports (`Plugin.cpp`), the tick and window hook (`Runtime.cpp`), the XInput import patch (`Input.cpp`), the unified INI (`Config`), logging, precompiled header |
+| `src/engine` | ProcessEvent hook, reflection, UMG helpers (`UiCall`, `UiWidgets`, `UiTree`, `UiText`), text utilities, menu discovery (`Menus`, `ContainerMenu`, `QuestsMenu`) |
+| `src/search` | The search bars (`SearchBar`), typing and IME (`SearchInput`), the list filter (`ListFilter`), item names, shared state (`SearchInternal.h`) |
+| `src/keyboard` | The controller on-screen keyboard and its input step |
+| `src/sorting` | The category pickers (`Picker*`), item-row reading, the category evaluator, the native background mask; `rules/` holds the header-only, unit-tested rules |
+| `src/hover` | The hover throttle and object guard from Smooth Menus |
+| `assets/` | Default pictures, in the same `Search`, `Keyboard`, `Sorting` folders as installed under `MenusRevamped/` |
+| `config/` | `MenusRevamped.defaults.ini` |
+| `tests/` | Host-double and rule tests; `source_paths.py` says where each tested unit lives |
 
 ## Validation status
 

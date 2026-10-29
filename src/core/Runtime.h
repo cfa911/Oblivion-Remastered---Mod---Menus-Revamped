@@ -1,8 +1,8 @@
 #pragma once
-namespace sorting {
+namespace core {
 	void Tick();
 	bool ReturnToListAfterFilter();
 	bool ControllerKeyboardOpen();
 	void PublishInputState();
 }
-namespace sortingdriver { bool Install(); }
+namespace input { bool Install(); }

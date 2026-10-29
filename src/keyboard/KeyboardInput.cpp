@@ -45,14 +45,14 @@ namespace keyboardinput
 			if (menu != g_prevMenu) {   // a menu opened or closed (or the tab changed): the keyboard goes with it, a half-timed hold is forgotten
 				g_held = false;
 				g_fired = false;
-				osk::Close("menu changed");
+				keyboard::Close("menu changed");
 				g_prevMenu = menu;
 			}
 
 
 			// the keyboard has the pad: the menu stands still, the game sees an idle controller
-			if (osk::Taking()) {
-				osk::Rewrite(raw, a_pad.sThumbLX, a_pad.sThumbLY, now);
+			if (keyboard::Taking()) {
+				keyboard::Rewrite(raw, a_pad.sThumbLX, a_pad.sThumbLY, now);
 				a_pad.wButtons = 0;
 				// the triggers go through: LT / RT switch the menu's tabs and the search follows the list (the keyboard itself does not use them)
 				a_pad.sThumbLX = a_pad.sThumbLY = a_pad.sThumbRX = a_pad.sThumbRY = 0;
@@ -60,7 +60,7 @@ namespace keyboardinput
 			}
 
 			WORD out = raw;
-			out &= static_cast<WORD>(~osk::Swallow(raw));   // held when the keyboard closed (B, Start...): the game never sees them
+			out &= static_cast<WORD>(~keyboard::Swallow(raw));   // held when the keyboard closed (B, Start...): the game never sees them
 
 			// A hold on the button opens the keyboard; a tap is replayed after the release, so the game's own use of the button
 			// (stepping the sort) is kept.
@@ -71,18 +71,18 @@ namespace keyboardinput
 						g_btn = left && (pressed & left) ? left : right;
 						g_side = menu;
 						if (container) {   // right = your side, left = the other; a plain container has only its own list, which either button opens
-							const bool yoursOk = osk::CanOpen(menus::Menu::kContainerYours), theirsOk = osk::CanOpen(menus::Menu::kContainerTheirs);
+							const bool yoursOk = keyboard::CanOpen(menus::Menu::kContainerYours), theirsOk = keyboard::CanOpen(menus::Menu::kContainerTheirs);
 							g_side = yoursOk && theirsOk ? (g_btn == left ? menus::Menu::kContainerTheirs : menus::Menu::kContainerYours) : yoursOk ? menus::Menu::kContainerYours : menus::Menu::kContainerTheirs;
 						}
 						g_fired = false;
 						g_at = now;
-						g_held = osk::CanOpen(g_side);   // the keyboard cannot open here (no Menu Search plugin, or its search is off in this menu): the game keeps the button
+						g_held = keyboard::CanOpen(g_side);   // the keyboard cannot open here (no Menu Search plugin, or its search is off in this menu): the game keeps the button
 					}
 					if (g_held) {
 						out &= static_cast<WORD>(~g_btn);
 						if (!g_fired && (raw & g_btn) && now - g_at >= std::chrono::milliseconds(c.holdMs)) {
 							g_fired = true;
-							osk::Open(g_side, raw);
+							keyboard::Open(g_side, raw);
 						}
 						if (!(raw & g_btn)) {
 							if (!g_fired) {   // a tap: the game gets it now
@@ -105,13 +105,13 @@ namespace keyboardinput
 	void Process(XINPUT_STATE& state, bool allowOpen, bool connected)
 	{
 		if (!connected) {
-			osk::Close("controller disconnected");
+			keyboard::Close("controller disconnected");
 			g_prevRaw = 0;
 			g_held = g_fired = false;
 			g_pulse = 0; g_prevMenu = menus::Menu::kNone;
 			return;
 		}
-		if (!allowOpen && !osk::Taking()) { g_held = g_fired = false; g_pulse = 0; }
+		if (!allowOpen && !keyboard::Taking()) { g_held = g_fired = false; g_pulse = 0; }
 		Rewrite(state.Gamepad, allowOpen);
 	}
 }

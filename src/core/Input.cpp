@@ -9,7 +9,7 @@
 
 #include <Xinput.h>   // types and constants only - nothing is linked or loaded
 
-namespace sortingdriver
+namespace input
 {
 	namespace
 	{
@@ -18,29 +18,29 @@ namespace sortingdriver
 		XInputGetState_t  g_previous = nullptr;
 		DWORD             g_gameThread = 0;
 		std::atomic<bool> g_installed{ false };
-		sortpad::PacketStamp g_packets;
+		pickerpad::PacketStamp g_packets;
 
 		DWORD WINAPI Chained(DWORD a_user, XINPUT_STATE* a_state)
 		{
 			const DWORD rc = g_previous ? g_previous(a_user, a_state) : ERROR_DEVICE_NOT_CONNECTED;
 			if (a_user == 0 && GetCurrentThreadId() == g_gameThread) {
-				sorting::Tick();   // on every read, a connected pad or not
+				core::Tick();   // on every read, a connected pad or not
 				if (rc == ERROR_SUCCESS && a_state) {
 					auto& pad = a_state->Gamepad;
-					const bool keyboardHadInput = osk::Taking();
-					keyboardinput::Process(*a_state, !gearfilter::PopupOpen(), true);
-					if (!keyboardHadInput && !osk::Taking())
-						gearfilter::Controller(pad.wButtons, pad.sThumbLX, pad.sThumbLY, true);
+					const bool keyboardHadInput = keyboard::Taking();
+					keyboardinput::Process(*a_state, !sorting::PopupOpen(), true);
+					if (!keyboardHadInput && !keyboard::Taking())
+						sorting::Controller(pad.wButtons, pad.sThumbLX, pad.sThumbLY, true);
 					a_state->dwPacketNumber = g_packets.Update(a_state->dwPacketNumber,
 						{ pad.wButtons, pad.sThumbLX, pad.sThumbLY, pad.sThumbRX, pad.sThumbRY, pad.bLeftTrigger, pad.bRightTrigger });
-					sorting::PublishInputState();
+					core::PublishInputState();
 				} else {
 					g_packets.Reset();
 					XINPUT_STATE empty{};
 					keyboardinput::Process(empty, false, false);
-					sorting::PublishInputState();
+					core::PublishInputState();
 					std::uint16_t buttons = 0; short x = 0, y = 0;
-					gearfilter::Controller(buttons, x, y, false);
+					sorting::Controller(buttons, x, y, false);
 				}
 			}
 			return rc;
@@ -73,11 +73,11 @@ namespace sortingdriver
 				*slot = &Chained;
 				VirtualProtect(slot, sizeof(void*), old, &old);
 				g_installed.store(true);
-				logger::info("driver: the game's {} XInputGetState import now ticks Sorting Overhaul every read (owns input only for the custom carousel header/popup)", dll);
+				logger::info("driver: the game's {} XInputGetState import now ticks Menus Revamped every read (owns input only for the custom carousel header/popup)", dll);
 				return true;
 			}
 		}
-		logger::warn("driver: the game imports no XInputGetState - Sorting Overhaul is ticked by the window timer only");
+		logger::warn("driver: the game imports no XInputGetState - Menus Revamped is ticked by the window timer only");
 		return false;
 	}
 }

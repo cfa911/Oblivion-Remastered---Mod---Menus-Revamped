@@ -86,7 +86,7 @@ namespace searchcfg {
 struct Settings { bool ownFilter=true; } config;
 const Settings& Get() { config.ownFilter=ownFilter; return config; }
 }
-namespace gearfilter {
+namespace sorting {
 int category[6]{};
 std::uint64_t observed[6]{};
 Rows results[6];
@@ -134,11 +134,11 @@ int main() {
     steel.name="steel sword"; steel.category=1;
     auto tick=[](int id) { msearch::FilterTick(static_cast<menus::Menu>(id),Clock::now()+1s); };
     lists[1].rows={&sword,&armor,&steel};
-    gearfilter::category[1]=1; queries[1]="iron"; tick(1);
+    sorting::category[1]=1; queries[1]="iron"; tick(1);
     check(lists[1].rows==Rows{&sword},"search and category are combined by one list owner");
     queries[1]=""; tick(1);
     check(lists[1].rows==Rows({&sword,&steel}),"clearing text keeps category and restores source rows");
-    gearfilter::category[1]=0; tick(1);
+    sorting::category[1]=0; tick(1);
     check(lists[1].rows.size()==3,"reset All restores complete source");
     queries[1]="missing"; tick(1);
     check(lists[1].rows.empty(),"zero matches are allowed");
@@ -146,19 +146,19 @@ int main() {
     check(lists[1].rows.size()==3,"zero-match result never narrows source snapshot");
     const auto written=writes; tick(1);
     check(writes==written,"unchanged result does not rewrite visible list");
-    searchOn=false; gearfilter::category[1]=2; queries[1]="sword"; tick(1);
+    searchOn=false; sorting::category[1]=2; queries[1]="sword"; tick(1);
     check(lists[1].rows==Rows{&armor},"disabled search does not disable category filtering");
     searchOn=true; ownFilter=false; tick(1);
     check(lists[1].rows==Rows{&armor},"disabled text filter does not disable categories");
-    ownFilter=true; gearfilter::category[1]=0; queries[1]="iron";
+    ownFilter=true; sorting::category[1]=0; queries[1]="iron";
     lists[1].rows={&sword,&armor,&steel};
     UE::UFunction nativeAdd{"AddItem"};
     msearch::OnListPost(&lists[1],&nativeAdd,nullptr); tick(1);
-    const auto previous=gearfilter::observed[1];
+    const auto previous=sorting::observed[1];
     sword.name="steel sword"; steel.name="iron axe";
     lists[1].rows={&sword,&armor,&steel};
     msearch::OnListPost(&lists[1],&nativeAdd,nullptr); tick(1);
-    check(gearfilter::observed[1]>previous,"same-count reused-wrapper native refresh advances classification generation");
+    check(sorting::observed[1]>previous,"same-count reused-wrapper native refresh advances classification generation");
     check(lists[1].rows==Rows({&armor,&steel}),"reused wrapper names are searched again");
     active=0; queries[3]="iron"; queries[4]="steel";
     lists[3].rows={&armor,&steel}; lists[4].rows={&sword,&armor};

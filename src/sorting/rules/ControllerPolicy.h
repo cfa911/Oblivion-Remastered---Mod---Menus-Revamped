@@ -4,7 +4,7 @@
 #include "sorting/rules/PickerGrid.h"
 
 // Pure controller rules. No engine calls, hooks, or game state.
-namespace sortpad
+namespace pickerpad
 {
 	constexpr std::uint16_t Up = 0x0001, Down = 0x0002, Left = 0x0004, Right = 0x0008;
 	constexpr std::uint16_t A = 0x1000, B = 0x2000, Y = 0x8000;

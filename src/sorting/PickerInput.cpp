@@ -10,11 +10,11 @@
 #include "sorting/GearData.h"
 #include "sorting/Icons.h"
 
-namespace gearfilter
+namespace sorting
 {
 	namespace detail
 	{
-		sortpad::State g_pad;
+		pickerpad::State g_pad;
 
 		bool Picker::SortCarouselFocused()
 		{
@@ -87,7 +87,7 @@ namespace gearfilter
 			}
 			UpdateNativeBackgroundMask(); return;
 		}
-		const sortpad::Input raw{ buttons, x, y };
+		const pickerpad::Input raw{ buttons, x, y };
 		g_pad.Sample(raw, GetTickCount64());
 		Picker* owner = nullptr;
 		for (auto& picker : g_pickers) {
@@ -112,29 +112,29 @@ namespace gearfilter
 				const auto previousCursor = picker.cursor;
 				picker.controllerPopup = true;
 				g_pad.Consume(raw, 0xFFFF, true);
-				if (g_pad.pressed & (sortpad::B | sortpad::Y)) picker.Queue(-3);
-				else if (g_pad.pressed & sortpad::A) picker.Queue(static_cast<int>(picker.cursor));
-				else if (g_pad.pulse != sortpad::Direction::None)
-					picker.cursor = sortpad::Move(picker.cursor, itemtags::Info(picker.view).count, g_pad.pulse);
+				if (g_pad.pressed & (pickerpad::B | pickerpad::Y)) picker.Queue(-3);
+				else if (g_pad.pressed & pickerpad::A) picker.Queue(static_cast<int>(picker.cursor));
+				else if (g_pad.pulse != pickerpad::Direction::None)
+					picker.cursor = pickerpad::Move(picker.cursor, itemtags::Info(picker.view).count, g_pad.pulse);
 				if (newlyOwned || picker.cursor != previousCursor) picker.PaintController();
 			} else if (picker.stolenFocus) {
 				// A toggles the stolen-only icon; up/down are swallowed like on the picker; Y stays native (exit).
-				g_pad.Consume(raw, sortpad::A | sortpad::Up | sortpad::Down | sortpad::Left | sortpad::Right, true);
-				if (g_pad.pressed & sortpad::A) picker.Queue(stolenfilter::kToggleCommand);
-				else if (g_pad.pulse == sortpad::Direction::Left || g_pad.pulse == sortpad::Direction::Right) {
+				g_pad.Consume(raw, pickerpad::A | pickerpad::Up | pickerpad::Down | pickerpad::Left | pickerpad::Right, true);
+				if (g_pad.pressed & pickerpad::A) picker.Queue(stolenfilter::kToggleCommand);
+				else if (g_pad.pulse == pickerpad::Direction::Left || g_pad.pulse == pickerpad::Direction::Right) {
 					ui::Call navigate(reflect::Get(picker.carousel),
-						g_pad.pulse == sortpad::Direction::Left ? L"NavigateToPrevElement" : L"NavigateToNextElement");
+						g_pad.pulse == pickerpad::Direction::Left ? L"NavigateToPrevElement" : L"NavigateToNextElement");
 					navigate.RunGuarded();
 				}
 			} else {
 				// Native methods retain their original A/up/down reversal. Only our focused header owns these.
-				g_pad.Consume(raw, sortpad::A | sortpad::Up | sortpad::Down | sortpad::Left | sortpad::Right, true);
-				if ((g_pad.pressed & sortpad::A) || g_pad.pulse == sortpad::Direction::Up || g_pad.pulse == sortpad::Direction::Down) {
+				g_pad.Consume(raw, pickerpad::A | pickerpad::Up | pickerpad::Down | pickerpad::Left | pickerpad::Right, true);
+				if ((g_pad.pressed & pickerpad::A) || g_pad.pulse == pickerpad::Direction::Up || g_pad.pulse == pickerpad::Direction::Down) {
 					picker.controllerPopup = true; picker.Queue(pickergrid::kToggleCommand);
 				}
-				else if (g_pad.pulse == sortpad::Direction::Left || g_pad.pulse == sortpad::Direction::Right) {
+				else if (g_pad.pulse == pickerpad::Direction::Left || g_pad.pulse == pickerpad::Direction::Right) {
 					ui::Call navigate(reflect::Get(picker.carousel),
-						g_pad.pulse == sortpad::Direction::Left ? L"NavigateToPrevElement" : L"NavigateToNextElement");
+						g_pad.pulse == pickerpad::Direction::Left ? L"NavigateToPrevElement" : L"NavigateToNextElement");
 					navigate.RunGuarded();
 				}
 			}
@@ -144,12 +144,12 @@ namespace gearfilter
 		buttons = filtered.buttons; x = filtered.x; y = filtered.y;
 		for (auto& picker : g_pickers) {
 			if (!picker.returnToList.Pending()) continue;
-			if (!sorting::ReturnToListAfterFilter()) { picker.returnToList.Cancel(); continue; }
+			if (!core::ReturnToListAfterFilter()) { picker.returnToList.Cancel(); continue; }
 			const bool focused = picker.active.load() && ui::ShownOnScreen(reflect::Get(picker.menu)) && picker.SortCarouselFocused();
 			const auto action = picker.returnToList.Update(raw.buttons, focused, GetTickCount64());
-			if (action == sortpad::ReturnAction::PressY) buttons |= sortpad::Y;
-			else if (action == sortpad::ReturnAction::TimedOut)
-				logger::warn("Sorting Overhaul: controller return-to-list was not acknowledged by native sorting focus; press Y to exit");
+			if (action == pickerpad::ReturnAction::PressY) buttons |= pickerpad::Y;
+			else if (action == pickerpad::ReturnAction::TimedOut)
+				logger::warn("Menus Revamped: controller return-to-list was not acknowledged by native sorting focus; press Y to exit");
 		}
 	}
 

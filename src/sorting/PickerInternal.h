@@ -15,7 +15,7 @@
 
 #include <unordered_map>
 
-namespace gearfilter
+namespace sorting
 {
 	namespace detail
 	{
@@ -82,7 +82,7 @@ namespace gearfilter
 			std::atomic<bool> active{ false };
 			bool open = false, paintedOpen = false, controllerFocus = false, controllerPopup = false;
 			unsigned cursor = 0;
-			sortpad::ReturnToList returnToList;
+			pickerpad::ReturnToList returnToList;
 			reflect::Handle carousel;
 			std::vector<reflect::Handle> nativePeers;
 			bool nativeFocusWarning = false;

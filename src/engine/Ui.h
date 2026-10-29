@@ -1,7 +1,7 @@
 #pragma once
 
 // ============================================================================================================
-// Building a small runtime UMG widget (the ammo wheel): a reflected call with its parameters laid out by NAME from the
+// Building runtime UMG widgets: a reflected call with its parameters laid out by NAME from the
 // UFunction's own properties (Minimap Menu's / Tween Menu's ue::Call), a call by first parameter, and the objects the
 // widget is built from. Game thread only; kept objects are reflect::Handles.
 // ============================================================================================================

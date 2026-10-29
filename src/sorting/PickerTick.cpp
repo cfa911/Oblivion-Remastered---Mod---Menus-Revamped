@@ -10,7 +10,7 @@
 #include "sorting/GearData.h"
 #include "sorting/Icons.h"
 
-namespace gearfilter::detail
+namespace sorting::detail
 {
 	// does an item with this mask pass this picker's choice?
 	bool Picker::Passes(std::uint64_t a_mask) const
@@ -95,7 +95,7 @@ namespace gearfilter::detail
 				ui::Call hide(native, L"SetVisibility");
 				const bool hidden = hide && hide.Size("InVisibility") == 1 &&
 					hide.Set("InVisibility", static_cast<std::uint8_t>(1)) && hide.Run();
-				if (!hidden) logger::warn("Sorting Overhaul: SO-SCHOOL-FLASH-20261025 could not collapse the native School wrapper");
+				if (!hidden) logger::warn("Menus Revamped: SO-SCHOOL-FLASH-20261025 could not collapse the native School wrapper");
 			}
 		}
 		if (reflect::Get(menu) != a_menu || reflect::Get(canvas) != a_canvas) {
@@ -116,7 +116,7 @@ namespace gearfilter::detail
 			fontsReady = PickerFont(reflect::Get(title), 18);
 			for (const auto& label : labels) fontsReady = PickerFont(reflect::Get(label), 14) && fontsReady;
 			if (!fontsReady && !fontWarning) {
-				logger::warn("Sorting Overhaul: item/spell Kingthings font unavailable; retrying");
+				logger::warn("Menus Revamped: item/spell Kingthings font unavailable; retrying");
 				fontWarning = true;
 			}
 		}
@@ -133,14 +133,14 @@ namespace gearfilter::detail
 			const bool attached = parent && parent.Run() && parent.Get<UE::UObject*>("ReturnValue") == panel;
 			if (!panel) {
 				if (kind >= 3 && !widgetWarning) {
-					logger::warn("Sorting Overhaul: container side {} has no supported native filter ScrollBox; picker not attached", kind);
+					logger::warn("Menus Revamped: container side {} has no supported native filter ScrollBox; picker not attached", kind);
 					widgetWarning = true;
 				}
 				return;
 			}
 			if (!attached && transfer.Held() && !transfer.MayReinsert(now, NativeNameShown(panel))) return;
 			if (!attached && !InsertHeader(panel, iconBox)) {
-				if (!widgetWarning) { logger::warn("Sorting Overhaul: native controller focus-only header registration/layout unsupported"); widgetWarning = true; }
+				if (!widgetWarning) { logger::warn("Menus Revamped: native controller focus-only header registration/layout unsupported"); widgetWarning = true; }
 				return;
 			}
 			ui::Visible(reflect::Get(header), true);
@@ -182,7 +182,7 @@ namespace gearfilter::detail
 			if (view != next.view) { view = next.view; styled = false; nextHitMeasure = 0; nextLayout = 0; }
 			category = next.category; choice = next.choice; cursor = next.cursor;
 			open = !next.close;
-			if (sortpad::ShouldReturnToList(sorting::ReturnToListAfterFilter(), fromController, next.close))
+			if (pickerpad::ShouldReturnToList(core::ReturnToListAfterFilter(), fromController, next.close))
 				returnToList.Request();
 		}
 		else if (cmd == -3) {

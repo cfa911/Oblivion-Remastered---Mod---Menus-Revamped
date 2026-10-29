@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <vector>
 #include <algorithm>
-using namespace sortpad;
+using namespace pickerpad;
 unsigned checks = 0;
 void Check(bool ok) { ++checks; if (!ok) { std::printf("FAIL check %u\n", checks); std::exit(1); } }
 int main()

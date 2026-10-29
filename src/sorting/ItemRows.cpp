@@ -10,7 +10,7 @@
 #include "sorting/GearData.h"
 #include "sorting/Icons.h"
 
-namespace gearfilter
+namespace sorting
 {
 	namespace detail
 	{
@@ -136,7 +136,7 @@ namespace gearfilter
 				static bool warned = false;
 				if (!warned && read && magicrows::CastableRange(range) && mask == kPassAll) {
 					warned = true;
-					logger::warn("Sorting Overhaul: native spell-type power filtering could not resolve a Magic row (index={}, range={}, captured={}); leaving it unfiltered", index, range, spells.size());
+					logger::warn("Menus Revamped: native spell-type power filtering could not resolve a Magic row (index={}, range={}, captured={}); leaving it unfiltered", index, range, spells.size());
 				}
 				state.masks[index] = mask;
 			}

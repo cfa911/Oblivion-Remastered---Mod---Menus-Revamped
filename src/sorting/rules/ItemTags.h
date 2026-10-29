@@ -50,7 +50,7 @@ namespace itemtags
 		const char*    title;
 		unsigned       count;  // including All
 		const char*    names[kMaxChoices];
-		const wchar_t* icons[kMaxChoices];  // PNG filenames in OBSE/Plugins/SortingOverhaul/
+		const wchar_t* icons[kMaxChoices];  // PNG filenames in OBSE/Plugins/MenusRevamped/Sorting/
 	};
 
 	inline const TabInfo& Info(Tab a_tab)

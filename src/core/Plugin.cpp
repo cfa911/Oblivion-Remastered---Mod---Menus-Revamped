@@ -10,7 +10,7 @@ namespace
 	{
 		if (message && message->type == OBSE::MessagingInterface::kPostLoad) {
 			msearch::SetGameThread(GetCurrentThreadId());
-			sortingdriver::Install();
+			input::Install();
 		}
 	}
 }
@@ -19,7 +19,7 @@ extern "C"
 {
 	__declspec(dllexport) bool MenusRevamped_IsTyping() { return msearch::Typing(); }
 	__declspec(dllexport) bool MenusRevamped_CursorOverBar() { return msearch::CursorOverBar(); }
-	__declspec(dllexport) bool MenusRevamped_IsControllerKeyboardOpen() { return sorting::ControllerKeyboardOpen(); }
+	__declspec(dllexport) bool MenusRevamped_IsControllerKeyboardOpen() { return core::ControllerKeyboardOpen(); }
 }
 
 OBSE_PLUGIN_LOAD(const OBSE::LoadInterface* obse)

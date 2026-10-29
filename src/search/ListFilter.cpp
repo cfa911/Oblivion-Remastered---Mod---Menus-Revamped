@@ -163,7 +163,7 @@ namespace msearch
 			source.push_back(item);
 		}
 		const auto query = searchcfg::Get().ownFilter && MenuEnabled(menu) ? Lower(QueryOf(menu)) : std::string();
-		const auto& categories = id <= 4 ? gearfilter::Evaluate(id, source, state.lifecycle.generation) : source;
+		const auto& categories = id <= 4 ? sorting::Evaluate(id, source, state.lifecycle.generation) : source;
 		std::vector<UE::UObject*> keep;
 		bool readable = query.empty() || menu != menus::Menu::kQuests;
 		for (auto* item : categories) {

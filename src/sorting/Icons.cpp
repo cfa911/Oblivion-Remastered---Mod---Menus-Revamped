@@ -31,7 +31,7 @@ namespace icons
 			}
 		}
 		loaded.emplace(filename, texture ? reflect::Hold(texture) : reflect::Handle{});
-		if (!texture) logger::warn("Sorting Overhaul: missing or unreadable icon {} (restart the game after replacing PNGs)", path.filename().string());
+		if (!texture) logger::warn("Menus Revamped: missing or unreadable icon {} (restart the game after replacing PNGs)", path.filename().string());
 		return texture;
 	}
 }

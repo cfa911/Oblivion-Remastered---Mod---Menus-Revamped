@@ -11,7 +11,7 @@
 #include "engine/QuestsMenu.h"
 #include "keyboard/Keyboard.h"
 
-namespace sorting
+namespace core
 {
 	namespace
 	{
@@ -40,10 +40,10 @@ namespace sorting
 		LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM key, LPARAM position)
 		{
 			if (message == WM_TIMER && key == kTimer && GetCurrentThreadId() == g_thread) { Tick(); return 0; }
-			if (gearfilter::PopupOpen() && gearfilter::Message(message, key, position)) return 0;
+			if (sorting::PopupOpen() && sorting::Message(message, key, position)) return 0;
 			LRESULT result = 0;
 			if (msearch::HandleMessage(window, message, key, position, result)) return result;
-			if (gearfilter::Message(message, key, position)) return 0;
+			if (sorting::Message(message, key, position)) return 0;
 			return CallWindowProcW(g_previous, window, message, key, position);
 		}
 
@@ -73,7 +73,7 @@ namespace sorting
 
 	bool ReturnToListAfterFilter() { return mrconfig::Get().returnToListAfterFilter; }
 	bool ControllerKeyboardOpen() { return g_keyboardOpen.load(); }
-	void PublishInputState() { g_keyboardOpen.store(osk::Taking()); }
+	void PublishInputState() { g_keyboardOpen.store(keyboard::Taking()); }
 
 	void Tick()
 	{
@@ -91,17 +91,17 @@ namespace sorting
 		}
 		if (!reflect::Ok()) return;
 		if (container::Open()) {
-			gearfilter::Tick(gearfilter::Mode::Container, container::SideContent(3),
+			sorting::Tick(sorting::Mode::Container, container::SideContent(3),
 				RootCanvas(container::Widget()), Scale(), container::SideContent(4));
 		} else {
 			const auto menu = menus::Active();
 			if (menu == menus::Menu::kInventory || menu == menus::Menu::kMagic) {
 				auto* widget = menus::Widget(menu);
-				gearfilter::Tick(menu == menus::Menu::kMagic ? gearfilter::Mode::Magic : gearfilter::Mode::Inventory,
+				sorting::Tick(menu == menus::Menu::kMagic ? sorting::Mode::Magic : sorting::Mode::Inventory,
 					widget, RootCanvas(widget), Scale());
 			} else {
-				gearfilter::Tick(gearfilter::Mode::None, nullptr, nullptr, 1);
-				if (msearch::Context() == 0) osk::Close("menu closed");
+				sorting::Tick(sorting::Mode::None, nullptr, nullptr, 1);
+				if (msearch::Context() == 0) keyboard::Close("menu closed");
 			}
 		}
 		hoverfix::Tick(menus::Active());

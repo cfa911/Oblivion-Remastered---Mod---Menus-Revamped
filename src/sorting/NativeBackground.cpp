@@ -10,7 +10,7 @@
 #include "sorting/GearData.h"
 #include "sorting/Icons.h"
 
-namespace gearfilter
+namespace sorting
 {
 	namespace detail
 	{
@@ -97,7 +97,7 @@ namespace gearfilter
 		void Picker::WarnNativeFocus()
 		{
 			if (!nativeFocusWarning) {
-				logger::warn("Sorting Overhaul: native activated-sort background mask unavailable");
+				logger::warn("Menus Revamped: native activated-sort background mask unavailable");
 				nativeFocusWarning = true;
 			}
 		}

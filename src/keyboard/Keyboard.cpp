@@ -11,7 +11,7 @@
 
 #include <cstring>
 
-namespace osk
+namespace keyboard
 {
 	namespace
 	{

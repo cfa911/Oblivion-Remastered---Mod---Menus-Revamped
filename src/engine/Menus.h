@@ -1,9 +1,7 @@
 #pragma once
 
 // ============================================================================================================
-// Which of the two menus that own a wheel is open: the inventory (the Equipment wheel) or the magic menu (the
-// Magic wheel) - the owner, 2026-09-29: "the wheel that pops up in the magic menu is the magic wheel and the
-// inventory wheel in the inventory".
+// Which menu is open: the Inventory or the Magic menu (this file came from the Improved Wheels Plus mod).
 //
 // Both are CommonUI activatable widgets (read in game 2026-09-29): WBP_OriginalMenu_Inventory_C (native
 // VInventoryMenu) and WBP_ModernMenu_MagicMenu_C (native VLegacyMagicMenu); BP_OnActivated / BP_OnDeactivated pass
@@ -14,9 +12,9 @@
 
 namespace menus
 {
-	// kContainerYours / kContainerTheirs are the two sides of the container / barter menu: only the Menu Search plugin uses them (it asks
-	// its own container module); Active() never returns them, so the wheel's rules see that menu as kNone, as before.
-	enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests };   // kQuests: the quests tab, Menu Search only
+	// kContainerYours / kContainerTheirs are the two sides of the container / barter menu: the search asks engine/ContainerMenu for them;
+	// Active() never returns them (it reads that menu as kNone).
+	enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests };   // kQuests: the quests tab, search only
 
 	void Tick();       // from the plugin's lazy thread: finds the classes once they are loaded and watches them
 	Menu Active();     // game thread or any thread

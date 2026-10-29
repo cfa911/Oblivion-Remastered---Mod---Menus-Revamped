@@ -10,7 +10,7 @@
 #include "sorting/GearData.h"
 #include "sorting/Icons.h"
 
-namespace gearfilter
+namespace sorting
 {
 	namespace detail
 	{

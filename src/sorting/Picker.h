@@ -1,6 +1,6 @@
 #pragma once
 
-namespace gearfilter
+namespace sorting
 {
 	enum class Mode { None, Inventory, Magic, Container };
 	// Inventory: one picker per tab. Magic: two pickers (school, effect) that filter the same list together.

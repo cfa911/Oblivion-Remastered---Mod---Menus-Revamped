@@ -1,21 +1,21 @@
 #pragma once
 
 // ============================================================================================================
-// A controller on-screen keyboard for the search of the Inventory and Magic menus (the Oblivion Menu Search plugin). A hold on a button
+// A controller on-screen keyboard for the search (Inventory, Magic, container / barter, quests). A hold on a button
 // (D-pad right) opens it on the right of the screen; while it is open it takes the whole controller read (the game sees an idle pad, so the
-// menu stands still) and the search text is set through the Menu Search plugin, which filters as it always does.
+// menu stands still) and the search text is set through the search, which filters as it always does.
 //   D-pad / left stick: move   A: type   X: delete (hold: clear)   Y: space   B / Start: close (the search stays)
-// Game thread only (it runs inside the controller read, XInputHook.cpp).
+// Game thread only (it runs inside the controller read, KeyboardInput.cpp).
 // ============================================================================================================
 
 #include "engine/Menus.h"
 
-namespace osk
+namespace keyboard
 {
 	bool Active();
 	bool Taking();    // the on-screen keyboard is up: the pad belongs to it
 
-	// the keyboard can open in this menu (the Menu Search plugin is there and has the search on for it)
+	// the keyboard can open in this menu (the search is on for it)
 	bool CanOpen(menus::Menu a_menu);
 
 	// a_held: the buttons down at this moment (they are ignored until let go). False when it could not open.

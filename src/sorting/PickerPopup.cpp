@@ -10,7 +10,7 @@
 #include "sorting/GearData.h"
 #include "sorting/Icons.h"
 
-namespace gearfilter::detail
+namespace sorting::detail
 {
 	bool Picker::BuildPopup(UE::UObject* a_canvas)
 	{
