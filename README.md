@@ -1,5 +1,13 @@
 # Menus Revamped
 
+## 1.0.0 release candidate
+
+Unified search, item and spell filters, stolen-only filtering, controller typing,
+and menu responsiveness improvements. Install instructions and configuration
+migration are in [dist/README.txt](dist/README.txt); changes in [CHANGELOG.md](CHANGELOG.md).
+Development compatibility with the completed Improved Wheels Plus performance
+build is owner-accepted. Release-default and archive-install checks are separate.
+
 Unified search, category pickers and controller keyboard for Oblivion Remastered.
 Formerly Sorting Overhaul; the repository is now
 `cfa911/Oblivion-Remastered---Mod---Menus-Revamped`.
