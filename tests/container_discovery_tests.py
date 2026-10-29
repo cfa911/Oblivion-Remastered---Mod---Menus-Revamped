@@ -28,6 +28,7 @@ struct UFunction { std::string name; };
 UClass cls;
 template<class T> T* StaticFindObject(void*,void*,const wchar_t*) { return &cls; }
 }
+#include "engine/ContainerMenu.h"   // the real declarations (TickScope, SideShown)
 UE::UObject menu, yours, theirs, replacement;
 bool anyOpen=true, ready=true;
 std::uint64_t clockMs=1000;

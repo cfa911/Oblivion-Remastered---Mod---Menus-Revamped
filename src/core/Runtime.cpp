@@ -55,6 +55,21 @@ namespace core
 		}
 	}
 
+	namespace
+	{
+		// The window timer and the controller read both tick, often in the same frame: the second has nothing new to do.
+		// The engine's real-time clock changes once per frame; while it cannot be read (no world yet) every tick runs.
+		bool SameFrame()
+		{
+			static double s_last = -1.0;
+			const double  now = ui::RealTimeSeconds();
+			if (now < 0.0) return false;
+			if (now == s_last) return true;
+			s_last = now;
+			return false;
+		}
+	}
+
 	bool ReturnToListAfterFilter() { return mrconfig::Get().returnToListAfterFilter; }
 	bool ControllerKeyboardOpen() { return g_keyboardOpen.load(); }
 	void PublishInputState() { g_keyboardOpen.store(keyboard::Taking()); }
@@ -73,7 +88,8 @@ namespace core
 			if (!reflect::Ok()) reflect::SelfCheck();
 			if (reflect::Ok()) { menus::Tick(); container::Tick(); quests::Tick(); }
 		}
-		if (!reflect::Ok()) return;
+		if (!reflect::Ok() || SameFrame()) return;
+		container::TickScope frame;
 		if (container::Open()) {
 			sorting::Tick(sorting::Mode::Container, container::SideContent(3),
 				ui::TreeRootCanvas(container::Widget()), ui::ViewportScale(), container::SideContent(4));
