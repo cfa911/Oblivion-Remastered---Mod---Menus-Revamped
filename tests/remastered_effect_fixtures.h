@@ -1,5 +1,5 @@
 #pragma once
-#include "../sortingoverhaul/MagicEffects.h"
+#include "../src/sorting/rules/MagicEffects.h"
 // Read-only fixture extracted from installed Remastered Oblivion.esm.
 // SHA256 a26e21ea8c3041f8737ffb3a266129dedb7f8a88590625ecfecd5eb7f66b4a70
 namespace effectfixture

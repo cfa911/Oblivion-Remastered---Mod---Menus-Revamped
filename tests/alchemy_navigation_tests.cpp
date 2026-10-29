@@ -1,5 +1,5 @@
-#include "../sortingoverhaul/PickerNavigation.h"
-#include "../sortingoverhaul/ControllerPolicy.h"
+#include "../src/sorting/rules/PickerNavigation.h"
+#include "../src/sorting/rules/ControllerPolicy.h"
 
 #include <cstdio>
 #include <cstdlib>

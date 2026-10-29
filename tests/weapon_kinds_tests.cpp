@@ -1,6 +1,6 @@
-#include "../sortingoverhaul/ItemTags.h"
+#include "../src/sorting/rules/ItemTags.h"
 
-#include "../sortingoverhaul/ControllerPolicy.h"
+#include "../src/sorting/rules/ControllerPolicy.h"
 
 #include <bit>
 #include <string_view>

@@ -1,4 +1,4 @@
-#include "../sortingoverhaul/ControllerPolicy.h"
+#include "../src/sorting/rules/ControllerPolicy.h"
 #include <initializer_list>
 #include <cstdio>
 #include <cstdlib>

@@ -106,7 +106,7 @@ Magic picker visibility follows `VMagicMenuViewModel.GetCurrentPage`: 0 Self, 1 
 
 ## Standalone source build
 
-Clone with `--recurse-submodules` (CommonLibOB64 is pinned), then run `xmake f -y -p windows -a x64 -m releasedbg` and `xmake -y MenusRevamped` in a Visual Studio x64 developer prompt. DLL: `build/windows/x64/releasedbg/MenusRevamped.dll` (there is no separate `SortingOverhaul` target any more). The default source icons are procedural; `python tools/generate_sorting_icons.py sortingoverhaul/assets/SortingOverhaul` fills missing placeholders without replacing existing files. This source commit is not a release package; do not deploy it over customized live PNGs.
+Clone with `--recurse-submodules` (CommonLibOB64 is pinned), then run `xmake f -y -p windows -a x64 -m releasedbg` and `xmake -y MenusRevamped` in a Visual Studio x64 developer prompt. DLL: `build/windows/x64/releasedbg/MenusRevamped.dll` (there is no separate `SortingOverhaul` target any more). The default source icons are procedural; `python tools/generate_sorting_icons.py assets/Sorting` fills missing placeholders without replacing existing files. This source commit is not a release package; do not deploy it over customized live PNGs.
 
 ## Expanded spell-effect picker
 

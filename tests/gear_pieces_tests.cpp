@@ -1,5 +1,5 @@
-#include "../sortingoverhaul/GearPieces.h"
-#include "../sortingoverhaul/ItemTags.h"
+#include "../src/sorting/rules/GearPieces.h"
+#include "../src/sorting/rules/ItemTags.h"
 
 #include <array>
 #include <cstdio>

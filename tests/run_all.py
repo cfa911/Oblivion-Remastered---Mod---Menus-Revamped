@@ -36,7 +36,7 @@ for cpp in sorted(tests.glob("*.cpp")):
     work = out / cpp.stem
     work.mkdir(exist_ok=True)
     exe = work / (cpp.stem + ".exe")
-    c = subprocess.run(["cl", "/nologo", "/std:c++latest", "/EHsc", "/utf-8", f"/I{tests}",
+    c = subprocess.run(["cl", "/nologo", "/std:c++latest", "/EHsc", "/utf-8", f"/I{tests}", f"/I{repo / 'src'}",
                         str(cpp), f"/Fe{exe}", f"/Fo{work}\\"], cwd=work, capture_output=True, text=True, errors="replace")
     if c.returncode:
         (work / "log.txt").write_text(c.stdout + c.stderr, encoding="utf-8")

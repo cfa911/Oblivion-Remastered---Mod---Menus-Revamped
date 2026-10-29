@@ -8,22 +8,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 UNITS = {
-    "picker": ["sortingoverhaul/GearFilter.cpp"],
-    "container": ["sortingoverhaul/Container.cpp"],
-    "gear-data": ["sortingoverhaul/GearData.cpp"],
-    "hover": ["revamped/HoverFix.cpp"],
-    "search": ["menusearch/MenuSearch.cpp"],
-    "keyboard-api": ["searchkb/SearchApi.cpp"],
-    "keyboard-input": ["searchkb/XInputHook.cpp"],
-    "input-driver": ["sortingoverhaul/Driver.cpp"],
-    "stolen-filter": ["sortingoverhaul/StolenFilter.h"],
+    "picker": ["src/sorting/Picker.cpp"],
+    "container": ["src/engine/ContainerMenu.cpp"],
+    "gear-data": ["src/sorting/GearData.cpp"],
+    "hover": ["src/hover/HoverFix.cpp"],
+    "search": ["src/search/Search.cpp"],
+    "keyboard-api": ["src/keyboard/SearchApi.cpp"],
+    "keyboard-input": ["src/keyboard/KeyboardInput.cpp"],
+    "input-driver": ["src/core/Input.cpp"],
+    "stolen-filter": ["src/sorting/rules/StolenFilter.h"],
 }
 
 # Include folders for compiling extracted bodies (headers such as TransferHold.h, ListLifecycle.h).
-INCLUDE_DIRS = ["sortingoverhaul", "revamped"]
+INCLUDE_DIRS = ["src", "src/sorting/rules", "src/search"]
 
-SORTING_ASSETS = "sortingoverhaul/assets/SortingOverhaul"
-GONE_PROBE = "revamped/StolenProbe.cpp"
+SORTING_ASSETS = "assets/Sorting"
+GONE_PROBE = "src/hover/StolenProbe.cpp"
 
 
 def paths(unit):

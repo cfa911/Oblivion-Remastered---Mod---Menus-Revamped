@@ -1,5 +1,5 @@
-#include "../sortingoverhaul/ItemTags.h"
-#include "../sortingoverhaul/ControllerPolicy.h"
+#include "../src/sorting/rules/ItemTags.h"
+#include "../src/sorting/rules/ControllerPolicy.h"
 #include "remastered_effect_fixtures.h"
 #include <cstdio>
 #include <cstdlib>

@@ -6,7 +6,7 @@ Native types0 (Spell),2 (Power),3 (LesserPower) receive actual school/effect mas
 powers both receive the Powers bit as well as the game's row school. Native effects use the existing
 verified taxonomy; no spell-name exclusions or new category numeric guesses.
 
-See sortingoverhaul/MagicRows.h and tests/magic_rows_tests.cpp. The first six native spell snapshots
+See src/sorting/rules/MagicRows.h and tests/magic_rows_tests.cpp. The first six native spell snapshots
 from the recorded2026-10-24 capture are fixtures; their row schools are synthetic test inputs.
 CommonLib enum values are compile-time asserted. A truly invalid range/index/snapshot/native kind
 retains the old fail-open fallback and emits at most one warning per process for a castable row.
