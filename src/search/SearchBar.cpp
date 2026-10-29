@@ -1,6 +1,7 @@
 #include "search/SearchInternal.h"
 
 #include "search/SearchConfig.h"
+#include "core/Config.h"
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
 #include "engine/QuestsMenu.h"
@@ -85,17 +86,8 @@ namespace search::detail
 			if (auto* t = reflect::Get(s_tex[slot])) return t;
 			if (s_failed[slot]) return slot ? BarTexture(menus::Menu::kInventory) : nullptr;
 			const wchar_t* file = slot == 1 ? L"SearchBarYours.png" : slot == 2 ? L"SearchBarTheirs.png" : L"SearchBar.png";
-			const auto     path = searchcfg::PluginFolder() / L"MenusRevamped" / L"Search" / file;
-			static auto*   lib = ui::Class(L"/Script/Engine.KismetRenderingLibrary");
-			ui::Call       c(lib ? lib->GetDefaultObject(false) : nullptr, L"ImportFileAsTexture2D");
-			void*          fname = c.At("Filename");
-			UE::UObject*   tex = nullptr;
-			if (c && fname && std::filesystem::exists(path)) {
-				c.Set("WorldContextObject", ui::PlayerController());
-				auto* str = new (fname) UE::FString(path.wstring().c_str());
-				tex = c.RunGuarded() ? c.Get<UE::UObject*>("ReturnValue") : nullptr;
-				str->~FString();
-			}
+			const auto     path = mrconfig::PluginFolder() / L"MenusRevamped" / L"Search" / file;
+			auto*          tex = ui::ImportTexture(path);
 			if (!tex) {
 				s_failed[slot] = true;
 				logger::warn("own bar: the bar image could not be loaded ({}{}) - {}", path.string(), std::filesystem::exists(path) ? "" : ", missing", slot ? "the black one is used" : "a plain box is used");

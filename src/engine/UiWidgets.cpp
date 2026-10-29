@@ -199,6 +199,20 @@ namespace ui
 
 namespace ui
 {
+	UE::UObject* ImportTexture(const std::filesystem::path& a_png)
+	{
+		if (!std::filesystem::is_regular_file(a_png)) return nullptr;
+		static auto* lib = Class(L"/Script/Engine.KismetRenderingLibrary");
+		Call          c(lib ? lib->GetDefaultObject(false) : nullptr, L"ImportFileAsTexture2D");
+		void*         file = c.At("Filename");
+		if (!c || !file) return nullptr;
+		c.Set("WorldContextObject", PlayerController());
+		auto* name = new (file) UE::FString(a_png.wstring().c_str());
+		auto* texture = c.RunGuarded() ? c.Get<UE::UObject*>("ReturnValue") : nullptr;
+		name->~FString();
+		return texture;
+	}
+
 	UE::UObject* MidTexture(UE::UObject* a_mid, const wchar_t* a_name)
 	{
 		Call c(a_mid, L"K2_GetTextureParameterValue");

@@ -35,6 +35,5 @@ bool ownFilter = true;  // [Filter] bEnabled: filter the lists (and filter again
 	};
 
 	Values        ReadIni(const std::filesystem::path& ini);
-	std::filesystem::path PluginFolder();   // the folder the DLL is in (OBSE\Plugins)
 	const Values& Get();
 }

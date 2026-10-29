@@ -1,6 +1,7 @@
 #include "keyboard/Keyboard.h"
 
 #include "keyboard/KeyboardConfig.h"
+#include "core/Config.h"
 #include "engine/PEHook.h"
 #include "engine/Reflect.h"
 #include "search/Search.h"
@@ -170,17 +171,8 @@ const double W = R - L, H = B - T;
 			static bool            s_failed = false;
 			if (auto* t = reflect::Get(s_tex)) return t;
 			if (s_failed) return nullptr;
-			const auto path = kbcfg::PluginFolder() / L"MenusRevamped" / L"Keyboard" / L"Parchment.png";
-			static auto* lib = ui::Class(L"/Script/Engine.KismetRenderingLibrary");
-			ui::Call     c(lib ? lib->GetDefaultObject(false) : nullptr, L"ImportFileAsTexture2D");
-			void*        file = c.At("Filename");
-			UE::UObject* tex = nullptr;
-			if (c && file && std::filesystem::exists(path)) {
-				c.Set("WorldContextObject", ui::PlayerController());
-				auto* s = new (file) UE::FString(path.wstring().c_str());
-				tex = c.RunGuarded() ? c.Get<UE::UObject*>("ReturnValue") : nullptr;
-				s->~FString();
-			}
+			const auto path = mrconfig::PluginFolder() / L"MenusRevamped" / L"Keyboard" / L"Parchment.png";
+			auto*        tex = ui::ImportTexture(path);
 			if (!tex) {
 				s_failed = true;
 				logger::warn("search keyboard: the parchment image could not be loaded ({}{}) - a plain box is used", path.string(), std::filesystem::exists(path) ? "" : ", missing");

@@ -6,8 +6,6 @@ namespace kbcfg
 {
 	struct Values
 	{
-		int  logLevel = 3;      // [Log] uLogLevel: 0 trace, 1 debug, 2 info, 3 warn (the default: warnings and errors only), 4 error
-
 		// [SearchKeyboard]
 		bool enabled = true;    // bEnabled
 		int  button = 0x0008;   // uButton: XInput mask held to open it (8 = D-pad right; a tap stays the game's own)
@@ -18,6 +16,5 @@ namespace kbcfg
 	};
 
 	Values        ReadIni(const std::filesystem::path& ini);
-	std::filesystem::path PluginFolder();   // the folder the DLL is in (OBSE\Plugins)
 	const Values& Get();
 }

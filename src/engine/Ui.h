@@ -77,6 +77,9 @@ namespace ui
 	void         SetMidScalar(UE::UObject* a_mid, const wchar_t* a_name, float a_v);
 	void         SetMidTexture(UE::UObject* a_mid, const wchar_t* a_name, UE::UObject* a_texture);
 	UE::UObject* MidTexture(UE::UObject* a_mid, const wchar_t* a_name);
+	// A texture the engine imports from a PNG file (KismetRenderingLibrary.ImportFileAsTexture2D); nullptr when the file
+	// is missing or unreadable. Not cached: the caller keeps a reflect::Handle.
+	UE::UObject* ImportTexture(const std::filesystem::path& a_png);
 
 	// a widget by its name anywhere under a user widget - its tree, panels' slots and nested user widgets' trees - found
 	// by walking them and comparing names here (GetWidgetFromName found nothing in game, 2026-09-30)
