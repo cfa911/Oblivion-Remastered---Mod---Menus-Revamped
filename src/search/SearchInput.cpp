@@ -166,17 +166,17 @@ namespace search
 						switch (a_m) {
 						case WM_KEYDOWN:   // a key typed into the bar: nothing else sees it (the menu's hotkeys stay quiet)
 							if (a_w == 'A' && (GetKeyState(VK_CONTROL) & 0x8000)) {   // Ctrl+A: select all
-															std::scoped_lock l(g_qMutex);
-															g_selAll[static_cast<int>(menu) % 6] = !g_queries[static_cast<int>(menu) % 6].empty();
-															return true;
-														}
-														if (a_w == VK_DELETE) {   // Delete clears a selected text
-															std::scoped_lock l(g_qMutex);
-															if (g_selAll[static_cast<int>(menu) % 6]) g_queries[static_cast<int>(menu) % 6].clear();
-															g_selAll[static_cast<int>(menu) % 6] = false;
-															return true;
-														}
-														if (a_w == VK_ESCAPE || a_w == VK_RETURN) g_typing = false;
+								std::scoped_lock l(g_qMutex);
+								g_selAll[static_cast<int>(menu) % 6] = !g_queries[static_cast<int>(menu) % 6].empty();
+								return true;
+							}
+							if (a_w == VK_DELETE) {   // Delete clears a selected text
+								std::scoped_lock l(g_qMutex);
+								if (g_selAll[static_cast<int>(menu) % 6]) g_queries[static_cast<int>(menu) % 6].clear();
+								g_selAll[static_cast<int>(menu) % 6] = false;
+								return true;
+							}
+							if (a_w == VK_ESCAPE || a_w == VK_RETURN) g_typing = false;
 							return true;
 						case WM_CHAR:
 							Typed(static_cast<wchar_t>(a_w), menu);
@@ -267,7 +267,7 @@ namespace search
 	}
 
 	void SetExternalInput(bool a_open)
-{
+	{
 		g_external = a_open;
 		if (a_open) g_typing = false;
 	}

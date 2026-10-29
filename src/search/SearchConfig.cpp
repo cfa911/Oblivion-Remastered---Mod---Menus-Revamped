@@ -42,7 +42,7 @@ namespace searchcfg
 				v.questBar = place(L"Quest", v.magicBar, false);   // the Magic menu's place (as it is set above) unless [Quest] says otherwise
 			}
 			v.ownFilter = ReadInt(ini, L"Filter", L"bEnabled", v.ownFilter ? 1 : 0, 0, 1) != 0;
-logger::info("config: {} read", ini.string());
+			logger::info("config: {} read", ini.string());
 		} else {
 			logger::warn("config: {} not found - compiled defaults in use", ini.string());
 		}

@@ -118,8 +118,8 @@ namespace search::detail
 			if (auto* list = quests::ListWrapper(); list && ui::Measure(list, x, y, w, h)) logger::debug("own bar:   quest list at {:.0f},{:.0f} {:.0f}x{:.0f}", x, y, w, h);
 		}
 
-bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
-{
+		bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
+		{
 			static int         s_n = 0;
 			const std::wstring n = std::to_wstring(++s_n);
 			const auto&        c = searchcfg::Get();
@@ -127,7 +127,7 @@ bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
 			double             barX = place.x, barW = place.w, barH = place.h;
 			double             barY = place.y;
 			if (IsSide(a_menu) && !ContainerBarRect(a_menu, a_canvas, barX, barY, barW, barH, true)) return false;
-				if (a_menu == menus::Menu::kQuests) LogQuestLayout(a_canvas);
+			if (a_menu == menus::Menu::kQuests) LogQuestLayout(a_canvas);
 			UE::UObject* slot = nullptr;
 			auto*        frame = ui::AddToCanvas(a_canvas, L"/Script/UMG.Image", (L"IwmBarFrame" + n).c_str(), &slot);
 			if (!frame || !slot) return false;
@@ -195,16 +195,16 @@ bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
 				B.visible = true;
 			}
 			const bool        typing = g_typing.load() && g_typingMenu.load() == static_cast<int>(a_menu);
-				if (!typing) {
-					std::scoped_lock l(g_qMutex);
-					g_selAll[static_cast<int>(a_menu) % 6] = false;
-				}
-				const std::string q = QueryOf(a_menu);
+			if (!typing) {
+				std::scoped_lock l(g_qMutex);
+				g_selAll[static_cast<int>(a_menu) % 6] = false;
+			}
+			const std::string q = QueryOf(a_menu);
 			const bool        caret = typing && (GetTickCount64() / 500) % 2 == 0;
 			const bool        hint = q.empty() && !typing;
 			const std::string show = hint ? B.hint : q + (typing ? (caret ? "|" : " ") : "");
 			const bool        sel = typing && !q.empty() && SelAllOf(a_menu);   // selected: drawn in the bar's gold
-				const std::string key = std::string(hint ? "#" : sel ? "*" : "=") + show;
+			const std::string key = std::string(hint ? "#" : sel ? "*" : "=") + show;
 			if (key != B.shown) {
 				uix::SetText(label, show);
 				uix::Ink(label, hint ? kBarHint : sel ? kBarFocus : kBarInk);
@@ -264,8 +264,8 @@ bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
 			if (IsSide(a_menu)) HideBar(a_menu);
 			return;
 		}
-BarWidgets& B = g_bar[static_cast<int>(a_menu)];
-const bool  have = reflect::Get(B.frame) && reflect::Get(B.label);
+		BarWidgets& B = g_bar[static_cast<int>(a_menu)];
+		const bool  have = reflect::Get(B.frame) && reflect::Get(B.label);
 		if (!have || a_now >= B.nextLook) {   // built, and looked at twice a second: it must still sit in the menu's canvas (a menu that was rebuilt or replaced does not take it along)
 			B.nextLook = a_now + 500ms;
 			auto* canvas = BarCanvasFor(a_menu, !have);

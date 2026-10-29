@@ -31,11 +31,11 @@ namespace search
 				}
 			}
 		}
-const bool quest = !cont && a_menu == menus::Menu::kNone && quests::Open();   // the quests tab: a bar and the quest list
-if (g_typing.load()) {
-	const auto typed = static_cast<menus::Menu>(g_typingMenu.load());
-	if ((typed != a_menu && !(cont && IsSide(typed)) && !(quest && typed == menus::Menu::kQuests)) || g_external.load()) g_typing = false;
-}
+		const bool quest = !cont && a_menu == menus::Menu::kNone && quests::Open();   // the quests tab: a bar and the quest list
+		if (g_typing.load()) {
+			const auto typed = static_cast<menus::Menu>(g_typingMenu.load());
+			if ((typed != a_menu && !(cont && IsSide(typed)) && !(quest && typed == menus::Menu::kQuests)) || g_external.load()) g_typing = false;
+		}
 		if (cont) {
 			for (const auto side : { menus::Menu::kContainerYours, menus::Menu::kContainerTheirs }) {
 				BarTick(side, now);
@@ -48,7 +48,7 @@ if (g_typing.load()) {
 			BarTick(a_menu, now);
 			FilterTick(a_menu, now);
 		}
-}
+	}
 
 	void SetGameThread(DWORD a_id) { g_gameThread = a_id; }
 	bool Enabled(menus::Menu a_menu) { return MenuEnabled(a_menu); }

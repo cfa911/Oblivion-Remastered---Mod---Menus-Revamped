@@ -190,13 +190,13 @@ namespace search
 		if (s_in || g_filtering || !a_obj) return;
 		auto* cls = a_obj->GetClass();
 		if (cls && (cls == quests::PageClass() || cls == quests::PanelClass())) {   // the quests tab
-					if (cls == quests::PageClass()) quests::NoteInstance(a_obj);
-s_in = true;
-					FilterQuick(menus::Menu::kQuests, pe::FunctionName(a_fn).c_str());
-					s_in = false;
-					return;
-				}
-				if (cls && cls == container::Class()) {   // the container / barter menu: both sides
+			if (cls == quests::PageClass()) quests::NoteInstance(a_obj);
+			s_in = true;
+			FilterQuick(menus::Menu::kQuests, pe::FunctionName(a_fn).c_str());
+			s_in = false;
+			return;
+		}
+		if (cls && cls == container::Class()) {   // the container / barter menu: both sides
 			s_in = true;
 			FilterQuick(menus::Menu::kContainerYours, pe::FunctionName(a_fn).c_str());
 			FilterQuick(menus::Menu::kContainerTheirs, pe::FunctionName(a_fn).c_str());
@@ -222,19 +222,19 @@ s_in = true;
 			}
 		}
 		static bool s_doneQuestPage = false, s_doneQuestPanel = false;
-				if (!s_doneQuestPage) {
-					if (auto* cls = quests::PageClass(); cls && pe::WatchPost(cls, &OnMenuPost)) {
-						s_doneQuestPage = true;
-						logger::debug("own filter: watching the quests page's calls to filter right after them");
-					}
-				}
-				if (!s_doneQuestPanel) {
-					if (auto* cls = quests::PanelClass(); cls && pe::WatchPost(cls, &OnMenuPost)) {
-						s_doneQuestPanel = true;
-						logger::debug("own filter: watching the quests list panel's calls to filter right after them");
-					}
-				}
-				static bool s_doneContainer = false;
+		if (!s_doneQuestPage) {
+			if (auto* cls = quests::PageClass(); cls && pe::WatchPost(cls, &OnMenuPost)) {
+				s_doneQuestPage = true;
+				logger::debug("own filter: watching the quests page's calls to filter right after them");
+			}
+		}
+		if (!s_doneQuestPanel) {
+			if (auto* cls = quests::PanelClass(); cls && pe::WatchPost(cls, &OnMenuPost)) {
+				s_doneQuestPanel = true;
+				logger::debug("own filter: watching the quests list panel's calls to filter right after them");
+			}
+		}
+		static bool s_doneContainer = false;
 		if (!s_doneContainer) {
 			if (auto* cls = container::Class(); cls && pe::WatchPost(cls, &OnMenuPost)) {
 				s_doneContainer = true;

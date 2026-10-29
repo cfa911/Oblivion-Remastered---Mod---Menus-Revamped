@@ -40,7 +40,7 @@ namespace search::detail
 				}
 			}
 		}
-for (UE::UStruct* c = a_item->GetClass(); c; c = c->GetSuperStruct()) {
+		for (UE::UStruct* c = a_item->GetClass(); c; c = c->GetSuperStruct()) {
 			if (pe::Utf8(c->GetFName().ToString()) == "Object") break;
 			for (const auto& [name, off] : reflect::Fields(c)) {
 				const auto size = ui::SizeOf(c, name);
@@ -72,7 +72,7 @@ for (UE::UStruct* c = a_item->GetClass(); c; c = c->GetSuperStruct()) {
 	}
 
 	std::string ItemName(UE::UObject* a_item, menus::Menu a_menu, const char** a_route)
-{
+	{
 		static auto* magicProps = reinterpret_cast<UE::UStruct*>(UE::StaticFindObject<UE::UObject>(nullptr, nullptr, L"/Script/Altar.LegacyMagicMenuItemProperties"));
 		static auto* invProps = reinterpret_cast<UE::UStruct*>(UE::StaticFindObject<UE::UObject>(nullptr, nullptr, L"/Script/Altar.OriginalInventoryMenuItemProperties"));
 		if (!a_item || !a_item->GetClass() || !reflect::Ok() || !reflect::IsLive(a_item)) return {};
@@ -89,7 +89,7 @@ for (UE::UStruct* c = a_item->GetClass(); c; c = c->GetSuperStruct()) {
 			}
 		}
 		if (a_menu == menus::Menu::kQuests) return GenericItemName(a_item, a_route);
-					auto* props = a_menu == menus::Menu::kMagic ? magicProps : invProps;
+		auto* props = a_menu == menus::Menu::kMagic ? magicProps : invProps;
 		ui::Call g(a_item, L"GetProperties");
 		void*    ret = g && props ? g.At("ReturnValue") : nullptr;
 		const auto nameOff = props ? reflect::Offset(props, "Name") : -1;
