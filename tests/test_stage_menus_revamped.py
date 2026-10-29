@@ -65,6 +65,17 @@ class MigrationTests(unittest.TestCase):
             self.assertEqual(config["SearchKeyboard"]["uHoldMs"], "800")
             self.assertTrue((new / "MenusRevamped/Keyboard/Parchment.png").exists())
 
+    def test_fresh_install_gets_the_stolen_icon(self):
+        # GearFilter.cpp loads MenusRevamped/Sorting/Stolen-Item.png for the stolen-only toggle (owner's art).
+        self.assertIn('L"Stolen-Item.png"', (ROOT / "sortingoverhaul/GearFilter.cpp").read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "plugins").mkdir()
+            migration.stage(root / "plugins", root / "stage")
+            staged = root / "stage/MenusRevamped/Sorting/Stolen-Item.png"
+            self.assertTrue(staged.is_file())
+            self.assertEqual(staged.read_bytes()[:8], b"\x89PNG\r\n\x1a\n")
+
     def test_never_writes_into_live_install(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
