@@ -2,13 +2,15 @@
 from pathlib import Path
 import subprocess
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
 out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
-source = (root / "sortingoverhaul/GearFilter.cpp").read_text()
-start = source.index("\t\t\t\t\tauto find =")
-end = source.index("\n\t\t\t\t\tauto* headerWidget", start)
+source = source_paths.read("picker")
+start = source.index("\t\t\tauto find =")
+end = source.index("\n\t\t\tauto* headerWidget", start)
 body = source[start:end]
 cpp = out / "container_picker_discovery_tests.cpp"
 cpp.write_text(r"""

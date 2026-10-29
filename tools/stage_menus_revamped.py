@@ -106,7 +106,7 @@ def stage(plugins, destination, root=ROOT):
         raise ValueError("Migration must stage outside the live plugin directory")
     destination.mkdir(parents=True, exist_ok=True)
     unified = destination / "MenusRevamped.ini"
-    template = read_ini(root / "revamped/MenusRevamped.defaults.ini")
+    template = read_ini(root / "config/MenusRevamped.defaults.ini")
     if not unified.exists():
         existing = plugins / unified.name
         if existing.exists():
@@ -134,9 +134,9 @@ def stage(plugins, destination, root=ROOT):
     # Existing unified customization wins, then legacy customization, then defaults.
     copy_missing(plugins / "MenusRevamped", assets)
     for old, new, defaults in (
-        ("MenuSearch", "Search", root / "menusearch/assets"),
-        ("MenuSearchControllerKeyboard", "Keyboard", root / "searchkb/assets"),
-        ("SortingOverhaul", "Sorting", root / "sortingoverhaul/assets/SortingOverhaul"),
+        ("MenuSearch", "Search", root / "assets/Search"),
+        ("MenuSearchControllerKeyboard", "Keyboard", root / "assets/Keyboard"),
+        ("SortingOverhaul", "Sorting", root / "assets/Sorting"),
     ):
         copy_missing(plugins / old, assets / new)
         copy_missing(defaults, assets / new)
@@ -156,6 +156,6 @@ if __name__ == "__main__":
     cli.add_argument("--source-root", type=Path, default=ROOT,
                      help="Menus Revamped source checkout (required when run from a KB copy)")
     args = cli.parse_args()
-    if not (args.source_root / "revamped/MenusRevamped.defaults.ini").is_file():
+    if not (args.source_root / "config/MenusRevamped.defaults.ini").is_file():
         cli.error("--source-root must name the Menus Revamped source checkout")
     print(json.dumps(stage(args.plugins, args.destination, args.source_root), indent=2))

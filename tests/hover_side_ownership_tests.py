@@ -3,6 +3,8 @@ import ast
 from pathlib import Path
 import subprocess
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
 out = Path(sys.argv[1])
@@ -12,7 +14,7 @@ tree = ast.parse((root / "tests/hover_integration_tests.py").read_text(encoding=
 prefix = next(ast.literal_eval(n.value) for n in tree.body
               if isinstance(n, ast.Assign)
               and any(isinstance(t, ast.Name) and t.id == "prefix" for t in n.targets))
-source = (root / "revamped/HoverFix.cpp").read_text(encoding="utf-8")
+source = source_paths.read("hover")
 throttle = source[source.index("enum Target"):source.index("// ---- metrics")]
 tests = r"""
 } }

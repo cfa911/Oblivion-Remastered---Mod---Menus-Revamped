@@ -2,6 +2,8 @@
 from pathlib import Path
 import subprocess
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 search_root, wheel_root, out = map(Path, sys.argv[1:4])
 out.mkdir(parents=True, exist_ok=True)
@@ -17,7 +19,7 @@ def extract(source, marker):
     return source[start:end]
 
 
-api = (search_root / "searchkb/SearchApi.cpp").read_text(encoding="utf-8")
+api = source_paths.read("keyboard-api")
 keyboard = (wheel_root / "src/Keyboard.cpp").read_text(encoding="utf-8")
 pad = (wheel_root / "src/Pad.cpp").read_text(encoding="utf-8")
 api = "\n".join(line for line in api.splitlines() if not line.startswith("#include"))

@@ -1,4 +1,4 @@
-#include "../sortingoverhaul/ItemTags.h"
+#include "../src/sorting/rules/ItemTags.h"
 #include <cstdio>
 #include <cstdlib>
 

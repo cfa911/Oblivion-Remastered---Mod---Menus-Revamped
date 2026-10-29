@@ -2,6 +2,9 @@
 import importlib.util
 from pathlib import Path
 import unittest
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("icons", ROOT / "tools/generate_sorting_icons.py")
@@ -14,7 +17,7 @@ class IconNames(unittest.TestCase):
         names = {f"{group}-{name}.png" for group, choices in icons.GROUPS.items() for name in choices}
         for name in ("Alchemy-All.png", "Potion-All.png", "Category-Alchemy.png"):
             self.assertIn(name, names)
-            self.assertTrue((ROOT / "sortingoverhaul/assets/SortingOverhaul" / name).is_file())
+            self.assertTrue((ROOT / source_paths.SORTING_ASSETS / name).is_file())
         self.assertNotIn("Potions-All.png", names)
         self.assertNotIn("Category-Potions.png", names)
 

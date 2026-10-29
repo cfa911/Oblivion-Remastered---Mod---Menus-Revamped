@@ -21,11 +21,8 @@ target("MenusRevamped")
         description = "Unified menu search, category pickers and controller keyboard"
     })
     add_syslinks("user32", "imm32")
-    add_files("sortingoverhaul/Icons.cpp", "sortingoverhaul/GearFilter.cpp", "sortingoverhaul/GearData.cpp", "sortingoverhaul/Runtime.cpp", "sortingoverhaul/Container.cpp", "sortingoverhaul/Driver.cpp", "sortingoverhaul/main.cpp")
-    add_files("revamped/HoverFix.cpp", "revamped/Config.cpp", "menusearch/MenuSearch.cpp", "menusearch/Config.cpp", "menusearch/Quests.cpp",
-        "searchkb/Config.cpp", "searchkb/SearchApi.cpp", "searchkb/SearchKeyboard.cpp", "searchkb/XInputHook.cpp")
-    add_files("src/Ui.cpp", "src/Reflect.cpp", "src/PEHook.cpp", "src/Menus.cpp", "src/UiText.cpp")
-
-    add_headerfiles("sortingoverhaul/*.h", "menusearch/*.h", "searchkb/*.h", "revamped/*.h")
-    add_includedirs("src", "sortingoverhaul")
-    set_pcxxheader("src/pch.h")
+    -- Feature folders under src/; every include is a path from src/ ("engine/Ui.h").
+    add_files("src/core/*.cpp", "src/engine/*.cpp", "src/search/*.cpp", "src/keyboard/*.cpp", "src/sorting/*.cpp", "src/hover/*.cpp")
+    add_headerfiles("src/**.h")
+    add_includedirs("src")
+    set_pcxxheader("src/core/pch.h")

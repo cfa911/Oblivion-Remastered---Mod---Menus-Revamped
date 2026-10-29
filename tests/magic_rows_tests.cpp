@@ -1,4 +1,4 @@
-#include "../sortingoverhaul/MagicRows.h"
+#include "../src/sorting/rules/MagicRows.h"
 #include <array>
 #include <cstdio>
 #include <cstdlib>

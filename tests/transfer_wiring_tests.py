@@ -5,10 +5,12 @@ layout pass does not put it back while the hold is active. Only the container si
 """
 from pathlib import Path
 import re, sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
-container = (root / 'sortingoverhaul/Container.cpp').read_text(encoding='utf-8-sig')
-gear = (root / 'sortingoverhaul/GearFilter.cpp').read_text(encoding='utf-8-sig')
+container = source_paths.read('container')
+gear = source_paths.read('picker')
 checks = failures = 0
 
 
@@ -29,7 +31,7 @@ check(re.search(r'void OnTransferStarted\(\)\s*\{\s*g_pickers\[3\]\.DetachForTra
 check(re.search(r'void OnTransferSettled\(\)\s*\{\s*g_pickers\[3\]\.transfer\.Settle\(', gear) is not None, 'settle goes to the container-side picker')
 check('container::SetTransferHandlers(&OnTransferStarted, &OnTransferSettled)' in gear, 'handlers are registered')
 
-detach = gear[gear.find('void DetachForTransfer()'):gear.find('static bool NativeNameShown(')]
+detach = source_paths.function(gear, 'void Picker::DetachForTransfer()')
 check('kind != 4' in detach, 'detach is limited to the container side')
 check('RemoveFromParent' in detach and 'transfer.Start(' in detach, 'detach removes the header and starts the hold')
 check('transfer.Held()' in detach, 'a repeated action while held does nothing')
@@ -41,7 +43,7 @@ layout = gear[gear.find("if (!attached && transfer.Held()"):]
 gate = layout.find('transfer.MayReinsert(now, NativeNameShown(panel))')
 insert = layout.find('InsertHeader(panel, iconBox)')
 check(gate >= 0 and insert > gate, 'reinsertion is gated by the hold before InsertHeader')
-check('transfer = {};' in gear[gear.find('void Reset()'):gear.find('void Deactivate()')], 'Reset clears the hold')
+check('transfer = {};' in source_paths.function(gear, 'void Picker::Reset()'), 'Reset clears the hold')
 
 print(f'{checks} checks, {failures} failures')
 sys.exit(1 if failures else 0)

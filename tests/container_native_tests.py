@@ -2,11 +2,13 @@
 from pathlib import Path
 import subprocess
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
 out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
-source = (root / "sortingoverhaul/GearData.cpp").read_text()
+source = source_paths.read("gear-data")
 
 def extract(marker):
     start = source.index(marker)

@@ -1,5 +1,5 @@
-#include "../sortingoverhaul/PickerNavigation.h"
-#include "../sortingoverhaul/ControllerPolicy.h"
+#include "../src/sorting/rules/PickerNavigation.h"
+#include "../src/sorting/rules/ControllerPolicy.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -102,8 +102,8 @@ int main()
 	for (auto view : { Tab::Potions, Tab::PotionEffects }) {
 		const auto count = Info(view).count;
 		for (unsigned i = 0; i < count; ++i) {
-			check(sortpad::Move(i, count, sortpad::Direction::Right) < count, "controller right stays in view");
-			check(sortpad::Move(i, count, sortpad::Direction::Down) < count, "controller down stays in view");
+			check(pickerpad::Move(i, count, pickerpad::Direction::Right) < count, "controller right stays in view");
+			check(pickerpad::Move(i, count, pickerpad::Direction::Down) < count, "controller down stays in view");
 			check(Info(view).icons[i] != nullptr, "every new cell has an editable icon");
 		}
 	}

@@ -2,12 +2,14 @@
 from pathlib import Path
 import subprocess
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
 out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
 source = "\n".join(
-    line for line in (root / "sortingoverhaul/Container.cpp").read_text().splitlines()
+    line for line in source_paths.read("container").splitlines()
     if not line.startswith("#include")
 )
 prefix = r"""
@@ -18,6 +20,7 @@ prefix = r"""
 #include <string>
 #include <string_view>
 #include <vector>
+#include "TransferHold.h"
 namespace UE {
 struct UObject { bool live=true, shown=true; int serial=1; };
 struct UClass : UObject {};
@@ -98,7 +101,7 @@ int main() {
 cpp = out / "container_discovery_tests.cpp"
 cpp.write_text(prefix + source + tests)
 exe = out / "container_discovery_tests.exe"
-subprocess.run(["cl", "/nologo", "/EHsc", "/std:c++latest", str(cpp),
+subprocess.run(["cl", "/nologo", "/EHsc", "/std:c++latest", str(cpp), *source_paths.include_flags(),
                 f"/Fe:{exe}", f"/Fo:{out / 'container_discovery_tests.obj'}"],
                check=True)
 sys.exit(subprocess.run([str(exe)]).returncode)

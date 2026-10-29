@@ -1,6 +1,6 @@
-#include "../sortingoverhaul/ItemTags.h"
+#include "../src/sorting/rules/ItemTags.h"
 
-#include "../sortingoverhaul/ControllerPolicy.h"
+#include "../src/sorting/rules/ControllerPolicy.h"
 
 #include <bit>
 #include <string_view>
@@ -85,8 +85,8 @@ int main()
 	reached[0] = true;
 	for (unsigned round = 0; round < info.count; ++round)
 		for (unsigned at = 0; at < info.count; ++at)
-			if (reached[at]) for (auto direction : { sortpad::Direction::Left, sortpad::Direction::Right, sortpad::Direction::Up, sortpad::Direction::Down })
-				reached[sortpad::Move(at, info.count, direction)] = true;
+			if (reached[at]) for (auto direction : { pickerpad::Direction::Left, pickerpad::Direction::Right, pickerpad::Direction::Up, pickerpad::Direction::Down })
+				reached[pickerpad::Move(at, info.count, direction)] = true;
 	for (unsigned i = 0; i < info.count; ++i)
 		check(reached[i], "controller reaches every choice in partial fourth row");
 	for (unsigned i = 0; i < info.count; ++i) {

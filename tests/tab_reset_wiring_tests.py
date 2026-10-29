@@ -6,9 +6,11 @@ A native tab change gives that tab's own choices, reset to All, with a top-level
 """
 from pathlib import Path
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
-gear = (root / 'sortingoverhaul/GearFilter.cpp').read_text(encoding='utf-8-sig')
+gear = source_paths.read('picker')
 checks = failures = 0
 
 
@@ -21,11 +23,10 @@ def check(ok, name):
 
 
 check('"VContainerMenuViewModel"' in gear, 'reads the container view model by name')
-page = gear[gear.find('int ContainerPage('):]
-page = page[:page.find('\n\t\t}\n')]
+page = source_paths.function(gear, 'int ContainerPage(')
 check('a_kind == 3' in page and '"CurrentPageInventory"' in page and '"CurrentPageContainer"' in page,
       'player picker uses the player page, other picker the container page')
-tick = gear[gear.find('void Tick(int a_kind, UE::UObject* a_menu'):]
+tick = source_paths.function(gear, 'void Picker::Tick(int a_kind, UE::UObject* a_menu')
 container = tick[tick.find('if (a_kind >= 3) {'):tick.find('} else if (a_kind == 0) {')]
 check('ContainerPage(a_kind)' in container and 'itemtags::TabFromPage(' in container,
       'a container side takes its tab from its native page (Misc tab -> Misc choices)')
@@ -34,7 +35,7 @@ check('Tab::AllItems' in container and container.find('Tab::AllItems') < contain
 change = tick[tick.find('if (!tabSet || tab != wanted)'):]
 change = change[:change.find('tabSet = true;')]
 check('const auto hold = transfer; Reset(); transfer = hold;' in change, 'a tab change resets the picker but keeps the RMI-004 Transfer hold')
-reset = gear[gear.find('void Reset()'):gear.find('void Deactivate()')]
+reset = source_paths.function(gear, 'void Picker::Reset()')
 check('view = tab' in reset and 'styled = false' in reset,
       'Reset rebuilds the popup for the top level (owner 2026-10-27: stale Weapon type popup after a tab change)')
 print(f'{checks} checks, {failures} failures')
