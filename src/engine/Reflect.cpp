@@ -181,6 +181,7 @@ namespace reflect
 		if (!fn) {
 			return false;
 		}
+		pe::OwnCall own(a_obj, fn);
 		a_obj->ProcessEvent(fn, a_params);
 		return true;
 	}

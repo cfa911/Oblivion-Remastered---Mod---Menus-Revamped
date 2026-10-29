@@ -20,6 +20,16 @@ namespace ui
 			for (int i = 0, n = UE::GetNum(s); d && i < n && d[i]; ++i) out.push_back(d[i] < 0x80 ? static_cast<char>(d[i]) : '?');
 			return out;
 		}
+
+		bool ProcessEventGuarded(UE::UObject* a_obj, UE::UFunction* a_fn, void* a_params)
+		{
+			__try {
+				a_obj->ProcessEvent(a_fn, a_params);
+				return true;
+			} __except (EXCEPTION_EXECUTE_HANDLER) {
+				return false;
+			}
+		}
 	}
 
 	std::int32_t SizeOf(UE::UStruct* a_struct, std::string_view a_name)
@@ -51,18 +61,15 @@ namespace ui
 	bool Call::Run()
 	{
 		if (!m_fn || !m_obj) return false;
+		pe::OwnCall own(m_obj, m_fn);
 		m_obj->ProcessEvent(m_fn, m_params.data());
 		return true;
 	}
 
 	bool GuardedProcessEvent(UE::UObject* a_obj, UE::UFunction* a_fn, void* a_params)
 	{
-		__try {
-			a_obj->ProcessEvent(a_fn, a_params);
-			return true;
-		} __except (EXCEPTION_EXECUTE_HANDLER) {
-			return false;
-		}
+		pe::OwnCall own(a_obj, a_fn);   // __try cannot share a function with a destructor: the guard is its own function
+		return ProcessEventGuarded(a_obj, a_fn, a_params);
 	}
 
 	bool Call::RunGuarded() { return m_fn && m_obj && GuardedProcessEvent(m_obj, m_fn, m_params.data()); }
@@ -76,6 +83,7 @@ namespace ui
 		if (off < 0) return false;
 		std::vector<std::uint8_t> params(static_cast<std::size_t>(std::max(st->propertiesSize, 0)) + a_size + 16, 0);
 		std::memcpy(params.data() + off, a_bytes, a_size);
+		pe::OwnCall own(a_obj, fn);
 		a_obj->ProcessEvent(fn, params.data());
 		return true;
 	}

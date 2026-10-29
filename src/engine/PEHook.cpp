@@ -18,6 +18,8 @@ namespace pe
 		std::array<Watcher, kMax> g_watchers{};
 		std::atomic<std::size_t>  g_watcherCount{ 0 };
 		std::mutex                g_lock;
+		thread_local UE::UObject*   g_ownObj = nullptr;   // the pending OwnCall mark
+		thread_local UE::UFunction* g_ownFn = nullptr;
 
 		void Detour(UE::UObject* a_obj, UE::UFunction* a_fn, void* a_params)
 		{
@@ -30,6 +32,11 @@ namespace pe
 					break;
 				}
 			}
+			const bool own = a_obj && a_obj == g_ownObj && a_fn == g_ownFn;
+			if (own) {   // consumed: what the engine calls from inside ours is the game's again
+				g_ownObj = nullptr;
+				g_ownFn = nullptr;
+			}
 			bool skip = false;
 			UE::UClass* cls = nullptr;
 			if (a_obj && a_fn) {
@@ -39,7 +46,7 @@ namespace pe
 					if (g_watchers[i].cls != cls) continue;
 					if (g_watchers[i].intercept) {
 						skip = g_watchers[i].intercept(a_obj, a_fn, a_params) || skip;
-					} else if (!g_watchers[i].post) {
+					} else if (!own && !g_watchers[i].post) {
 						g_watchers[i].handler(a_obj, a_fn, a_params);
 					}
 				}
@@ -47,7 +54,7 @@ namespace pe
 			if (original && !skip) {
 				original(a_obj, a_fn, a_params);
 			}
-			if (cls) {   // after the body: the post watchers
+			if (cls && !own) {   // after the body: the post watchers
 				const std::size_t nw = g_watcherCount.load(std::memory_order_acquire);
 				for (std::size_t i = 0; i < nw; ++i) {
 					if (g_watchers[i].cls == cls && g_watchers[i].post) {
@@ -56,6 +63,20 @@ namespace pe
 				}
 			}
 		}
+	}
+
+	OwnCall::OwnCall(UE::UObject* a_obj, UE::UFunction* a_fn) :
+		m_previousObj(g_ownObj),
+		m_previousFn(g_ownFn)
+	{
+		g_ownObj = a_obj;
+		g_ownFn = a_fn;
+	}
+
+	OwnCall::~OwnCall()
+	{
+		g_ownObj = m_previousObj;
+		g_ownFn = m_previousFn;
 	}
 
 	std::string Utf8(const UE::FString& a_s)

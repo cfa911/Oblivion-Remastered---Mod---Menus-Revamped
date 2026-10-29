@@ -24,10 +24,15 @@ UNITS = {
     "keyboard-input": ["src/keyboard/KeyboardInput.cpp"],
     "input-driver": ["src/core/Input.cpp"],
     "stolen-filter": ["src/sorting/rules/StolenFilter.h"],
+    "pe-hook": ["src/engine/PEHook.cpp"],
+    "ui-call": ["src/engine/UiCall.cpp"],
 }
 
 # Include folders for compiling extracted bodies (headers such as TransferHold.h, ListLifecycle.h).
 INCLUDE_DIRS = ["src", "src/sorting/rules", "src/search"]
+
+# Helper definitions the own-call test extracts from UiCall.cpp besides the ui::Call bodies.
+UI_CALL_EXTRA = ["\t\tbool ProcessEventGuarded("]
 
 SORTING_ASSETS = "assets/Sorting"
 GONE_PROBE = "src/hover/StolenProbe.cpp"

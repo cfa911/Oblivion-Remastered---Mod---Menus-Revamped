@@ -10,6 +10,8 @@
 #include "engine/Ui.h"
 #include "engine/UiText.h"
 
+#include <unordered_map>
+
 namespace search
 {
 	namespace
@@ -77,6 +79,22 @@ namespace search
 		bool g_filtering = false;
 
 		FilterState g_filter[6];   // by menu
+
+		// What a menu's own event means for its list. Pure input events (a mouse move, a navigation query) cannot change
+		// it, and the frame's Tick filters right after them anyway; every other event still filters at once, so a rebuild
+		// never shows unfiltered. Learned once per UFunction: no name string per call.
+		enum class ListEvent { kOther, kRebuilt, kInputOnly };
+
+		ListEvent ClassifyEvent(UE::UFunction* a_fn)
+		{
+			static std::unordered_map<UE::UFunction*, ListEvent> s_kind;
+			if (auto it = s_kind.find(a_fn); it != s_kind.end()) return it->second;
+			const auto name = pe::FunctionName(a_fn);
+			const auto kind = name == "UpdateItemList" ? ListEvent::kRebuilt :
+				name == "OnMouseMove" || name == "OnMouseWheel" || name == "OnMouseEnter" || name == "OnMouseLeave" ||
+						name == "IsNavigable" || name == "GetWidgetLayer" ? ListEvent::kInputOnly : ListEvent::kOther;
+			return s_kind.emplace(a_fn, kind).first->second;
+		}
 	}
 
 	using namespace detail;
@@ -175,12 +193,12 @@ namespace search
 		state.lifecycle.Commit(keep);
 	}
 
-	static void FilterQuick(menus::Menu menu, const char* after)
+	static void FilterQuick(menus::Menu menu, ListEvent after)
 	{
 		const int id = static_cast<int>(menu);
 		if (id < 1 || id > 5 || g_filtering) return;
 		// Native callbacks, not pointer equality, establish a rebuilt generation.
-		if (std::string_view(after) == "UpdateItemList") g_filter[id].lifecycle.nativeDirty = true;
+		if (after == ListEvent::kRebuilt) g_filter[id].lifecycle.nativeDirty = true;
 		FilterTick(menu, Clock::now());
 	}
 
@@ -189,24 +207,27 @@ namespace search
 		static bool s_in = false;   // our own calls into the list never come back here, but be sure
 		if (s_in || g_filtering || !a_obj) return;
 		auto* cls = a_obj->GetClass();
+		const auto event = ClassifyEvent(a_fn);
 		if (cls && (cls == quests::PageClass() || cls == quests::PanelClass())) {   // the quests tab
 			if (cls == quests::PageClass()) quests::NoteInstance(a_obj);
+			if (event == ListEvent::kInputOnly) return;
 			s_in = true;
-			FilterQuick(menus::Menu::kQuests, pe::FunctionName(a_fn).c_str());
+			FilterQuick(menus::Menu::kQuests, event);
 			s_in = false;
 			return;
 		}
 		if (cls && cls == container::Class()) {   // the container / barter menu: both sides
+			if (event == ListEvent::kInputOnly) return;
 			s_in = true;
-			FilterQuick(menus::Menu::kContainerYours, pe::FunctionName(a_fn).c_str());
-			FilterQuick(menus::Menu::kContainerTheirs, pe::FunctionName(a_fn).c_str());
+			FilterQuick(menus::Menu::kContainerYours, event);
+			FilterQuick(menus::Menu::kContainerTheirs, event);
 			s_in = false;
 			return;
 		}
 		const auto menu = cls == menus::ClassOf(menus::Menu::kMagic) ? menus::Menu::kMagic : cls == menus::ClassOf(menus::Menu::kInventory) ? menus::Menu::kInventory : menus::Menu::kNone;
-		if (menu == menus::Menu::kNone) return;
+		if (menu == menus::Menu::kNone || event == ListEvent::kInputOnly) return;
 		s_in = true;
-		FilterQuick(menu, pe::FunctionName(a_fn).c_str());
+		FilterQuick(menu, event);
 		s_in = false;
 	}
 
