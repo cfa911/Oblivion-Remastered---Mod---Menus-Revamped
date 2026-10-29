@@ -2,11 +2,13 @@
 from pathlib import Path
 import subprocess
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
 out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
-source = (root / "sortingoverhaul/GearFilter.cpp").read_text(encoding="utf-8")
+source = source_paths.read("picker")
 
 
 def extract(marker, semicolon=False):
@@ -176,5 +178,5 @@ cpp.write_text(prefix + extract("struct FilterState", True) + middle
                + extract("\tconst std::vector<UE::UObject*>& Evaluate(") + tests, encoding="utf-8")
 exe = out / "category_evaluator_tests.exe"
 subprocess.run(["cl", "/nologo", "/EHsc", "/std:c++latest", str(cpp),
-                f"/I{root / 'sortingoverhaul'}", f"/Fe:{exe}", f"/Fo:{out / 'category_evaluator_tests.obj'}"], check=True)
+                *source_paths.include_flags(), f"/Fe:{exe}", f"/Fo:{out / 'category_evaluator_tests.obj'}"], check=True)
 sys.exit(subprocess.run([str(exe)]).returncode)

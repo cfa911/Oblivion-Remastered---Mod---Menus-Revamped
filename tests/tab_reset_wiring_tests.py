@@ -6,9 +6,11 @@ A native tab change gives that tab's own choices, reset to All, with a top-level
 """
 from pathlib import Path
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
-gear = (root / 'sortingoverhaul/GearFilter.cpp').read_text(encoding='utf-8-sig')
+gear = source_paths.read('picker')
 checks = failures = 0
 
 

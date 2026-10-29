@@ -2,11 +2,13 @@
 from pathlib import Path
 import subprocess
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
 out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
-source = (root / "menusearch/MenuSearch.cpp").read_text(encoding="utf-8")
+source = source_paths.read("search")
 
 
 def extract(marker, semicolon=False):
@@ -184,6 +186,6 @@ cpp.write_text(prefix + extract("struct FilterState", True) + middle
                + extract("\tvoid FilterTick(") + tests, encoding="utf-8")
 exe = out / "unified_filter_tests.exe"
 subprocess.run(["cl", "/nologo", "/EHsc", "/std:c++latest", str(cpp),
-                f"/I{root / 'revamped'}", f"/Fe:{exe}",
+                *source_paths.include_flags(), f"/Fe:{exe}",
                 f"/Fo:{out / 'unified_filter_tests.obj'}"], check=True)
 sys.exit(subprocess.run([str(exe)]).returncode)

@@ -2,6 +2,9 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("stage", ROOT / "tools/stage_menus_revamped.py")
@@ -67,7 +70,7 @@ class MigrationTests(unittest.TestCase):
 
     def test_fresh_install_gets_the_stolen_icon(self):
         # GearFilter.cpp loads MenusRevamped/Sorting/Stolen-Item.png for the stolen-only toggle (owner's art).
-        self.assertIn('L"Stolen-Item.png"', (ROOT / "sortingoverhaul/GearFilter.cpp").read_text(encoding="utf-8"))
+        self.assertIn('L"Stolen-Item.png"', source_paths.read("picker"))
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "plugins").mkdir()

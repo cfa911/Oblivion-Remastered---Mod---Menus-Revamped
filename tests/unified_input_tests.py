@@ -2,12 +2,14 @@
 from pathlib import Path
 import subprocess
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
 out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
-keyboard = (root / "searchkb/XInputHook.cpp").read_text(encoding="utf-8")
-driver = (root / "sortingoverhaul/Driver.cpp").read_text(encoding="utf-8")
+keyboard = source_paths.read("keyboard-input")
+driver = source_paths.read("input-driver")
 
 
 def extract(text, marker):
@@ -144,6 +146,6 @@ cpp.write_text(prefix + keyboard + middle + extract(driver, "\t\tDWORD WINAPI Ch
                + tests, encoding="utf-8")
 exe = out / "unified_input_tests.exe"
 subprocess.run(["cl", "/nologo", "/EHsc", "/std:c++latest", str(cpp),
-                f"/I{root / 'sortingoverhaul'}", f"/Fe:{exe}",
+                *source_paths.include_flags(), f"/Fe:{exe}",
                 f"/Fo:{out / 'unified_input_tests.obj'}", "user32.lib"], check=True)
 sys.exit(subprocess.run([str(exe)]).returncode)

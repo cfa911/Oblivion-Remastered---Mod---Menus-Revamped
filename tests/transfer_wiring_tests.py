@@ -5,10 +5,12 @@ layout pass does not put it back while the hold is active. Only the container si
 """
 from pathlib import Path
 import re, sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
-container = (root / 'sortingoverhaul/Container.cpp').read_text(encoding='utf-8-sig')
-gear = (root / 'sortingoverhaul/GearFilter.cpp').read_text(encoding='utf-8-sig')
+container = source_paths.read('container')
+gear = source_paths.read('picker')
 checks = failures = 0
 
 

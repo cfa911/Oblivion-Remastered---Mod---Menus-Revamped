@@ -7,12 +7,14 @@ that proved StatusFlags bit 0 = stolen is gone from the build.
 """
 from pathlib import Path
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
-gear = (root / 'sortingoverhaul/GearFilter.cpp').read_text(encoding='utf-8-sig')
-policy_path = root / 'sortingoverhaul/StolenFilter.h'
+gear = source_paths.read('picker')
+policy_path = source_paths.paths('stolen-filter')[0]
 policy = policy_path.read_text(encoding='utf-8-sig') if policy_path.exists() else ''
-menu = (root / 'menusearch/MenuSearch.cpp').read_text(encoding='utf-8-sig')
+menu = source_paths.read('search')
 build = (root / 'xmake.lua').read_text(encoding='utf-8-sig')
 checks = failures = 0
 
@@ -61,6 +63,6 @@ evaluate = body(gear, 'const std::vector<UE::UObject*>& Evaluate(', 'void Contro
 check('primary.stolenOnly == primary.appliedStolen' in evaluate, 'a toggle change re-filters the list')
 check('StolenProbe' not in menu and 'MR_STOLEN_PROBE' not in menu, 'the Ctrl+F10 probe is not called')
 check('stolen_probe' not in build and 'StolenProbe' not in build, 'the probe build option is removed')
-check(not (root / 'revamped/StolenProbe.cpp').exists(), 'the probe source is removed')
+check(not (root / source_paths.GONE_PROBE).exists(), 'the probe source is removed')
 print(f'{checks} checks, {failures} failures')
 sys.exit(1 if failures else 0)

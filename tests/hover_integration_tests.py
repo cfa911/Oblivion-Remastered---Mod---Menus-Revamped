@@ -2,14 +2,13 @@
 from pathlib import Path
 import subprocess
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
 out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
-source_path = root / "revamped/HoverFix.cpp"
-if not source_path.exists():
-    source_path = Path(sys.argv[2]) / "smoothmenus/HoverFix.cpp"
-source = source_path.read_text(encoding="utf-8")
+source = source_paths.read("hover")
 
 def extract(marker):
     start = source.index(marker)
