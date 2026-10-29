@@ -26,7 +26,12 @@ prefix = r"""
 #include <unordered_map>
 #include <utility>
 #include <vector>
-namespace UE { struct UObject { int index=0; std::uint32_t form=0; std::uint64_t key=0; }; }
+namespace UE { struct UObject { int index=0; std::uint32_t form=0; std::uint64_t key=0; int stolen=0; }; }
+#if __has_include("StolenFilter.h")
+#include "StolenFilter.h"
+#else
+namespace stolenfilter { enum class Status : signed char { Unknown=-1, Legal=0, Stolen=1 }; }
+#endif
 using Rows=std::vector<UE::UObject*>;
 std::uint64_t now=1000;
 #define GetTickCount64() now
@@ -55,6 +60,7 @@ FilterState g_states[3];
 std::unordered_map<std::uint64_t,std::uint64_t> g_rowTags;
 struct Picker {
     int kind=0; unsigned choice=0,appliedChoice=0,category=0,appliedCategory=0;
+    bool stolenOnly=false,appliedStolen=false;
     bool Passes(std::uint64_t mask) const { return !category || (mask & category)!=0; }
 } g_pickers[4];
 bool active=true;
@@ -62,6 +68,10 @@ bool Active(int) { return active; }
 int Index(UE::UObject* item) { return item->index; }
 std::uint32_t ContainerForm(UE::UObject* item,std::uint64_t* key=nullptr) {
     if(key) *key=item->key ? item->key : item->form; return item->form;
+}
+int stolenReads=0;
+stolenfilter::Status StolenStatus(UE::UObject* item) {
+    ++stolenReads; return static_cast<stolenfilter::Status>(item->stolen);
 }
 void ComputeMagicMasks(const Rows& items,FilterState& state) {
     for(auto* item:items) state.masks[item->index]=item->form;
@@ -128,6 +138,35 @@ int main() {
     gearfilter::g_pickers[0].kind=1; gearfilter::g_pickers[0].category=1;
     check(gearfilter::Evaluate(2,source,1)==Rows{&first},"Magic category tags remain supported");
     check(geardata::requests.size()==magicCount,"Magic does not use inventory/container request path");
+    // Stolen-only toggle (owner 2026-10-29): StatusFlags bit 0, Inventory and the player's side only.
+    for(auto& picker:gearfilter::g_pickers) { picker.category=0; picker.stolenOnly=false; }
+    gearfilter::g_pickers[0].kind=0; gearfilter::g_pickers[2].kind=3; gearfilter::g_pickers[3].kind=4;
+    UE::UObject legal{40,10,0,0},stolen{41,11,0,1},stolenGear{42,12,0,1},unknown{43,13,0,-1};
+    Rows inventory{&legal,&stolen,&stolenGear,&unknown};
+    gearfilter::Evaluate(1,inventory,30);
+    geardata::replies[geardata::next]={{40,1,true},{41,1,true},{42,2,true},{43,1,true}};
+    gearfilter::stolenReads=0;
+    check(gearfilter::Evaluate(1,inventory,30)==inventory,"toggle off keeps legal rows");
+    check(gearfilter::stolenReads==0,"toggle off never reads row status");
+    gearfilter::g_pickers[0].stolenOnly=true;
+    check(gearfilter::Evaluate(1,inventory,30)==Rows({&stolen,&stolenGear,&unknown}),
+          "Inventory stolen-only keeps flagged rows; unreadable status stays visible");
+    gearfilter::g_pickers[0].category=1;
+    check(gearfilter::Evaluate(1,inventory,30)==Rows({&stolen,&unknown}),"stolen-only is combined with the category");
+    const auto reads=gearfilter::stolenReads;
+    gearfilter::Evaluate(1,inventory,30);
+    check(gearfilter::stolenReads==reads,"unchanged generation reuses row status");
+    gearfilter::g_pickers[0].stolenOnly=false;
+    check(gearfilter::Evaluate(1,inventory,30)==Rows({&legal,&stolen,&unknown}),"turning it off restores legal rows");
+    gearfilter::g_pickers[0].category=0;
+    UE::UObject p1{50,0,70,0},p2{51,0,71,1};
+    gearfilter::g_pickers[2].stolenOnly=true;
+    check(gearfilter::Evaluate(3,Rows{&p1,&p2},40)==Rows{&p2},"player container/barter side honours stolen-only");
+    gearfilter::g_pickers[3].stolenOnly=true;
+    UE::UObject o1{60,0,80,0},o2{61,0,81,1};
+    check(gearfilter::Evaluate(4,Rows{&o1,&o2},40)==Rows({&o1,&o2}),"merchant/container side is never stolen-filtered");
+    gearfilter::g_pickers[0].kind=1; gearfilter::g_pickers[0].stolenOnly=true;
+    check(gearfilter::Evaluate(2,Rows{&legal,&stolen},41)==Rows({&legal,&stolen}),"Magic is never stolen-filtered");
     std::cout<<checks<<" checks, "<<failed<<" failures\n";
     return failed ? 1 : 0;
 }
@@ -137,5 +176,5 @@ cpp.write_text(prefix + extract("struct FilterState", True) + middle
                + extract("\tconst std::vector<UE::UObject*>& Evaluate(") + tests, encoding="utf-8")
 exe = out / "category_evaluator_tests.exe"
 subprocess.run(["cl", "/nologo", "/EHsc", "/std:c++latest", str(cpp),
-                f"/Fe:{exe}", f"/Fo:{out / 'category_evaluator_tests.obj'}"], check=True)
+                f"/I{root / 'sortingoverhaul'}", f"/Fe:{exe}", f"/Fo:{out / 'category_evaluator_tests.obj'}"], check=True)
 sys.exit(subprocess.run([str(exe)]).returncode)
