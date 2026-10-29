@@ -23,6 +23,17 @@ namespace container
 		void (*g_transferStarted)() = nullptr;
 		void (*g_transferSettled)() = nullptr;
 
+		struct Shown { UE::UObject* widget = nullptr; bool shown = false; };
+		int   g_tickDepth = 0;
+		Shown g_menuShown, g_sideShown[2];   // within the current TickScope
+
+		bool ShownNow(Shown& a_memo, UE::UObject* a_widget)
+		{
+			if (!g_tickDepth) return ui::ShownOnScreen(a_widget);
+			if (a_memo.widget != a_widget) a_memo = { a_widget, ui::ShownOnScreen(a_widget) };
+			return a_memo.shown;
+		}
+
 		void OnEvent(UE::UObject* object, UE::UFunction* function, void*)
 		{
 			const auto name = pe::FunctionName(function);
@@ -56,8 +67,19 @@ namespace container
 		if (!menus::AnyOpen() || !reflect::Get(g_widget)) {
 			g_active = false; g_widgets.clear();
 		}
-		return g_active && reflect::Get(g_widget) && ui::ShownOnScreen(reflect::Get(g_widget));
+		auto* widget = g_active ? reflect::Get(g_widget) : nullptr;
+		return widget && ShownNow(g_menuShown, widget);
 	}
+
+	TickScope::TickScope()
+	{
+		if (!g_tickDepth++) {
+			g_menuShown = {};
+			g_sideShown[0] = g_sideShown[1] = {};
+		}
+	}
+
+	TickScope::~TickScope() { --g_tickDepth; }
 
 	UE::UClass* Class() { return g_class; }
 	UE::UObject* Widget() { return Open() ? reflect::Get(g_widget) : nullptr; }
@@ -89,6 +111,12 @@ namespace container
 		auto* widget = Widget();
 		return widget && (side == 3 || side == 4) ?
 			FindWidget(widget, side == 3 ? "cont_give_maincontent" : "cont_take_maincontent") : nullptr;
+	}
+
+	bool SideShown(int side)
+	{
+		auto* content = SideContent(side);
+		return content && ShownNow(g_sideShown[side == 3 ? 0 : 1], content);
 	}
 
 	void SetTransferHandlers(void (*a_started)(), void (*a_settled)())

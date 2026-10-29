@@ -138,6 +138,17 @@ namespace ui
 		return load.Get<UE::UObject*>("ReturnValue");
 	}
 
+	double RealTimeSeconds()
+	{
+		static auto* statics = Class(L"/Script/Engine.GameplayStatics");
+		auto*        cdo = statics ? statics->GetDefaultObject(false) : nullptr;
+		auto*        world = PlayerController();
+		if (!cdo || !world) return -1.0;
+		Call c(cdo, L"GetRealTimeSeconds");
+		if (!c || !c.Set("WorldContextObject", world) || !c.RunGuarded()) return -1.0;
+		return c.Size("ReturnValue") == 8 ? c.Get<double>("ReturnValue") : static_cast<double>(c.Get<float>("ReturnValue"));
+	}
+
 	UE::UObject* PlayerController()
 	{
 		static reflect::Handle cached;

@@ -56,7 +56,6 @@ namespace search::detail
 	// a side of the container / barter menu is on the screen (a plain container shows only its own list)
 	bool SideShownNow(menus::Menu a_side)
 	{
-		auto* content = container::SideContent(a_side);
-		return content && ui::ShownOnScreen(content);
+		return container::SideShown(static_cast<int>(a_side));
 	}
 }
