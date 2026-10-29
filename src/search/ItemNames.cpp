@@ -9,7 +9,7 @@
 #include "engine/Ui.h"
 #include "engine/UiText.h"
 
-namespace msearch::detail
+namespace search::detail
 {
 	// a list item's name: an FText-returning accessor if it has one, else the Properties struct's Name (as the row widgets carry it)
 	// a name for a row of a kind we do not know the properties of (the quests tab): a name accessor if it has one, else the item's own text properties

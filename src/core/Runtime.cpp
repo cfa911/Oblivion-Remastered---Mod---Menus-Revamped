@@ -42,7 +42,7 @@ namespace core
 			if (message == WM_TIMER && key == kTimer && GetCurrentThreadId() == g_thread) { Tick(); return 0; }
 			if (sorting::PopupOpen() && sorting::Message(message, key, position)) return 0;
 			LRESULT result = 0;
-			if (msearch::HandleMessage(window, message, key, position, result)) return result;
+			if (search::HandleMessage(window, message, key, position, result)) return result;
 			if (sorting::Message(message, key, position)) return 0;
 			return CallWindowProcW(g_previous, window, message, key, position);
 		}
@@ -66,7 +66,7 @@ namespace core
 			if (!window) return;
 			g_previous = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&WindowProc)));
 			if (!g_previous) return;
-			msearch::SetWindow(window);
+			search::SetWindow(window);
 			if (GetWindowThreadProcessId(window, nullptr) == g_thread) SetTimer(window, kTimer, 8, nullptr);
 		}
 	}
@@ -101,11 +101,11 @@ namespace core
 					widget, RootCanvas(widget), Scale());
 			} else {
 				sorting::Tick(sorting::Mode::None, nullptr, nullptr, 1);
-				if (msearch::Context() == 0) keyboard::Close("menu closed");
+				if (search::Context() == menus::Menu::kNone) keyboard::Close("menu closed");
 			}
 		}
 		hoverfix::Tick(menus::Active());
-		msearch::Tick(menus::Active());
+		search::Tick(menus::Active());
 		PublishInputState();
 	}
 }

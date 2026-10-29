@@ -17,7 +17,7 @@ UNITS = {
     "hover": ["src/hover/HoverFix.cpp"],
     "search": ["src/search/SearchState.cpp", "src/search/ItemNames.cpp", "src/search/SearchBar.cpp",
                "src/search/SearchInput.cpp", "src/search/ListFilter.cpp", "src/search/Search.cpp"],
-    "keyboard-api": ["src/keyboard/SearchApi.cpp"],
+    "plugin": ["src/core/Plugin.cpp"],
     "keyboard-input": ["src/keyboard/KeyboardInput.cpp"],
     "input-driver": ["src/core/Input.cpp"],
     "stolen-filter": ["src/sorting/rules/StolenFilter.h"],

@@ -10,7 +10,7 @@
 #include "engine/Ui.h"
 #include "engine/UiText.h"
 
-namespace msearch
+namespace search
 {
 	namespace
 	{

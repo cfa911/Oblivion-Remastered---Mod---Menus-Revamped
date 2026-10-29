@@ -9,7 +9,7 @@ namespace
 	void OnMessage(OBSE::MessagingInterface::Message* message)
 	{
 		if (message && message->type == OBSE::MessagingInterface::kPostLoad) {
-			msearch::SetGameThread(GetCurrentThreadId());
+			search::SetGameThread(GetCurrentThreadId());
 			input::Install();
 		}
 	}
@@ -17,8 +17,8 @@ namespace
 
 extern "C"
 {
-	__declspec(dllexport) bool MenusRevamped_IsTyping() { return msearch::Typing(); }
-	__declspec(dllexport) bool MenusRevamped_CursorOverBar() { return msearch::CursorOverBar(); }
+	__declspec(dllexport) bool MenusRevamped_IsTyping() { return search::Typing(); }
+	__declspec(dllexport) bool MenusRevamped_CursorOverBar() { return search::CursorOverBar(); }
 	__declspec(dllexport) bool MenusRevamped_IsControllerKeyboardOpen() { return core::ControllerKeyboardOpen(); }
 }
 

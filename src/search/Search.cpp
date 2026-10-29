@@ -9,7 +9,7 @@
 #include "engine/Ui.h"
 #include "engine/UiText.h"
 
-namespace msearch
+namespace search
 {
 	using namespace detail;
 
@@ -66,11 +66,11 @@ if (g_typing.load()) {
 		return a_menu != menus::Menu::kContainerTheirs;
 	}
 
-	int Context()
-{
+	menus::Menu Context()
+	{
 		const auto m = menus::Active();
-		if (m != menus::Menu::kNone) return static_cast<int>(m);
-		if (searchcfg::Get().container && container::Open()) return 3;
-				return searchcfg::Get().quests && quests::Open() ? 5 : 0;
+		if (m != menus::Menu::kNone) return m;
+		if (searchcfg::Get().container && container::Open()) return menus::Menu::kContainerYours;
+		return searchcfg::Get().quests && quests::Open() ? menus::Menu::kQuests : menus::Menu::kNone;
 	}
 }

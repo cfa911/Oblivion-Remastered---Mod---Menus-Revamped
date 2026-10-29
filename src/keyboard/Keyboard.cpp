@@ -3,7 +3,7 @@
 #include "keyboard/KeyboardConfig.h"
 #include "engine/PEHook.h"
 #include "engine/Reflect.h"
-#include "keyboard/SearchApi.h"
+#include "search/Search.h"
 #include "engine/Ui.h"
 #include "engine/UiText.h"
 

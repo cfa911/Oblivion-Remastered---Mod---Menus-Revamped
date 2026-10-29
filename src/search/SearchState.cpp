@@ -9,7 +9,7 @@
 #include "engine/Ui.h"
 #include "engine/UiText.h"
 
-namespace msearch::detail
+namespace search::detail
 {
 	std::mutex        g_qMutex;
 	std::string       g_queries[6];

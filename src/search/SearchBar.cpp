@@ -9,7 +9,7 @@
 #include "engine/Ui.h"
 #include "engine/UiText.h"
 
-namespace msearch::detail
+namespace search::detail
 {
 	namespace
 	{

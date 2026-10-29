@@ -11,7 +11,7 @@
 
 #include <imm.h>
 
-namespace msearch
+namespace search
 {
 	namespace detail
 	{
