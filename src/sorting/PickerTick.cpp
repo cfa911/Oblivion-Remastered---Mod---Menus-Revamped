@@ -15,6 +15,7 @@ namespace sorting::detail
 	// does an item with this mask pass this picker's choice?
 	bool Picker::Passes(std::uint64_t a_mask) const
 	{
+		if (kind == 5) return magicrows::TypePasses(a_mask, choice);
 		if (a_mask & kPassAll) return true;
 		const auto tags = static_cast<std::uint32_t>(a_mask >> Shift());
 		return tab == itemtags::Tab::AllItems ? itemtags::IncludesAll(category, choice, tags) : itemtags::Includes(choice, tags);
@@ -22,7 +23,7 @@ namespace sorting::detail
 
 	void Picker::Reset()
 	{
-		ResetShared(kind >= 3 ? static_cast<unsigned>(kind - 2) : 0);
+		ResetShared(kind >= 3 && kind <= 4 ? static_cast<unsigned>(kind - 2) : 0);
 		choice = 0; appliedChoice = 0; category = 0; appliedCategory = 0; view = tab; open = false;
 		styled = false;  // the popup cells were built for the old view (stale Weapon type page, RMI-006)
 		controllerFocus = controllerPopup = false; cursor = 0;
@@ -51,13 +52,13 @@ namespace sorting::detail
 		std::scoped_lock lock(inputLock); inputActive = false; inputOpen = false; command = -1;
 	}
 
-	// a_kind: 0 inventory tabs, 1 magic school, 2 magic effect, -1 not shown
+	// a_kind: 0 inventory, 1 school, 2 effect, 3/4 container sides, 5 Magic type, -1 hidden
 	void Picker::Tick(int a_kind, UE::UObject* a_menu, UE::UObject* a_canvas, float a_viewportScale)
 	{
 		bool show = false;
 		itemtags::Tab wanted = itemtags::Tab::Gear;
 		if (a_kind >= 0 && a_menu && a_canvas) {
-			if (a_kind >= 3) {
+			if (a_kind >= 3 && a_kind <= 4) {
 				show = ui::ShownOnScreen(a_menu);
 				wanted = itemtags::Tab::AllItems;  // full tree when the side's page cannot be read
 				// RMI-006: follow the side's native tab like the Inventory (Misc tab -> Misc choices).
@@ -73,7 +74,7 @@ namespace sorting::detail
 				auto** vm = reflect::At<UE::UObject*>(a_menu, reflect::Offset(a_menu->GetClass(), "VMagicMenuViewModel"));
 				ui::Call page(vm ? *vm : nullptr, L"GetCurrentPage");
 				show = page && page.Size("ReturnValue") == 1 && page.Run() && page.Get<std::uint8_t>("ReturnValue") < 4;
-				wanted = a_kind == 1 ? itemtags::Tab::MagicSchool : itemtags::Tab::MagicEffect;
+				wanted = a_kind == 1 ? itemtags::Tab::MagicSchool : a_kind == 5 ? itemtags::Tab::MagicType : itemtags::Tab::MagicEffect;
 			}
 		}
 		if (!show) { Deactivate(); kind = -1; return; }
@@ -87,7 +88,7 @@ namespace sorting::detail
 			tab = wanted; view = wanted; styled = false;
 		}
 		tabSet = true;
-		// The game re-shows the native School wrapper when its filters update. Collapse it
+		// The game re-shows native School/ItemCategory wrappers when its filters update. Collapse them
 		// on every tick (not only the 150 ms layout pass) so its glyph never renders beside ours.
 		if (auto* native = reflect::Get(nativeSchool)) {
 			ui::Call visible(native, L"IsVisible");
@@ -95,7 +96,7 @@ namespace sorting::detail
 				ui::Call hide(native, L"SetVisibility");
 				const bool hidden = hide && hide.Size("InVisibility") == 1 &&
 					hide.Set("InVisibility", static_cast<std::uint8_t>(1)) && hide.Run();
-				if (!hidden) logger::warn("Menus Revamped: SO-SCHOOL-FLASH-20261025 could not collapse the native School wrapper");
+				if (!hidden) logger::warn("Menus Revamped: native Magic sort replacement could not collapse its wrapper");
 			}
 		}
 		if (reflect::Get(menu) != a_menu || reflect::Get(canvas) != a_canvas) {
@@ -106,7 +107,7 @@ namespace sorting::detail
 			canvas = reflect::Hold(a_canvas); nextLayout = 0;
 		}
 		if (!reflect::Get(popup) && !BuildPopup(a_canvas)) {
-			if (!widgetWarning) { logger::warn("gear piece filter: could not construct picker widgets"); widgetWarning = true; }
+			if (!widgetWarning) { logger::warn("Menus Revamped: exclusive picker popup could not be constructed"); widgetWarning = true; }
 			return;
 		}
 		if (!styled) { StyleCells(); styled = true; }
@@ -123,16 +124,16 @@ namespace sorting::detail
 		if (now >= nextLayout) {
 			nextLayout = now + 150;
 			auto find = [&](UE::UObject* owner, std::string_view name) {
-				return kind >= 3 ? container::FindWidget(owner, name) : ui::FindInTree(owner, name);
+				return kind >= 3 && kind <= 4 ? container::FindWidget(owner, name) : ui::FindInTree(owner, name);
 			};
 			auto* iconBox = find(a_menu, "FilterIconBox");
-			if (!iconBox && kind >= 3) iconBox = find(a_menu, "inv_cont_filter");
+			if (!iconBox && kind >= 3 && kind <= 4) iconBox = find(a_menu, "inv_cont_filter");
 			auto* panel = iconBox ? find(iconBox, "ScrollBox") : nullptr;  // FilterIconBox is a user widget wrapping the real panel
 			auto* headerWidget = reflect::Get(header);
 			ui::Call parent(headerWidget, L"GetParent");
 			const bool attached = parent && parent.Run() && parent.Get<UE::UObject*>("ReturnValue") == panel;
 			if (!panel) {
-				if (kind >= 3 && !widgetWarning) {
+				if (kind >= 3 && kind <= 4 && !widgetWarning) {
 					logger::warn("Menus Revamped: container side {} has no supported native filter ScrollBox; picker not attached", kind);
 					widgetWarning = true;
 				}
@@ -140,7 +141,7 @@ namespace sorting::detail
 			}
 			if (!attached && transfer.Held() && !transfer.MayReinsert(now, NativeNameShown(panel))) return;
 			if (!attached && !InsertHeader(panel, iconBox)) {
-				if (!widgetWarning) { logger::warn("Menus Revamped: native controller focus-only header registration/layout unsupported"); widgetWarning = true; }
+				if (!widgetWarning) { logger::warn("Menus Revamped: native-width picker header registration/layout unsupported"); widgetWarning = true; }
 				return;
 			}
 			ui::Visible(reflect::Get(header), true);
@@ -173,7 +174,8 @@ namespace sorting::detail
 			PaintStolen();
 		}
 		else if (cmd == pickergrid::kToggleCommand) {
-			open = !open; nextHitMeasure = 0;
+			if (open) open = false; else OpenPopup();
+			nextHitMeasure = 0;
 			if (open && view != tab) { view = tab; styled = false; }  // always open on the top level
 			cursor = Highlight() < itemtags::Info(tab).count ? Highlight() : 0;
 		}

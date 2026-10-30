@@ -12,6 +12,27 @@
 
 namespace sorting::detail
 {
+	void Picker::OpenPopup()
+	{
+		returnToList.Cancel();
+		for (auto& other : g_pickers) {
+			if (&other == this) continue;
+			other.returnToList.Cancel();
+			if (!other.open && !other.paintedOpen) continue;
+			other.open = other.paintedOpen = other.controllerPopup = false;
+			{
+				std::scoped_lock lock(other.inputLock);
+				other.inputOpen = false;
+				other.command = -1; other.commandFromController = false;
+			}
+			// A peer may already have ticked this frame: hide it now, rather than next tick.
+			const std::uint8_t hidden = 1;
+			ui::CallFirst(reflect::Get(other.popup), L"SetVisibility", &hidden, sizeof(hidden));
+			other.PaintController();
+		}
+		open = true; nextHitMeasure = 0;
+	}
+
 	bool Picker::BuildPopup(UE::UObject* a_canvas)
 	{
 		static unsigned serial = 0;
@@ -128,6 +149,7 @@ namespace sorting::detail
 
 	void Picker::PaintController()
 	{
+		ui::Float(reflect::Get(headerImage), L"SetRenderOpacity", choice || category ? 1.0f : 0.5f);
 		// Applied membership is not focus. Match the owner's native square, borderless #E6E4DF reference.
 		ui::RoundedBox(reflect::Get(headerFrame), false, controllerFocus ? pickerhighlight::kFill.data() : kClear,
 			kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);

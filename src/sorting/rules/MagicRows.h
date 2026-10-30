@@ -8,6 +8,17 @@
 namespace magicrows
 {
 	constexpr std::uint64_t kPassAll = 1ull << 63;
+	// Magic-only bits above the School tags, below the Effect half of the mask.
+	constexpr std::uint64_t kPowerTag = 1ull << 28, kSpellTag = 1ull << 29, kScrollTag = 1ull << 30;
+	constexpr std::uint64_t TypeTag(unsigned nativeSpellType)
+	{
+		return nativeSpellType == 0 ? kSpellTag : itemtags::IsPowerSpell(nativeSpellType) ? kPowerTag : 0ull;
+	}
+	constexpr bool TypePasses(std::uint64_t mask, unsigned choice)
+	{
+		return choice == 0 || !(mask & (kSpellTag | kScrollTag | kPowerTag)) ||
+			(mask & (choice == 1 ? kSpellTag : choice == 2 ? kScrollTag : choice == 3 ? kPowerTag : 0ull)) != 0;
+	}
 	struct Spell
 	{
 		std::uint32_t codes[8]{};

@@ -129,22 +129,73 @@ namespace sorting
 			__except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 		}
 
+		struct ScrollRow
+		{
+			int index = -1;
+			SpellRow magic;
+		};
+		static void* ScrollHead()
+		{
+			static REL::Relocation<void**> head{ REL::ID(1464952) };
+			return *head;
+		}
+		static int ReadScrollsRaw(ScrollRow* a_out, int a_max)
+		{
+			// Native Magic scroll identities, proven on 1.512.105.0: head ID1464952;
+			// node next +0, payload +0x10; payload ItemChange* +0, Magic row index +8.
+			struct Identity { RE::ItemChange* item; int index; };
+			struct Node { Node* next; Node* previous; Identity* identity; };
+			int n = 0;
+			__try {
+				int visited = 0;
+				for (auto* node = static_cast<Node*>(ScrollHead()); node && n < a_max && visited++ < 16384; node = node->next) {
+					auto* identity = node->identity;
+					if (!identity || identity->index < 1) continue;
+					auto& row = a_out[n++];
+					row.index = identity->index;
+					auto* form = identity->item ? identity->item->object : nullptr;
+					if (!form || !form->Is(RE::FormType::Book)) continue;
+					auto* book = static_cast<RE::TESObjectBOOK*>(form);
+					auto* enchantment = book->formEnchanting;
+					if (!enchantment || !enchantment->Is(RE::FormType::Enchantment)) continue;
+					row.magic.type = 0;  // Scrolls use School/Effect, never Powers.
+					auto** effect = reinterpret_cast<void**>(&enchantment->effectList);
+					for (int k = 0; effect && k < 8; ++k) {
+						auto* item = reinterpret_cast<std::uint8_t*>(effect[0]);
+						if (item) row.magic.codes[row.magic.count++] = *reinterpret_cast<std::uint32_t*>(item + 0x08);
+						effect = reinterpret_cast<void**>(effect[1]);
+					}
+					row.magic.valid = true;
+				}
+			} __except (EXCEPTION_EXECUTE_HANDLER) {
+			}
+			return n;
+		}
+
 		void ComputeMagicMasks(const std::vector<UE::UObject*>& a_items, FilterState& state)
 		{
 			std::vector<SpellRow> spells(600);
 			spells.resize(static_cast<std::size_t>(ReadSpellsRaw(spells.data(), 600)));
+			std::vector<ScrollRow> scrolls(600);
+			scrolls.resize(static_cast<std::size_t>(ReadScrollsRaw(scrolls.data(), 600)));
 			for (auto* item : a_items) {
 				const int index = Index(item);
 				std::uint8_t range = 0, school = 0;
 				const bool read = item && ReadByte(item, 0x51, range) && ReadByte(item, 0x58, school);
-				const auto mask = read ? magicrows::Mask(range, school, index, spells.data(), spells.size()) : kPassAll;
+				const auto scroll = std::find_if(scrolls.begin(), scrolls.end(), [index](const auto& row) { return row.index == index; });
+				const auto mask = !read ? kPassAll : scroll != scrolls.end() ?
+					magicrows::Mask(range, school, 1, &scroll->magic, 1) :
+					magicrows::Mask(range, school, index, spells.data(), spells.size());
 				// A genuine unresolved row still fails open; report once, never every row/menu tick.
 				static bool warned = false;
 				if (!warned && read && magicrows::CastableRange(range) && mask == kPassAll) {
 					warned = true;
-					logger::warn("Menus Revamped: native spell-type power filtering could not resolve a Magic row (index={}, range={}, captured={}); leaving it unfiltered", index, range, spells.size());
+					logger::warn("Menus Revamped: spell/scroll category filtering could not resolve a Magic row (index={}, range={}, captured={}); leaving it unfiltered", index, range, spells.size());
 				}
-				state.masks[index] = mask;
+				const auto type = read && magicrows::CastableRange(range) ?
+					scroll != scrolls.end() ? magicrows::kScrollTag : mask != kPassAll ?
+						magicrows::TypeTag(spells[static_cast<std::size_t>(index) - 1].type) : 0ull : 0ull;
+				state.masks[index] = mask | type;
 			}
 		}
 	}

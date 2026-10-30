@@ -14,7 +14,7 @@
 // Page numbers (CurrentPageInventory, proven in game 1.512.105.0): 0 weapons, 1 gear, 2 potions, 3 misc, 4 all items.
 namespace itemtags
 {
-	enum class Tab : unsigned { Weapons, Gear, Potions, Misc, AllItems, MagicSchool, MagicEffect, PotionEffects };
+	enum class Tab : unsigned { Weapons, Gear, Potions, Misc, AllItems, MagicSchool, MagicEffect, PotionEffects, MagicType };
 	// Flat tag/selection IDs keep parent navigation separate from applied membership.
 	// Potions is the native page-2 enum; its popup root is now Alchemy.
 	enum class Alchemy : unsigned { All, Potions, Ingredients, Tools, Health, Magicka, Fatigue, Attributes, Cure, Poison };
@@ -37,8 +37,8 @@ namespace itemtags
 
 	// Only the Magic School popup uses these short display labels. TabInfo names stay
 	// complete for tooltips, selection identity, and all other pickers.
-	inline constexpr std::array<std::string_view, 8> kSchoolPopupLabels{
-		"All", "Alte", "Conj", "Dest", "Illu", "Myst", "Rest", "Powers"
+	inline constexpr std::array<std::string_view, 7> kSchoolPopupLabels{
+		"All", "Alte", "Conj", "Dest", "Illu", "Myst", "Rest"
 	};
 	constexpr std::string_view SchoolPopupLabel(unsigned choice)
 	{
@@ -68,9 +68,9 @@ namespace itemtags
 			// All Items: the four tab categories first; a category then opens its own choices.
 			{ "Item category", 5, { "All", "Weapons", "Gear", "Alchemy", "Misc" },
 				{ L"Category-All.png", L"Category-Weapons.png", L"Category-Gear.png", L"Category-Alchemy.png", L"Category-Misc.png" } },
-			// Magic menu: two independent pickers (school, then effect family).
-			{ "Spell school", 8, { "All", "Alteration", "Conjuration", "Destruction", "Illusion", "Mysticism", "Restoration", "Powers" },
-				{ L"School-All.png", L"School-Alteration.png", L"School-Conjuration.png", L"School-Destruction.png", L"School-Illusion.png", L"School-Mysticism.png", L"School-Restoration.png", L"School-Powers.png" } },
+		// Magic menu: independent school, effect family and source-type pickers.
+			{ "Spell school", 7, { "All", "Alteration", "Conjuration", "Destruction", "Illusion", "Mysticism", "Restoration" },
+				{ L"School-All.png", L"School-Alteration.png", L"School-Conjuration.png", L"School-Destruction.png", L"School-Illusion.png", L"School-Mysticism.png", L"School-Restoration.png" } },
 			[] {
 				TabInfo info{ "Spell effect", magiceffects::kChoiceCount, {}, {} };
 				for (unsigned i = 0; i < info.count; ++i) {
@@ -81,6 +81,8 @@ namespace itemtags
 			}(),
 			{ "Potion type", 7, { "All potions", "Health", "Magicka", "Fatigue", "Attributes", "Cure", "Poison" },
 				{ L"Potion-All.png", L"Potion-Health.png", L"Potion-Magicka.png", L"Potion-Fatigue.png", L"Potion-Attributes.png", L"Potion-Cure.png", L"Potion-Poison.png" } },
+			{ "Magic type", 4, { "All", "Spells", "Scrolls", "Powers" },
+			{ L"MagicType-All.png", L"MagicType-Spells.png", L"MagicType-Scrolls.png", L"School-Powers.png" } },
 		};
 		return tabs[static_cast<unsigned>(a_tab)];
 	}
@@ -180,13 +182,11 @@ namespace itemtags
 	// CommonLib enum + captured native spell list: 0 spell, 2 power, 3 lesser power.
 	constexpr bool IsPowerSpell(unsigned a_type) { return a_type == 2 || a_type == 3; }
 	constexpr bool IsCastableSpell(unsigned a_type) { return a_type == 0 || IsPowerSpell(a_type); }
-	// School byte comes from the row. Both native power types keep that school and the Powers bit.
+	// School is independent of spell/scroll/power type; powers retain their own school.
 	constexpr std::uint32_t SchoolTags(unsigned a_school, unsigned a_spellType)
 	{
 		if (!IsCastableSpell(a_spellType)) return 0;
-		std::uint32_t tags = a_school <= 5 ? 1u << a_school : 0u;
-		if (IsPowerSpell(a_spellType)) tags |= 1u << 6;
-		return tags;
+		return a_school <= 5 ? 1u << a_school : 0u;
 	}
 
 	// Effect-family membership comes from verified Remastered effect codes.

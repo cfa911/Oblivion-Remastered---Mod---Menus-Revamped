@@ -105,14 +105,14 @@ int main()
 	check(itemtags::IncludesAll(4, 1, key) && !itemtags::IncludesAll(3, 1, key), "key only in misc");
 	check(itemtags::IncludesAll(1, 0, ammo) && itemtags::Includes(1, ring), "category bits do not disturb choice bits");
 	// Magic: school/power and effect tags.
-	check(itemtags::Info(itemtags::Tab::MagicSchool).count == 8 && itemtags::Info(itemtags::Tab::MagicEffect).count == magiceffects::kChoiceCount, "magic choice counts");
-	constexpr std::array<std::string_view, 8> schoolLabels{ "All", "Alte", "Conj", "Dest", "Illu", "Myst", "Rest", "Powers" };
+	check(itemtags::Info(itemtags::Tab::MagicSchool).count == 7 && itemtags::Info(itemtags::Tab::MagicEffect).count == magiceffects::kChoiceCount, "magic choice counts");
+	constexpr std::array<std::string_view, 7> schoolLabels{ "All", "Alte", "Conj", "Dest", "Illu", "Myst", "Rest" };
 	for (unsigned i = 0; i < schoolLabels.size(); ++i) check(itemtags::SchoolPopupLabel(i) == schoolLabels[i], "exact school display label");
-	check(itemtags::SchoolPopupLabel(8).empty(), "out-of-range school label is empty");
+	check(itemtags::SchoolPopupLabel(7).empty(), "out-of-range school label is empty");
 	check(std::string_view(itemtags::Info(itemtags::Tab::MagicSchool).names[1]) == "Alteration", "full school tooltip remains available");
 	check(itemtags::Includes(3, itemtags::SchoolTags(2, 0)) && !itemtags::Includes(1, itemtags::SchoolTags(2, 0)), "destruction school");
 	check(itemtags::Includes(6, itemtags::SchoolTags(5, 0)) && !itemtags::Includes(7, itemtags::SchoolTags(5, 0)), "restoration is not a power");
-	check(itemtags::Includes(7, itemtags::SchoolTags(5, 2)) && itemtags::Includes(6, itemtags::SchoolTags(5, 2)), "a power keeps its school");
+	check(!itemtags::Includes(7, itemtags::SchoolTags(5, 2)) && itemtags::Includes(6, itemtags::SchoolTags(5, 2)), "a power keeps its school");
 	check(itemtags::SchoolTags(9, 0) == 0, "unknown school is untagged");
 	using magiceffects::Choice;
 	const std::uint32_t fire[] = { Code('F', 'I', 'D', 'G') }, magicka[] = { Code('R', 'E', 'S', 'P') };

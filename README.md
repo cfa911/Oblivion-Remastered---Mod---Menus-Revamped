@@ -1,5 +1,18 @@
 # Menus Revamped
 
+## Magic filters (development)
+
+Magic combines type (All, Spells, Scrolls, Powers), school, effect and text filters. Scrolls use their native
+menu identity and enchantment effects; Powers includes greater and lesser powers and is separate from School.
+The type and School pickers replace their native sort buttons. Opening a picker closes other popups while
+preserving selected filters. Unfiltered All headers are half opaque; active filters are fully opaque,
+including All Items → Weapons → All weapons. Custom headers match the measured native 54-pixel footprint.
+
+The type picker uses `MagicType-All.png`, `MagicType-Spells.png`, `MagicType-Scrolls.png` and the existing
+`School-Powers.png` under `MenusRevamped/Sorting`. Replace a PNG and restart the game to customize it.
+Development build and all 37 test suites pass; the filtering, mouse/controller behavior and alignment are
+owner-tested. No version bump or release package is included in this change.
+
 ## 1.0.0 release candidate
 
 Unified search, item and spell filters, stolen-only filtering, controller typing,
