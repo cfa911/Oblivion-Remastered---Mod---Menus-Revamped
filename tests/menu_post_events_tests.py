@@ -46,12 +46,23 @@ void NoteInstance(UE::UObject*) { ++noted; }
 int names = 0;
 namespace pe { std::string FunctionName(UE::UFunction* f) { ++names; return f->name; } }
 int filtered[6]{};
+bool nativeSchoolVisible=true, nativeTypeVisible=true;
+int magicHeaderRefreshes=0;
+namespace sorting {
+void RefreshMagicHeaders(UE::UObject*) {
+    ++magicHeaderRefreshes;
+    nativeSchoolVisible=nativeTypeVisible=false;
+}
+}
 struct Lifecycle { bool nativeDirty = false; };
 struct State { Lifecycle lifecycle; };
 namespace search {
 State g_filter[6];
 bool g_filtering = false;
-void FilterTick(menus::Menu m, Clock::time_point) { ++filtered[int(m)]; }
+void FilterTick(menus::Menu m, Clock::time_point) {
+    ++filtered[int(m)];
+    if(m==menus::Menu::kMagic) nativeSchoolVisible=nativeTypeVisible=true;
+}
 """
 
 tests = r"""
@@ -78,6 +89,20 @@ int main() {
     check(filtered[1] == 0, "pure input events on the Inventory do not filter");
     search::OnMenuPost(&inventory, &update, nullptr);
     check(filtered[1] == 1 && search::g_filter[1].lifecycle.nativeDirty, "the Inventory's rebuild filters it");
+    UE::UObject magic{ &magicClass };
+    auto beforeHeaders=magicHeaderRefreshes;
+    search::OnMenuPost(&magic, &update, nullptr);
+    check(magicHeaderRefreshes==beforeHeaders+1 && !nativeSchoolVisible && !nativeTypeVisible,
+          "Magic rebuild re-hides replaced native sort icons before the post-event watcher returns");
+    beforeHeaders=magicHeaderRefreshes;
+    search::OnMenuPost(&magic, &view, nullptr);
+    check(magicHeaderRefreshes==beforeHeaders+1 && !nativeSchoolVisible && !nativeTypeVisible,
+          "header hiding follows the native/filter refresh rather than waiting for next frame");
+    beforeHeaders=magicHeaderRefreshes;
+    search::OnMenuPost(&magic, &move, nullptr);
+    check(magicHeaderRefreshes==beforeHeaders,"pure Magic input queries do not add header work");
+    search::OnMenuPost(&inventory, &view, nullptr);
+    check(magicHeaderRefreshes==beforeHeaders,"Inventory events do not change Magic headers");
     search::OnMenuPost(&page, &move, nullptr);
     check(noted == 1 && filtered[5] == 0, "the quests page is still noted on any event, input events do not filter");
     search::OnMenuPost(&page, &tick, nullptr);

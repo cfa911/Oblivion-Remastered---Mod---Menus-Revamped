@@ -12,6 +12,20 @@
 
 namespace sorting::detail
 {
+	void Picker::HideNativeReplacement()
+	{
+		if (!active.load()) return;
+		if (auto* native = reflect::Get(nativeSchool)) {
+			ui::Call visible(native, L"IsVisible");
+			if (!visible || visible.Size("ReturnValue") != 1 || !visible.Run() || visible.Get<bool>("ReturnValue")) {
+				ui::Call hide(native, L"SetVisibility");
+				const bool hidden = hide && hide.Size("InVisibility") == 1 &&
+					hide.Set("InVisibility", static_cast<std::uint8_t>(1)) && hide.Run();
+				if (!hidden) logger::warn("Menus Revamped RMI-018 R2: native Magic sort replacement could not collapse its wrapper");
+			}
+		}
+	}
+
 	// does an item with this mask pass this picker's choice?
 	bool Picker::Passes(std::uint64_t a_mask) const
 	{
@@ -90,15 +104,7 @@ namespace sorting::detail
 		tabSet = true;
 		// The game re-shows native School/ItemCategory wrappers when its filters update. Collapse them
 		// on every tick (not only the 150 ms layout pass) so its glyph never renders beside ours.
-		if (auto* native = reflect::Get(nativeSchool)) {
-			ui::Call visible(native, L"IsVisible");
-			if (!visible || visible.Size("ReturnValue") != 1 || !visible.Run() || visible.Get<bool>("ReturnValue")) {
-				ui::Call hide(native, L"SetVisibility");
-				const bool hidden = hide && hide.Size("InVisibility") == 1 &&
-					hide.Set("InVisibility", static_cast<std::uint8_t>(1)) && hide.Run();
-				if (!hidden) logger::warn("Menus Revamped: native Magic sort replacement could not collapse its wrapper");
-			}
-		}
+		HideNativeReplacement();
 		if (reflect::Get(menu) != a_menu || reflect::Get(canvas) != a_canvas) {
 			stolenOnly = false; Reset();
 			for (const auto& handle : { popup, header, stolenHeader }) if (auto* old = reflect::Get(handle)) { ui::Call remove(old, L"RemoveFromParent"); remove.Run(); }

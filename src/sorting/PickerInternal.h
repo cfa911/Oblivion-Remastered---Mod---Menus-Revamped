@@ -40,7 +40,7 @@ namespace sorting
 			bool dirty = true, dataReady = false;
 			int menu = 0;
 			std::vector<int> indices;
-			std::vector<std::uint64_t> keys;
+			std::unordered_map<int, std::uint64_t> keys;  // classification index -> stable item key
 			std::unordered_map<int, std::uint64_t> masks;
 			std::vector<UE::UObject*> filtered;
 			std::vector<stolenfilter::Status> stolen;  // by source position, read only while the toggle is on
@@ -105,6 +105,7 @@ namespace sorting
 			bool Passes(std::uint64_t a_mask) const;
 			void Reset();
 			void Deactivate();
+			void HideNativeReplacement();
 			void Tick(int a_kind, UE::UObject* a_menu, UE::UObject* a_canvas, float a_viewportScale);
 
 			// PickerPopup.cpp: the popup grid and painting

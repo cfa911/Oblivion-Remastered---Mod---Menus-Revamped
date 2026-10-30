@@ -26,6 +26,28 @@ namespace sorting
 	bool Active(int side) { return side >= 3 && side <= 4 ? g_pickers[side - 1].active.load() :
 		g_pickers[0].active.load() || g_pickers[1].active.load() || g_pickers[4].active.load(); }
 
+	void RefreshMagicHeaders(UE::UObject* a_menu)
+	{
+		auto& school = g_pickers[0];
+		if (!a_menu || school.kind != 1 || !school.active.load() || reflect::Get(school.menu) != a_menu) return;
+		auto** vm = reflect::At<UE::UObject*>(a_menu, reflect::Offset(a_menu->GetClass(), "VMagicMenuViewModel"));
+		ui::Call page(vm ? *vm : nullptr, L"GetCurrentPage");
+		if (!page || page.Size("ReturnValue") != 1 || !page.Run()) return;
+		if (page.Get<std::uint8_t>("ReturnValue") >= 4) {
+			// Active Effects has no custom pickers. Complete their existing deactivation now,
+			// before the tab change renders, rather than leaving them visible until next Tick.
+			for (auto& picker : g_pickers)
+				if ((picker.kind == 1 || picker.kind == 2 || picker.kind == 5) && picker.active.load() &&
+					reflect::Get(picker.menu) == a_menu) picker.Deactivate();
+			UpdateNativeBackgroundMask();
+			return;
+		}
+		for (auto& picker : g_pickers)
+			if ((picker.kind == 1 || picker.kind == 5) && picker.active.load() &&
+				reflect::Get(picker.menu) == a_menu && reflect::Get(picker.header))
+				picker.HideNativeReplacement();
+	}
+
 	void Tick(Mode a_mode, UE::UObject* a_menu, UE::UObject* a_canvas, float a_viewportScale, UE::UObject* a_other)
 	{
 		static const bool s_transferHooked = (container::SetTransferHandlers(&OnTransferStarted, &OnTransferSettled), true);

@@ -15,8 +15,8 @@ namespace sorting
 	namespace detail
 	{
 		FilterState g_states[3];
-		// Container/barter tags depend only on the base item, so both sides share them across rebuilds: a transfer
-		// rebuilds the list and known rows stay filtered while the new TES request runs (RMI-005). Rows there have
+		// Item tags depend only on the base item, so Inventory and both container sides share them across rebuilds.
+		// Known rows stay filtered during a sort/transfer while the new TES request runs (RMI-005/RMI-015). Container rows have
 		// null forms, so the key is the row's name, weight and type; a wrong match lasts only until the reply.
 		std::unordered_map<std::uint64_t, std::uint64_t> g_rowTags;
 
@@ -46,11 +46,14 @@ namespace sorting
 			std::vector<std::uint32_t> forms;
 			for (auto* item : source) {
 				state.indices.push_back(slot ? static_cast<int>(state.indices.size()) : Index(item));
-				if (slot) {
+				if (!magic) {
 					std::uint64_t key = 0;
-					nativeIndices.push_back(Index(item)); forms.push_back(ContainerForm(item, &key)); state.keys.push_back(key);
+					const auto form = ContainerForm(item, &key);
+					const auto index = state.indices.back();
+					state.keys[index] = key;
+					if (slot) { nativeIndices.push_back(Index(item)); forms.push_back(form); }
 					if (const auto known = key ? g_rowTags.find(key) : g_rowTags.end(); known != g_rowTags.end())
-						state.masks[static_cast<int>(state.keys.size() - 1)] = known->second;
+						state.masks[index] = known->second;
 				}
 			}
 			if (magic) { ComputeMagicMasks(source, state); state.dataReady = true; }
@@ -66,9 +69,9 @@ namespace sorting
 			state.dataReady = entries.size() == state.indices.size();
 			if (state.dataReady) for (const auto& entry : entries) if (entry.valid) {
 				state.masks[entry.index] = entry.tags;
-				if (slot && entry.index >= 0 && static_cast<std::size_t>(entry.index) < state.keys.size() && state.keys[entry.index]) {
+				if (const auto key = state.keys.find(entry.index); key != state.keys.end() && key->second) {
 					if (g_rowTags.size() > 16384) g_rowTags.clear();
-					g_rowTags[state.keys[entry.index]] = entry.tags;
+					g_rowTags[key->second] = entry.tags;
 				}
 			}
 			state.ticket = state.dataDeadline = 0;
@@ -77,7 +80,7 @@ namespace sorting
 		if (state.ticket && GetTickCount64() > state.dataDeadline) {
 			geardata::Cancel(slot); state.ticket = state.dataDeadline = 0;
 			changed = true;
-			logger::warn("Menus Revamped: item classification timed out; unresolved categories remain visible");
+			logger::warn("Menus Revamped: item classification timed out; unresolved categories remain visible (item-key cache RMI-015)");
 		}
 		const bool useSecond = second.kind == 2;
 		const bool useType = magic && type.kind == 5;
