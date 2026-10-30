@@ -105,6 +105,7 @@ namespace sorting
 			bool Passes(std::uint64_t a_mask) const;
 			void Reset();
 			void Deactivate();
+			void HideNativeReplacement();
 			void Tick(int a_kind, UE::UObject* a_menu, UE::UObject* a_canvas, float a_viewportScale);
 
 			// PickerPopup.cpp: the popup grid and painting

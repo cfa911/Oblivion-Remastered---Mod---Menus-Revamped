@@ -228,6 +228,7 @@ namespace search
 		if (menu == menus::Menu::kNone || event == ListEvent::kInputOnly) return;
 		s_in = true;
 		FilterQuick(menu, event);
+		if (menu == menus::Menu::kMagic) sorting::RefreshMagicHeaders(a_obj);
 		s_in = false;
 	}
 
