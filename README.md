@@ -1,6 +1,13 @@
 # Menus Revamped
 
-## Magic filters (development)
+## 1.1.0 release candidate
+
+Adds Magic type filtering, scroll school/effect filtering, exclusive filter popups,
+native-width headers and separate Potion/Poison groups with dedicated artwork.
+Development behavior is owner-accepted; the 1.1.0 release-default smoke test and
+archive installation acceptance are tracked separately in the KB.
+
+## Magic filters
 
 Magic combines type (All, Spells, Scrolls, Powers), school, effect and text filters. Scrolls use their native
 menu identity and enchantment effects; Powers includes greater and lesser powers and is separate from School.
@@ -10,8 +17,7 @@ including All Items → Weapons → All weapons. Custom headers match the measur
 
 The type picker uses `MagicType-All.png`, `MagicType-Spells.png`, `MagicType-Scrolls.png` and the existing
 `School-Powers.png` under `MenusRevamped/Sorting`. Replace a PNG and restart the game to customize it.
-Development build and all 37 test suites pass; the filtering, mouse/controller behavior and alignment are
-owner-tested. No version bump or release package is included in this change.
+The filtering, mouse/controller behavior and alignment are owner-tested.
 
 ## 1.0.0 release candidate
 
