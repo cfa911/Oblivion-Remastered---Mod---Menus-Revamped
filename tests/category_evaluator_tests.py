@@ -163,6 +163,28 @@ int main() {
     sorting::g_pickers[4].choice=2;
     check(sorting::Evaluate(1,magicRows,23)==magicRows,"Magic type selection cannot filter Inventory");
     sorting::g_pickers[4].kind=-1;
+    // RMI-015: Inventory sorting must not expose known excluded items while TES tags refresh.
+    sorting::g_pickers[0].kind=0; sorting::g_pickers[0].category=1;
+    UE::UObject armor{80,100,1000},weapon{81,101,1001},newItem{82,102,1002};
+    Rows gear{&armor,&weapon};
+    sorting::Evaluate(1,gear,100);
+    geardata::replies[geardata::next]={{80,1,true},{81,2,true}};
+    check(sorting::Evaluate(1,gear,100)==Rows{&armor},"Inventory category initially excludes nonmatching items");
+    UE::UObject sortedWeapon{91,101,1001},sortedArmor{90,100,1000};
+    check(sorting::Evaluate(1,Rows{&sortedWeapon,&sortedArmor},101)==Rows{&sortedArmor},
+        "Inventory sort keeps known categories filtered across new wrappers and indices");
+    check(sorting::Evaluate(1,Rows{&sortedWeapon,&newItem,&sortedArmor},102)==Rows({&newItem,&sortedArmor}),
+        "Inventory refresh fails open only for genuinely unknown items");
+    geardata::replies[geardata::next]={{91,1,true},{82,2,true},{90,1,true}};
+    check(sorting::Evaluate(1,Rows{&sortedWeapon,&newItem,&sortedArmor},102)==Rows({&sortedWeapon,&sortedArmor}),
+        "fresh classification replaces carried Inventory tags");
+    sorting::g_pickers[0].category=0;
+    check(sorting::Evaluate(1,Rows{&sortedWeapon,&newItem,&sortedArmor},103)==Rows({&sortedWeapon,&newItem,&sortedArmor}),
+        "Inventory All retains the complete native list during sorting");
+    sorting::g_pickers[0].category=2;
+    check(sorting::Evaluate(1,Rows{&sortedWeapon,&newItem,&sortedArmor},103)==Rows{&newItem},
+        "changing category while classification is pending uses the known tags");
+    sorting::g_pickers[0].category=0;
     // Stolen-only toggle (owner 2026-10-29): StatusFlags bit 0, Inventory and the player's side only.
     for(auto& picker:sorting::g_pickers) { picker.category=0; picker.stolenOnly=false; }
     sorting::g_pickers[0].kind=0; sorting::g_pickers[2].kind=3; sorting::g_pickers[3].kind=4;
