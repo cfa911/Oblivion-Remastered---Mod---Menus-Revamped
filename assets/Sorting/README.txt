@@ -1,4 +1,6 @@
 Sorting Overhaul icons
+
+Enchanted.png: owner's enchanted-only toggle artwork, at the far left, before stolen and category controls.
 Replace these PNGs to customize the pickers, then restart the game.
 Keep filenames unchanged. Transparent square RGBA PNGs are recommended.
 The supplied defaults are 128 x 128 pixels. The selected choice also appears in the header.

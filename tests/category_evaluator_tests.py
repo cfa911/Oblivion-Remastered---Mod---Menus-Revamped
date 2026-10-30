@@ -28,13 +28,22 @@ prefix = r"""
 #include <unordered_map>
 #include <utility>
 #include <vector>
-namespace UE { struct UObject { int index=0; std::uint32_t form=0; std::uint64_t key=0; int stolen=0; }; }
+namespace UE { struct UObject { int index=0; std::uint32_t form=0; std::uint64_t key=0; int stolen=0; int enchanted=0; }; }
 #if __has_include("StolenFilter.h")
 #include "StolenFilter.h"
 #else
 namespace stolenfilter { enum class Status : signed char { Unknown=-1, Legal=0, Stolen=1 }; }
 #endif
 using Rows=std::vector<UE::UObject*>;
+#if __has_include("EnchantedFilter.h")
+#include "EnchantedFilter.h"
+static_assert(enchantedfilter::FromFlags(0x0) == enchantedfilter::Status::Plain);
+static_assert(enchantedfilter::FromFlags(0x1) == enchantedfilter::Status::Plain);
+static_assert(enchantedfilter::FromFlags(0x2) == enchantedfilter::Status::Enchanted);
+static_assert(enchantedfilter::FromFlags(0x3) == enchantedfilter::Status::Enchanted);
+#else
+namespace enchantedfilter { enum class Status : signed char { Unknown=-1, Plain=0, Enchanted=1 }; }
+#endif
 std::uint64_t now=1000;
 #define GetTickCount64() now
 namespace logger { template<class... T> void warn(T...) {} }
@@ -63,6 +72,7 @@ std::unordered_map<std::uint64_t,std::uint64_t> g_rowTags;
 struct Picker {
     int kind=0; unsigned choice=0,appliedChoice=0,category=0,appliedCategory=0;
     bool stolenOnly=false,appliedStolen=false;
+bool enchantedOnly=false,appliedEnchanted=false;
     bool Passes(std::uint64_t mask) const {
         if(kind==5) return !choice || !(mask & ((1ull<<28)|(1ull<<29)|(1ull<<30))) ||
             (mask & (choice==1 ? (1ull<<29) : choice==2 ? (1ull<<30) : (1ull<<28)));
@@ -81,6 +91,9 @@ stolenfilter::Status StolenStatus(UE::UObject* item) {
 }
 void ComputeMagicMasks(const Rows& items,FilterState& state) {
     for(auto* item:items) state.masks[item->index]=item->form;
+}
+enchantedfilter::Status EnchantedStatus(UE::UObject* item) {
+return static_cast<enchantedfilter::Status>(item->enchanted);
 }
 """
 tests = r"""
@@ -214,7 +227,32 @@ int main() {
     check(sorting::Evaluate(4,Rows{&o1,&o2},40)==Rows({&o1,&o2}),"merchant/container side is never stolen-filtered");
     sorting::g_pickers[0].kind=1; sorting::g_pickers[0].stolenOnly=true;
     check(sorting::Evaluate(2,Rows{&legal,&stolen},41)==Rows({&legal,&stolen}),"Magic is never stolen-filtered");
-    std::cout<<checks<<" checks, "<<failed<<" failures\n";
+// Enchanted toggle must invalidate the same-generation cache and intersect existing predicates.
+for(auto& picker:sorting::g_pickers) { picker.category=0; picker.stolenOnly=false; }
+sorting::g_pickers[0].kind=0;
+UE::UObject plain{90,0,0,0,0},magicGear{91,0,0,0,1},both{92,0,0,1,1},unreadable{93,0,0,-1,-1};
+Rows enchantedRows{&plain,&magicGear,&both,&unreadable};
+check(sorting::Evaluate(1,enchantedRows,200)==enchantedRows,"enchanted off keeps complete source");
+sorting::g_pickers[0].enchantedOnly=true;
+check(sorting::Evaluate(1,enchantedRows,200)==Rows({&magicGear,&both,&unreadable}),
+"enchanted on immediately excludes plain and retains unknown rows");
+sorting::g_pickers[0].stolenOnly=true;
+check(sorting::Evaluate(1,enchantedRows,200)==Rows({&both,&unreadable}),"stolen and enchanted intersect");
+sorting::g_pickers[0].stolenOnly=false;
+geardata::replies[geardata::next]={{90,1,true},{91,1,true},{92,2,true},{93,1,true}};
+sorting::g_pickers[0].category=1;
+check(sorting::Evaluate(1,enchantedRows,200)==Rows({&magicGear,&unreadable}),"enchanted combines with category");
+sorting::g_pickers[0].category=0;
+check(sorting::Evaluate(1,Rows{&both,&plain,&magicGear},201)==Rows({&both,&magicGear}),"sort rebuild rereads enchanted status in new order");
+sorting::g_pickers[0].enchantedOnly=false;
+check(sorting::Evaluate(1,enchantedRows,202)==enchantedRows,"enchanted off restores plain rows");
+sorting::g_pickers[2].enchantedOnly=true;
+check(sorting::Evaluate(3,enchantedRows,203)==Rows({&magicGear,&both,&unreadable}),"player container side supports enchanted");
+sorting::g_pickers[3].enchantedOnly=true;
+check(sorting::Evaluate(4,enchantedRows,203)==Rows({&magicGear,&both,&unreadable}),"other container side independently supports enchanted");
+sorting::g_pickers[0].kind=1; sorting::g_pickers[0].enchantedOnly=true;
+check(sorting::Evaluate(2,enchantedRows,204)==enchantedRows,"Magic never enchanted-filtered");
+std::cout<<checks<<" checks, "<<failed<<" failures\n";
     return failed ? 1 : 0;
 }
 """

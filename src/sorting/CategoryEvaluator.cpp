@@ -85,7 +85,7 @@ namespace sorting
 		const bool useSecond = second.kind == 2;
 		const bool useType = magic && type.kind == 5;
 		if (!changed && !state.dirty && primary.choice == primary.appliedChoice &&
-			primary.category == primary.appliedCategory && primary.stolenOnly == primary.appliedStolen &&
+			primary.category == primary.appliedCategory && primary.stolenOnly == primary.appliedStolen && primary.enchantedOnly == primary.appliedEnchanted &&
 			(!useSecond || second.choice == second.appliedChoice) &&
 			(!useType || type.choice == type.appliedChoice))
 			return state.filtered;
@@ -94,6 +94,11 @@ namespace sorting
 			state.stolen.clear();
 			for (auto* item : source) state.stolen.push_back(StolenStatus(item));
 		}
+		const bool enchantedOnly = primary.enchantedOnly && enchantedfilter::Supports(primary.kind) && (side == 1 || side == 3 || side == 4);
+		if (enchantedOnly && state.enchanted.size() != source.size()) {
+			state.enchanted.clear();
+			for (auto* item : source) state.enchanted.push_back(EnchantedStatus(item));
+		}
 		state.filtered.clear();
 		std::size_t position = 0;
 		for (auto* item : source) {
@@ -101,12 +106,14 @@ namespace sorting
 			const auto mask = state.masks.find(slot ? static_cast<int>(at) : Index(item));
 			if (!Active(side) || primary.kind < 0) { state.filtered.push_back(item); continue; }
 			if (stolenOnly && !stolenfilter::Keeps(true, state.stolen[at])) continue;
+			if (enchantedOnly && !enchantedfilter::Keeps(true, state.enchanted[at])) continue;
 			if (mask == state.masks.end() || (primary.Passes(mask->second) && (!useSecond || second.Passes(mask->second)) &&
 				(!useType || type.Passes(mask->second))))
 				state.filtered.push_back(item);
 		}
 		state.dirty = false;
 		primary.appliedChoice = primary.choice; primary.appliedCategory = primary.category; primary.appliedStolen = primary.stolenOnly;
+		primary.appliedEnchanted = primary.enchantedOnly;
 		second.appliedChoice = second.choice;
 		if (useType) type.appliedChoice = type.choice;
 		return state.filtered;

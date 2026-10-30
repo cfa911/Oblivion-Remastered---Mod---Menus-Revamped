@@ -147,6 +147,14 @@ namespace sorting::detail
 		if (fade && fade.Size("InOpacity") == 4 && fade.Set("InOpacity", stolenOnly ? 1.0f : 0.45f)) fade.RunGuarded();
 	}
 
+	void Picker::PaintEnchanted()
+	{
+		ui::RoundedBox(reflect::Get(enchantedFrame), false, enchantedFocus ? pickerhighlight::kFill.data() : enchantedOnly ? enchantedfilter::kEnchantedFill : kClear,
+			kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
+		ui::Call fade(reflect::Get(enchantedImage), L"SetRenderOpacity");
+		if (fade && fade.Size("InOpacity") == 4 && fade.Set("InOpacity", enchantedOnly ? 1.0f : 0.45f)) fade.RunGuarded();
+	}
+
 	void Picker::PaintController()
 	{
 		ui::Float(reflect::Get(headerImage), L"SetRenderOpacity", choice || category ? 1.0f : 0.5f);
@@ -154,6 +162,7 @@ namespace sorting::detail
 		ui::RoundedBox(reflect::Get(headerFrame), false, controllerFocus ? pickerhighlight::kFill.data() : kClear,
 			kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 		PaintStolen();
+		PaintEnchanted();
 		for (unsigned i = 0; i < itemtags::Info(view).count; ++i) {
 			const bool focused = open && controllerPopup && i == cursor;
 			ui::RoundedBox(reflect::Get(cells[i]), false, focused ? pickerhighlight::kFill.data() : kClear,

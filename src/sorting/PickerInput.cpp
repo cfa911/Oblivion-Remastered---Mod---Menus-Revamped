@@ -55,7 +55,8 @@ namespace sorting
 			if (a_message != WM_LBUTTONDOWN) return false;
 			commandFromController = false;
 			const double x = static_cast<short>(LOWORD(a_position)), y = static_cast<short>(HIWORD(a_position));
-			if (stolenPx.Hit(x, y)) command = stolenfilter::kToggleCommand;
+			if (enchantedPx.Hit(x, y)) command = enchantedfilter::kToggleCommand;
+		else if (stolenPx.Hit(x, y)) command = stolenfilter::kToggleCommand;
 			else if (headerPx.Hit(x, y)) command = pickergrid::kToggleCommand;
 			else if (inputOpen) {
 				command = -2;
@@ -75,8 +76,8 @@ namespace sorting
 			g_pad.Disconnect();
 			for (auto& picker : g_pickers) {
 				picker.returnToList.Cancel();
-				if (picker.controllerFocus || picker.controllerPopup || picker.stolenFocus) {
-					picker.controllerFocus = picker.controllerPopup = picker.stolenFocus = false; picker.PaintController();
+				if (picker.controllerFocus || picker.controllerPopup || picker.stolenFocus || picker.enchantedFocus) {
+					picker.controllerFocus = picker.controllerPopup = picker.stolenFocus = picker.enchantedFocus = false; picker.PaintController();
 				}
 			}
 			UpdateNativeBackgroundMask(); return;
@@ -87,6 +88,8 @@ namespace sorting
 		for (auto& picker : g_pickers) {
 			const bool focused = picker.ControllerFocused();
 			const bool stolenFocused = picker.StolenFocused();
+			const bool enchantedFocused = picker.EnchantedFocused();
+			if (picker.enchantedFocus != enchantedFocused) { picker.enchantedFocus = enchantedFocused; picker.PaintEnchanted(); }
 			if (picker.stolenFocus != stolenFocused) { picker.stolenFocus = stolenFocused; picker.PaintStolen(); }
 			if (picker.controllerFocus != focused) {
 				picker.controllerFocus = focused;
@@ -97,7 +100,7 @@ namespace sorting
 				picker.PaintController();
 			}
 			// A mouse-opened picker is modal for the pad too, but only while its menu is active.
-			if (!owner && picker.active.load() && ui::ShownOnScreen(reflect::Get(picker.menu)) && (focused || stolenFocused || picker.open)) owner = &picker;
+			if (!owner && picker.active.load() && ui::ShownOnScreen(reflect::Get(picker.menu)) && (focused || stolenFocused || enchantedFocused || picker.open)) owner = &picker;
 		}
 		if (owner) {
 			auto& picker = *owner;
@@ -111,10 +114,10 @@ namespace sorting
 				else if (g_pad.pulse != pickerpad::Direction::None)
 					picker.cursor = pickerpad::Move(picker.cursor, itemtags::Info(picker.view).count, g_pad.pulse);
 				if (newlyOwned || picker.cursor != previousCursor) picker.PaintController();
-			} else if (picker.stolenFocus) {
+			} else if (picker.stolenFocus || picker.enchantedFocus) {
 				// A toggles the stolen-only icon; up/down are swallowed like on the picker; Y stays native (exit).
 				g_pad.Consume(raw, pickerpad::A | pickerpad::Up | pickerpad::Down | pickerpad::Left | pickerpad::Right, true);
-				if (g_pad.pressed & pickerpad::A) picker.Queue(stolenfilter::kToggleCommand);
+				if (g_pad.pressed & pickerpad::A) picker.Queue(picker.enchantedFocus ? enchantedfilter::kToggleCommand : stolenfilter::kToggleCommand);
 				else if (g_pad.pulse == pickerpad::Direction::Left || g_pad.pulse == pickerpad::Direction::Right) {
 					ui::Call navigate(reflect::Get(picker.carousel),
 						g_pad.pulse == pickerpad::Direction::Left ? L"NavigateToPrevElement" : L"NavigateToNextElement");
