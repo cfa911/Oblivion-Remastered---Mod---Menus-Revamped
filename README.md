@@ -1,5 +1,14 @@
 # Menus Revamped
 
+## 1.2.0 release candidate
+
+Adds enchanted-only filtering with a blue toggle at the far left of the sorting bar.
+Keeps Inventory category filters stable while sorting and prevents Magic sorting
+controls flashing during tab changes, including Active Effects transitions.
+The enchanted toggle combines with text/category/stolen filters, stays on across
+tabs and resets when the menu closes. Release-default smoke and archive-install
+acceptance are tracked separately in the KB.
+
 ## 1.1.0 release candidate
 
 Adds Magic type filtering, scroll school/effect filtering, exclusive filter popups,

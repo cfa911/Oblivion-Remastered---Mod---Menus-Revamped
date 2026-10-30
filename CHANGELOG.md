@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0 - 2026-10-30
+
+- Add enchanted-only item filtering with a dedicated icon at the far left of the sort bar.
+- Show a blue background when enchanted filtering is active; combine it with search, category and stolen filters.
+- Keep Inventory category filtering stable while sorting.
+- Prevent Magic sorting controls flashing when switching tabs or entering Active Effects.
+
 ## 1.1.0 - 2026-10-30
 
 - Add separate Magic type filters for Spells, Scrolls and Powers, combined with school, effect and search.

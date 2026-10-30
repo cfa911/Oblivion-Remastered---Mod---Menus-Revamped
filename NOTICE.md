@@ -1,4 +1,4 @@
-# Menus Revamped - copyright and licence
+# Menus Revamped 1.2.0 - copyright and licence
 
 Copyright (C) 2026 cfa911 (the Menus Revamped plugin code).
 

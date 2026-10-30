@@ -1,4 +1,4 @@
-Menus Revamped 1.1.0
+Menus Revamped 1.2.0
 Oblivion Remastered - OBSE64 plugin
 
 REQUIREMENTS
@@ -17,11 +17,15 @@ Launch through OBSE64.
 FEATURES
 Search Inventory, Magic, Quests, containers and shops; combine text with item
 and spell filters; use independent container/shop-side categories; show only
-stolen items on the player side; type using the controller keyboard.
+stolen items on the player side; show only enchanted items (including scrolls)
+with the far-left blue toggle; type using the controller keyboard.
 
 CONTROLS
 Click a search bar to type. Enter/Escape leaves typing mode. Ctrl+A selects
 the text; Delete removes selected text. Click picker icons to choose a filter.
+The enchanted toggle is before the stolen icon: click it, or select it in
+controller sorting mode and press A. Blue means active. It combines with other
+filters, persists across tabs, and resets when the menu closes.
 Hold D-pad right for 400 ms to open the keyboard. In containers/shops,
 D-pad right targets your side; D-pad left targets the other side.
 The controller keyboard displays its button prompts: A types, X deletes
