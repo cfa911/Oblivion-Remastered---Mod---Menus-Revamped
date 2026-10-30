@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0 - 2026-10-30
+
+- Add separate Magic type filters for Spells, Scrolls and Powers, combined with school, effect and search.
+- Apply school and effect filters correctly to scrolls.
+- Keep only one filter popup open at a time, preserving selected filters.
+- Match custom header spacing to native buttons and dim inactive All headers.
+- Separate Potions and Poisons and regroup their filters by effect.
+- Include dedicated potion/poison artwork and updated Magic type icons.
+
 ## 1.0.0 - 2026-10-29
 
 First unified Menus Revamped release candidate.

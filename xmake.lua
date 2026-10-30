@@ -14,7 +14,7 @@ add_rules("mode.debug", "mode.releasedbg")
 
 -- One development plugin: search, category pickers and controller keyboard.
 target("MenusRevamped")
-    set_version("1.0.0")
+    set_version("1.1.0")
     add_rules("commonlibob64.plugin", {
         name = "MenusRevamped",
         author = "cfa911",
