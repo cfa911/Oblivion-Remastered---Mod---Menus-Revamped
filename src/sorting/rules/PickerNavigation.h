@@ -21,13 +21,13 @@ namespace pickernav
 			out.view = static_cast<Tab>(command - 1);
 			return out;
 		}
-		if (view == Tab::Potions && command == 1) {
-			out.view = Tab::PotionEffects;
+		if (view == Tab::Potions && (command == 1 || command == 2)) {
+			out.view = command == 1 ? Tab::PotionEffects : Tab::PoisonEffects;
 			return out;
 		}
-		if (view == Tab::PotionEffects) {
+		if (view == Tab::PotionEffects || view == Tab::PoisonEffects) {
 			out.category = root == Tab::AllItems ? 3u : 0u;
-			out.choice = itemtags::PotionSelection(command);
+			out.choice = view == Tab::PotionEffects ? itemtags::PotionSelection(command) : itemtags::PoisonSelection(command);
 		} else if (root == Tab::AllItems) {
 			out.category = view == Tab::AllItems ? 0u : static_cast<unsigned>(view) + 1;
 			out.choice = command;
@@ -38,9 +38,9 @@ namespace pickernav
 	inline Result Back(Tab root, Tab view, unsigned category, unsigned choice)
 	{
 		Result out{ view, category, choice };
-		if (view == Tab::PotionEffects) {
+		if (view == Tab::PotionEffects || view == Tab::PoisonEffects) {
 			out.view = Tab::Potions;
-			out.cursor = 1;
+			out.cursor = view == Tab::PotionEffects ? 1u : 2u;
 		} else if (root == Tab::AllItems && view != root) {
 			out.view = root;
 			out.cursor = static_cast<unsigned>(view) + 1;
@@ -51,14 +51,23 @@ namespace pickernav
 	{
 		if (root == Tab::AllItems) {
 			if (view == root) return category;
-			const unsigned viewCategory = view == Tab::PotionEffects ? 3u : static_cast<unsigned>(view) + 1;
+			const unsigned viewCategory = view == Tab::PotionEffects || view == Tab::PoisonEffects ? 3u : static_cast<unsigned>(view) + 1;
 			if (category != viewCategory) return 99;
 		}
-		if (view == Tab::Potions) return choice >= itemtags::Index(itemtags::Alchemy::Health) ? 1u : choice;
+		using itemtags::Alchemy;
+		using itemtags::Index;
+		if (view == Tab::Potions) {
+			if (itemtags::IsPotionGroup(choice)) return Index(Alchemy::Potions);
+			if (itemtags::IsPoisonGroup(choice)) return Index(Alchemy::Poisons);
+			return choice;
+		}
 		if (view == Tab::PotionEffects) {
-			if (choice == itemtags::Index(itemtags::Alchemy::Potions)) return 0;
-			return choice >= itemtags::Index(itemtags::Alchemy::Health) &&
-				choice <= itemtags::Index(itemtags::Alchemy::Poison) ? choice - 3 : 99;
+			if (choice == Index(Alchemy::Potions)) return 0;
+			return itemtags::IsPotionGroup(choice) ? choice - Index(Alchemy::Restore) + 1 : 99;
+		}
+		if (view == Tab::PoisonEffects) {
+			if (choice == Index(Alchemy::Poisons)) return 0;
+			return itemtags::IsPoisonGroup(choice) ? choice - Index(Alchemy::Damage) + 1 : 99;
 		}
 		return choice;
 	}

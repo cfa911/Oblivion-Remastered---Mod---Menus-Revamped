@@ -21,6 +21,17 @@ class IconNames(unittest.TestCase):
         self.assertNotIn("Potions-All.png", names)
         self.assertNotIn("Category-Potions.png", names)
 
+    def test_potion_poison_groups_have_own_files(self):
+        # Owner 2026-10-30: every potion/poison group has an editable file of its own.
+        names = {f"{group}-{name}.png" for group, choices in icons.GROUPS.items() for name in choices}
+        own = ("Alchemy-Poisons.png", "Potion-All.png", "Potion-Restore.png", "Potion-Fortify.png", "Potion-Ward.png",
+               "Potion-Stealth.png", "Potion-Utility.png", "Potion-Cure.png", "Potion-Other.png",
+               "Poison-All.png", "Poison-Damage.png", "Poison-Elemental.png", "Poison-Disable.png")
+        for name in own:
+            with self.subTest(name=name):
+                self.assertIn(name, names)
+                self.assertTrue((ROOT / source_paths.SORTING_ASSETS / name).is_file())
+
     def test_new_defaults_render(self):
         for group, name in (("Alchemy", "All"), ("Potion", "All"), ("Category", "Alchemy")):
             with self.subTest(group=group):
