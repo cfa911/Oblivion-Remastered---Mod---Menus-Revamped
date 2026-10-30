@@ -21,7 +21,7 @@ The filtering, mouse/controller behavior and alignment are owner-tested.
 
 ## 1.0.0 release candidate
 
-Unified search, item and spell filters, stolen-only filtering, controller typing,
+Unified search, item and spell filters, stolen-only and enchanted-only filtering, controller typing,
 and menu responsiveness improvements. Install instructions and configuration
 migration are in [dist/README.txt](dist/README.txt); changes in [CHANGELOG.md](CHANGELOG.md).
 Development compatibility with the completed Improved Wheels Plus performance

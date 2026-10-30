@@ -24,7 +24,7 @@ struct Picker {
     itemtags::Tab view=itemtags::Tab::MagicSchool;
     Widget image; reflect::Handle headerImage=&image,headerFrame=nullptr;
     reflect::Handle cells[itemtags::kMaxChoices]{};
-    void PaintStolen() {} void PaintController();
+void PaintStolen() {} void PaintEnchanted() {} void PaintController();
 };
 '''+body+r'''
 unsigned checks=0,failures=0;

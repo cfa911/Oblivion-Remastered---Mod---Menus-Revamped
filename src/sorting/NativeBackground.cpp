@@ -44,7 +44,7 @@ namespace sorting
 		{
 			Picker* owner = nullptr;
 			for (auto& picker : g_pickers)
-				if (picker.active.load() && pickerhighlight::Owns(picker.controllerFocus || picker.stolenFocus, picker.open, picker.controllerPopup)) {
+				if (picker.active.load() && pickerhighlight::Owns(picker.controllerFocus || picker.stolenFocus || picker.enchantedFocus, picker.open, picker.controllerPopup)) {
 					owner = &picker; break;
 				}
 			if (!owner) { if (!g_nativeBackgrounds.empty()) RestoreNativeBackgrounds(); return; }

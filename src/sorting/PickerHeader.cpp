@@ -88,7 +88,7 @@ namespace sorting
 			ui::Call get(a_panel, L"GetChildAt"); get.Set("Index", i);
 			if (!get.Run()) return false;
 			auto* widget = get.Get<UE::UObject*>("ReturnValue");
-			if (!widget || widget == reflect::Get(header) || widget == reflect::Get(stolenHeader)) continue;
+			if (!widget || widget == reflect::Get(header) || widget == reflect::Get(stolenHeader) || widget == reflect::Get(enchantedHeader)) continue;
 			Child child{ widget };
 			auto** slot = reflect::At<UE::UObject*>(widget, reflect::Offset(widget->GetClass(), "Slot"));
 			if (!slot || !*slot) return false;
@@ -127,10 +127,11 @@ namespace sorting
 				Picker& picker; bool complete = false;
 				~Rollback() {
 					if (complete) return;
-					for (const auto& handle : { picker.header, picker.stolenHeader })
+					for (const auto& handle : { picker.header, picker.stolenHeader, picker.enchantedHeader })
 						if (auto* widget = reflect::Get(handle)) { ui::Call remove(widget, L"RemoveFromParent"); remove.Run(); }
 					picker.header = {}; picker.carousel = {}; picker.headerImage = {}; picker.headerFrame = {};
 					picker.stolenHeader = {}; picker.stolenImage = {}; picker.stolenFrame = {};
+					picker.enchantedHeader = {}; picker.enchantedImage = {}; picker.enchantedFrame = {};
 				}
 			} rollback{ *this };
 			// One 49x49 icon button in the native wrapper class, registered with the sort carousel.
@@ -159,7 +160,11 @@ namespace sorting
 					!registerChild.Set("ChildToAdd", widget) || !registerChild.RunGuarded()) return nullptr;
 				return widget;
 			};
-			// Registered in on-screen order so controller left/right walks stolen icon -> picker -> native sorts.
+			// Register custom headers in their on-screen order: enchanted, stolen, category picker.
+			if (enchantedfilter::Supports(kind)) {
+				if (!make(L"SlEnchantedHeader", L"Enchanted.png", enchantedHeader, enchantedImage, enchantedFrame)) return false;
+				PaintEnchanted();
+			}
 			if (stolenfilter::Supports(kind)) {
 				if (!make(L"SlStolenHeader", L"Stolen-Item.png", stolenHeader, stolenImage, stolenFrame)) return false;
 				PaintStolen();
@@ -181,6 +186,7 @@ namespace sorting
 		// bindings, with our icon first, before A-Z (and before the other picker's icon when both are attached).
 		ui::Call clear(a_panel, L"ClearChildren"); if (!clear.Run()) return false;
 		if (schoolAt < 0) {  // no native school button: the stolen-only icon leftmost (owner), then our picker
+			if (auto* enchanted = reflect::Get(enchantedHeader); enchanted && !addHeader(enchanted)) return false;
 			if (auto* stolen = reflect::Get(stolenHeader); stolen && !addHeader(stolen)) return false;
 			if (!addHeader(box)) return false;
 		}

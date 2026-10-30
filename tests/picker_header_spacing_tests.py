@@ -20,8 +20,10 @@ prefix=r'''
 #include <array>
 #include <cstring>
 #include <cstdio>
+#include <vector>
 struct Slot { std::array<float,4> padding{}; };
 struct Widget { Slot slot; float opacity=1; };
+std::vector<Widget*> added;
 namespace UE { using UObject=Widget; }
 namespace reflect { using Handle=Widget*; Widget* Get(Handle p){return p;} Widget* Hold(Widget* p){return p;} }
 namespace ui {
@@ -29,13 +31,13 @@ struct Call {
     Widget* content=nullptr;
     Call(Widget*,const wchar_t*){}
     bool Set(const char*,Widget* p){content=p;return true;}
-    bool Run(){return content!=nullptr;}
+bool Run(){if(content)added.push_back(content);return content!=nullptr;}
     template<class T> T Get(const char*){return reinterpret_cast<T>(&content->slot);}
 };
 bool CallFirst(Widget* p,const wchar_t*,const void* bytes,unsigned n){if(!p||n!=16)return false;std::memcpy(reinterpret_cast<Slot*>(p)->padding.data(),bytes,n);return true;}
 }
 struct Picker {
-    Widget image,stolen,panel; Widget* stolenHeader=&stolen,*carousel=nullptr,*headerImage=nullptr;
+Widget image,stolen,enchanted,panel; Widget* enchantedHeader=&enchanted,*stolenHeader=&stolen,*carousel=nullptr,*headerImage=nullptr;
     unsigned choice=0,category=0;
     void PaintController(){if(headerImage)headerImage->opacity=choice||category?1.0f:0.5f;}
     bool Attach(bool replacement); bool Created();
@@ -50,6 +52,7 @@ bool Spaced(const Slot& s){return s.padding==std::array<float,4>{2.5f,0,2.5f,0} 
 int main(){
     Picker appended;
     appended.Attach(false);
+Check(!added.empty() && added.front()==&appended.enchanted,"enchanted is the first visible custom header");
     Check(Spaced(appended.image.slot),"custom content plus symmetric padding matches native 54px footprint");
     Check(Spaced(appended.stolen.slot),"stolen header shares custom spacing");
     Picker replacement; replacement.Attach(true);

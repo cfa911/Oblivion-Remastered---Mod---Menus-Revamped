@@ -46,11 +46,12 @@ namespace sorting::detail
 		paintedOpen = false; nextLayout = 0; nextHitMeasure = 0;
 		widgetWarning = false;
 		transfer = {};
-		stolenFocus = false;
+		stolenFocus = false; enchantedFocus = false;
 		if (auto* image = reflect::Get(headerImage)) Brush(image, itemtags::Info(tab).icons[0]);
 		if (auto* frame = reflect::Get(headerFrame)) ui::RoundedBox(frame, false, kClear, kClear, 0, 0);
 		PaintStolen();
-		{ std::scoped_lock lock(inputLock); headerPx = {}; stolenPx = {}; popupPx = {}; command = -1; commandFromController = false; inputOpen = false; swallowUp = false; swallowEscape = false; doubleClickUntil = 0; }
+		PaintEnchanted();
+		{ std::scoped_lock lock(inputLock); headerPx = {}; stolenPx = {}; enchantedPx = {}; popupPx = {}; command = -1; commandFromController = false; inputOpen = false; swallowUp = false; swallowEscape = false; doubleClickUntil = 0; }
 	}
 
 	void Picker::Deactivate()
@@ -58,7 +59,9 @@ namespace sorting::detail
 		if (active.exchange(false)) {
 			Reset();
 			tabSet = false;
-			stolenOnly = false; PaintStolen();  // the menu closed: the next one starts unfiltered
+			stolenOnly = false; PaintStolen();
+			enchantedOnly = false; PaintEnchanted();
+			if (auto* e = reflect::Get(enchantedHeader)) ui::Visible(e, false);  // the menu closed: the next one starts unfiltered
 			if (auto* s = reflect::Get(stolenHeader)) ui::Visible(s, false);
 			if (auto* h = reflect::Get(header)) ui::Visible(h, false);
 			if (auto* p = reflect::Get(popup)) ui::Visible(p, false);
@@ -93,7 +96,7 @@ namespace sorting::detail
 		}
 		if (!show) { Deactivate(); kind = -1; return; }
 		if (kind != a_kind) {  // another menu: forget everything and rebuild
-			if (kind >= 0) { stolenOnly = false; Reset(); tabSet = false; }
+			if (kind >= 0) { enchantedOnly = false; stolenOnly = false; Reset(); tabSet = false; }
 			kind = a_kind;
 		}
 		active.store(true);  // page identity is independent of whether its new widgets have finished layout
@@ -106,10 +109,11 @@ namespace sorting::detail
 		// on every tick (not only the 150 ms layout pass) so its glyph never renders beside ours.
 		HideNativeReplacement();
 		if (reflect::Get(menu) != a_menu || reflect::Get(canvas) != a_canvas) {
-			stolenOnly = false; Reset();
-			for (const auto& handle : { popup, header, stolenHeader }) if (auto* old = reflect::Get(handle)) { ui::Call remove(old, L"RemoveFromParent"); remove.Run(); }
+			enchantedOnly = false; stolenOnly = false; Reset();
+			for (const auto& handle : { popup, header, stolenHeader, enchantedHeader }) if (auto* old = reflect::Get(handle)) { ui::Call remove(old, L"RemoveFromParent"); remove.Run(); }
 			menu = reflect::Hold(a_menu); popup = {}; paperSlot = {}; header = {}; carousel = {}; nativeSchool = {}; nativePeers.clear();
 			stolenHeader = {}; stolenImage = {}; stolenFrame = {};
+			enchantedHeader = {}; enchantedImage = {}; enchantedFrame = {};
 			canvas = reflect::Hold(a_canvas); nextLayout = 0;
 		}
 		if (!reflect::Get(popup) && !BuildPopup(a_canvas)) {
@@ -160,6 +164,14 @@ namespace sorting::detail
 					stolenPx = { sx * a_viewportScale, sy * a_viewportScale, sw * a_viewportScale, sh * a_viewportScale };
 				}
 			}
+			if (auto* enchanted = reflect::Get(enchantedHeader)) {
+				ui::Visible(enchanted, true);
+				double sx = 0, sy = 0, sw = 0, sh = 0;
+				if (ui::Measure(enchanted, sx, sy, sw, sh) && sw > 0 && sh > 0) {
+					std::scoped_lock lock(inputLock);
+					enchantedPx = { sx * a_viewportScale, sy * a_viewportScale, sw * a_viewportScale, sh * a_viewportScale };
+				}
+			}
 			double x = 0, y = 0, w = 0, h = 0;
 			if (ui::Measure(reflect::Get(header), x, y, w, h) && w > 0 && h > 0) {
 				double cx = 0, cy = 0, cw = 0, ch = 0;
@@ -175,7 +187,11 @@ namespace sorting::detail
 		int cmd = -1;
 		bool fromController = false;
 		{ std::scoped_lock lock(inputLock); cmd = command; fromController = commandFromController; command = -1; commandFromController = false; }
-		if (cmd == stolenfilter::kToggleCommand) {
+		if (cmd == enchantedfilter::kToggleCommand) {
+			enchantedOnly = !enchantedOnly; open = false;
+			PaintEnchanted();
+		}
+		else if (cmd == stolenfilter::kToggleCommand) {
 			stolenOnly = !stolenOnly; open = false;
 			PaintStolen();
 		}

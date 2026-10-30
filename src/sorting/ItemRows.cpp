@@ -86,6 +86,21 @@ namespace sorting
 			return stolenfilter::FromFlags(flags);
 		}
 
+		enchantedfilter::Status EnchantedStatus(UE::UObject* item)
+		{
+			auto* properties = ItemProperties();
+			ui::Call get(item, L"GetProperties");
+			auto* result = get.At("ReturnValue");
+			const auto flagsOffset = properties ? reflect::Offset(properties, "StatusFlags") : -1;
+			const auto nameOffset = properties ? reflect::Offset(properties, "Name") : -1;
+			if (!result || flagsOffset < 0 || nameOffset < 0 || ui::SizeOf(properties, "StatusFlags") != 4 ||
+				get.Size("ReturnValue") != properties->propertiesSize || !get.Run()) return enchantedfilter::Status::Unknown;
+			std::uint32_t flags = 0;
+			std::memcpy(&flags, static_cast<std::uint8_t*>(result) + flagsOffset, sizeof(flags));
+			reinterpret_cast<UE::FText*>(static_cast<std::uint8_t*>(result) + nameOffset)->~FText();
+			return enchantedfilter::FromFlags(flags);
+		}
+
 		// ---- Magic rows: school/range from the row, native spell type/effects from the player's spell list ----
 		// Row layout (VLegacyMagicMenuItem, 136 bytes, proven 2026-10-24): Category +0x50, Type +0x51, InventoryIndex +0x54, School +0x58.
 		// InventoryIndex - 1 is the spell's position in the player's list.

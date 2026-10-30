@@ -10,6 +10,7 @@
 #include "sorting/rules/PickerHighlight.h"
 #include "sorting/rules/PickerNavigation.h"
 #include "sorting/rules/StolenFilter.h"
+#include "sorting/rules/EnchantedFilter.h"
 #include "sorting/rules/TransferHold.h"
 #include "engine/Reflect.h"
 
@@ -43,6 +44,7 @@ namespace sorting
 			std::unordered_map<int, std::uint64_t> keys;  // classification index -> stable item key
 			std::unordered_map<int, std::uint64_t> masks;
 			std::vector<UE::UObject*> filtered;
+			std::vector<enchantedfilter::Status> enchanted;
 			std::vector<stolenfilter::Status> stolen;  // by source position, read only while the toggle is on
 			std::uint64_t generation = 0, ticket = 0, dataDeadline = 0;
 		};
@@ -61,6 +63,7 @@ namespace sorting
 		int Index(UE::UObject* a_item);
 		std::uint32_t ContainerForm(UE::UObject* item, std::uint64_t* a_key = nullptr);
 		stolenfilter::Status StolenStatus(UE::UObject* item);
+		enchantedfilter::Status EnchantedStatus(UE::UObject* item);
 		void ComputeMagicMasks(const std::vector<UE::UObject*>& a_items, FilterState& state);
 
 		// ---- our header widgets (PickerHeader.cpp) ----
@@ -98,6 +101,9 @@ namespace sorting
 			bool stolenOnly = false, appliedStolen = false, stolenFocus = false;
 			reflect::Handle stolenHeader, stolenImage, stolenFrame;
 			Rect stolenPx;
+			bool enchantedOnly = false, appliedEnchanted = false, enchantedFocus = false;
+			reflect::Handle enchantedHeader, enchantedImage, enchantedFrame;
+			Rect enchantedPx;
 
 			unsigned Shift() const { return kind == 2 ? 32u : 0u; }
 
@@ -115,6 +121,7 @@ namespace sorting
 			unsigned Highlight() const;
 			void StyleCells();
 			void PaintStolen();
+			void PaintEnchanted();
 			void PaintController();
 
 			// PickerHeader.cpp: our icons in the native sort row (and RMI-004 Transfer detach)
@@ -127,6 +134,7 @@ namespace sorting
 			bool Focused(const reflect::Handle& a_widget);
 			bool ControllerFocused() { return Focused(header); }
 			bool StolenFocused() { return Focused(stolenHeader); }
+			bool EnchantedFocused() { return Focused(enchantedHeader); }
 			void Queue(int cmd);
 			bool Message(UINT a_message, WPARAM a_key, LPARAM a_position);
 
