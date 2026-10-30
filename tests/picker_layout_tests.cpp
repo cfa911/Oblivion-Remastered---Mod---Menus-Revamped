@@ -33,7 +33,7 @@ int main()
 		check(pickergrid::Height(count) - (pickergrid::CellY(count - 1, count) + pickergrid::CellHeight) == 14, "no unnecessary spare rows");
 	}
 	using itemtags::Tab;
-	for (auto tab : { Tab::Weapons, Tab::Gear, Tab::Potions, Tab::Misc, Tab::AllItems, Tab::MagicSchool, Tab::MagicEffect, Tab::PotionEffects }) {
+	for (auto tab : { Tab::Weapons, Tab::Gear, Tab::Potions, Tab::Misc, Tab::AllItems, Tab::MagicSchool, Tab::MagicEffect, Tab::PotionEffects, Tab::PoisonEffects }) {
 		const auto& info = itemtags::Info(tab);
 		for (unsigned i = 0; i < info.count; ++i) {
 			const auto label = itemtags::PopupLabel(tab, i);
@@ -43,8 +43,8 @@ int main()
 		}
 		check(itemtags::PopupLabel(tab, info.count).empty(), "invalid label bounded");
 	}
-	check(itemtags::PopupLabel(Tab::Potions, 2) == "Ingredients", "Ingredients is readable");
-	check(itemtags::PopupLabel(Tab::PotionEffects, 4) == "Attributes", "Attributes is readable");
+	check(itemtags::PopupLabel(Tab::Potions, 3) == "Ingredients", "Ingredients is readable");
+	check(itemtags::PopupLabel(Tab::PoisonEffects, 2) == "Elemental", "Elemental is readable");
 	check(itemtags::PopupLabel(Tab::Misc, 2) == "Soul gems", "Soul gems is readable");
 	check(itemtags::PopupLabel(Tab::PotionEffects, 0) == "All potions", "All potions is readable");
 	check(itemtags::PopupLabel(Tab::MagicSchool, 1) == "Alte", "owner School abbreviations unchanged");

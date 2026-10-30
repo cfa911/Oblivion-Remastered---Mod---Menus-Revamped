@@ -10,8 +10,9 @@ from PIL import Image, ImageDraw, ImageFont
 GROUPS = {
  'Weapon': ['All','Bow','Arrow','Staff','Dagger','Shortsword','Longsword','Claymore','WarAxe','Battleaxe','Mace','Warhammer','Other'],
  'Gear': ['All','Ring','Amulet','Head','Torso','Arms','Feet','Legwear','Shield'],
- 'Potion': ['All','Health','Magicka','Fatigue','Attributes','Cure','Poison'],
- 'Alchemy': ['All','Potions','Ingredients','Tools'],
+ 'Potion': ['All','Restore','Fortify','Ward','Stealth','Utility','Cure','Other'],
+ 'Poison': ['All','Damage','Elemental','Disable'],
+ 'Alchemy': ['All','Potions','Poisons','Ingredients','Tools'],
  'Misc': ['All','Keys','SoulGems','Books','Tools','Other'],
  'Category': ['All','Weapons','Gear','Alchemy','Misc'],
  'School': ['All','Alteration','Conjuration','Destruction','Illusion','Mysticism','Restoration','Powers'],

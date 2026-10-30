@@ -25,3 +25,12 @@ Alchemy-All.png: All at the Alchemy root.
 Alchemy-Potions.png: Potions parent, opens the potion submenu.
 Potion-All.png: All potions submenu choice and selected header (singular Potion).
 Back up customized artwork before migrating older filenames; restart after changes.
+
+Potion and poison groups (2026-10-30): each choice has its own file, first created as a
+copy of existing art so it can be replaced without touching the Magic menu:
+Alchemy-Poisons.png (Poisons parent, from Effect-Poison). Potion-All.png. Potion-Restore.png,
+Potion-Fortify.png, Potion-Ward.png (from Effect-Shield), Potion-Stealth.png, Potion-Utility.png,
+Potion-Cure.png (Cures), Potion-Other.png. Poison-All.png (from Potion-Poison), Poison-Damage.png,
+Poison-Elemental.png (from Effect-Fire), Poison-Disable.png (from Effect-Control).
+Potion-Health/Magicka/Fatigue/Attributes/Poison.png are no longer used.
+Owner artwork 2026-10-30: Alchemy-Poisons.png and Poison-All.png (skull and crossbones), Potion-Cure.png (heart with cross).

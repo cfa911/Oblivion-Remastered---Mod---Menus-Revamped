@@ -86,7 +86,8 @@ namespace geardata
 						if (effect) codes[count++] = *reinterpret_cast<std::uint32_t*>(effect + 0x08);
 						node = reinterpret_cast<void**>(node[1]);
 					}
-					a_tags = itemtags::PotionTags(codes, count, static_cast<RE::EffectItemList*>(potion)->hostileCount);
+					a_tags = itemtags::PotionTags(codes, count, static_cast<RE::EffectItemList*>(potion)->hostileCount,
+						potion->GetSpellType() == RE::MagicSystem::SpellType::kPoison);
 					return true;
 				}
 				a_tags = itemtags::MiscTags(static_cast<unsigned>(object->GetFormType()), object->GetFormID(), 0);

@@ -14,15 +14,20 @@
 // Page numbers (CurrentPageInventory, proven in game 1.512.105.0): 0 weapons, 1 gear, 2 potions, 3 misc, 4 all items.
 namespace itemtags
 {
-	enum class Tab : unsigned { Weapons, Gear, Potions, Misc, AllItems, MagicSchool, MagicEffect, PotionEffects, MagicType };
+	enum class Tab : unsigned { Weapons, Gear, Potions, Misc, AllItems, MagicSchool, MagicEffect, PotionEffects, MagicType, PoisonEffects };
 	// Flat tag/selection IDs keep parent navigation separate from applied membership.
-	// Potions is the native page-2 enum; its popup root is now Alchemy.
-	enum class Alchemy : unsigned { All, Potions, Ingredients, Tools, Health, Magicka, Fatigue, Attributes, Cure, Poison };
+	// Potions is the native page-2 enum; its popup root is now Alchemy (All, Potions, Poisons, Ingredients, Tools).
+	// Potions and Poisons each open their own group submenu (owner regrouping 2026-10-30).
+	enum class Alchemy : unsigned {
+		All, Potions, Poisons, Ingredients, Tools,
+		Restore, Fortify, Ward, Stealth, Utility, Cures, Other,
+		Damage, Elemental, Disable
+	};
 	constexpr unsigned Index(Alchemy choice) { return static_cast<unsigned>(choice); }
 	constexpr std::uint32_t AlchemyBit(Alchemy choice)
 	{
 		const auto index = Index(choice);
-		return index > 0 && index <= Index(Alchemy::Poison) ? 1u << (index - 1) : 0u;
+		return index > 0 && index <= Index(Alchemy::Disable) ? 1u << (index - 1) : 0u;
 	}
 	constexpr std::uint32_t AlchemyTags(unsigned formType)
 	{
@@ -30,8 +35,11 @@ namespace itemtags
 			formType == 25 ? AlchemyBit(Alchemy::Ingredients) :
 			formType == 19 ? AlchemyBit(Alchemy::Tools) : 0u;
 	}
-	// Potion submenu: All potions=1; Health..Poison are flat IDs 4..9.
-	constexpr unsigned PotionSelection(unsigned choice) { return choice == 0 ? Index(Alchemy::Potions) : choice + 3; }
+	// Potion submenu: All potions=Potions; Restore..Other follow. Poison submenu: All poisons=Poisons; Damage..Disable.
+	constexpr unsigned PotionSelection(unsigned choice) { return choice == 0 ? Index(Alchemy::Potions) : Index(Alchemy::Restore) + choice - 1; }
+	constexpr unsigned PoisonSelection(unsigned choice) { return choice == 0 ? Index(Alchemy::Poisons) : Index(Alchemy::Damage) + choice - 1; }
+	constexpr bool IsPotionGroup(unsigned id) { return id >= Index(Alchemy::Restore) && id <= Index(Alchemy::Other); }
+	constexpr bool IsPoisonGroup(unsigned id) { return id >= Index(Alchemy::Damage) && id <= Index(Alchemy::Disable); }
 	constexpr unsigned kMaxChoices = pickergrid::kMaxChoices;
 	static_assert(magiceffects::kChoiceCount <= kMaxChoices);
 
@@ -61,8 +69,8 @@ namespace itemtags
 				{ L"Weapon-All.png", L"Weapon-Dagger.png", L"Weapon-Shortsword.png", L"Weapon-Longsword.png", L"Weapon-Claymore.png", L"Weapon-WarAxe.png", L"Weapon-Battleaxe.png", L"Weapon-Mace.png", L"Weapon-Warhammer.png", L"Weapon-Bow.png", L"Weapon-Arrow.png", L"Weapon-Staff.png", L"Weapon-Other.png" } },
 			{ "Equipment piece", 9, { "All", "Ring", "Amulet", "Head", "Torso", "Arms", "Feet", "Legwear", "Shield" },
 				{ L"Gear-All.png", L"Gear-Ring.png", L"Gear-Amulet.png", L"Gear-Head.png", L"Gear-Torso.png", L"Gear-Arms.png", L"Gear-Feet.png", L"Gear-Legwear.png", L"Gear-Shield.png" } },
-			{ "Alchemy", 4, { "All", "Potions", "Ingredients", "Tools" },
-				{ L"Alchemy-All.png", L"Alchemy-Potions.png", L"Alchemy-Ingredients.png", L"Alchemy-Tools.png" } },
+			{ "Alchemy", 5, { "All", "Potions", "Poisons", "Ingredients", "Tools" },
+				{ L"Alchemy-All.png", L"Alchemy-Potions.png", L"Alchemy-Poisons.png", L"Alchemy-Ingredients.png", L"Alchemy-Tools.png" } },
 			{ "Item type", 6, { "All", "Keys", "Soul gems", "Books", "Tools", "Other" },
 				{ L"Misc-All.png", L"Misc-Keys.png", L"Misc-SoulGems.png", L"Misc-Books.png", L"Misc-Tools.png", L"Misc-Other.png" } },
 			// All Items: the four tab categories first; a category then opens its own choices.
@@ -79,10 +87,13 @@ namespace itemtags
 				}
 				return info;
 			}(),
-			{ "Potion type", 7, { "All potions", "Health", "Magicka", "Fatigue", "Attributes", "Cure", "Poison" },
-				{ L"Potion-All.png", L"Potion-Health.png", L"Potion-Magicka.png", L"Potion-Fatigue.png", L"Potion-Attributes.png", L"Potion-Cure.png", L"Potion-Poison.png" } },
+			// Every potion/poison group has its own editable file (owner 2026-10-30).
+			{ "Potion type", 8, { "All potions", "Restore", "Fortify", "Ward", "Stealth", "Utility", "Cures", "Other" },
+				{ L"Potion-All.png", L"Potion-Restore.png", L"Potion-Fortify.png", L"Potion-Ward.png", L"Potion-Stealth.png", L"Potion-Utility.png", L"Potion-Cure.png", L"Potion-Other.png" } },
 			{ "Magic type", 4, { "All", "Spells", "Scrolls", "Powers" },
 			{ L"MagicType-All.png", L"MagicType-Spells.png", L"MagicType-Scrolls.png", L"School-Powers.png" } },
+			{ "Poison type", 4, { "All poisons", "Damage", "Elemental", "Disable" },
+				{ L"Poison-All.png", L"Poison-Damage.png", L"Poison-Elemental.png", L"Poison-Disable.png" } },
 		};
 		return tabs[static_cast<unsigned>(a_tab)];
 	}
@@ -100,8 +111,12 @@ namespace itemtags
 	{
 		if (tab == Tab::Potions && choice == Index(Alchemy::Potions))
 			return Info(Tab::PotionEffects).icons[0];
-		if (tab == Tab::Potions && choice >= Index(Alchemy::Health) && choice <= Index(Alchemy::Poison))
-			return Info(Tab::PotionEffects).icons[choice - 3];
+		if (tab == Tab::Potions && IsPotionGroup(choice))
+			return Info(Tab::PotionEffects).icons[choice - Index(Alchemy::Restore) + 1];
+		if (tab == Tab::Potions && choice == Index(Alchemy::Poisons))
+			return Info(Tab::PoisonEffects).icons[0];
+		if (tab == Tab::Potions && IsPoisonGroup(choice))
+			return Info(Tab::PoisonEffects).icons[choice - Index(Alchemy::Damage) + 1];
 		const auto& info = Info(tab);
 		return info.icons[choice < info.count ? choice : 0];
 	}
@@ -159,23 +174,48 @@ namespace itemtags
 		       (static_cast<std::uint32_t>(static_cast<unsigned char>(c)) << 16) | (static_cast<std::uint32_t>(static_cast<unsigned char>(d)) << 24);
 	}
 
-	// Potion records always belong to Potions, including unclassified/scripted effects.
-	// Families are independent of Ingredients and alchemy apparatus/Tools.
-	// A potion with several kinds of effect belongs to every matching choice; Poison means "has a hostile effect".
-	constexpr std::uint32_t PotionTags(const std::uint32_t* a_codes, unsigned a_count, int a_hostileCount)
+	// Effect code -> potion or poison group. Every positive alchemy effect (UESP Oblivion:Alchemy_Effects) has a
+	// potion group; every all-hostile master poison has a poison group (coverage: docs/inventory/alchemy-misc).
+	struct EffectGroup { std::uint32_t code; Alchemy group; };
+	inline constexpr EffectGroup kAlchemyGroups[]{
+		{ Code('R', 'E', 'H', 'E'), Alchemy::Restore }, { Code('R', 'E', 'S', 'P'), Alchemy::Restore },
+		{ Code('R', 'E', 'F', 'A'), Alchemy::Restore }, { Code('R', 'E', 'A', 'T'), Alchemy::Restore },
+		{ Code('F', 'O', 'H', 'E'), Alchemy::Fortify }, { Code('F', 'O', 'S', 'P'), Alchemy::Fortify }, { Code('F', 'O', 'F', 'A'), Alchemy::Fortify },
+		{ Code('F', 'O', 'A', 'T'), Alchemy::Fortify }, { Code('F', 'O', 'S', 'K'), Alchemy::Fortify }, { Code('F', 'O', 'M', 'M'), Alchemy::Fortify },
+		{ Code('R', 'S', 'D', 'I'), Alchemy::Ward }, { Code('R', 'S', 'F', 'I'), Alchemy::Ward }, { Code('R', 'S', 'F', 'R'), Alchemy::Ward },
+		{ Code('R', 'S', 'M', 'A'), Alchemy::Ward }, { Code('R', 'S', 'N', 'W'), Alchemy::Ward }, { Code('R', 'S', 'P', 'A'), Alchemy::Ward },
+		{ Code('R', 'S', 'P', 'O'), Alchemy::Ward }, { Code('R', 'S', 'S', 'H'), Alchemy::Ward }, { Code('S', 'H', 'L', 'D'), Alchemy::Ward },
+		{ Code('F', 'I', 'S', 'H'), Alchemy::Ward }, { Code('F', 'R', 'S', 'H'), Alchemy::Ward }, { Code('L', 'I', 'S', 'H'), Alchemy::Ward },
+		{ Code('R', 'E', 'D', 'G'), Alchemy::Ward }, { Code('R', 'F', 'L', 'C'), Alchemy::Ward }, { Code('S', 'A', 'B', 'S'), Alchemy::Ward },
+		{ Code('C', 'H', 'M', 'L'), Alchemy::Stealth }, { Code('I', 'N', 'V', 'I'), Alchemy::Stealth },
+		{ Code('N', 'E', 'Y', 'E'), Alchemy::Utility }, { Code('L', 'G', 'H', 'T'), Alchemy::Utility }, { Code('D', 'T', 'C', 'T'), Alchemy::Utility },
+		{ Code('F', 'T', 'H', 'R'), Alchemy::Utility }, { Code('W', 'A', 'B', 'R'), Alchemy::Utility }, { Code('W', 'A', 'W', 'A'), Alchemy::Utility },
+		{ Code('C', 'U', 'D', 'I'), Alchemy::Cures }, { Code('C', 'U', 'P', 'O'), Alchemy::Cures },
+		{ Code('C', 'U', 'P', 'A'), Alchemy::Cures }, { Code('D', 'S', 'P', 'L'), Alchemy::Cures },
+		{ Code('D', 'G', 'H', 'E'), Alchemy::Damage }, { Code('D', 'G', 'S', 'P'), Alchemy::Damage }, { Code('D', 'G', 'F', 'A'), Alchemy::Damage },
+		{ Code('D', 'G', 'A', 'T'), Alchemy::Damage }, { Code('D', 'R', 'H', 'E'), Alchemy::Damage }, { Code('D', 'R', 'S', 'P'), Alchemy::Damage },
+		{ Code('D', 'R', 'F', 'A'), Alchemy::Damage }, { Code('D', 'R', 'A', 'T'), Alchemy::Damage }, { Code('D', 'R', 'S', 'K'), Alchemy::Damage },
+		{ Code('F', 'I', 'D', 'G'), Alchemy::Elemental }, { Code('F', 'R', 'D', 'G'), Alchemy::Elemental }, { Code('S', 'H', 'D', 'G'), Alchemy::Elemental },
+		{ Code('W', 'K', 'F', 'I'), Alchemy::Elemental }, { Code('W', 'K', 'F', 'R'), Alchemy::Elemental }, { Code('W', 'K', 'S', 'H'), Alchemy::Elemental },
+		{ Code('P', 'A', 'R', 'A'), Alchemy::Disable }, { Code('S', 'L', 'N', 'C'), Alchemy::Disable }, { Code('B', 'R', 'D', 'N'), Alchemy::Disable },
+	};
+
+	// Poison = native poison spell type, or every effect hostile (same rule as the wheel; owner RMI-014).
+	// A poison carries Poisons plus its poison groups; a potion carries Potions plus every matching potion group
+	// (hostile side effects of a mixed potion add nothing), or Other when none matches.
+	constexpr bool IsPoison(unsigned a_count, int a_hostileCount, bool a_poisonType = false)
 	{
-		std::uint32_t tags = AlchemyBit(Alchemy::Potions);
-		for (unsigned i = 0; i < a_count; ++i) {
-			const auto code = a_codes[i];
-			if (code == Code('R', 'E', 'H', 'E') || code == Code('F', 'O', 'H', 'E')) tags |= AlchemyBit(Alchemy::Health);
-			else if (code == Code('F', 'O', 'S', 'P') || code == Code('R', 'E', 'S', 'P')) tags |= AlchemyBit(Alchemy::Magicka);
-			else if (code == Code('R', 'E', 'F', 'A') || code == Code('F', 'O', 'F', 'A')) tags |= AlchemyBit(Alchemy::Fatigue);
-			else if (code == Code('C', 'U', 'D', 'I') || code == Code('C', 'U', 'P', 'O') || code == Code('C', 'U', 'P', 'A')) tags |= AlchemyBit(Alchemy::Cure);
-			else if (code == Code('F', 'O', 'A', 'T') || code == Code('R', 'E', 'A', 'T') ||
-				code == Code('D', 'G', 'A', 'T') || code == Code('D', 'R', 'A', 'T') || code == Code('A', 'B', 'A', 'T')) tags |= AlchemyBit(Alchemy::Attributes);
-		}
-		if (a_hostileCount > 0) tags |= AlchemyBit(Alchemy::Poison);
-		return tags;
+		return a_poisonType || (a_count > 0 && a_hostileCount >= static_cast<int>(a_count));
+	}
+	constexpr std::uint32_t PotionTags(const std::uint32_t* a_codes, unsigned a_count, int a_hostileCount, bool a_poisonType = false)
+	{
+		const bool poison = IsPoison(a_count, a_hostileCount, a_poisonType);
+		std::uint32_t groups = 0;
+		for (unsigned i = 0; i < a_count; ++i)
+			for (const auto& entry : kAlchemyGroups)
+				if (entry.code == a_codes[i] && IsPoisonGroup(Index(entry.group)) == poison) groups |= AlchemyBit(entry.group);
+		if (poison) return AlchemyBit(Alchemy::Poisons) | groups;
+		return AlchemyBit(Alchemy::Potions) | (groups ? groups : AlchemyBit(Alchemy::Other));
 	}
 
 	// Native RE::MagicSystem::SpellType, NOT the unrelated UI Category byte.

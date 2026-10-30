@@ -44,7 +44,7 @@ int main()
 	check(itemtags::TabFromPage(3, tab) && tab == itemtags::Tab::Misc, "page 3 is misc");
 	check(itemtags::TabFromPage(4, tab) && tab == itemtags::Tab::AllItems && !itemtags::TabFromPage(5, tab) && !itemtags::TabFromPage(-1, tab), "page 4 is all items");
 	check(itemtags::Info(itemtags::Tab::Weapons).count == weaponkinds::kCount && itemtags::Info(itemtags::Tab::Gear).count == 9 &&
-		itemtags::Info(itemtags::Tab::Potions).count == 4 && itemtags::Info(itemtags::Tab::Misc).count == 6, "choice counts");
+		itemtags::Info(itemtags::Tab::Potions).count == 5 && itemtags::Info(itemtags::Tab::Misc).count == 6, "choice counts");
 	// Gear tags still agree with the captured masks: Ring is choice 1, Shield choice 8.
 	check(itemtags::Includes(1, itemtags::GearTags(0xC0)) && itemtags::Includes(7, itemtags::GearTags(12)) && !itemtags::Includes(6, itemtags::GearTags(8)), "gear tags");
 	check(itemtags::Includes(0, 0), "All keeps untagged items");
@@ -65,25 +65,25 @@ int main()
 	const std::uint32_t fatigue[] = { Code('R', 'E', 'F', 'A') };
 	const std::uint32_t damage[] = { Code('D', 'G', 'H', 'E') };
 	check(Code('R', 'S', 'M', 'A') == 0x414D5352u, "effect code byte order matches the dump");
-	check(itemtags::Includes(Index(Alchemy::Health), itemtags::PotionTags(rest, 1, 0)) && !itemtags::Includes(Index(Alchemy::Poison), itemtags::PotionTags(rest, 1, 0)), "restore health");
-	check(itemtags::Includes(Index(Alchemy::Health), itemtags::PotionTags(mixed, 2, 1)) && itemtags::Includes(Index(Alchemy::Poison), itemtags::PotionTags(mixed, 2, 1)), "mixed potion is health and poison");
-	check(itemtags::Includes(Index(Alchemy::Cure), itemtags::PotionTags(cure, 1, 0)) && itemtags::Includes(Index(Alchemy::Fatigue), itemtags::PotionTags(fatigue, 1, 0)), "cure and fatigue");
-	check(itemtags::Includes(Index(Alchemy::Poison), itemtags::PotionTags(damage, 1, 2)) && !itemtags::Includes(Index(Alchemy::Health), itemtags::PotionTags(damage, 1, 2)), "poison is not health");
-	check(itemtags::PotionTags(nullptr, 0, 0) == AlchemyBit(Alchemy::Potions), "unclassified potion stays in Potions");
+	check(itemtags::Includes(Index(Alchemy::Restore), itemtags::PotionTags(rest, 1, 0)) && !itemtags::Includes(Index(Alchemy::Poisons), itemtags::PotionTags(rest, 1, 0)), "restore health");
+	check(itemtags::Includes(Index(Alchemy::Restore), itemtags::PotionTags(mixed, 2, 1)) && !itemtags::Includes(Index(Alchemy::Poisons), itemtags::PotionTags(mixed, 2, 1)), "mixed potion is restore, not poison");
+	check(itemtags::Includes(Index(Alchemy::Cures), itemtags::PotionTags(cure, 1, 0)) && itemtags::Includes(Index(Alchemy::Restore), itemtags::PotionTags(fatigue, 1, 0)), "cure and fatigue");
+	check(itemtags::Includes(Index(Alchemy::Damage), itemtags::PotionTags(damage, 1, 2)) && !itemtags::Includes(Index(Alchemy::Restore), itemtags::PotionTags(damage, 1, 2)), "poison is damage, not restore");
+	check(itemtags::PotionTags(nullptr, 0, 0) == (AlchemyBit(Alchemy::Potions) | AlchemyBit(Alchemy::Other)), "unclassified potion is Other");
 	// Actual master ALCH records: 00098499 PotionRestoreMagicka and 00098477 PotionFortifyMagicka.
 	const std::uint32_t potionRESP[] = { Code('R', 'E', 'S', 'P') };
-	check(itemtags::PotionTags(potionRESP, 1, 0) == (AlchemyBit(Alchemy::Potions) | AlchemyBit(Alchemy::Magicka)), "vanilla RESP potion is Magicka");
-	check(itemtags::IncludesAll(3, Index(Alchemy::Magicka), itemtags::PotionTags(potionRESP, 1, 0) | (3u << 28)), "All Items Magicka RESP");
+	check(itemtags::PotionTags(potionRESP, 1, 0) == (AlchemyBit(Alchemy::Potions) | AlchemyBit(Alchemy::Restore)), "vanilla RESP potion is Restore");
+	check(itemtags::IncludesAll(3, Index(Alchemy::Restore), itemtags::PotionTags(potionRESP, 1, 0) | (3u << 28)), "All Items Restore RESP");
 	const std::uint32_t potionFOSP[] = { Code('F', 'O', 'S', 'P') };
-	check(itemtags::PotionTags(potionFOSP, 1, 0) == (AlchemyBit(Alchemy::Potions) | AlchemyBit(Alchemy::Magicka)), "vanilla FOSP potion is Magicka");
-	check(itemtags::IncludesAll(3, Index(Alchemy::Magicka), itemtags::PotionTags(potionFOSP, 1, 0) | (3u << 28)), "All Items Magicka FOSP");
+	check(itemtags::PotionTags(potionFOSP, 1, 0) == (AlchemyBit(Alchemy::Potions) | AlchemyBit(Alchemy::Fortify)), "vanilla FOSP potion is Fortify");
+	check(itemtags::IncludesAll(3, Index(Alchemy::Fortify), itemtags::PotionTags(potionFOSP, 1, 0) | (3u << 28)), "All Items Fortify FOSP");
 	const std::uint32_t inventedMagicka[] = { Code('R', 'E', 'M', 'A'), Code('F', 'O', 'M', 'A') };
-	check(itemtags::PotionTags(inventedMagicka, 2, 0) == AlchemyBit(Alchemy::Potions), "invented codes add no family");
+	check(itemtags::PotionTags(inventedMagicka, 2, 0) == (AlchemyBit(Alchemy::Potions) | AlchemyBit(Alchemy::Other)), "invented codes fall to Other");
 	const std::uint32_t mixedMagicka[] = { Code('R', 'E', 'S', 'P'), Code('R', 'E', 'H', 'E'), Code('R', 'E', 'F', 'A'), Code('C', 'U', 'P', 'O') };
-	const auto mixedTags = AlchemyBit(Alchemy::Potions) | AlchemyBit(Alchemy::Magicka) | AlchemyBit(Alchemy::Health) | AlchemyBit(Alchemy::Fatigue) | AlchemyBit(Alchemy::Cure);
-	check(itemtags::PotionTags(mixedMagicka, 4, 0) == mixedTags, "mixed potion retains all four families");
-	check(itemtags::PotionTags(mixedMagicka, 4, 1) == (mixedTags | AlchemyBit(Alchemy::Poison)), "hostile mixed potion also retains Poison");
-	check(!itemtags::IncludesAll(2, Index(Alchemy::Magicka), itemtags::PotionTags(potionRESP, 1, 0) | (3u << 28)), "Magicka cannot leak into Gear");
+	const auto mixedTags = AlchemyBit(Alchemy::Potions) | AlchemyBit(Alchemy::Restore) | AlchemyBit(Alchemy::Cures);
+	check(itemtags::PotionTags(mixedMagicka, 4, 0) == mixedTags, "mixed potion retains Restore and Cures");
+	check(itemtags::PotionTags(mixedMagicka, 4, 1) == mixedTags, "mixed potion with one hostile effect is not a poison");
+	check(!itemtags::IncludesAll(2, Index(Alchemy::Restore), itemtags::PotionTags(potionRESP, 1, 0) | (3u << 28)), "Restore cannot leak into Gear");
 	// Misc: stable native item kinds and the independently verified base repair-hammer form.
 	check(itemtags::Includes(1, itemtags::MiscTags(39, 0x123, 0)), "key");
 	check(itemtags::Includes(2, itemtags::MiscTags(38, 0x2CF9F, 0)), "soul gem");
