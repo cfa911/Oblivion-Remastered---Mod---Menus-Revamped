@@ -69,10 +69,10 @@ namespace sorting
 		bool IsOwnedHeader(UE::UObject* widget);
 		bool OwnHeaderEvent(UE::UObject*, UE::UFunction*, void*);
 
-		// One header icon plus its popup. The Inventory has one; the Magic menu has two (school, effect).
+		// One header icon plus its popup. Magic has school, source type and effect pickers.
 		struct Picker
 		{
-			int kind = -1;  // -1 inactive, 0 inventory, 1/2 Magic, 3 player side, 4 other side
+			int kind = -1;  // -1 inactive, 0 inventory, 1/2 Magic school/effect, 3/4 container sides, 5 Magic type
 			std::mutex inputLock;
 			Rect headerPx, popupPx, cellsPx[itemtags::kMaxChoices];
 			bool inputActive = false, inputOpen = false, swallowUp = false, swallowEscape = false;
@@ -109,6 +109,7 @@ namespace sorting
 
 			// PickerPopup.cpp: the popup grid and painting
 			bool BuildPopup(UE::UObject* a_canvas);
+			void OpenPopup();  // closes peer popups without resetting their applied filters
 			const wchar_t* HeaderIcon() const;
 			unsigned Highlight() const;
 			void StyleCells();
@@ -133,7 +134,7 @@ namespace sorting
 			void WarnNativeFocus();
 		};
 
-		extern Picker g_pickers[4];  // Inventory/Magic school, Magic effect, player side, other side
+		extern Picker g_pickers[5];  // Inventory/Magic school, Magic effect, player side, other side, Magic type
 
 		void UpdateNativeBackgroundMask();   // NativeBackground.cpp
 	}

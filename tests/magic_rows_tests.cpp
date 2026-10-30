@@ -35,21 +35,21 @@ int main()
 				const auto mask = magicrows::Mask(range, school, static_cast<int>(at + 1), spells.data(), spells.size());
 				Check(!(mask & magicrows::kPassAll), "resolved powers must not bypass filters");
 				Check(static_cast<std::uint32_t>(mask >> 32) == expected[at], "captured power effects classified");
-				Check(static_cast<std::uint32_t>(mask) == ((1u << school) | (1u << 6)), "power keeps only its row school and Powers");
+				Check(static_cast<std::uint32_t>(mask) == (1u << school), "power keeps only its row school");
 				Check(!magicrows::Passes(mask, 0, static_cast<unsigned>(Choice::Fire)), "none of six captured powers is Fire");
 				for (unsigned schoolChoice = 0; schoolChoice < 8; ++schoolChoice)
 					for (unsigned effectChoice = 0; effectChoice < magiceffects::kChoiceCount; ++effectChoice) {
-						const bool wantedSchool = schoolChoice == 0 || schoolChoice == school + 1 || schoolChoice == 7;
+						const bool wantedSchool = schoolChoice == 0 || schoolChoice == school + 1;
 						const bool wantedEffect = effectChoice == 0 || (expected[at] & (1u << (effectChoice - 1))) != 0;
 						Check(magicrows::Passes(mask, schoolChoice, effectChoice) == (wantedSchool && wantedEffect), "combined School AND Effect policy");
 					}
 			}
 	const auto greater = magicrows::Mask(4, 5, 2, spells.data(), spells.size());
-	Check(magicrows::Passes(greater, 7, static_cast<unsigned>(Choice::Fortify)), "Gates of Aetherius under Powers+Fortify");
+	Check(magicrows::TypePasses(magicrows::TypeTag(2), 3) && magicrows::Passes(greater, 0, static_cast<unsigned>(Choice::Fortify)), "Gates of Aetherius under Powers+Fortify");
 	Check(magicrows::Passes(greater, 6, static_cast<unsigned>(Choice::Resistance)), "Gates of Aetherius under its row school+Resistance");
 	Check(!magicrows::Passes(greater, 1, 0), "greater power excluded from unrelated school");
 	const auto lesser = magicrows::Mask(4, 3, 6, spells.data(), spells.size());
-	Check(magicrows::Passes(lesser, 7, static_cast<unsigned>(Choice::Control)), "lesser power included under Powers+Control");
+	Check(magicrows::TypePasses(magicrows::TypeTag(3), 3) && magicrows::Passes(lesser, 0, static_cast<unsigned>(Choice::Control)), "lesser power included under Powers+Control");
 	magicrows::Spell normal{ { Code("FIDG") }, 1, 0, true };
 	const auto fire = magicrows::Mask(1, 2, 1, &normal, 1);
 	Check(magicrows::Passes(fire, 3, static_cast<unsigned>(Choice::Fire)), "normal spell still filters by school/effect");
@@ -70,10 +70,10 @@ int main()
 	Check(magicrows::Mask(4, 2, 1, &unread, 1) == magicrows::kPassAll, "effect array count bound");
 	magicrows::Spell unknown{ { Code("CLRV") }, 1, 3, true };
 	const auto other = magicrows::Mask(4, 3, 1, &unknown, 1);
-	Check(other != magicrows::kPassAll && magicrows::Passes(other, 7, static_cast<unsigned>(Choice::Other)), "unknown mod effect is Other, not every family");
+	Check(other != magicrows::kPassAll && magicrows::Passes(other, 0, static_cast<unsigned>(Choice::Other)), "unknown mod effect is Other, not every family");
 	Check(!magicrows::Passes(other, 0, static_cast<unsigned>(Choice::Fire)), "unknown effect does not bypass Fire");
-	Check(itemtags::SchoolTags(5, 3) == ((1u << 5) | (1u << 6)), "lesser-power School tag");
-	Check(itemtags::SchoolTags(9, 2) == (1u << 6), "unknown school power still belongs to Powers only");
+	Check(itemtags::SchoolTags(5, 3) == (1u << 5), "lesser-power School tag");
+	Check(itemtags::SchoolTags(9, 2) == 0 && magicrows::TypeTag(2) == magicrows::kPowerTag, "unknown school power still belongs to Powers only");
 	Check(itemtags::SchoolTags(5, 4) == 0, "native ability is not castable spell");
 	std::printf("%u magic row checks passed\n", checks);
 }

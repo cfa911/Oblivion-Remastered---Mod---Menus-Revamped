@@ -27,7 +27,7 @@ page = source_paths.function(gear, 'int ContainerPage(')
 check('a_kind == 3' in page and '"CurrentPageInventory"' in page and '"CurrentPageContainer"' in page,
       'player picker uses the player page, other picker the container page')
 tick = source_paths.function(gear, 'void Picker::Tick(int a_kind, UE::UObject* a_menu')
-container = tick[tick.find('if (a_kind >= 3) {'):tick.find('} else if (a_kind == 0) {')]
+container = tick[tick.find('if (a_kind >= 3 && a_kind <= 4) {'):tick.find('} else if (a_kind == 0) {')]
 check('ContainerPage(a_kind)' in container and 'itemtags::TabFromPage(' in container,
       'a container side takes its tab from its native page (Misc tab -> Misc choices)')
 check('Tab::AllItems' in container and container.find('Tab::AllItems') < container.find('TabFromPage('),

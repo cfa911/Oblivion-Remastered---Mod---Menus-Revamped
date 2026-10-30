@@ -50,7 +50,7 @@ insert = source_paths.function(gear, 'bool Picker::InsertHeader(')
 check('stolenfilter::Supports(kind)' in insert, 'the icon is created only where the toggle is supported')
 check('reflect::Get(stolenHeader)' in insert, 'the icon is not re-added as a native child')
 attach = insert[insert.find('if (schoolAt < 0)'):]
-check(0 <= attach.find('Get(stolenHeader)') < attach.find('"Content", box'),
+check(0 <= attach.find('Get(stolenHeader)') < attach.find('addHeader(box)'),
       'the stolen icon is the leftmost button, before the category picker (owner 2026-10-29)')
 paint = source_paths.function(gear, 'void Picker::PaintStolen()')
 check('kStolenFill' in policy and '0.708376f, 0.135633f, 0.114435f, 0.5f' in policy,

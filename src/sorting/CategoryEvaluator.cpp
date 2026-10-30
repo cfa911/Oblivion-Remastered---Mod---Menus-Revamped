@@ -36,6 +36,7 @@ namespace sorting
 		auto& state = g_states[slot];
 		auto& primary = g_pickers[slot ? slot + 1 : 0];
 		auto& second = g_pickers[1];
+		auto& type = g_pickers[4];
 		const bool magic = side == 2;
 		bool changed = false;
 		if (state.generation != generation || state.menu != side) {
@@ -79,9 +80,11 @@ namespace sorting
 			logger::warn("Menus Revamped: item classification timed out; unresolved categories remain visible");
 		}
 		const bool useSecond = second.kind == 2;
+		const bool useType = magic && type.kind == 5;
 		if (!changed && !state.dirty && primary.choice == primary.appliedChoice &&
 			primary.category == primary.appliedCategory && primary.stolenOnly == primary.appliedStolen &&
-			(!useSecond || second.choice == second.appliedChoice))
+			(!useSecond || second.choice == second.appliedChoice) &&
+			(!useType || type.choice == type.appliedChoice))
 			return state.filtered;
 		const bool stolenOnly = primary.stolenOnly && stolenfilter::Supports(primary.kind) && (side == 1 || side == 3);
 		if (stolenOnly && state.stolen.size() != source.size()) {
@@ -95,12 +98,14 @@ namespace sorting
 			const auto mask = state.masks.find(slot ? static_cast<int>(at) : Index(item));
 			if (!Active(side) || primary.kind < 0) { state.filtered.push_back(item); continue; }
 			if (stolenOnly && !stolenfilter::Keeps(true, state.stolen[at])) continue;
-			if (mask == state.masks.end() || (primary.Passes(mask->second) && (!useSecond || second.Passes(mask->second))))
+			if (mask == state.masks.end() || (primary.Passes(mask->second) && (!useSecond || second.Passes(mask->second)) &&
+				(!useType || type.Passes(mask->second))))
 				state.filtered.push_back(item);
 		}
 		state.dirty = false;
 		primary.appliedChoice = primary.choice; primary.appliedCategory = primary.category; primary.appliedStolen = primary.stolenOnly;
 		second.appliedChoice = second.choice;
+		if (useType) type.appliedChoice = type.choice;
 		return state.filtered;
 	}
 }

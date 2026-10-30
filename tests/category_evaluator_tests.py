@@ -63,8 +63,12 @@ std::unordered_map<std::uint64_t,std::uint64_t> g_rowTags;
 struct Picker {
     int kind=0; unsigned choice=0,appliedChoice=0,category=0,appliedCategory=0;
     bool stolenOnly=false,appliedStolen=false;
-    bool Passes(std::uint64_t mask) const { return !category || (mask & category)!=0; }
-} g_pickers[4];
+    bool Passes(std::uint64_t mask) const {
+        if(kind==5) return !choice || !(mask & ((1ull<<28)|(1ull<<29)|(1ull<<30))) ||
+            (mask & (choice==1 ? (1ull<<29) : choice==2 ? (1ull<<30) : (1ull<<28)));
+        return !category || (mask & category)!=0;
+    }
+} g_pickers[5];
 bool active=true;
 bool Active(int) { return active; }
 int Index(UE::UObject* item) { return item->index; }
@@ -140,6 +144,25 @@ int main() {
     sorting::g_pickers[0].kind=1; sorting::g_pickers[0].category=1;
     check(sorting::Evaluate(2,source,1)==Rows{&first},"Magic category tags remain supported");
     check(geardata::requests.size()==magicCount,"Magic does not use inventory/container request path");
+    // Magic type picker combines with School/Effect and invalidates cached results immediately.
+    sorting::g_pickers[0].category=0; sorting::g_pickers[1].kind=2;
+    sorting::g_pickers[4].kind=5;
+    UE::UObject spell{70,1u<<29},scroll{71,1u<<30},power{72,(1u<<28)|1u};
+    Rows magicRows{&spell,&scroll,&power};
+    check(sorting::Evaluate(2,magicRows,22)==magicRows,"Magic type All keeps both kinds");
+    sorting::g_pickers[4].choice=1;
+    check(sorting::Evaluate(2,magicRows,22)==Rows{&spell},"Spells excludes scrolls and powers immediately without a new generation");
+    sorting::g_pickers[4].choice=2;
+    check(sorting::Evaluate(2,magicRows,22)==Rows{&scroll},"Scrolls excludes spells and powers");
+    sorting::g_pickers[0].category=1;
+    sorting::g_pickers[4].choice=3;
+    check(sorting::Evaluate(2,magicRows,22)==Rows{&power},"type combines with existing School filter");
+    sorting::g_pickers[0].category=0;
+    sorting::g_pickers[4].choice=0;
+    check(sorting::Evaluate(2,magicRows,22)==magicRows,"All restores original complete Magic source");
+    sorting::g_pickers[4].choice=2;
+    check(sorting::Evaluate(1,magicRows,23)==magicRows,"Magic type selection cannot filter Inventory");
+    sorting::g_pickers[4].kind=-1;
     // Stolen-only toggle (owner 2026-10-29): StatusFlags bit 0, Inventory and the player's side only.
     for(auto& picker:sorting::g_pickers) { picker.category=0; picker.stolenOnly=false; }
     sorting::g_pickers[0].kind=0; sorting::g_pickers[2].kind=3; sorting::g_pickers[3].kind=4;

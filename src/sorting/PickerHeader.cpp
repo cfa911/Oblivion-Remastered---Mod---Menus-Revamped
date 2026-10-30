@@ -102,6 +102,7 @@ namespace sorting
 				!copy("HorizontalAlignment", &child.horizontal, 1) || !copy("VerticalAlignment", &child.vertical, 1)) return false;
 			child.hasSize = copy("Size", child.size.data(), 8);  // ScrollBoxSlot has no Size
 			if (kind == 1 && pe::Utf8(widget->GetFName().ToString()) == "School") { schoolAt = static_cast<int>(children.size()); nativeSchool = reflect::Hold(widget); }
+			if (kind == 5 && pe::Utf8(widget->GetFName().ToString()) == "ItemCategory") { schoolAt = static_cast<int>(children.size()); nativeSchool = reflect::Hold(widget); }
 			children.push_back(child);
 		}
 		if (children.empty()) return false;
@@ -167,16 +168,24 @@ namespace sorting
 			if (!box) return false;
 			carousel = reflect::Hold(navigation);
 			rollback.complete = true;
+			PaintController();  // initial All opacity must be applied after the images exist
 		}
+		const auto addHeader = [&](UE::UObject* widget) {
+			ui::Call add(a_panel, L"AddChild");
+			if (!add.Set("Content", widget) || !add.Run()) return false;
+			// Measured native Name/ItemCategory/School footprint is54: our content49 +2.5 each side.
+			const std::array<float, 4> padding{ 2.5f, 0, 2.5f, 0 };
+			return ui::CallFirst(add.Get<UE::UObject*>("ReturnValue"), L"SetPadding", padding.data(), sizeof(padding));
+		};
 		// InsertChildAt/ShiftChild are not reflected: reattach the same native widgets preserving slot layout and existing
 		// bindings, with our icon first, before A-Z (and before the other picker's icon when both are attached).
 		ui::Call clear(a_panel, L"ClearChildren"); if (!clear.Run()) return false;
 		if (schoolAt < 0) {  // no native school button: the stolen-only icon leftmost (owner), then our picker
-			if (auto* stolen = reflect::Get(stolenHeader)) { ui::Call add(a_panel, L"AddChild"); add.Set("Content", stolen); add.Run(); }
-			ui::Call own(a_panel, L"AddChild"); own.Set("Content", box); own.Run();
+			if (auto* stolen = reflect::Get(stolenHeader); stolen && !addHeader(stolen)) return false;
+			if (!addHeader(box)) return false;
 		}
 		for (std::size_t i = 0; i < children.size(); ++i) {
-			if (static_cast<int>(i) == schoolAt) { ui::Call own(a_panel, L"AddChild"); own.Set("Content", box); own.Run(); }
+			if (static_cast<int>(i) == schoolAt) { if (!addHeader(box)) return false; }
 			ui::Call add(a_panel, L"AddChild"); add.Set("Content", children[i].widget); add.Run();
 			auto* slot = add.Get<UE::UObject*>("ReturnValue");
 			ui::CallFirst(slot, L"SetPadding", children[i].padding.data(), 16);

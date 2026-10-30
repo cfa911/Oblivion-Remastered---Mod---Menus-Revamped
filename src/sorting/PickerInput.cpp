@@ -155,7 +155,7 @@ namespace sorting
 
 	bool Message(UINT a_message, WPARAM a_key, LPARAM a_position)
 	{
-		for (int i = 3; i >= 0; --i) if (g_pickers[i].Message(a_message, a_key, a_position)) return true;
+		for (int i = 4; i >= 0; --i) if (g_pickers[i].Message(a_message, a_key, a_position)) return true;
 		return false;
 	}
 }
