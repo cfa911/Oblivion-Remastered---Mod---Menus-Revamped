@@ -14,6 +14,7 @@ namespace searchcfg
 		bool container = true;  // [Search] bContainer: the container / barter menu has the search (a bar on each side)
 		bool ime = true;        // [Search] bIme: Japanese / Chinese input methods type into the bars (the window gets its input context back while a bar is typed into)
 		bool ignoreAccents = true;  // [Search] bIgnoreAccents: "cafe" finds "Café", "a" finds "ä"; a typed accent finds only that letter (case is always ignored)
+		bool clearTextOnGameplay = true;  // [Search] bClearTextOnGameplay: clear stored searches when leaving menus for gameplay
 
 		int    barFontSize = 19;   // [Bar] uFontSize
 		double barX = 289, barY = 111, barW = 486, barH = 36;   // where the bar sits in the menu's root canvas (menu units), and its size

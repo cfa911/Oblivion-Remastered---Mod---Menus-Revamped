@@ -134,9 +134,9 @@ namespace sorting
 					picker.enchantedHeader = {}; picker.enchantedImage = {}; picker.enchantedFrame = {};
 				}
 			} rollback{ *this };
-			// One 49x49 icon button in the native wrapper class, registered with the sort carousel.
+			// Native-height buttons; extra toggles use less horizontal space than category replacements.
 			const auto make = [&](const wchar_t* a_prefix, const wchar_t* a_icon, reflect::Handle& a_header,
-				reflect::Handle& a_image, reflect::Handle& a_frame) -> UE::UObject* {
+				reflect::Handle& a_image, reflect::Handle& a_frame, float a_width = 49.0f, bool a_tight = false) -> UE::UObject* {
 				auto* widget = ui::CreateWidget(classPath.c_str());
 				if (!widget) return nullptr;
 				a_header = reflect::Hold(widget); // establish ownership before registering/focusing
@@ -145,13 +145,16 @@ namespace sorting
 				const std::wstring name = a_prefix;
 				auto* inner = ui::RootCanvas(widget, (name + L"Canvas" + suffix).c_str());
 				if (!inner) return nullptr;
-				auto* sizeBox = CanvasChild(inner, L"/Script/UMG.SizeBox", (name + L"Size" + suffix).c_str(), 0, 0, 49, 49);
+				const float scale = a_width / (a_tight ? 39.0f : 49.0f);
+				const float contentWidth = a_width;
+				auto* sizeBox = CanvasChild(inner, L"/Script/UMG.SizeBox", (name + L"Size" + suffix).c_str(), 0, 0, contentWidth, 49);
 				if (!sizeBox) return nullptr;
-				ui::Float(sizeBox, L"SetWidthOverride", 49);
+				ui::Float(sizeBox, L"SetWidthOverride", contentWidth);
 				ui::Float(sizeBox, L"SetHeightOverride", 49);
-				auto* frame = CanvasChild(inner, L"/Script/UMG.Image", (name + L"Frame" + suffix).c_str(), 0, 0, 49, 49);
+				auto* frame = CanvasChild(inner, L"/Script/UMG.Image", (name + L"Frame" + suffix).c_str(), 0, 0, contentWidth, 49);
 				ui::RoundedBox(frame, false, kClear, kClear, 0);
-				auto* image = CanvasChild(inner, L"/Script/UMG.Image", (name + L"Icon" + suffix).c_str(), 5, 4, 39, 40, 1);
+				auto* image = CanvasChild(inner, L"/Script/UMG.Image", (name + L"Icon" + suffix).c_str(),
+					a_tight ? 0 : 5 * scale, 4 + (40 - 40 * scale) * 0.5f, 39 * scale, 40 * scale, 1);
 				Brush(image, a_icon);
 				if (!frame || !image) return nullptr;
 				a_image = reflect::Hold(image); a_frame = reflect::Hold(frame);
@@ -162,11 +165,11 @@ namespace sorting
 			};
 			// Register custom headers in their on-screen order: enchanted, stolen, category picker.
 			if (enchantedfilter::Supports(kind)) {
-				if (!make(L"SlEnchantedHeader", L"Enchanted.png", enchantedHeader, enchantedImage, enchantedFrame)) return false;
+				if (!make(L"SlEnchantedHeader", L"Enchanted.png", enchantedHeader, enchantedImage, enchantedFrame, 30, true)) return false;
 				PaintEnchanted();
 			}
 			if (stolenfilter::Supports(kind)) {
-				if (!make(L"SlStolenHeader", L"Stolen-Item.png", stolenHeader, stolenImage, stolenFrame)) return false;
+				if (!make(L"SlStolenHeader", L"Stolen-Item.png", stolenHeader, stolenImage, stolenFrame, 30, true)) return false;
 				PaintStolen();
 			}
 			box = make(L"SlPieceHeader", itemtags::Info(tab).icons[0], header, headerImage, headerFrame);
@@ -178,8 +181,10 @@ namespace sorting
 		const auto addHeader = [&](UE::UObject* widget) {
 			ui::Call add(a_panel, L"AddChild");
 			if (!add.Set("Content", widget) || !add.Run()) return false;
-			// Measured native Name/ItemCategory/School footprint is54: our content49 +2.5 each side.
-			const std::array<float, 4> padding{ 2.5f, 0, 2.5f, 0 };
+			// Category replacements keep the native 54-unit footprint; extra toggles have no side padding.
+			const bool toggle = widget == reflect::Get(stolenHeader) || widget == reflect::Get(enchantedHeader);
+			const float side = toggle ? 0.0f : 2.5f;
+			const std::array<float, 4> padding{ side, 0, side, 0 };
 			return ui::CallFirst(add.Get<UE::UObject*>("ReturnValue"), L"SetPadding", padding.data(), sizeof(padding));
 		};
 		// InsertChildAt/ShiftChild are not reflected: reattach the same native widgets preserving slot layout and existing

@@ -68,6 +68,8 @@ int main() {
     check(v.search.inventoryBar.y==109.5,"unparsable value keeps the default");
     check(v.search.yoursBar.x==-1500,"offset clamps to -1500");
     check(v.search.ownFilter,"absent filter key defaults on");
+check(v.search.clearTextOnGameplay,"absent gameplay clear key defaults on");
+check(v.keyboard.clearTextOnActivation,"absent keyboard clear key defaults on");
     check(v.keyboard.enabled && v.keyboard.button==8,"keyboard defaults");
     check(v.keyboard.holdMs==150,"hold clamps to 150 ms");
     check(v.keyboard.leftPercent==40 && v.keyboard.rightPercent==50,"right edge is at least left + 10");
@@ -76,6 +78,14 @@ int main() {
     check(v.smooth.hoverIntervalMs==1000,"hover interval clamps to 1000");
     check(v.smooth.objectGuardLimit==200000,"guard limit clamps to 200000");
     check(!v.smooth.metrics,"metrics default off");
+const auto ini=mrconfig::PluginFolder()/L"MenusRevamped.ini";
+WritePrivateProfileStringW(L"Search",L"bClearTextOnGameplay",L"0",ini.c_str());
+mrconfig::Load();
+check(!v.search.clearTextOnGameplay && v.keyboard.clearTextOnActivation,"gameplay clearing independently disabled");
+WritePrivateProfileStringW(L"Search",L"bClearTextOnGameplay",L"1",ini.c_str());
+WritePrivateProfileStringW(L"SearchKeyboard",L"bClearTextOnActivation",L"0",ini.c_str());
+mrconfig::Load();
+check(v.search.clearTextOnGameplay && !v.keyboard.clearTextOnActivation,"keyboard clearing independently disabled");
     std::cout<<checks<<" checks, "<<failed<<" failures\n";
     return failed ? 1 : 0;
 }

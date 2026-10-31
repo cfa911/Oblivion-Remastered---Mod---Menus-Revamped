@@ -10,6 +10,7 @@ namespace kbcfg
 		Values     v;
 		if (std::filesystem::exists(ini)) {
 			v.enabled = ReadInt(ini, L"SearchKeyboard", L"bEnabled", v.enabled ? 1 : 0, 0, 1) != 0;
+			v.clearTextOnActivation = ReadInt(ini, L"SearchKeyboard", L"bClearTextOnActivation", v.clearTextOnActivation ? 1 : 0, 0, 1) != 0;
 			v.button = ReadInt(ini, L"SearchKeyboard", L"uButton", v.button, 0, 0xFFFF);
 			v.buttonLeft = ReadInt(ini, L"SearchKeyboard", L"uButtonLeft", v.buttonLeft, 0, 0xFFFF);
 			v.holdMs = ReadInt(ini, L"SearchKeyboard", L"uHoldMs", v.holdMs, 150, 2000);
