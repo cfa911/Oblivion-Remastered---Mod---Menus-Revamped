@@ -15,6 +15,12 @@ namespace search
 
 	void Tick(menus::Menu a_menu)
 	{
+		static bool wasInMenu = false;
+		const bool inMenu = menus::AnyOpen();
+		if (wasInMenu && !inMenu && searchcfg::Get().clearTextOnGameplay) {
+			for (int i = 1; i <= 5; ++i) SetQuery(static_cast<menus::Menu>(i), {});
+		}
+		wasInMenu = inMenu;
 		const auto now = Clock::now();
 		const bool cont = a_menu == menus::Menu::kNone && container::Open();   // the container / barter menu: a bar and a list on each side
 		{   // which of its sides are on the screen: a plain container shows only its own list (nothing to give)

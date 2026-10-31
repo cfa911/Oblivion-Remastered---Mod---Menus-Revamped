@@ -54,7 +54,8 @@ int main(){
     appended.Attach(false);
 Check(!added.empty() && added.front()==&appended.enchanted,"enchanted is the first visible custom header");
     Check(Spaced(appended.image.slot),"custom content plus symmetric padding matches native 54px footprint");
-    Check(Spaced(appended.stolen.slot),"stolen header shares custom spacing");
+Check(appended.stolen.slot.padding==std::array<float,4>{0,0,0,0},"stolen toggle has no side padding");
+Check(appended.enchanted.slot.padding==std::array<float,4>{0,0,0,0},"enchanted toggle has no side padding");
     Picker replacement; replacement.Attach(true);
     Check(Spaced(replacement.image.slot),"native-replacement custom picker has equal side padding");
     replacement.Created();

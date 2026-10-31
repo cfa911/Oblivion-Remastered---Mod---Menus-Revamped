@@ -8,6 +8,7 @@ namespace kbcfg
 	{
 		// [SearchKeyboard]
 		bool enabled = true;    // bEnabled
+		bool clearTextOnActivation = true;  // bClearTextOnActivation: start each keyboard session with an empty search
 		int  button = 0x0008;   // uButton: XInput mask held to open it (8 = D-pad right; a tap stays the game's own)
 		int  buttonLeft = 0x0004; // uButtonLeft: held in the container / barter menu to type into the other side's search (4 = D-pad left)
 		int  holdMs = 400;      // uHoldMs: how long the button is held before the keyboard opens

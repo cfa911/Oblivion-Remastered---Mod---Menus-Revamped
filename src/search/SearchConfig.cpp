@@ -17,6 +17,7 @@ namespace searchcfg
 			v.container = ReadInt(ini, L"Search", L"bContainer", v.container ? 1 : 0, 0, 1) != 0;
 			v.ime = ReadInt(ini, L"Search", L"bIme", v.ime ? 1 : 0, 0, 1) != 0;
 			v.ignoreAccents = ReadInt(ini, L"Search", L"bIgnoreAccents", v.ignoreAccents ? 1 : 0, 0, 1) != 0;
+			v.clearTextOnGameplay = ReadInt(ini, L"Search", L"bClearTextOnGameplay", v.clearTextOnGameplay ? 1 : 0, 0, 1) != 0;
 			v.barFontSize = ReadInt(ini, L"Bar", L"uFontSize", v.barFontSize, 8, 60);
 			v.barX = ReadDouble(ini, L"Bar", L"uX", v.barX, 0, 3000);
 			v.barY = ReadDouble(ini, L"Bar", L"uY", v.barY, 0, 3000);

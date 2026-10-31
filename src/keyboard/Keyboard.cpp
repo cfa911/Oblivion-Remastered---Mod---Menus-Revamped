@@ -422,6 +422,7 @@ logger::debug("search keyboard: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f
 		}
 		g_mirror = mirror;
 		if (!EnsureBuilt()) return false;
+		if (kbcfg::Get().clearTextOnActivation) search::SetText(a_menu, {});
 		g_text = search::GetText(a_menu);
 		search::SetExternalInput(true);   // the search bar stops taking typed keys while the keyboard has the text
 		if (g_text.size() > kMaxText) g_text.resize(kMaxText);
