@@ -34,5 +34,5 @@ Alchemy-Poisons.png (Poisons parent, from Effect-Poison). Potion-All.png. Potion
 Potion-Fortify.png, Potion-Ward.png (from Effect-Shield), Potion-Stealth.png, Potion-Utility.png,
 Potion-Cure.png (Cures), Potion-Other.png. Poison-All.png (from Potion-Poison), Poison-Damage.png,
 Poison-Elemental.png (from Effect-Fire), Poison-Disable.png (from Effect-Control).
-Potion-Health/Magicka/Fatigue/Attributes/Poison.png are no longer used.
+Potion-Health/Magicka/Fatigue/Attributes/Poison.png and Effect-Poison.png are no longer used and are omitted from defaults.
 Owner artwork 2026-10-30: Alchemy-Poisons.png and Poison-All.png (skull and crossbones), Potion-Cure.png (heart with cross).
