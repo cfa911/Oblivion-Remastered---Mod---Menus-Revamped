@@ -26,6 +26,7 @@ keyboard = "\n".join(line for line in keyboard.splitlines() if not line.startswi
 keyboard = keyboard.replace("using Clock = std::chrono::steady_clock;", "using Clock = FakeClock;")
 prefix = r"""
 #include <Windows.h>
+namespace mapsearch { bool Controller(WORD&,SHORT&,SHORT&,SHORT&,SHORT&,bool) { return false; } }
 #include <Xinput.h>
 #include <chrono>
 #include <cstdint>
@@ -38,7 +39,8 @@ struct FakeClock {
     static time_point now() { return time_point{}+std::chrono::milliseconds(milliseconds); }
 };
 namespace menus {
-enum class Menu { kNone,kInventory,kMagic,kContainerYours,kContainerTheirs,kQuests };
+enum class Menu { kNone,kInventory,kMagic,kContainerYours,kContainerTheirs,kQuests , kWorldMap};
+constexpr std::size_t kMenuCount = 6;
 }
 menus::Menu context=menus::Menu::kInventory, openedFor=menus::Menu::kNone;
 bool keyboardOpen=false, popup=false;

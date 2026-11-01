@@ -10,6 +10,8 @@
 #include "search/Search.h"
 #include "engine/QuestsMenu.h"
 #include "keyboard/Keyboard.h"
+#include "engine/WorldMap.h"
+#include "search/WorldMapSearch.h"
 
 namespace core
 {
@@ -25,6 +27,7 @@ namespace core
 		{
 			if (message == WM_TIMER && key == kTimer && GetCurrentThreadId() == g_thread) { Tick(); return 0; }
 			if (sorting::PopupOpen() && sorting::Message(message, key, position)) return 0;
+			if (mapsearch::Message(window, message, key, position)) return 0;
 			LRESULT result = 0;
 			if (search::HandleMessage(window, message, key, position, result)) return result;
 			if (sorting::Message(message, key, position)) return 0;
@@ -86,7 +89,7 @@ namespace core
 		if (GetTickCount64() >= next) {
 			next = GetTickCount64() + 200;
 			if (!reflect::Ok()) reflect::SelfCheck();
-			if (reflect::Ok()) { menus::Tick(); container::Tick(); quests::Tick(); }
+			if (reflect::Ok()) { menus::Tick(); container::Tick(); quests::Tick(); worldmap::Tick(); }
 		}
 		if (!reflect::Ok() || SameFrame()) return;
 		container::TickScope frame;
@@ -106,6 +109,7 @@ namespace core
 		}
 		hoverfix::Tick(menus::Active());
 		search::Tick(menus::Active());
+		mapsearch::Tick();
 		PublishInputState();
 	}
 }

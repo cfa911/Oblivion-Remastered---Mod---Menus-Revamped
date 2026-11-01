@@ -33,11 +33,13 @@ struct UFunction { std::string name; };
 }
 UE::UClass containerClass, inventoryClass, magicClass, pageClass, panelClass;
 namespace menus {
-enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests };
+enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests , kWorldMap};
+constexpr std::size_t kMenuCount = 6;
 UE::UClass* ClassOf(Menu m) { return m == Menu::kInventory ? &inventoryClass : m == Menu::kMagic ? &magicClass : nullptr; }
 }
 namespace container { UE::UClass* Class() { return &containerClass; } }
 int noted = 0;
+namespace worldmap { bool Open() { return false; } }
 namespace quests {
 UE::UClass* PageClass() { return &pageClass; }
 UE::UClass* PanelClass() { return &panelClass; }
