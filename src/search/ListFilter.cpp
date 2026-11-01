@@ -78,7 +78,7 @@ namespace search
 		};
 		bool g_filtering = false;
 
-		FilterState g_filter[6];   // by menu
+		FilterState g_filter[menus::kMenuCount];   // by menu
 
 		// What a menu's own event means for its list. Pure input events (a mouse move, a navigation query) cannot change
 		// it, and the frame's Tick filters right after them anyway; every other event still filters at once, so a rebuild
@@ -135,7 +135,7 @@ namespace search
 		struct Exit { ~Exit() { g_filtering = false; } } exit;
 		RegisterMenuHooks();
 		const auto context = menus::Active();
-		for (int i = 1; i <= 5; ++i)
+		for (int i = 1; i < static_cast<int>(menus::kMenuCount); ++i)
 			if (!Present(static_cast<menus::Menu>(i), context) && g_filter[i].watching) g_filter[i].Reset();
 		const int id = static_cast<int>(menu);
 		if (id < 1 || id > 5 || !Present(menu, context)) return;

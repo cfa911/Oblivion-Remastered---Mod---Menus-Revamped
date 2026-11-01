@@ -11,6 +11,7 @@ namespace searchcfg
 		Values     v;
 		if (std::filesystem::exists(ini)) {
 			v.logLevel = ReadInt(ini, L"Log", L"uLogLevel", v.logLevel, 0, 4);
+			v.worldMap = ReadInt(ini, L"Search", L"bWorldMap", v.worldMap ? 1 : 0, 0, 1) != 0;
 			v.inventory = ReadInt(ini, L"Search", L"bInventory", v.inventory ? 1 : 0, 0, 1) != 0;
 			v.magic = ReadInt(ini, L"Search", L"bMagic", v.magic ? 1 : 0, 0, 1) != 0;
 			v.quests = ReadInt(ini, L"Search", L"bQuests", v.quests ? 1 : 0, 0, 1) != 0;
@@ -39,6 +40,7 @@ namespace searchcfg
 				v.magicBar = place(L"Magic", { v.barX + 3, v.barY + v.barYMagic, v.barW - 3, v.barH }, false);   // 3 off the left edge
 				v.yoursBar = place(L"ContainerYours", v.yoursBar, true);
 				v.theirsBar = place(L"ContainerTheirs", v.theirsBar, true);
+				v.mapBar = place(L"Map", v.mapBar, false);
 				v.takeBar = place(L"ContainerTake", v.takeBar, true);
 				v.questBar = place(L"Quest", v.magicBar, false);   // the Magic menu's place (as it is set above) unless [Quest] says otherwise
 			}

@@ -3,6 +3,7 @@
 #include "search/SearchConfig.h"
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
+#include "engine/WorldMap.h"
 #include "engine/QuestsMenu.h"
 #include "engine/Reflect.h"
 #include "engine/TextUtil.h"
@@ -18,7 +19,7 @@ namespace search
 		static bool wasInMenu = false;
 		const bool inMenu = menus::AnyOpen();
 		if (wasInMenu && !inMenu && searchcfg::Get().clearTextOnGameplay) {
-			for (int i = 1; i <= 5; ++i) SetQuery(static_cast<menus::Menu>(i), {});
+			for (int i = 1; i < static_cast<int>(menus::kMenuCount); ++i) SetQuery(static_cast<menus::Menu>(i), {});
 		}
 		wasInMenu = inMenu;
 		const auto now = Clock::now();
@@ -37,16 +38,19 @@ namespace search
 				}
 			}
 		}
+		const bool map = !cont && a_menu == menus::Menu::kNone && worldmap::Open();
 		const bool quest = !cont && a_menu == menus::Menu::kNone && quests::Open();   // the quests tab: a bar and the quest list
 		if (g_typing.load()) {
 			const auto typed = static_cast<menus::Menu>(g_typingMenu.load());
-			if ((typed != a_menu && !(cont && IsSide(typed)) && !(quest && typed == menus::Menu::kQuests)) || g_external.load()) g_typing = false;
+			if ((typed != a_menu && !(cont && IsSide(typed)) && !(quest && typed == menus::Menu::kQuests) && !(map && typed == menus::Menu::kWorldMap)) || g_external.load()) g_typing = false;
 		}
 		if (cont) {
 			for (const auto side : { menus::Menu::kContainerYours, menus::Menu::kContainerTheirs }) {
 				BarTick(side, now);
 				FilterTick(side, now);
 			}
+		} else if (map) {
+			BarTick(menus::Menu::kWorldMap, now);
 		} else if (quest) {
 			BarTick(menus::Menu::kQuests, now);
 			FilterTick(menus::Menu::kQuests, now);
@@ -67,7 +71,7 @@ namespace search
 	}
 	bool PanelOnLeft(menus::Menu a_menu)
 	{
-		const auto& B = g_bar[static_cast<int>(a_menu) % 6];
+		const auto& B = g_bar[static_cast<int>(a_menu)];
 		if (IsSide(a_menu) && B.w > 0) return B.x + B.w * 0.5 < g_canvasW * 0.5;
 		return a_menu != menus::Menu::kContainerTheirs;
 	}
@@ -77,6 +81,7 @@ namespace search
 		const auto m = menus::Active();
 		if (m != menus::Menu::kNone) return m;
 		if (searchcfg::Get().container && container::Open()) return menus::Menu::kContainerYours;
+		if (searchcfg::Get().worldMap && worldmap::Open()) return menus::Menu::kWorldMap;
 		return searchcfg::Get().quests && quests::Open() ? menus::Menu::kQuests : menus::Menu::kNone;
 	}
 }

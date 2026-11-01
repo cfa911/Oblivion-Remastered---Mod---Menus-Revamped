@@ -92,7 +92,8 @@ UE::UClass mainClass, magicClass;
 UE::UObject inv, magic, yours, theirs, itemA, itemB, itemC;
 bool containerOpen=false;
 namespace menus {
-enum class Menu {kNone,kInventory,kMagic,kContainerYours,kContainerTheirs};
+enum class Menu {kNone,kInventory,kMagic,kContainerYours,kContainerTheirs, kWorldMap};
+constexpr std::size_t kMenuCount = 6;
 Menu active=Menu::kNone;
 UE::UObject* Widget(Menu m) {return m==Menu::kInventory?&inv:m==Menu::kMagic?&magic:nullptr;}
 UE::UClass* ClassOf(Menu m) {return m==Menu::kMagic?&magicClass:&mainClass;}

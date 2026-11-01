@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 
 // ============================================================================================================
 // Which menu is open: the Inventory or the Magic menu (this file came from the Improved Wheels Plus mod).
@@ -14,7 +15,8 @@ namespace menus
 {
 	// kContainerYours / kContainerTheirs are the two sides of the container / barter menu: the search asks engine/ContainerMenu for them;
 	// Active() never returns them (it reads that menu as kNone).
-	enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests };   // kQuests: the quests tab, search only
+	enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests, kWorldMap, kCount };
+	inline constexpr std::size_t kMenuCount = static_cast<std::size_t>(Menu::kCount);
 
 	void Tick();       // from the plugin's lazy thread: finds the classes once they are loaded and watches them
 	Menu Active();     // game thread or any thread

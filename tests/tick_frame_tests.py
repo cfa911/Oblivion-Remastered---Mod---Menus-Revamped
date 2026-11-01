@@ -14,8 +14,11 @@ strip = lambda unit: "\n".join(l for l in source_paths.read(unit).splitlines() i
 side_shown = source_paths.function(source_paths.read("search"), "\tbool SideShownNow(")
 
 prefix = r"""
+namespace worldmap { void Tick() {} }
+namespace mapsearch { void Tick() {} }
 #define NOMINMAX
 #include <Windows.h>
+namespace mapsearch { bool Message(HWND,UINT,WPARAM,LPARAM) { return false; } }
 #include <algorithm>
 #include <atomic>
 #include <cstdint>

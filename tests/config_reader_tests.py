@@ -68,6 +68,8 @@ int main() {
     check(v.search.inventoryBar.y==109.5,"unparsable value keeps the default");
     check(v.search.yoursBar.x==-1500,"offset clamps to -1500");
     check(v.search.ownFilter,"absent filter key defaults on");
+    check(v.search.worldMap,"map search defaults on");
+    check(v.search.mapBar.x==200 && v.search.mapBar.y==78 && v.search.mapBar.w==440,"map panel fits owner red rectangle");
 check(v.search.clearTextOnGameplay,"absent gameplay clear key defaults on");
 check(v.keyboard.clearTextOnActivation,"absent keyboard clear key defaults on");
     check(v.keyboard.enabled && v.keyboard.button==8,"keyboard defaults");
@@ -86,6 +88,12 @@ WritePrivateProfileStringW(L"Search",L"bClearTextOnGameplay",L"1",ini.c_str());
 WritePrivateProfileStringW(L"SearchKeyboard",L"bClearTextOnActivation",L"0",ini.c_str());
 mrconfig::Load();
 check(v.search.clearTextOnGameplay && !v.keyboard.clearTextOnActivation,"keyboard clearing independently disabled");
+WritePrivateProfileStringW(L"Search",L"bWorldMap",L"0",ini.c_str());
+WritePrivateProfileStringW(L"Map",L"uX",L"339.25",ini.c_str());
+WritePrivateProfileStringW(L"Map",L"uWidth",L"560",ini.c_str());
+mrconfig::Load();
+check(!v.search.worldMap,"world map search independently disabled");
+check(v.search.mapBar.x==339.25 && v.search.mapBar.w==560,"map placement reads independently");
     std::cout<<checks<<" checks, "<<failed<<" failures\n";
     return failed ? 1 : 0;
 }

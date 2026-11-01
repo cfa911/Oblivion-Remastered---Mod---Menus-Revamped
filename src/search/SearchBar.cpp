@@ -39,10 +39,10 @@ namespace search::detail
 	{
 		auto* menuW = MenuWidget(a_menu);
 		if (!menuW || !reflect::Ok()) return nullptr;
-		auto* wrapper = IsSide(a_menu) || a_menu == menus::Menu::kQuests ? nullptr : ui::FindInTree(menuW, a_menu == menus::Menu::kMagic ? "Magic_Spell_List" : "inv_cont_listview");
+		auto* wrapper = IsSide(a_menu) || a_menu == menus::Menu::kQuests || a_menu == menus::Menu::kWorldMap ? nullptr : ui::FindInTree(menuW, a_menu == menus::Menu::kMagic ? "Magic_Spell_List" : "inv_cont_listview");
 		auto* owner = wrapper ? OwnerWidget(wrapper) : nullptr;
 		std::vector<UE::UObject*> cands{ menuW, owner };
-		if (a_menu == menus::Menu::kQuests) {
+		if (a_menu == menus::Menu::kQuests || a_menu == menus::Menu::kWorldMap) {
 			for (auto* p = OwnerWidget(menuW); p; p = OwnerWidget(p)) cands.push_back(p);
 		}
 		for (auto* w : cands) {
@@ -123,7 +123,7 @@ namespace search::detail
 			static int         s_n = 0;
 			const std::wstring n = std::to_wstring(++s_n);
 			const auto&        c = searchcfg::Get();
-			const auto&        place = a_menu == menus::Menu::kMagic ? c.magicBar : a_menu == menus::Menu::kQuests ? c.questBar : c.inventoryBar;
+			const auto&        place = a_menu == menus::Menu::kWorldMap ? c.mapBar : a_menu == menus::Menu::kMagic ? c.magicBar : a_menu == menus::Menu::kQuests ? c.questBar : c.inventoryBar;
 			double             barX = place.x, barW = place.w, barH = place.h;
 			double             barY = place.y;
 			if (IsSide(a_menu) && !ContainerBarRect(a_menu, a_canvas, barX, barY, barW, barH, true)) return false;
@@ -197,7 +197,7 @@ namespace search::detail
 			const bool        typing = g_typing.load() && g_typingMenu.load() == static_cast<int>(a_menu);
 			if (!typing) {
 				std::scoped_lock l(g_qMutex);
-				g_selAll[static_cast<int>(a_menu) % 6] = false;
+				g_selAll[static_cast<int>(a_menu)] = false;
 			}
 			const std::string q = QueryOf(a_menu);
 			const bool        caret = typing && (GetTickCount64() / 500) % 2 == 0;

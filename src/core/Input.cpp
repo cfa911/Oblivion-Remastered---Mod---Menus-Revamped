@@ -1,3 +1,4 @@
+#include "search/WorldMapSearch.h"
 #include "core/Runtime.h"
 
 
@@ -29,7 +30,9 @@ namespace input
 					auto& pad = a_state->Gamepad;
 					const bool keyboardHadInput = keyboard::Taking();
 					keyboardinput::Process(*a_state, !sorting::PopupOpen(), true);
-					if (!keyboardHadInput && !keyboard::Taking())
+					const bool mapHadInput = mapsearch::Controller(pad.wButtons, pad.sThumbLX, pad.sThumbLY, pad.sThumbRX, pad.sThumbRY, keyboard::Taking());
+					if (mapHadInput) pad.bLeftTrigger = pad.bRightTrigger = 0;
+					if (!keyboardHadInput && !keyboard::Taking() && !mapHadInput)
 						sorting::Controller(pad.wButtons, pad.sThumbLX, pad.sThumbLY, true);
 					a_state->dwPacketNumber = g_packets.Update(a_state->dwPacketNumber,
 						{ pad.wButtons, pad.sThumbLX, pad.sThumbLY, pad.sThumbRX, pad.sThumbRY, pad.bLeftTrigger, pad.bRightTrigger });

@@ -47,7 +47,8 @@ int active=1, writes=0;
 bool searchOn=true, ownFilter=true;
 std::string queries[6];
 namespace menus {
-enum class Menu { kNone,kInventory,kMagic,kContainerYours,kContainerTheirs,kQuests };
+enum class Menu { kNone,kInventory,kMagic,kContainerYours,kContainerTheirs,kQuests , kWorldMap};
+constexpr std::size_t kMenuCount = 6;
 Menu Active() { return static_cast<Menu>(active); }
 UE::UObject* Widget(Menu m) { return &owners[int(m)]; }
 }
@@ -55,6 +56,7 @@ namespace container {
 bool Open() { return active==0; }
 UE::UObject* SideContent(menus::Menu m) { return &owners[int(m)]; }
 }
+namespace worldmap { bool Open() { return false; } }
 namespace quests { UE::UObject* ListWrapper() { return &lists[5]; } }
 namespace reflect {
 struct Handle { UE::UObject* p=nullptr; };

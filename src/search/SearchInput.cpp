@@ -3,6 +3,7 @@
 #include "search/SearchConfig.h"
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
+#include "engine/WorldMap.h"
 #include "engine/QuestsMenu.h"
 #include "engine/Reflect.h"
 #include "engine/TextUtil.h"
@@ -49,8 +50,8 @@ namespace search
 		void Typed(wchar_t a_c, menus::Menu a_menu)
 		{
 			std::scoped_lock l(g_qMutex);
-			auto&            q = g_queries[static_cast<int>(a_menu) % 6];
-			bool&            sel = g_selAll[static_cast<int>(a_menu) % 6];
+			auto&            q = g_queries[static_cast<int>(a_menu)];
+			bool&            sel = g_selAll[static_cast<int>(a_menu)];
 			if (a_c == 8) {
 				g_highSurrogate = 0;
 				if (sel) q.clear();
@@ -80,7 +81,7 @@ namespace search
 		{
 			const int x = static_cast<short>(LOWORD(a_l)), y = static_cast<short>(HIWORD(a_l));
 			std::scoped_lock l(g_qMutex);
-			const auto& r = g_barPx[static_cast<int>(a_menu) % 6];
+			const auto& r = g_barPx[static_cast<int>(a_menu)];
 			return r.valid && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
 		}
 
@@ -137,7 +138,7 @@ namespace search
 			PxRect r;
 			{
 				std::scoped_lock l(g_qMutex);
-				r = g_barPx[static_cast<int>(a_menu) % 6];
+				r = g_barPx[static_cast<int>(a_menu)];
 			}
 			if (r.valid) {
 				COMPOSITIONFORM cf{};
@@ -160,6 +161,7 @@ namespace search
 				auto       menu = menus::Active();
 				const bool cont = menu == menus::Menu::kNone && container::Open();
 				if (cont) menu = g_typing.load() ? static_cast<menus::Menu>(g_typingMenu.load()) : SideUnderCursor();   // the container / barter menu: the side typed into, else the one the mouse is on
+				if (!cont && menu == menus::Menu::kNone && worldmap::Open()) menu = menus::Menu::kWorldMap;
 				if (!cont && menu == menus::Menu::kNone && quests::Open()) menu = menus::Menu::kQuests;
 				if (MenuEnabled(menu)) {
 					if (g_typing.load()) {
@@ -167,13 +169,13 @@ namespace search
 						case WM_KEYDOWN:   // a key typed into the bar: nothing else sees it (the menu's hotkeys stay quiet)
 							if (a_w == 'A' && (GetKeyState(VK_CONTROL) & 0x8000)) {   // Ctrl+A: select all
 								std::scoped_lock l(g_qMutex);
-								g_selAll[static_cast<int>(menu) % 6] = !g_queries[static_cast<int>(menu) % 6].empty();
+								g_selAll[static_cast<int>(menu)] = !g_queries[static_cast<int>(menu)].empty();
 								return true;
 							}
 							if (a_w == VK_DELETE) {   // Delete clears a selected text
 								std::scoped_lock l(g_qMutex);
-								if (g_selAll[static_cast<int>(menu) % 6]) g_queries[static_cast<int>(menu) % 6].clear();
-								g_selAll[static_cast<int>(menu) % 6] = false;
+								if (g_selAll[static_cast<int>(menu)]) g_queries[static_cast<int>(menu)].clear();
+								g_selAll[static_cast<int>(menu)] = false;
 								return true;
 							}
 							if (a_w == VK_ESCAPE || a_w == VK_RETURN) g_typing = false;

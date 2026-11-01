@@ -17,11 +17,11 @@ namespace search::detail
 
 	// the text of the search bar (one per menu, UTF-8), and the flags the window procedure shares with the game thread
 	extern std::mutex        g_qMutex;   // the window procedure may run on another thread than the game's
-	extern std::string       g_queries[6];
-	extern bool              g_selAll[6];   // Ctrl+A: the whole text is selected - under g_qMutex
+	extern std::string       g_queries[menus::kMenuCount];
+	extern bool              g_selAll[menus::kMenuCount];   // Ctrl+A: the whole text is selected - under g_qMutex
 	extern std::atomic<bool> g_typing;
 	extern std::atomic<int>  g_typingMenu;
-	extern std::atomic<bool> g_sideShown[5];   // the container / barter menu's sides that are on the screen now
+	extern std::atomic<bool> g_sideShown[menus::kMenuCount];   // the container / barter menu's sides that are on the screen now
 	extern double            g_canvasW;   // the container menu's root canvas, menu units
 	extern std::atomic<bool> g_external;   // the controller keyboard has the text: typed keys are not taken
 	extern DWORD             g_gameThread;
@@ -49,8 +49,8 @@ namespace search::detail
 		Clock::time_point nextLook{}, nextMeasure{};
 	};
 	struct PxRect { double x = 0, y = 0, w = 0, h = 0; bool valid = false; };
-	extern BarWidgets g_bar[6];
-	extern PxRect     g_barPx[6];   // the bar's place in window pixels (g_qMutex)
+	extern BarWidgets g_bar[menus::kMenuCount];
+	extern PxRect     g_barPx[menus::kMenuCount];   // the bar's place in window pixels (g_qMutex)
 	extern HWND       g_hwnd;
 
 	UE::UObject* BarCanvasFor(menus::Menu a_menu, bool a_log = true);

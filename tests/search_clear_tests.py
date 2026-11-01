@@ -19,7 +19,8 @@ prefix = r'''
 using Clock = std::chrono::steady_clock;
 using namespace std::chrono_literals;
 namespace menus {
-enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests };
+enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests , kWorldMap};
+constexpr std::size_t kMenuCount = 7;
 bool menuMode = false;
 bool AnyOpen() { return menuMode; }
 const char* Name(Menu) { return "menu"; }
@@ -34,9 +35,10 @@ struct Values { bool clearTextOnActivation = true; } config;
 const Values& Get() { return config; }
 }
 namespace container { bool open=false; bool Open() { return open; } }
+namespace worldmap { bool Open() { return false; } }
 namespace quests { bool open=false; bool Open() { return open; } }
 namespace search {
-std::string queries[6], visible[6];
+std::string queries[7], visible[7];
 std::atomic<bool> g_sideShown[6], g_typing{false}, g_external{false};
 std::atomic<int> g_typingMenu{0};
 bool enabled=true;
@@ -116,6 +118,11 @@ check(keyboard::g_text=="old" && search::queries[2]=="old","keyboard clearing ca
 keyboard::g_open=false; kbcfg::config.clearTextOnActivation=true;
 keyboard::Open(Menu::kContainerTheirs,4);
 check(search::queries[4].empty() && search::queries[3]=="old","container keyboard clears only targeted side");
+searchcfg::config.clearTextOnGameplay=true;
+search::queries[6]="Anvil"; menus::menuMode=true; search::Tick(Menu::kMagic);
+check(search::queries[6]=="Anvil","map query retained while switching pages");
+menus::menuMode=false; search::Tick(Menu::kNone);
+check(search::queries[6].empty(),"map query cleared on gameplay transition");
 std::cout<<checks<<" checks, "<<failed<<" failures\n";
 return failed ? 1 : 0;
 }

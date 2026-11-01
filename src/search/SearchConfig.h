@@ -8,6 +8,7 @@ namespace searchcfg
 	{
 		int  logLevel = 3;      // [Log] uLogLevel: 0 trace, 1 debug, 2 info, 3 warn (the default: warnings and errors only), 4 error
 
+		bool worldMap = true; // [Search] bWorldMap
 		bool inventory = true;  // [Search] bInventory: the Inventory menu has the search
 		bool magic = true;      // [Search] bMagic: the Magic menu has the search
 		bool quests = true;     // [Search] bQuests: the quests tab has the search
@@ -29,6 +30,7 @@ namespace searchcfg
 		};
 		Place inventoryBar{ 293, 109.5, 482, 36 }, magicBar{ 294, 110.25, 481, 36 };
 		Place yoursBar{ -48, -90, 825, 37 }, theirsBar{ -48, -90, 823, 37 };
+		Place mapBar{ 200, 78, 440, 36 }; // [Map] search bar placement
 		Place questBar{ 294, 110.25, 481, 36 };   // the quests tab: the same place and size as the Magic menu's bar unless [Quest] says otherwise
 		Place takeBar{ -48, -11, 0, 37 };   // the container's own list alone on the screen (nothing to give): width 0 = the header's plus the offset on both sides
 
