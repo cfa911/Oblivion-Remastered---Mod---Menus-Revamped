@@ -1,4 +1,4 @@
-Menus Revamped 1.1.0
+Menus Revamped 1.3.0
 Oblivion Remastered - OBSE64 plugin
 
 REQUIREMENTS
@@ -15,10 +15,17 @@ Manual installation: merge the OblivionRemastered folder into the game root.
 Launch through OBSE64.
 
 FEATURES
-Search Inventory, Magic, Quests, containers and shops; combine text with item
-and spell filters; use independent container/shop-side categories; show only
-stolen items on the player side; type using the controller keyboard.
-
+Search Inventory, Magic, Quests, containers, shops and discovered world-map locations.
+Combine text with item and spell categories, subtypes, enchanted and stolen filters.
+Each container/shop side has independent filters. Includes a controller keyboard,
+native map location icons, live map-filter matching and smoother menu navigation.
+WORLD-MAP SEARCH
+Click the map search bar or press Ctrl+F. Type part of a discovered location name.
+Browse with Up/Down, PageUp/PageDown, mouse wheel or controller D-pad/left stick.
+Click, Enter or controller A centers the map without changing zoom or fast traveling.
+A gold ring marks the selection until the map moves or zooms. Escape/B dismisses.
+The controller keyboard also works here. Results follow the native map filters.
+Local-map search and special permanently non-travelable mod markers are not covered.
 CONTROLS
 Click a search bar to type. Enter/Escape leaves typing mode. Ctrl+A selects
 the text; Delete removes selected text. Click picker icons to choose a filter.
@@ -29,6 +36,10 @@ The controller keyboard displays its button prompts: A types, X deletes
 
 CONFIGURATION AND MIGRATION
 MenusRevamped.ini is beside MenusRevamped.dll. Restart after changing settings.
+[Search] bWorldMap=1 enables world-map search; [Map] sets bar position and size.
+[Search] bClearTextOnGameplay=1 clears queries on returning to gameplay.
+[SearchKeyboard] bClearTextOnActivation=1 clears the bar when the keyboard opens.
+Set either clearing option to 0 to keep previous text. Menu-page switching retains it.
 Default artwork lives in MenusRevamped/Search, Keyboard and Sorting.
 Runtime reads the unified configuration only, not the old standalone INIs.
 For custom legacy settings/artwork, use tools/stage_menus_revamped.py from the
