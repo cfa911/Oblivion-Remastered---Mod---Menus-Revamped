@@ -1,11 +1,34 @@
 # Menus Revamped
 
-## 1.1.0 release candidate
+## 1.3.0 release candidate
 
-Adds Magic type filtering, scroll school/effect filtering, exclusive filter popups,
-native-width headers and separate Potion/Poison groups with dedicated artwork.
-Development behavior is owner-accepted; the 1.1.0 release-default smoke test and
-archive installation acceptance are tracked separately in the KB.
+Search Inventory, Magic, Quests, containers, shops and discovered world-map locations.
+Combine item and spell filters with text, enchanted-only and stolen-only filtering;
+type using the integrated controller keyboard and enjoy smoother menu navigation.
+
+### World-map search
+
+Click the world-map search bar or press Ctrl+F and type part of a location name.
+Browse the scrollable results with Up/Down, PageUp/PageDown, mouse wheel or controller
+D-pad/left stick. Click a result, press Enter or controller A to center the map while
+preserving zoom. Selection does not start fast travel. A gold ring marks the location
+until the displayed map moves or zooms; moving only the cursor keeps it visible.
+Escape or controller B dismisses results before leaving the map.
+
+Results show native location-type icons and follow the native map filters, including
+when filters change while a query remains entered. Matching ignores case and supports
+the existing accent preference. The controller keyboard also works on the world map.
+Search covers discovered/unlocked locations; special permanently non-travelable mod
+markers are outside verified coverage. Local-map search is not supported.
+
+`[Search] bWorldMap=1` enables map search. `[Map]` controls its position and size.
+`[Search] bClearTextOnGameplay=1` clears searches when returning to gameplay;
+switching menu pages retains text. `[SearchKeyboard] bClearTextOnActivation=1`
+clears the current bar whenever the controller keyboard opens. Set either to 0 to
+retain its previous behavior. Restart after editing the INI.
+
+Development features are owner-accepted. The fresh 1.3.0 shipped-default smoke test
+and Vortex archive installation remain pending; see the KB release handoff.
 
 ## Magic filters
 
@@ -34,7 +57,7 @@ The standalone Sorting baseline is preserved on `deprecated/sorting-overhaul`.
 
 - One plugin: `MenusRevamped.dll`, one `MenusRevamped.ini` and one log.
 - Shared native list ownership; text and category filtering combine internally.
-- Search in Inventory, Magic, Quests and both container/barter sides.
+- Search in Inventory, Magic, Quests, both container/barter sides and the world map.
 - Existing picker appearance, controller gestures and custom artwork retained.
 - Asset folders: `MenusRevamped/Search`, `Keyboard` and `Sorting`.
 - Improved Wheels Plus uses three read-only `MenusRevamped_*` exports.
@@ -93,7 +116,7 @@ One include root, `src/`; includes are paths from it (`"engine/Ui.h"`).
 
 ## Validation status
 
-This is a development build, not a release. The owner has accepted the integrated development build (SearchLight, SearchLight - Controller Keyboard, Sorting Overhaul and the Smooth Menus hover fix as one plugin) in the ordinary integration scenarios, including container/barter performance and the idle-focus flicker. Exhaustive input-device and lifecycle coverage is not claimed.
+This is the 1.3.0 release candidate; final release-default acceptance is tracked in the KB. The owner has accepted the integrated development build (SearchLight, SearchLight - Controller Keyboard, Sorting Overhaul and the Smooth Menus hover fix as one plugin) in the ordinary integration scenarios, including container/barter performance and the idle-focus flicker. Exhaustive input-device and lifecycle coverage is not claimed.
 
 Open and fixed issues are tracked per bug in the knowledge-base repository (`bugs/menus-revamped`, `RMI-` series; older entries `SL-` and `SO-`). Do not rely on this README for the list of open problems. No research probe sources are part of this repository and no diagnostic is deployed.
 

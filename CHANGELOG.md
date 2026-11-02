@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.3.0 - 2026-11-02
+
+- Search discovered world-map locations by name with a scrollable results list.
+- Select a result with mouse, keyboard or controller to center the map without changing zoom or starting fast travel.
+- Highlight the selected location with a gold ring that clears when the displayed map moves or zooms.
+- Show native location-type icons and keep results synchronized with the map's active filters.
+- Use the controller keyboard on the world map.
+- Add default-enabled options to clear searches on returning to gameplay and when opening the controller keyboard.
+- Improve enchanted/stolen filter spacing and refresh default artwork, removing unused icons.
+- Add detailed configuration comments and world-map search placement settings.
+
+## 1.2.0 - 2026-10-30
+
+- Add enchanted-only item filtering with a dedicated icon at the far left of the sort bar.
+- Show a blue background when enchanted filtering is active; combine it with search, category and stolen filters.
+- Keep Inventory category filtering stable while sorting.
+- Prevent Magic sorting controls flashing when switching tabs or entering Active Effects.
+
 ## 1.1.0 - 2026-10-30
 
 - Add separate Magic type filters for Spells, Scrolls and Powers, combined with school, effect and search.
