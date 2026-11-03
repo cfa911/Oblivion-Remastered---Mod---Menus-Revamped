@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1 - 2026-11-03
+
+- Ring and Amulet filters now also find rings and amulets whose equipment slot was removed by
+  "Unlimited Equipment of Amulets and Rings" (Nexus 497) or "Equip Unlimited Rings" (Nexus 943).
+
 ## 1.3.0 - 2026-11-02
 
 - Search discovered world-map locations by name with a scrollable results list.
