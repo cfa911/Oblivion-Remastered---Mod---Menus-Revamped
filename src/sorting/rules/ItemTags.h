@@ -148,9 +148,20 @@ namespace itemtags
 		return a_category == 0 || (CategoryOf(a_tags) == a_category && Includes(a_choice, a_tags));
 	}
 
-	// Gear: biped slot mask -> bits in the order Ring, Amulet, Head, Torso, Arms, Feet, Legwear, Shield.
-	constexpr std::uint32_t GearTags(std::uint16_t a_biped)
+	// No-slot clothing (slot-removing mods, RMI-008): the nonlocalized model folder clothes\ring\ or clothes\amulet\
+	// still names the piece. Every active vanilla CLOT has a slot, so this never changes a plain item.
+	constexpr std::uint16_t SlotsFromModel(std::string_view a_path)
 	{
+		using weaponkinds::Contains;
+		if (Contains(a_path, "clothes\\ring\\") || Contains(a_path, "clothes/ring/")) return gearpieces::Mask(gearpieces::Piece::Ring);
+		if (Contains(a_path, "clothes\\amulet\\") || Contains(a_path, "clothes/amulet/")) return gearpieces::Mask(gearpieces::Piece::Amulet);
+		return 0;
+	}
+
+	// Gear: biped slot mask -> bits in the order Ring, Amulet, Head, Torso, Arms, Feet, Legwear, Shield.
+	constexpr std::uint32_t GearTags(std::uint16_t a_biped, std::string_view a_model = {}, std::string_view a_world = {})
+	{
+		if (a_biped == 0) a_biped = SlotsFromModel(a_model) | SlotsFromModel(a_world);
 		std::uint32_t tags = 0;
 		for (unsigned i = 1; i <= 8; ++i) if (gearpieces::Includes(static_cast<gearpieces::Piece>(i), a_biped)) tags |= 1u << (i - 1);
 		return tags;

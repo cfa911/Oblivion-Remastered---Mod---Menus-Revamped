@@ -68,7 +68,15 @@ namespace geardata
 				if (a_type == 34) { a_tags = itemtags::AmmoTags(a_type); return true; }
 				if (a_type == 19 || a_type == 25) { a_tags = itemtags::AlchemyTags(a_type); return true; }
 				if (auto* armor = object->As<RE::TESObjectARMO>()) { a_tags = itemtags::GearTags(armor->bipedModelData.bipedObjectSlots); return true; }
-				if (auto* clothing = object->As<RE::TESObjectCLOT>()) { a_tags = itemtags::GearTags(clothing->bipedModelData.bipedObjectSlots); return true; }
+				if (auto* clothing = object->As<RE::TESObjectCLOT>()) {
+					const auto slots = clothing->bipedModelData.bipedObjectSlots;
+					if (slots != 0) { a_tags = itemtags::GearTags(slots); return true; }
+					char model[1024]{}, world[1024]{};   // no slot: a slot-removing mod; the model folder names rings/amulets
+					if (!AssetPath(clothing->bipedModel[0].model, model)) model[0] = '\0';
+					if (!AssetPath(clothing->worldModel[0].model, world)) world[0] = '\0';
+					a_tags = itemtags::GearTags(0, model, world);
+					return true;
+				}
 				if (auto* weapon = object->As<RE::TESObjectWEAP>()) {
 					const auto type = weapon->data.type;
 					if (type == 4 || type == 5) { a_tags = itemtags::WeaponTags(type); return true; }

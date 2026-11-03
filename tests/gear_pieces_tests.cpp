@@ -47,6 +47,14 @@ int main()
 		itemtags::Info(itemtags::Tab::Potions).count == 5 && itemtags::Info(itemtags::Tab::Misc).count == 6, "choice counts");
 	// Gear tags still agree with the captured masks: Ring is choice 1, Shield choice 8.
 	check(itemtags::Includes(1, itemtags::GearTags(0xC0)) && itemtags::Includes(7, itemtags::GearTags(12)) && !itemtags::Includes(6, itemtags::GearTags(8)), "gear tags");
+	// RMI-008: slot-removing mods (Nexus 497) leave rings/amulets with no slot; their model folder still names them.
+	// Measured on the 669 active vanilla/DLC/Altar/UOR CLOT records (2026-11-03): no plain item has slot mask 0.
+	check(itemtags::Includes(1, itemtags::GearTags(0, "Clothes\\Ring\\RingGold.NIF")), "no-slot ring by biped model");
+	check(itemtags::Includes(1, itemtags::GearTags(0, {}, "Clothes\\Ring\\ND01\\RingND.NIF")), "no-slot ring by world model subfolder");
+	check(itemtags::Includes(2, itemtags::GearTags(0, "clothes/amulet/amulet01.nif")), "no-slot amulet, any case and slash");
+	check(itemtags::GearTags(0, "Clothes\\Wizard\\Robe.NIF") == 0 && itemtags::GearTags(0, "IdleObjects\\SESheogorathCane.NIF") == 0, "other no-slot clothing stays untagged");
+	check(itemtags::GearTags(0, "Clothes\\Ringmail\\Shirt.NIF") == 0, "folder must be exactly ring");
+	check(itemtags::GearTags(0x10, "Clothes\\Ring\\Ring.NIF") == itemtags::GearTags(0x10), "native slots win over the model folder");
 	check(itemtags::Includes(0, 0), "All keeps untagged items");
 	check(!itemtags::Includes(1, 0), "untagged item is not choice 1");
 	// Detailed melee tags use model/icon hints within native skill/handedness boundaries.
