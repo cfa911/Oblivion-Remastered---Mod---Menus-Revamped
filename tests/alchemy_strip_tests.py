@@ -32,7 +32,11 @@ strip, back, label = z_in("UE::UObject* MakeStrip("), z_in("UE::UObject* MakeBac
 check(strip is not None and strip > 0, "strip above the menu's own widgets (Z > 0)")
 check(None not in (strip, back, label) and strip < back < label, "strip under the button boxes, boxes under the labels")
 # owner 2026-11-04: a "Selected filters" title over two rows of slightly smaller buttons
-check('"Selected filters"' in src, "the active-filter area has a Selected filters title")
+check('"Selected Filters"' in src, "the active-filter area has a Selected Filters title")
+check("CopyIngredientsFont(chipTitle, title)" in src, "title uses Ingredients font")
+check("line, 0.5f, 6.0f" in src, "button outlines reduced by one from 1.5")
+check("kStripAspect = 263.0 / 1090.0" in src and "kStripDy = -93.7" in src,
+      "latest owner PSD mask keeps its 1090x263 size and y=0 placement")
 m = re.search(r"kChipText = (\d+)", src)
 check(m is not None and int(m.group(1)) < 17 and src.count("kChipInk, kChipText)") >= 2,
       "the button texts are smaller than before (17)")
