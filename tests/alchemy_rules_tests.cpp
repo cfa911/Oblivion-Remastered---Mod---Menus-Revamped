@@ -1,6 +1,7 @@
 // IMP-MR-004/005/006: Alchemy menu sort order, effect filter counts and active-filter labels.
 #include "../src/sorting/rules/AlchemyRules.h"
 
+#include <array>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -14,14 +15,25 @@ int main()
 		if (!ok) { ++failures; std::fprintf(stderr, "FAIL %s\n", label); }
 	};
 
-	// ---- IMP-MR-005: sort keys cycle Name > Count > Weight > Value > Known effects > Name
-	check(NextSort(SortKey::Name) == SortKey::Count, "Name -> Count");
-	check(NextSort(SortKey::Count) == SortKey::Weight, "Count -> Weight");
-	check(NextSort(SortKey::Weight) == SortKey::Value, "Weight -> Value");
-	check(NextSort(SortKey::Value) == SortKey::KnownEffects, "Value -> Known effects");
-	check(NextSort(SortKey::KnownEffects) == SortKey::Name, "Known effects -> Name");
-	check(std::string(SortLabel(SortKey::Name)) == "Name" && std::string(SortLabel(SortKey::KnownEffects)) == "Known effects", "labels");
-	check(SortFromIni(3) == SortKey::Value && SortFromIni(99) == SortKey::Name && SortFromIni(-1) == SortKey::Name, "INI index, out of range = Name");
+	// ---- IMP-MR-005 (owner 2026-11-04): four sorts as native header icons, click = sort, click again = reverse
+	check(static_cast<int>(SortKey::kCount) == 4, "Name, Count, Weight, Value (Known effects dropped)");
+	check(std::string(SortLabel(SortKey::Name)) == "Name" && std::string(SortLabel(SortKey::Value)) == "Value", "labels");
+	check(SortFromIni(3) == SortKey::Value && SortFromIni(4) == SortKey::Name && SortFromIni(99) == SortKey::Name && SortFromIni(-1) == SortKey::Name,
+		"INI index, out of range (and the old Known effects 4) = Name");
+	check(!DefaultDescending(SortKey::Name) && DefaultDescending(SortKey::Count) && DefaultDescending(SortKey::Weight) && DefaultDescending(SortKey::Value),
+		"first click: A-Z for the name, highest first for the numbers");
+	{
+		SortState st{ SortKey::Name, false };
+		st = Click(st, SortKey::Weight);
+		check(st.key == SortKey::Weight && st.descending, "another icon: its sort, default direction");
+		st = Click(st, SortKey::Weight);
+		check(st.key == SortKey::Weight && !st.descending, "same icon again: reversed");
+		st = Click(st, SortKey::Weight);
+		check(st.descending, "and back");
+		st = Click(st, SortKey::Name);
+		check(st.key == SortKey::Name && !st.descending, "name starts A-Z");
+	}
+	check(NavStep(0, -1, 4) == 3 && NavStep(3, 1, 4) == 0 && NavStep(1, 1, 4) == 2 && NavStep(0, 1, 0) == 0, "controller left/right wraps (native loops)");
 
 	const std::vector<Ingredient> items{
 		{ "[Ingr] Wolfsbane Petals", 2, 0.1f, 5, { "Restore Fatigue", "Dispel" } },
@@ -30,14 +42,43 @@ int main()
 		{ "[Ingr] Glow Dust", 1, 0.1f, 18, {} },
 	};
 	using V = std::vector<int>;
-	check(SortOrder(items, SortKey::Name) == V{ 1, 2, 3, 0 }, "name: A-Z, case-insensitive, tag prefix ignored");
-	check(SortOrder(items, SortKey::Count) == V{ 1, 2, 0, 3 }, "count: most first, ties by name");
-	check(SortOrder(items, SortKey::Weight) == V{ 1, 3, 0, 2 }, "weight: lightest first, ties by name");
-	check(SortOrder(items, SortKey::Value) == V{ 3, 0, 2, 1 }, "value: most valuable first");
-	check(SortOrder(items, SortKey::KnownEffects) == V{ 2, 0, 1, 3 }, "known effects: most first, ties by name");
+	check(SortOrder(items, SortKey::Name, false) == V{ 1, 2, 3, 0 }, "name A-Z, case-insensitive, tag prefix ignored");
+	check(SortOrder(items, SortKey::Name, true) == V{ 0, 3, 2, 1 }, "name Z-A");
+	check(SortOrder(items, SortKey::Count, true) == V{ 1, 2, 0, 3 }, "count most first, ties A-Z");
+	check(SortOrder(items, SortKey::Count, false) == V{ 3, 0, 1, 2 }, "count fewest first, ties A-Z");
+	check(SortOrder(items, SortKey::Weight, true) == V{ 2, 1, 3, 0 }, "weight heaviest first, ties A-Z");
+	check(SortOrder(items, SortKey::Weight, false) == V{ 1, 3, 0, 2 }, "weight lightest first, ties A-Z");
+	check(SortOrder(items, SortKey::Value, true) == V{ 3, 0, 2, 1 }, "value most valuable first");
+	check(SortOrder(items, SortKey::Value, false) == V{ 1, 2, 0, 3 }, "value cheapest first");
 	const std::vector<Ingredient> unknown{ { "B", 1, -1.0f, -1, {} }, { "A", 1, 0.5f, 3, {} } };
-	check(SortOrder(unknown, SortKey::Weight) == V{ 1, 0 } && SortOrder(unknown, SortKey::Value) == V{ 1, 0 }, "unknown weight/value go last");
-	check(SortOrder({}, SortKey::Count).empty(), "empty list");
+	for (bool desc : { true, false })
+		check(SortOrder(unknown, SortKey::Weight, desc) == V{ 1, 0 } && SortOrder(unknown, SortKey::Value, desc) == V{ 1, 0 }, "unknown weight/value last in both directions");
+	check(SortOrder({}, SortKey::Count, true).empty(), "empty list");
+
+	// ---- the Weight and Value columns (Inventory style)
+	check(FormatWeight(0.1f) == "0.1" && FormatWeight(0.25f) == "0.25" && FormatWeight(1.0f) == "1" && FormatWeight(2.5f) == "2.5" && FormatWeight(0.0f) == "0",
+		"weight: no trailing zeros");
+	check(FormatWeight(-1.0f) == "\xE2\x80\x93" && FormatValue(-1) == "\xE2\x80\x93", "unknown shows a dash");
+	check(FormatValue(18) == "18" && FormatValue(0) == "0", "value: whole number");
+	check(FormatValue(-1).size() == 3 && static_cast<unsigned char>(FormatValue(-1)[0]) == 0xE2, "the dash is the 3-byte UTF-8 en dash");
+
+	// ---- header line between the title and the rows (owner 2026-11-04 screenshot): lightning (Count) then A-Z at the
+	// list's left, weight and coin centred over their columns
+	check(HeaderX(100, 800, 25, 52, 120, 45) == std::array<double, 4>{ 177, 125, 680, 755 }, "x centres in SortKey order: Name, Count, Weight, Value");
+	check(ColumnDy(10, 20, 4, 12) == 10 && ColumnDy(0, 10, 0, 10) == 0, "column numbers move to the name's vertical centre");
+
+	// ---- IMP-MR-005: weight/value by the ingredient's name key
+	{
+		IngredientIndex index;
+		AddIngredient(index, "LOC_FN_Bonemeal", 0.2f, 2);
+		AddIngredient(index, "LOC_FN_Bonemeal", 9.0f, 99);   // a second form with the same key: the first stays
+		AddIngredient(index, "UI_UserInputText_1_2_3", 1.0f, 1);   // typed names are not form keys
+		AddIngredient(index, "LOC_FN_", 1.0f, 1);
+		const auto bonemeal = IngredientStats(index, "LOC_FN_Bonemeal");
+		check(bonemeal.first == 0.2f && bonemeal.second == 2, "known key gives the form's weight and value");
+		check(IngredientStats(index, "LOC_FN_GlowDust") == std::pair<float, int>{ -1.0f, -1 }, "unknown key gives -1/-1");
+		check(index.size() == 1, "only LOC_FN_ keys with a name are indexed");
+	}
 
 	// ---- IMP-MR-004: counts on effect filter rows
 	check(MatchKey("\xE2\x98\xBA[Alte] Fire Shield") == "fire shield", "glyph and tag prefix stripped");
@@ -112,7 +153,6 @@ int main()
 	// ---- RMI-022: read the game's ingredient texts as rarely as possible (each read can meet a freed text)
 	check(NeedCounts(true, -1, 72) && NeedCounts(false, 72, 70), "counts: on opening, and when the ingredient count changes (brewing)");
 	check(!NeedCounts(false, 72, 72), "counts: not again for a filter click (same ingredients)");
-	check(SortReadsEffects(SortKey::KnownEffects), "known-effects sort reads the effects");
 	{   // RMI-023: the effect name field of the struct the array really holds
 		const std::vector<std::pair<std::string, int>> modern{ { "Index", 0 }, { "EffectID", 4 }, { "EffectName", 8 }, { "AdditionalEffectName", 0x20 } };
 		const std::vector<std::pair<std::string, int>> legacy{ { "bIsUnknown", 0 }, { "Icon", 8 }, { "Effect", 0x10 } };
@@ -160,7 +200,6 @@ int main()
 	check(!InImage(0x8000000000ull, 0x7FF629580000ull, 0x8000000), "the logged fake pointer is rejected");
 	check(!InImage(0x7FF629580000ull + 0x8000000, 0x7FF629580000ull, 0x8000000), "one past the image is rejected");
 	check(!InImage(0x1B8ED25E300ull, 0x7FF629580000ull, 0x8000000), "a heap address is not a vtable");
-	for (auto k : { SortKey::Name, SortKey::Count, SortKey::Weight, SortKey::Value }) check(!SortReadsEffects(k), "other sorts do not read effect texts");
 
 
 	{
@@ -193,6 +232,23 @@ int main()
 		check(!ShouldRestoreSelected("Shield", false, {}), "no active filters: nothing");
 		check(!ShouldRestoreSelected("", false, { "" }), "empty text never matches");
 	}
+
+	// ---- controller tap / hold (owner 2026-11-04: tap Y sort, hold Y Selected Filters, tap X Filters, hold X clear all)
+	{
+		HoldTracker t;
+		check(t.Update(true, true, 1000, 500) == PadPress::None, "pressed: nothing yet");
+		check(t.Update(false, true, 1200, 500) == PadPress::None, "held shorter than the hold time: nothing");
+		check(t.Update(false, true, 1500, 500) == PadPress::Hold, "held for the hold time: Hold, once");
+		check(t.Update(false, true, 1600, 500) == PadPress::None, "still held: no second Hold");
+		check(t.Update(false, false, 1700, 500) == PadPress::None, "released after a Hold: no Tap");
+		check(t.Update(true, true, 2000, 500) == PadPress::None && t.Update(false, false, 2100, 500) == PadPress::Tap, "short press: Tap on release");
+		check(t.Update(false, false, 2200, 500) == PadPress::None, "nothing while up");
+		t.Update(true, true, 3000, 500);
+		t.Reset();
+		check(t.Update(false, false, 3100, 500) == PadPress::None, "reset forgets a press (the Filters panel opened)");
+	}
+	check(ClampFocus(3, 5) == 3 && ClampFocus(5, 5) == 4 && ClampFocus(0, 0) == -1 && ClampFocus(-1, 3) == -1,
+		"Selected Filters focus: kept, moved to the last button when the line shrank, none when the line is empty");
 
 	std::printf("%d checks, %d failures\n", checks, failures);
 	return failures ? 1 : 0;

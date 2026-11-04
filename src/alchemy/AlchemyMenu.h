@@ -1,7 +1,8 @@
 #pragma once
 
 // ============================================================================================================
-// Alchemy menu (0x410, WBP_ModernMenu_AlchemyMenu_C): ingredient sort label (IMP-MR-005), counts on the effect
+// Alchemy menu (0x410, WBP_ModernMenu_AlchemyMenu_C): ingredient sort header + Weight/Value columns and controller
+// layout (IMP-MR-005, RMI-027), counts on the effect
 // filter rows (IMP-MR-004) and the active-filter line under the Ingredients title (IMP-MR-006).
 // Layout and events: knowledge base docs/game-internals.md "Alchemy probe run 3/4" (build 1.512.105.0).
 // Game thread only.

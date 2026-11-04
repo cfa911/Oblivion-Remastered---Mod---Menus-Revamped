@@ -24,8 +24,11 @@ def check(ok, why):
 
 check("ClearAllFilters" not in src, "no call to the ClearAllFilters input-event stub (it does nothing)")
 branch = re.search(r"if \(meaning\.empty\(\)\)(.*?)\n\t\t\t\}", src, re.S)
-check(branch is not None and "SelectedNames(menu)" in branch.group(1) and "RemoveFilter(menu" in branch.group(1),
-      "Clear all removes each selected filter")
+helper = src[src.find("void RemoveEveryFilter("):]
+helper = helper[:helper.find("\n\t\t}\n")]
+# the Clear all button and hold X (IMP-MR-005 controller swap) share RemoveEveryFilter
+check(branch is not None and "RemoveEveryFilter(menu)" in branch.group(1) and "SelectedNames(a_menu)" in helper
+      and "RemoveFilter(a_menu" in helper, "Clear all removes each selected filter")
 layout = src[src.find("void Layout("):]
 clear_at, names_at = layout.find('texts.push_back("Clear all")'), layout.find("for (const auto& n : names)")
 check(0 <= clear_at < names_at, "Clear all is the leftmost entry (owner 2026-11-04)")
