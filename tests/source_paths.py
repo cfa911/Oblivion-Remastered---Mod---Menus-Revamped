@@ -26,6 +26,8 @@ UNITS = {
     "stolen-filter": ["src/sorting/rules/StolenFilter.h"],
     "pe-hook": ["src/engine/PEHook.cpp"],
     "runtime": ["src/core/Runtime.cpp"],
+    "alchemy": ["src/alchemy/AlchemyMenu.cpp"],
+    "alchemy-rules": ["src/sorting/rules/AlchemyRules.h"],
     "reflect": ["src/engine/Reflect.cpp"],
     "ui-call": ["src/engine/UiCall.cpp"],
 }

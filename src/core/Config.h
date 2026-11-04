@@ -11,6 +11,12 @@ namespace mrconfig
 		smoothcfg::Values smooth;
 		kbcfg::Values keyboard;
 		bool returnToListAfterFilter = true;
+		struct Alchemy
+		{
+			bool enabled = true;                 // [Alchemy] bEnabled: sort label, filter counts, active-filter line
+			int  defaultSort = 0;                // uDefaultSort 0 Name, 1 Count, 2 Weight, 3 Value, 4 Known effects
+			bool hideZeroCountEffects = false;   // bHideZeroCountEffects: hide (1) or grey out (0) effects no ingredient has
+		} alchemy;
 	};
 	void Load();
 	const Values& Get();
