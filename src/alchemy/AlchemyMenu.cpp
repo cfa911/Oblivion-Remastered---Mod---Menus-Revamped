@@ -28,7 +28,44 @@ namespace alchemy
 		using Clock = std::chrono::steady_clock;
 
 		constexpr const wchar_t* kMenuClass = L"/Game/UI/Modern/GameMenuLayer/Alchemy/WBP_ModernMenu_AlchemyMenu.WBP_ModernMenu_AlchemyMenu_C";
-		constexpr std::uint16_t  kLeftThumb = 0x0040;      // XINPUT_GAMEPAD_LEFT_THUMB
+		// XInput buttons, as the Inventory (owner 2026-11-04, Y and X swapped): Y enters the sort icons, d-pad left/right
+		// moves, A applies or reverses, B (or Y) leaves; X takes the game's Filters button: tap opens the Filters panel,
+		// hold clears every filter
+		constexpr std::uint16_t  kPadUp = 0x0001, kPadDown = 0x0002, kPadLeft = 0x0004, kPadRight = 0x0008;
+		constexpr std::uint16_t  kPadA = 0x1000, kPadB = 0x2000, kPadX = 0x4000, kPadY = 0x8000;
+		constexpr ULONGLONG      kHoldClearMs = 500;
+		// IMP-MR-005 (owner 2026-11-04): the game's own sort header textures, loaded from the game at run time (KB
+		// docs/inventory/internals.md "Native sort header icon textures"); index = SortKey (Name, Count, Weight, Value)
+		constexpr int            kIcons = 4;
+		constexpr const wchar_t* kTexPaths[] = {
+			L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_sorting.T_Property_1_sorting",
+			L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_cost.T_Property_1_cost",   // Count: placeholder (owner 2026-11-04)
+			L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_Weight.T_Property_1_Weight",
+			L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_MoneyV2.T_Property_1_MoneyV2",
+			L"/Game/Art/UI/Common/Filter/T_Filter_Icon_Background_Small.T_Filter_Icon_Background_Small",
+			L"/Game/Art/UI/Common/T_ArrowStat_indicationUp.T_ArrowStat_indicationUp",
+			L"/Game/Art/UI/Common/T_ArrowStat_indicationDown.T_ArrowStat_indicationDown",
+			L"/Game/Art/UI/Common/T_Line_V.T_Line_V",   // the Inventory's column line (ValueWithLine inv_entry_line)
+			L"/Game/Art/UI/Icons/Icons_Inputs/Xbox/T_Icon_Xbox_X.T_Icon_Xbox_X",   // pad glyphs (KB "Alchemy footer")
+			L"/Game/Art/UI/Icons/Icons_Inputs/Xbox/T_Icon_Xbox_Y.T_Icon_Xbox_Y",
+			L"/Game/Art/UI/Icons/Icons_Inputs/Xbox/T_Icon_Xbox_A.T_Icon_Xbox_A",
+			L"/Game/Art/UI/Icons/Icons_Inputs/Xbox/T_Icon_Xbox_B.T_Icon_Xbox_B",
+		};
+		constexpr int            kTexBack = 4, kTexUp = 5, kTexDown = 6, kTexLine = 7, kTexPadX = 8, kTexPadY = 9;
+		constexpr int            kTexPadA = 10, kTexPadB = 11, kTexCount = 12;
+		constexpr double         kHintGlyph = 40;   // own footer hint glyph (viewport units) when the native one is not measured
+		constexpr double         kHintGap = 10;     // glyph to label
+		constexpr double         kHintSpacing = 22; // between our hints and their left neighbour (owner screenshot b2d70c38)
+		constexpr double         kSepWidth = 2;   // separators lightning|A-Z and weight|value, icon height
+		constexpr double         kIconSize = 34, kIconBack = 46, kIconStep = 52, kArrowSize = 14;   // viewport units
+		constexpr float          kActiveTint[4] = { 1.0f, 1.0f, 1.0f, 1.0f };    // the active sort: white (owner 2026-11-04)
+		constexpr float          kFocusTint[4] = { 1.0f, 1.0f, 1.0f, 0.55f };    // hovered / controller focus: fainter
+		constexpr double         kHeaderGap = 40;   // the list moves down this much; the icon line sits in the gap
+		constexpr double         kFirstIcon = 25;   // first icon's centre from the list's left edge
+		// owner adjustments 2026-11-04, in screen pixels (divided by the viewport scale): the gap 4 px smaller, the icon
+		// line further from the rows, lightning and A-Z to the right
+		constexpr double         kGapTrimPx = 4, kIconLiftPx = 6, kLeftShiftPx = 17;   // batches 2 and 3: +3 lift, +10 / +3 right
+		constexpr double         kWeightCx = 120, kValueCx = 45;   // column centres from a row's right edge
 		constexpr float          kSortInk[4] = { 0.035f, 0.025f, 0.015f, 1.0f };   // dark ink (list text)
 		constexpr float          kChipInk[4] = { 0.30f, 0.012f, 0.008f, 1.0f };    // the Filters underline red
 		constexpr float          kZeroOpacity = 0.4f;
@@ -65,7 +102,8 @@ namespace alchemy
 		reflect::Handle g_menu;
 		bool            g_open = false;
 		bool            g_inside = false;   // re-entrancy: our own list calls inside a watcher
-		SortKey         g_sort = SortKey::Name;
+		SortState       g_sortState;             // kept between openings; the INI default is read on the first one
+		bool            g_sortRead = false;
 		bool            g_dirtySort = true, g_dirtyCounts = true;
 		OpenState       g_state;                 // RMI-021: no data read before this opening's list is built
 		constexpr long long kSettleMs = 500;
@@ -79,8 +117,21 @@ namespace alchemy
 		std::pair<std::int32_t, void*> g_filterSignature{ -1, nullptr };
 		Clock::time_point g_nextLayout{};
 		std::unordered_map<std::string, std::pair<float, int>> g_formData;   // display name -> weight, value (-1 unknown)
+		std::unordered_map<std::string, std::pair<float, int>> g_formMatch;  // the same by MatchKey (row text fallback)
+		alchemyrules::IngredientIndex g_ingredients;   // name key -> weight, value of every loaded IngredientItem
+		bool g_ingredientsBuilt = false;
 
-		reflect::Handle              g_sortLabel, g_titleBox, g_strip, g_stripTexture;
+		reflect::Handle              g_titleBox, g_strip, g_stripTexture;
+		std::array<reflect::Handle, kIcons>    g_icons, g_iconBacks;   // the sort header (index = SortKey)
+		reflect::Handle                         g_arrow;   // direction mark on the active icon
+		std::array<reflect::Handle, 2>          g_seps;    // lightning | A-Z and weight | value (owner 2026-11-04)
+		reflect::Handle                         g_rule;    // the line under the icons, across the list (owner 2026-11-04)
+		int                                     g_arrowDir = -1;   // texture on g_arrow: -1 none, 0 up, 1 down
+		std::array<reflect::Handle, kTexCount>  g_tex;
+		reflect::Handle                         g_paddedList;   // the list wrapper whose slot got the header gap
+		double                                  g_columnDy = 0;      // column labels' vertical correction (ColumnDy)
+		bool                                    g_dyKnown = false;
+		std::unordered_set<UE::UObject*>        g_dyDone;   // column labels already moved by g_columnDy
 		int                          g_stripGreyed = -1;   // tint applied to the strip: -1 none yet, 0 full, 1 greyed
 		std::vector<reflect::Handle> g_chips;   // created on demand; the entries' meaning is in g_chipNames
 		std::vector<reflect::Handle> g_chipBacks;   // the button box behind each chip (an Image)
@@ -95,14 +146,25 @@ namespace alchemy
 		std::vector<std::string>     g_chipNames;   // effect display name per chip; "" = Clear all, "+" = overflow marker
 
 		std::mutex        g_rectLock;
-		Rect              g_sortRect;
+		std::array<Rect, kIcons> g_iconRects;
 		std::vector<Rect> g_chipRects;
-		std::atomic<int>  g_cycle{ 0 };
+		std::atomic<int>  g_iconClick{ -1 };    // a header icon clicked (mouse or A)
+		std::atomic<int>  g_hoverIcon{ -1 };
+		std::atomic<int>  g_padFocus{ -1 };     // controller focus on the header: icon index, -1 = not in the header
+		std::atomic<int>  g_activeIcon{ 0 };
+		std::atomic<bool> g_headerNow{ false }; // hover or focus changed: lay out now
+		std::uint16_t     g_padSwallow = 0;     // buttons the header used, hidden from the game until released
+		std::atomic<bool> g_openFiltersRequest{ false };   // X tapped: open the Filters panel on the next tick
+		std::atomic<bool> g_clearAllRequest{ false };      // X held: clear every filter on the next tick
+		HoldTracker       g_xHold, g_yHold;                // tap / hold on X and Y (owner 2026-11-04)
+		std::atomic<int>  g_chipFocus{ -1 };     // RMI-027: controller focus on the Selected Filters buttons (-1 none)
+		std::atomic<int>  g_chipCount{ 0 };      // Selected Filters buttons shown (Layout)
+		reflect::Handle   g_inputSubsystem;      // the game's CommonInputSubsystem (pad or keyboard)
+		reflect::Handle   g_filtersGlyph;        // our X over the Filters button's Y glyph
 		std::atomic<int>  g_chipClick{ -1 };
 		std::atomic<bool> g_openFlag{ false };
 		std::atomic<bool> g_nameTyping{ false };
 		bool              g_swallowUp = false;
-		bool              g_swallowKeyUp = false;
 		std::uint16_t     g_lastButtons = 0;
 
 		bool Enabled() { return mrconfig::Get().alchemy.enabled; }
@@ -321,15 +383,49 @@ namespace alchemy
 			return true;
 		}
 
+		void AddIngredientForm(RE::TESForm* a_form)
+		{
+			auto* ingredient = a_form ? a_form->As<RE::IngredientItem>() : nullptr;
+			if (!ingredient) return;
+			const char* key = RE::TESFullName::GetFullName(a_form);   // the name's string-table key, "LOC_FN_..."
+			if (key) alchemyrules::AddIngredient(g_ingredients, key, ingredient->weight, ingredient->data.costOverride);
+		}
+
+		bool WalkForms()
+		{
+			auto* forms = RE::TESForm::GetAllForms();
+			if (!forms) return false;
+			for (auto it = forms->begin(); it != forms->end(); ++it) AddIngredientForm(it->second);
+			return true;
+		}
+
+		bool WalkFormsGuarded()   // no unwinding objects here (C2712): the walk itself is in WalkForms
+		{
+			__try {
+				return WalkForms();
+			} __except (EXCEPTION_EXECUTE_HANDLER) {
+				return false;
+			}
+		}
+
+		// IMP-MR-005: the editor-ID map holds no ingredients at run time (2026-11-04); the full-name key does (as for
+		// Inventory rows). Built once: ingredient forms do not change after the game's data is loaded.
+		void BuildIngredientIndex()
+		{
+			if (g_ingredientsBuilt) return;
+			g_ingredientsBuilt = true;
+			g_ingredients.clear();
+			const bool ok = WalkFormsGuarded();
+			if (!ok || g_ingredients.empty()) logger::warn("alchemy: no ingredient forms indexed (walk {}); Weight/Value sort by name", ok ? "empty" : "faulted");
+		}
+
 		std::pair<float, int> FormData(const std::string& a_name, const UE::FText& a_text)
 		{
 			if (auto it = g_formData.find(a_name); it != g_formData.end()) return it->second;
-			std::pair<float, int> data{ -1.0f, -1 };
-			const auto key = reflect::TextKey(a_text);   // "LOC_FN_<EditorID>" for a normal form's name
-			if (key.rfind("LOC_FN_", 0) == 0) {
-				if (auto* form = RE::TESForm::LookupByEditorID<RE::IngredientItem>(key.substr(7))) data = { form->weight, form->data.costOverride };
-			}
+			BuildIngredientIndex();
+			const auto data = alchemyrules::IngredientStats(g_ingredients, reflect::TextKey(a_text));   // "LOC_FN_..."
 			g_formData.emplace(a_name, data);
+			g_formMatch.emplace(MatchKey(a_name), data);
 			return data;
 		}
 
@@ -570,7 +666,7 @@ namespace alchemy
 			const auto propsOff = reflect::Offset(items.front()->GetClass(), "Properties");
 			if (propsOff < 0) return;
 			std::vector<Ingredient> data(items.size());
-			const bool effects = SortReadsEffects(g_sort);
+			const bool effects = false;   // no sort reads effect texts (Known effects dropped, owner 2026-11-04)
 			logger::flush();
 			for (std::size_t i = 0; i < items.size(); ++i) {
 				if (!ReadIngredient(reinterpret_cast<const std::uint8_t*>(items[i]) + propsOff, data[i], true, effects)) return;   // all or nothing
@@ -580,7 +676,7 @@ namespace alchemy
 				s_warned = true;
 				logger::warn("alchemy: no ingredient weight/value found (name key lookup); those sorts fall back to the name");
 			}
-			const auto order = SortOrder(data, g_sort);
+			const auto order = SortOrder(data, g_sortState.key, g_sortState.descending);
 			bool same = true;
 			for (std::size_t i = 0; i < order.size(); ++i) same &= order[i] == static_cast<int>(i);
 			if (same) return;
@@ -689,6 +785,27 @@ namespace alchemy
 		reflect::Handle g_tabOwner;
 		std::atomic<int> g_hoverTab{ -1 };
 		std::array<Rect, 3> g_tabRects{};
+
+		// Clear all: each filter off as a single entry does (the menu's clear-all input-event stub does nothing when called)
+		void RemoveEveryFilter(UE::UObject* a_menu)
+		{
+			for (const auto& name : SelectedNames(a_menu)) RemoveFilter(a_menu, name);
+		}
+
+		// the Filters button's own bound event on the menu (BndEvt__..._Filters_Buttons_..._CommonButtonBaseClicked, KB
+		// game-internals "Alchemy widgets"), called with the button as a click does
+		bool OpenFilters(UE::UObject* a_menu)
+		{
+			const auto fn = FindFunction(a_menu->GetClass(), { "Filters_Button", "CommonButtonBaseClicked" });
+			auto*      button = Field(a_menu, "Filters_Button");
+			const bool ok = !fn.empty() && button && ui::CallFirst(a_menu, fn.c_str(), &button, sizeof(button));
+			static bool s_said = false;
+			if (!ok && !s_said) {
+				s_said = true;
+				logger::warn("alchemy: the Filters button event was not found or failed; X cannot open the Filters panel");
+			}
+			return ok;
+		}
 
 		void ShowFilterTab(UE::UObject* a_filters, FilterTab a_tab)
 		{
@@ -826,7 +943,11 @@ namespace alchemy
 
 		void HideOwn()
 		{
-			if (auto* l = reflect::Get(g_sortLabel)) ui::Visible(l, false);
+			for (auto& h : g_icons) if (auto* l = reflect::Get(h)) ui::Visible(l, false);
+			for (auto& h : g_iconBacks) if (auto* l = reflect::Get(h)) ui::Visible(l, false);
+			if (auto* l = reflect::Get(g_arrow)) ui::Visible(l, false);
+			for (auto& h : g_seps) if (auto* l = reflect::Get(h)) ui::Visible(l, false);
+			if (auto* l = reflect::Get(g_rule)) ui::Visible(l, false);
 			for (auto& h : g_chips) {
 				if (auto* l = reflect::Get(h)) ui::Visible(l, false);
 			}
@@ -849,7 +970,7 @@ namespace alchemy
 			g_hoverTab = -1;
 			g_hoverChip = -1;
 			std::scoped_lock lock(g_rectLock);
-			g_sortRect = {};
+			g_iconRects = {};
 			g_chipRects.clear();
 			g_tabRects = {};
 		}
@@ -1024,6 +1145,235 @@ namespace alchemy
 			g_tabRects = rects;
 		}
 
+		// ---- IMP-MR-005: native-style sort header and the Weight / Value columns (owner 2026-11-04)
+		UE::UObject* NativeTexture(int a_index)
+		{
+			if (auto* t = reflect::Get(g_tex[static_cast<std::size_t>(a_index)])) return t;
+			static std::array<bool, kTexCount> s_missing{};
+			if (s_missing[static_cast<std::size_t>(a_index)]) return nullptr;
+			auto* t = ui::Load(kTexPaths[a_index]);
+			if (!t) {
+				s_missing[static_cast<std::size_t>(a_index)] = true;
+				logger::warn("alchemy: game texture {} not found; that sort icon is blank", pe::Utf8(UE::FString(kTexPaths[a_index])));
+				return nullptr;
+			}
+			g_tex[static_cast<std::size_t>(a_index)] = reflect::Hold(t);
+			return t;
+		}
+
+		void SetTexture(UE::UObject* a_image, UE::UObject* a_texture)
+		{
+			if (!a_image || !a_texture) return;
+			ui::Call set(a_image, L"SetBrushFromTexture");
+			set.Set("Texture", a_texture);
+			set.Set("bMatchSize", false);
+			set.Run();
+		}
+
+		UE::UObject* MakeImage(UE::UObject* a_canvas, const wchar_t* a_name, UE::UObject* a_texture, int a_z, double a_size)
+		{
+			UE::UObject* slot = nullptr;
+			auto*        image = ui::AddToCanvas(a_canvas, L"/Script/UMG.Image", a_name, &slot);
+			if (!image || !slot) return nullptr;
+			ui::CallFirst(slot, L"SetZOrder", &a_z, sizeof(a_z));
+			ui::Vec2(slot, L"SetSize", a_size, a_size);
+			ui::Vec2(slot, L"SetAlignment", 0.5, 0.5);
+			SetTexture(image, a_texture);
+			ui::Visible(image, false);
+			return image;
+		}
+
+		void ResetHeader()
+		{
+			g_icons = {};
+			g_iconBacks = {};
+			g_arrow = {};
+			g_arrowDir = -1;
+			g_seps = {};
+			g_rule = {};
+		}
+
+		// the list moves down by kHeaderGap (its slot's top padding, added once per list widget) to make room for the
+		// icon line between the Ingredients title and the rows (owner 2026-11-04)
+		void PadList(UE::UObject* a_wrapper, double a_gap)
+		{
+			if (!a_wrapper || reflect::Get(g_paddedList) == a_wrapper) return;
+			auto* slot = SlotOf(a_wrapper);
+			const auto off = slot ? reflect::Offset(slot->GetClass(), "Padding") : -1;
+			if (off < 0 || ui::SizeOf(slot->GetClass(), "Padding") != 16) {
+				static bool s_said = false;
+				if (!s_said) { s_said = true; logger::warn("alchemy: the ingredient list's slot has no padding; no room made for the sort icons"); }
+				g_paddedList = reflect::Hold(a_wrapper);
+				return;
+			}
+			float margin[4];   // FMargin: left, top, right, bottom
+			std::memcpy(margin, reinterpret_cast<const std::uint8_t*>(slot) + off, sizeof(margin));
+			margin[1] += static_cast<float>(a_gap);
+			ui::CallFirst(slot, L"SetPadding", margin, sizeof(margin));
+			g_paddedList = reflect::Hold(a_wrapper);
+		}
+
+		// the icons on their own line in that gap: lightning (Count) and A-Z at the list's left, weight and coin centred
+		// over their columns (owner 2026-11-04 screenshot)
+		std::array<Rect, kIcons> LayoutHeader(UE::UObject* a_canvas, UE::UObject* a_menu, double a_scale)
+		{
+			std::array<Rect, kIcons> rects{};
+			auto*        wrapper = Field(a_menu, "IngredientsListView");
+			const double px = a_scale > 0 ? 1.0 / a_scale : 1.0;   // one screen pixel in viewport units
+			const double gap = kHeaderGap - kGapTrimPx * px;
+			PadList(wrapper, gap);
+			Box        lb, rb;
+			const bool haveList = wrapper && ui::Measure(wrapper, lb.x, lb.y, lb.w, lb.h) && lb.w > 0;
+			auto*      list = InnerList(wrapper);
+			const auto rows = list ? DisplayedRows(list) : std::vector<UE::UObject*>{};
+			const bool haveRow = !rows.empty() && ui::Measure(rows.front(), rb.x, rb.y, rb.w, rb.h) && rb.w > 0;
+			const bool room = haveList;
+			for (int i = 0; i < kIcons; ++i) {
+				auto& ih = g_icons[static_cast<std::size_t>(i)];
+				auto& bh = g_iconBacks[static_cast<std::size_t>(i)];
+				if (!reflect::Get(bh)) {
+					if (auto* b = MakeImage(a_canvas, (L"MrAlchemySortBack" + std::to_wstring(i)).c_str(), NativeTexture(kTexBack), 49, kIconBack)) bh = reflect::Hold(b);
+				}
+				if (!reflect::Get(ih)) {
+					if (auto* m = MakeImage(a_canvas, (L"MrAlchemySortIcon" + std::to_wstring(i)).c_str(), NativeTexture(i), 50, kIconSize)) ih = reflect::Hold(m);
+				}
+			}
+			if (!reflect::Get(g_arrow)) {
+				if (auto* a = MakeImage(a_canvas, L"MrAlchemySortArrow", nullptr, 51, kArrowSize)) { g_arrow = reflect::Hold(a); g_arrowDir = -1; }
+			}
+			for (std::size_t i = 0; i < g_seps.size(); ++i) {
+				if (reflect::Get(g_seps[i])) continue;
+				if (auto* sep = MakeImage(a_canvas, (L"MrAlchemySortSep" + std::to_wstring(i)).c_str(), NativeTexture(kTexLine), 50, kIconSize)) {
+					if (auto* slot = SlotOf(sep)) ui::Vec2(slot, L"SetSize", kSepWidth, kIconSize);
+					g_seps[i] = reflect::Hold(sep);
+				}
+			}
+			if (!reflect::Get(g_rule)) {   // the column line turned 90 degrees, so it looks like the separators
+				if (auto* rule = MakeImage(a_canvas, L"MrAlchemySortRule", NativeTexture(kTexLine), 50, kIconSize)) {
+					ui::Float(rule, L"SetRenderTransformAngle", 90.0f);
+					g_rule = reflect::Hold(rule);
+				}
+			}
+			const double rowRight = haveRow ? rb.x + rb.w : lb.x + lb.w;
+			const auto   xs = HeaderX(lb.x + kLeftShiftPx * px, rowRight, kFirstIcon, kIconStep, kWeightCx, kValueCx);
+			const double cy = lb.y - gap * 0.5 - kIconLiftPx * px;
+			const int    active = static_cast<int>(g_sortState.key);
+			const int    focus = g_padFocus.load(), hover = g_hoverIcon.load();
+			for (int i = 0; i < kIcons; ++i) {
+				auto*        icon = reflect::Get(g_icons[static_cast<std::size_t>(i)]);
+				auto*        back = reflect::Get(g_iconBacks[static_cast<std::size_t>(i)]);
+				const double cx = xs[static_cast<std::size_t>(i)];
+				if (icon) {
+					if (auto* slot = SlotOf(icon)) ui::Vec2(slot, L"SetPosition", cx, cy);
+					ui::Visible(icon, room);
+					if (room) rects[static_cast<std::size_t>(i)] = PixelRect(icon, a_scale);
+				}
+				if (back) {
+					if (auto* slot = SlotOf(back)) ui::Vec2(slot, L"SetPosition", cx, cy);
+					const bool   lit = i == active || i == focus || i == hover;
+					const float* tint = i == active ? kActiveTint : kFocusTint;
+					if (lit) ui::Colour(back, tint[0], tint[1], tint[2], tint[3]);
+					ui::Visible(back, room && lit);
+				}
+			}
+			// separators halfway between lightning (Count) and A-Z (Name), and between Weight and Value
+			const double sepX[2] = { (xs[0] + xs[1]) * 0.5, (xs[2] + xs[3]) * 0.5 };
+			for (std::size_t i = 0; i < g_seps.size(); ++i) {
+				auto* sep = reflect::Get(g_seps[i]);
+				if (!sep) continue;
+				if (auto* slot = SlotOf(sep)) ui::Vec2(slot, L"SetPosition", sepX[i], cy);
+				ui::Visible(sep, room);
+			}
+			if (auto* rule = reflect::Get(g_rule)) {   // between the icons' bottom and the first row, list left to row right
+				const double length = (std::max)(0.0, rowRight - lb.x);
+				if (auto* slot = SlotOf(rule)) {
+					ui::Vec2(slot, L"SetSize", kSepWidth, length);   // before the turn: width x length
+					ui::Vec2(slot, L"SetPosition", (lb.x + rowRight) * 0.5, (cy + kIconSize * 0.5 + lb.y) * 0.5);
+				}
+				ui::Visible(rule, room && length > 0);
+			}
+			if (auto* arrow = reflect::Get(g_arrow)) {
+				const int dir = g_sortState.descending ? 1 : 0;   // up = A-Z / lowest first, down = Z-A / highest first
+				if (dir != g_arrowDir) {
+					SetTexture(arrow, NativeTexture(dir ? kTexDown : kTexUp));
+					g_arrowDir = dir;
+				}
+				const double ax = xs[static_cast<std::size_t>(active)];
+				if (auto* slot = SlotOf(arrow)) ui::Vec2(slot, L"SetPosition", ax + (kIconBack - kArrowSize) * 0.5, cy + (kIconBack - kArrowSize) * 0.5);
+				ui::Visible(arrow, room);
+			}
+			return rects;
+		}
+
+		UE::UObject* RowNameText(UE::UObject* a_row)
+		{
+			auto* name = Field(a_row, "EntryName");
+			if (!name) return nullptr;
+			if (reflect::Offset(name->GetClass(), "Font") >= 0) return name;
+			return ui::FindInTree(name, "text_block");
+		}
+
+		// a column label in the row's own canvas, anchored to its right edge, with the name text's font and colour
+		UE::UObject* ColumnLabel(UE::UObject* a_row, UE::UObject* a_text, const wchar_t* a_name, double a_fromRight)
+		{
+			auto* canvas = ui::FindInTree(a_row, "CanvasPanel");
+			if (!canvas) return nullptr;
+			UE::UObject* slot = nullptr;
+			auto*        label = ui::AddToCanvas(canvas, L"/Script/UMG.TextBlock", a_name, &slot);
+			if (!label || !slot) return nullptr;
+			const bool yes = true;
+			ui::CallFirst(slot, L"SetAutoSize", &yes, sizeof(yes));
+			ui::Anchors(slot, 1.0, 0.5, 1.0, 0.5);
+			ui::Vec2(slot, L"SetAlignment", 0.5, 0.5);
+			ui::Vec2(slot, L"SetPosition", -a_fromRight, g_columnDy);
+			if (g_dyKnown) g_dyDone.insert(label);
+			const int z = 5;
+			ui::CallFirst(slot, L"SetZOrder", &z, sizeof(z));
+			for (const char* prop : { "Font", "ColorAndOpacity" }) {
+				const auto off = reflect::Offset(a_text->GetClass(), prop);
+				const auto size = ui::SizeOf(a_text->GetClass(), prop);
+				if (off >= 0 && size > 0 && size <= 512)
+					ui::CallFirst(label, prop == std::string_view("Font") ? L"SetFont" : L"SetColorAndOpacity", reinterpret_cast<const std::uint8_t*>(a_text) + off, static_cast<std::size_t>(size));
+			}
+			return label;
+		}
+
+		void DecorateIngredientRow(UE::UObject* a_row)
+		{
+			auto* text = a_row ? RowNameText(a_row) : nullptr;
+			if (!text) return;
+			const auto shown = uix::GetText(text);
+			if (shown.empty()) return;
+			std::pair<float, int> stats{ -1.0f, -1 };
+			if (auto it = g_formData.find(shown); it != g_formData.end()) stats = it->second;
+			else if (auto m = g_formMatch.find(MatchKey(shown)); m != g_formMatch.end()) stats = m->second;
+			for (int c = 0; c < 2; ++c) {
+				auto* label = ui::FindInTree(a_row, c ? "MrAlchemyValue" : "MrAlchemyWeight");
+				if (!label) label = ColumnLabel(a_row, text, c ? L"MrAlchemyValue" : L"MrAlchemyWeight", c ? kValueCx : kWeightCx);
+				if (!label) continue;
+				const auto want = c ? FormatValue(stats.second) : FormatWeight(stats.first);
+				if (uix::GetText(label) != want) uix::SetText(label, want);
+				if (!g_dyKnown && c == 0) {   // the numbers sat at the row's top (owner 2026-11-04): centre them on the name
+					Box tb, lb;
+					if (ui::Measure(text, tb.x, tb.y, tb.w, tb.h) && tb.h > 0 && ui::Measure(label, lb.x, lb.y, lb.w, lb.h) && lb.h > 0) {
+						g_columnDy = ColumnDy(tb.y, tb.h, lb.y, lb.h);
+						g_dyKnown = true;
+					}
+				}
+				if (g_dyKnown && g_dyDone.insert(label).second) {
+					if (auto* slot = SlotOf(label)) ui::Vec2(slot, L"SetPosition", -(c ? kValueCx : kWeightCx), g_columnDy);
+				}
+			}
+		}
+
+		// from the tick only (never inside the game's own row call: RMI-022 / RMI-024)
+		void DecorateIngredientRows(UE::UObject* a_menu)
+		{
+			auto* list = InnerList(Field(a_menu, "IngredientsListView"));
+			if (!list) return;
+			for (auto* row : DisplayedRows(list)) DecorateIngredientRow(row);
+		}
+
 		void Layout(UE::UObject* a_menu)
 		{
 			auto* canvas = ui::TreeRootCanvas(a_menu);
@@ -1055,9 +1405,10 @@ namespace alchemy
 			}
 			const double scale = ui::ViewportScale();
 
-			// sort label: between the "Ingredients" title and the Filters button
-			auto* sort = reflect::Get(g_sortLabel);
-			if (!sort || !ui::IsWithin(sort, a_menu)) {
+			// sort header: between the "Ingredients" title and the Filters button
+			auto* first = reflect::Get(g_icons[0]);
+			if (!first || !ui::IsWithin(first, a_menu)) {
+				ResetHeader();
 				g_strip = {};
 				g_chips.clear();   // a new menu widget: its labels are new too
 				g_chipBacks.clear();
@@ -1066,14 +1417,8 @@ namespace alchemy
 				g_chipMarks.clear();
 				g_more = {};
 				g_chipTitle = {};
-				sort = MakeLabel(canvas, L"MrAlchemySort", kSortInk, 20);
-				g_sortLabel = sort ? reflect::Hold(sort) : reflect::Handle{};
 			}
-			if (sort) {
-				uix::SetText(sort, std::string("Sort: ") + SortLabel(g_sort));
-				Place(sort, row.sortX, row.sortY, 0.0);
-				ui::Visible(sort, row.sortMaxWidth > 0);
-			}
+			const auto iconRects = LayoutHeader(canvas, a_menu, scale);
 
 			// the parchment strip above the panel; the active-filter buttons go in the space it adds
 			auto* panel = Field(a_menu, "Alchemy_IngredientsListBG");
@@ -1163,7 +1508,7 @@ namespace alchemy
 				for (const auto& sz : sizes) lineH = (std::max)(lineH, sz[1] + kButtonPadY * 2);
 				const double step = lineH + kRowGap;
 				const double x0 = row.chipsX + kButtonPadX;
-				const int    hovered = g_hoverChip.load();
+				const int    hovered = g_hoverChip.load(), padFocus = g_chipFocus.load();
 				for (std::size_t i = 0; i < flow.row.size(); ++i) {
 					auto* chip = reflect::Get(g_chips[i]);
 					auto* back = reflect::Get(g_chipBacks[i]);
@@ -1183,7 +1528,7 @@ namespace alchemy
 						ui::Vec2(slot, L"SetPosition", box.x, box.y);
 						ui::Vec2(slot, L"SetSize", box.w, box.h);
 					}
-					StyleBack(i, static_cast<int>(i) == hovered);
+					StyleBack(i, static_cast<int>(i) == hovered || static_cast<int>(i) == padFocus);
 					ui::Visible(back, true);
 					shown[i] = true;
 					rects[i] = PixelRect(back, scale);
@@ -1218,9 +1563,327 @@ namespace alchemy
 				}
 			}
 			g_chipNames = meaning;
+			int shownCount = 0;
+			for (std::size_t k = 0; k < shown.size(); ++k) shownCount += shown[k] ? 1 : 0;
+			g_chipCount = shownCount;
+			if (const int focus = g_chipFocus.load(); focus >= 0) {   // a removed filter shrank the line
+				const int clamped = ClampFocus(focus, shownCount);
+				if (clamped != focus) { g_chipFocus = clamped; g_hoverNow = true; }
+			}
 			std::scoped_lock lock(g_rectLock);
-			g_sortRect = sort && row.sortMaxWidth > 0 ? PixelRect(sort, scale) : Rect{};
+			g_iconRects = iconRects;
 			g_chipRects = rects;
+		}
+
+		// ---- controller hints (owner 2026-11-04; KB game-internals "Alchemy footer (bottom hint bar)")
+		bool PadInput()   // the game's own idea of the input device: ECommonInputType 1 = Gamepad
+		{
+			auto* sub = reflect::Get(g_inputSubsystem);
+			if (!sub) {
+				static ULONGLONG s_next = 0;
+				if (GetTickCount64() < s_next) return false;
+				s_next = GetTickCount64() + 2000;   // an object scan: at most every 2 s until found
+				auto* cls = ui::Class(L"/Script/CommonInput.CommonInputSubsystem");
+				for (auto* o : cls ? reflect::Instances(cls) : std::vector<UE::UObject*>{}) {
+					if (!reflect::IsLive(o) || pe::Utf8(o->GetFName().ToString()).rfind("Default__", 0) == 0) continue;
+					sub = o;
+					g_inputSubsystem = reflect::Hold(o);
+					break;
+				}
+				if (!sub) return false;
+			}
+			ui::Call type(sub, L"GetCurrentInputType");
+			return type && type.Run() && type.Get<std::uint8_t>("ReturnValue") == 1;
+		}
+
+		std::vector<UE::UObject*> PanelChildren(UE::UObject* a_panel)
+		{
+			std::vector<UE::UObject*> out;
+			ui::Call count(a_panel, L"GetChildrenCount");
+			const int n = count && count.Run() ? count.Get<std::int32_t>("ReturnValue") : 0;
+			for (int i = 0; i < n && i < 32; ++i) {
+				ui::Call at(a_panel, L"GetChildAt");
+				if (!at) break;
+				at.Set("Index", i);
+				if (at.Run()) if (auto* w = at.Get<UE::UObject*>("ReturnValue")) out.push_back(w);
+			}
+			return out;
+		}
+
+		std::string ObjName(UE::UObject* a_o) { return a_o ? pe::Utf8(a_o->GetFName().ToString()) : std::string(); }
+
+		void CopyLook(UE::UObject* a_to, UE::UObject* a_from)   // a text's font and colour
+		{
+			for (const char* prop : { "Font", "ColorAndOpacity" }) {
+				const auto off = reflect::Offset(a_from->GetClass(), prop);
+				const auto size = ui::SizeOf(a_from->GetClass(), prop);
+				if (off >= 0 && size > 0 && size <= 512)
+					ui::CallFirst(a_to, prop == std::string_view("Font") ? L"SetFont" : L"SetColorAndOpacity", reinterpret_cast<const std::uint8_t*>(a_from) + off, static_cast<std::size_t>(size));
+			}
+		}
+
+		UE::UObject* NewWidget(UE::UObject* a_outer, const wchar_t* a_class, const std::wstring& a_name)
+		{
+			auto* cls = ui::Class(a_class);
+			return cls && a_outer ? UE::NewObject<UE::UObject>(a_outer, cls, UE::FName(a_name.c_str())) : nullptr;
+		}
+
+		UE::UObject* AddTo(UE::UObject* a_panel, const wchar_t* a_fn, UE::UObject* a_child)
+		{
+			ui::Call add(a_panel, a_fn);
+			if (!add) return nullptr;
+			add.Set("Content", a_child);
+			add.Run();
+			return add.Get<UE::UObject*>("ReturnValue");
+		}
+
+		void FillSlot(UE::UObject* a_slot)   // overlay slots start top-left at the brush's own size
+		{
+			if (!a_slot) return;
+			const std::uint8_t fill = 0;   // HAlign_Fill / VAlign_Fill
+			ui::CallFirst(a_slot, L"SetHorizontalAlignment", &fill, sizeof(fill));
+			ui::CallFirst(a_slot, L"SetVerticalAlignment", &fill, sizeof(fill));
+		}
+
+		// the first widget of a_class (or a subclass) in a user widget's tree: its WidgetTree, panels' slots, nested
+		// user widgets (bounded walk)
+		UE::UObject* FindByClassIn(UE::UObject* a_w, UE::UClass* a_class, int a_depth, int& a_budget)
+		{
+			static auto* userWidget = ui::Class(L"/Script/UMG.UserWidget");
+			static auto* panelWidget = ui::Class(L"/Script/UMG.PanelWidget");
+			static auto* treeClass = ui::Class(L"/Script/UMG.WidgetTree");
+			static auto* panelSlot = ui::Class(L"/Script/UMG.PanelSlot");
+			if (!a_w || !a_w->GetClass() || a_depth > 12 || --a_budget < 0) return nullptr;
+			if (a_depth > 0 && a_w->GetClass()->IsChildOf(a_class)) return a_w;
+			auto prop = [](UE::UObject* o, UE::UClass* decl, std::string_view n) -> UE::UObject* {
+				const auto off = o && decl ? reflect::Offset(reinterpret_cast<UE::UStruct*>(decl), n) : -1;
+				auto* p = off >= 0 ? *reinterpret_cast<UE::UObject* const*>(reinterpret_cast<const std::uint8_t*>(o) + off) : nullptr;
+				return p && reflect::IsLive(p) ? p : nullptr;
+			};
+			if (userWidget && a_w->GetClass()->IsChildOf(userWidget)) {
+				auto* tree = prop(a_w, userWidget, "WidgetTree");
+				if (auto* hit = FindByClassIn(tree ? prop(tree, treeClass, "RootWidget") : nullptr, a_class, a_depth + 1, a_budget)) return hit;
+			}
+			if (panelWidget && a_w->GetClass()->IsChildOf(panelWidget)) {
+				const auto off = reflect::Offset(reinterpret_cast<UE::UStruct*>(panelWidget), "Slots");
+				if (off >= 0) {
+					const auto* arr = reinterpret_cast<const RawArray*>(reinterpret_cast<const std::uint8_t*>(a_w) + off);
+					auto* const* slots = reinterpret_cast<UE::UObject* const*>(arr->data);
+					for (std::int32_t i = 0; slots && i < arr->num && i < 64; ++i) {
+						if (auto* hit = FindByClassIn(prop(slots[i], panelSlot, "Content"), a_class, a_depth + 1, a_budget)) return hit;
+					}
+				}
+			}
+			return nullptr;
+		}
+
+		UE::UObject* FindByClass(UE::UObject* a_root, const wchar_t* a_classPath)
+		{
+			auto* cls = ui::Class(a_classPath);
+			int   budget = 200;
+			return cls ? FindByClassIn(a_root, cls, 0, budget) : nullptr;
+		}
+
+		double HoldTime(UE::UObject* a_entry)   // VAltarBoundActionButton.HoldTreshold (sic); 0 for a press entry
+		{
+			const auto off = a_entry ? reflect::Offset(a_entry->GetClass(), "HoldTreshold") : -1;
+			const auto size = a_entry ? ui::SizeOf(a_entry->GetClass(), "HoldTreshold") : -1;
+			if (off < 0) return 0;
+			const auto* p = reinterpret_cast<const std::uint8_t*>(a_entry) + off;
+			return size == 8 ? *reinterpret_cast<const double*>(p) : size == 4 ? *reinterpret_cast<const float*>(p) : 0.0;
+		}
+
+		double GlyphSide(UE::UObject* a_entry)   // the native glyph's height, else kHintGlyph
+		{
+			auto* glyph = Field(a_entry, "InputActionWidget");
+			ui::Call size(glyph, L"GetDesiredSize");
+			if (glyph && size && size.Run()) {
+				const auto d = size.Get<std::array<double, 2>>("ReturnValue");
+				if (d[1] > 4 && d[1] < 120) return d[1];
+			}
+			return kHintGlyph;
+		}
+
+		// one hint: [glyph (with the hold rim)] label - built like the native entry beside it
+		// the controller bar in the owner's order (2026-11-04); the game's bar cannot reorder or insert, so on a pad all six
+		// are ours and the native entries are hidden. mirror: the label is copied from the game's own press entry (0 = its
+		// first, A Add to Potion; 1 = its second, B Back) so it stays localised and follows the game's wording
+		struct Hint { int glyph; bool hold; const char* label; int mirror; };
+		constexpr Hint kHints[] = {
+			{ kTexPadA, false, nullptr, 0 },
+			{ kTexPadX, false, "Filters", -1 },
+			{ kTexPadX, true, "Clear All Filters", -1 },
+			{ kTexPadY, false, "Sort", -1 },
+			{ kTexPadY, true, "Selected Filters", -1 },
+			{ kTexPadB, false, nullptr, 1 },
+		};
+
+		UE::UObject* MakeHint(UE::UObject* a_box, int a_index, UE::UObject* a_native, UE::UObject* a_holdEntry, UE::UObject* a_pressEntry)
+		{
+			auto* outer = a_box->GetOuter();
+			const auto id = std::to_wstring(a_index);
+			auto* row = NewWidget(outer, L"/Script/UMG.HorizontalBox", L"MrAlchemyHint" + id);
+			auto* sizer = NewWidget(outer, L"/Script/UMG.SizeBox", L"MrAlchemyHintSize" + id);
+			auto* stack = NewWidget(outer, L"/Script/UMG.Overlay", L"MrAlchemyHintStack" + id);
+			auto* glyph = NewWidget(outer, L"/Script/UMG.Image", L"MrAlchemyHintGlyph" + id);
+			auto* label = NewWidget(outer, L"/Script/UMG.TextBlock", L"MrAlchemyHintText" + id);
+			if (!row || !sizer || !stack || !glyph || !label) return nullptr;
+			const auto&  hint = kHints[a_index];
+			const double press = GlyphSide(a_pressEntry ? a_pressEntry : a_native);   // the glyph itself
+			const double side = hint.hold && a_holdEntry ? (std::max)(press, GlyphSide(a_holdEntry)) : press;   // with the ring
+			ui::Float(sizer, L"SetWidthOverride", static_cast<float>(side));
+			ui::Float(sizer, L"SetHeightOverride", static_cast<float>(side));
+			if (hint.hold) {   // the native hold ring (progress brush) behind the glyph - only when it has a picture
+				auto* ringSource = Field(a_holdEntry, "InputActionWidget");
+				const auto off = ringSource ? reflect::Offset(ringSource->GetClass(), "ProgressMaterialBrush") : -1;
+				const auto size = ringSource ? ui::SizeOf(ringSource->GetClass(), "ProgressMaterialBrush") : -1;
+				if (off >= 0 && size > 0 && size <= 1024) {
+					if (auto* ring = NewWidget(outer, L"/Script/UMG.Image", L"MrAlchemyHintRing" + id)) {
+						ui::CallFirst(ring, L"SetBrush", reinterpret_cast<const std::uint8_t*>(ringSource) + off, static_cast<std::size_t>(size));
+						if (ui::BrushResource(ring)) FillSlot(AddTo(stack, L"AddChildToOverlay", ring));   // the rim brush drew a white box
+					}
+				}
+			}
+			SetTexture(glyph, NativeTexture(hint.glyph));
+			auto* inner = NewWidget(outer, L"/Script/UMG.SizeBox", L"MrAlchemyHintInner" + id);   // the glyph at the press size, centred
+			if (inner) {
+				ui::Float(inner, L"SetWidthOverride", static_cast<float>(press));
+				ui::Float(inner, L"SetHeightOverride", static_cast<float>(press));
+				ui::Call innerContent(inner, L"SetContent");
+				if (innerContent) { innerContent.Set("Content", glyph); innerContent.Run(); }
+				if (auto* slot = AddTo(stack, L"AddChildToOverlay", inner)) {
+					const std::uint8_t centre = 2;   // HAlign_Center / VAlign_Center
+					ui::CallFirst(slot, L"SetHorizontalAlignment", &centre, sizeof(centre));
+					ui::CallFirst(slot, L"SetVerticalAlignment", &centre, sizeof(centre));
+				}
+			} else {
+				FillSlot(AddTo(stack, L"AddChildToOverlay", glyph));
+			}
+			ui::Call content(sizer, L"SetContent");
+			if (content) { content.Set("Content", stack); content.Run(); }
+			const std::uint8_t centre = 2;   // EVerticalAlignment::VAlign_Center
+			if (auto* slot = AddTo(row, L"AddChildToHorizontalBox", sizer)) ui::CallFirst(slot, L"SetVerticalAlignment", &centre, sizeof(centre));
+			if (hint.label) uix::SetText(label, hint.label);   // mirrored labels are set by LayoutFooter
+			if (auto* nativeText = Field(a_native, "Text_ActionName")) CopyLook(label, nativeText);
+			if (auto* slot = AddTo(row, L"AddChildToHorizontalBox", label)) {
+				ui::CallFirst(slot, L"SetVerticalAlignment", &centre, sizeof(centre));
+				const float pad[4] = { static_cast<float>(kHintGap), 0, 0, 0 };
+				ui::CallFirst(slot, L"SetPadding", pad, sizeof(pad));
+			}
+			if (auto* slot = AddTo(a_box, L"AddChildToHorizontalBox", row)) {   // the native slots have no padding (screenshot)
+				ui::CallFirst(slot, L"SetVerticalAlignment", &centre, sizeof(centre));
+				const float pad[4] = { a_index == 0 ? 0.0f : static_cast<float>(kHintSpacing), 0, 0, 0 };
+				ui::CallFirst(slot, L"SetPadding", pad, sizeof(pad));
+			}
+			return row;
+		}
+
+		// On a pad with the Filters panel closed: the native hold-Y entry reads "Selected Filters" (hold Y now enters the
+		// Selected Filters buttons) and our Y Sort / X Filters / hold X Clear All Filters follow the native entries.
+		// The footer rebuilds its entries on every device or panel change (KB): this runs from the tick and re-applies.
+		// our own bar beside BA_Box in its parent, placed like it (same slot alignment and padding); created once per footer
+		UE::UObject* OwnBar(UE::UObject* a_footer, UE::UObject* a_box)
+		{
+			if (auto* bar = ui::FindInTree(a_footer, "MrAlchemyBar")) return bar;
+			ui::Call parentOf(a_box, L"GetParent");
+			auto* parent = parentOf && parentOf.Run() ? parentOf.Get<UE::UObject*>("ReturnValue") : nullptr;
+			auto* bar = parent ? NewWidget(a_box->GetOuter(), L"/Script/UMG.HorizontalBox", L"MrAlchemyBar") : nullptr;
+			if (!bar) return nullptr;
+			auto* slot = AddTo(parent, L"AddChildToOverlay", bar);
+			if (!slot) slot = AddTo(parent, L"AddChildToHorizontalBox", bar);
+			if (!slot) slot = AddTo(parent, L"AddChildToVerticalBox", bar);
+			auto* boxSlot = SlotOf(a_box);
+			if (slot && boxSlot) {
+				for (const char* prop : { "HorizontalAlignment", "VerticalAlignment" }) {
+					const auto off = reflect::Offset(boxSlot->GetClass(), prop);
+					if (off >= 0) {
+						const std::uint8_t v = *(reinterpret_cast<const std::uint8_t*>(boxSlot) + off);
+						ui::CallFirst(slot, prop == std::string_view("HorizontalAlignment") ? L"SetHorizontalAlignment" : L"SetVerticalAlignment", &v, sizeof(v));
+					}
+				}
+				const auto off = reflect::Offset(boxSlot->GetClass(), "Padding");
+				if (off >= 0 && ui::SizeOf(boxSlot->GetClass(), "Padding") == 16)
+					ui::CallFirst(slot, L"SetPadding", reinterpret_cast<const std::uint8_t*>(boxSlot) + off, 16);
+			}
+			return bar;
+		}
+
+		// On a pad with the Filters panel closed our bar (owner's order) replaces the game's: BA_Box is faded out, never
+		// changed - the game keeps deciding which of its entries show on each device (forcing them visible showed the
+		// keyboard-hidden ones, owner screenshot on fa3e9a32). Runs from the tick; the footer rebuilds its entries.
+		void LayoutFooter(UE::UObject* a_menu, bool a_filtersOpen, bool a_pad)
+		{
+			auto* footer = Field(a_menu, "modern_footer");
+			auto* box = footer ? ui::FindInTree(footer, "BA_Box") : nullptr;
+			if (!box) return;
+			const bool                show = a_pad && !a_filtersOpen;
+			UE::UObject*              native = nullptr;
+			UE::UObject*              holdEntry = nullptr;
+			std::vector<UE::UObject*> press;   // the game's press entries in its order (A Add to Potion, B Back)
+			for (auto* child : PanelChildren(box)) {
+				if (!Field(child, "Text_ActionName")) continue;
+				if (!native) native = child;
+				// the hold-Y entry (game's Clear All Filters) by its hold time; the action name as a fallback
+				auto*      action = Field(child, "BoundInputAction");
+				const bool hold = HoldTime(child) > 0 || (action && ObjName(action).find("ClearAll") != std::string::npos);
+				if (hold && !holdEntry) holdEntry = child;
+				else if (!hold) press.push_back(child);
+			}
+			ui::Float(box, L"SetRenderOpacity", show ? 0.0f : 1.0f);
+			auto* bar = show && native ? OwnBar(footer, box) : ui::FindInTree(footer, "MrAlchemyBar");
+			if (!bar) return;
+			ui::Visible(bar, show);
+			if (!show) return;
+			std::array<UE::UObject*, std::size(kHints)> own{};
+			for (auto* child : PanelChildren(bar)) {
+				const auto name = ObjName(child);
+				if (name.rfind("MrAlchemyHint", 0) != 0) continue;
+				const auto i = static_cast<std::size_t>(name.back() - '0');
+				if (i < own.size()) own[i] = child;
+			}
+			UE::UObject* pressEntry = press.empty() ? nullptr : press.front();
+			for (std::size_t i = 0; i < own.size(); ++i) {
+				if (!own[i]) own[i] = MakeHint(bar, static_cast<int>(i), native, holdEntry, pressEntry);
+				if (!own[i]) continue;
+				const int mirror = kHints[i].mirror;
+				if (mirror < 0) continue;
+				auto* source = mirror < static_cast<int>(press.size()) ? Field(press[static_cast<std::size_t>(mirror)], "Text_ActionName") : nullptr;
+				auto* label = ui::FindInTree(footer, "MrAlchemyHintText" + std::to_string(i));
+				if (source && label) {
+					const auto want = uix::GetText(source);
+					if (!want.empty() && uix::GetText(label) != want) uix::SetText(label, want);
+				}
+			}
+		}
+
+		// the Filters button's own Y glyph: covered by the game's X glyph on a pad (X opens Filters now)
+		void LayoutFiltersGlyph(UE::UObject* a_menu, UE::UObject* a_canvas, bool a_pad)
+		{
+			auto* button = Field(a_menu, "Filters_Button");
+			auto* glyph = button ? Field(button, "InputActionWidget") : nullptr;
+			// the button's Y is a WBP_ModernPrefab_ControllerInputHint (KB game-internals "Alchemy footer"), not that field
+			if (button) {
+				if (auto* hint = FindByClass(button, L"/Game/UI/Modern/Prefabs/WBP_ModernPrefab_ControllerInputHint.WBP_ModernPrefab_ControllerInputHint_C")) glyph = hint;
+			}
+			if (!glyph && button) glyph = FindByClass(button, L"/Script/CommonUI.CommonActionWidget");
+			// one glyph per menu widget: the menu is reused between openings, so a lost handle must find the one it made
+			// (a second one stayed behind at the old place, owner screenshot on db35721d)
+			auto* ours = reflect::Get(g_filtersGlyph);
+			if (ours && !ui::IsWithin(ours, a_menu)) ours = nullptr;
+			if (!ours) ours = ui::FindInTree(a_menu, "MrAlchemyFiltersGlyph");
+			if (!ours && a_canvas) ours = MakeImage(a_canvas, L"MrAlchemyFiltersGlyph", NativeTexture(kTexPadX), 52, kHintGlyph);
+			if (ours && reflect::Get(g_filtersGlyph) != ours) g_filtersGlyph = reflect::Hold(ours);
+			Box        g;
+			const bool place = a_pad && glyph && ui::Measure(glyph, g.x, g.y, g.w, g.h) && g.w > 0 && g.h > 0;
+			if (glyph) ui::Float(glyph, L"SetRenderOpacity", place ? 0.0f : 1.0f);
+			if (!ours) return;
+			if (place) {
+				if (auto* slot = SlotOf(ours)) {
+					ui::Vec2(slot, L"SetPosition", g.x + g.w * 0.5, g.y + g.h * 0.5);
+					ui::Vec2(slot, L"SetSize", g.w, g.h);
+				}
+			}
+			ui::Visible(ours, place);
 		}
 
 		// ---- the menu
@@ -1288,7 +1951,13 @@ namespace alchemy
 				g_filterOpen = false;
 				g_state.Opened(NowMs());
 				g_countsOpened = true;
-				g_sort = SortFromIni(mrconfig::Get().alchemy.defaultSort);
+				if (!g_sortRead) {   // the INI default once; later openings keep the player's last sort
+					const auto key = SortFromIni(mrconfig::Get().alchemy.defaultSort);
+					g_sortState = { key, DefaultDescending(key) };
+					g_sortRead = true;
+				}
+				g_padFocus = -1;
+				g_hoverIcon = -1;
 				g_dirtySort = g_dirtyCounts = true;
 				g_filterSignature = { -1, nullptr };
 				g_nextLayout = {};
@@ -1299,6 +1968,10 @@ namespace alchemy
 				g_state.Closed();
 				HideOwn();
 				g_nameTyping = false;
+				g_padFocus = -1;
+				g_dyDone.clear();
+				g_chipFocus = -1;
+				if (auto* glyph = reflect::Get(g_filtersGlyph)) ui::Visible(glyph, false);   // kept: the menu widget is reused
 			}
 		}
 		if (!open) return;
@@ -1313,16 +1986,26 @@ namespace alchemy
 			if (const int direction = g_tabCycle.exchange(0); direction != 0)
 				ShowFilterTab(filters, alchemytabs::Cycle(g_filterTab, direction));
 		}
-		if (g_cycle.exchange(0) > 0) {
-			g_sort = NextSort(g_sort);
+		if (const int icon = g_iconClick.exchange(-1); icon >= 0 && icon < kIcons) {   // click = sort, again = reverse
+			g_sortState = Click(g_sortState, static_cast<SortKey>(icon));
 			g_dirtySort = true;
 			g_nextLayout = {};
 		}
+		g_activeIcon = static_cast<int>(g_sortState.key);
+		if (g_openFiltersRequest.exchange(false) && !filtersOpen) {
+			OpenFilters(menu);
+			g_nextLayout = {};
+		}
+		if (g_clearAllRequest.exchange(false)) {
+			RemoveEveryFilter(menu);
+			g_nextLayout = {};
+		}
+		if (g_headerNow.exchange(false)) g_nextLayout = {};
 		if (const int chip = g_chipClick.exchange(-1); chip >= 0 && chip < static_cast<int>(g_chipNames.size())) {
 			const auto meaning = g_chipNames[static_cast<std::size_t>(chip)];
 			const auto before = SelectedNames(menu).size();
-			if (meaning.empty()) {   // Clear all: each filter off as a single entry does (the menu's input-event stub does nothing when called)
-				for (const auto& name : SelectedNames(menu)) RemoveFilter(menu, name);
+			if (meaning.empty()) {
+				RemoveEveryFilter(menu);
 			} else if (meaning != "+") {
 				RemoveFilter(menu, meaning);
 			}
@@ -1349,15 +2032,19 @@ namespace alchemy
 			}
 		}
 		if (g_hoverNow.exchange(false)) {
-			const int hovered = g_hoverChip.load();
-			for (std::size_t i = 0; i < g_chipBacks.size(); ++i) StyleBack(i, static_cast<int>(i) == hovered);
+			const int hovered = g_hoverChip.load(), padFocus = g_chipFocus.load();
+			for (std::size_t i = 0; i < g_chipBacks.size(); ++i) StyleBack(i, static_cast<int>(i) == hovered || static_cast<int>(i) == padFocus);
 		}
 		const auto now = Clock::now();
 		if (now < g_nextLayout) return;
 		g_nextLayout = now + std::chrono::milliseconds(100);
 		if (auto* filters = Field(menu, "Alchemy_Filters"); filters && Active(filters)) DecorateRows(filters, SelectedNames(menu));
 		Layout(menu);
+		DecorateIngredientRows(menu);
 		LayoutFilterTabs(menu);
+		const bool pad = PadInput();
+		LayoutFooter(menu, filtersOpen, pad);
+		LayoutFiltersGlyph(menu, ui::TreeRootCanvas(menu), pad);
 		auto* name = Field(menu, "Alchemy_NameBox");
 		ui::Call focus(name, L"HasFocusedDescendants");
 		g_nameTyping = focus && focus.Run() && focus.Get<bool>("ReturnValue");
@@ -1380,8 +2067,8 @@ namespace alchemy
 					return true;
 				}
 			}
-			if (g_sortRect.Has(x, y)) {
-				++g_cycle;
+			for (int i = 0; i < kIcons; ++i) if (g_iconRects[static_cast<std::size_t>(i)].Has(x, y)) {
+				g_iconClick = i;
 				g_swallowUp = true;
 				return true;
 			}
@@ -1407,6 +2094,12 @@ namespace alchemy
 				if (g_filtersVisible.load()) for (int i = 0; i < 3; ++i) if (g_tabRects[i].Has(x, y)) { tabHit = i; break; }
 			}
 			g_hoverTab = tabHit;
+			int iconHit = -1;
+			{
+				std::scoped_lock lock(g_rectLock);
+				for (int i = 0; i < kIcons; ++i) if (g_iconRects[static_cast<std::size_t>(i)].Has(x, y)) { iconHit = i; break; }
+			}
+			if (g_hoverIcon.exchange(iconHit) != iconHit) g_headerNow = true;
 			const int hit = HitIndex(boxes, x, y);
 			if (g_hoverChip.exchange(hit) != hit) g_hoverNow = true;
 			return false;   // the game still sees the mouse move
@@ -1415,25 +2108,69 @@ namespace alchemy
 			g_swallowUp = false;
 			return true;
 		}
-		const bool typing = g_nameTyping.load() || core::ControllerKeyboardOpen();
-		if (a_message == WM_KEYDOWN && a_key == 'S' && !typing) {
-			if (!(a_position & (1 << 30))) ++g_cycle;   // not an auto-repeat
-			g_swallowKeyUp = true;
-			return true;
-		}
-		if ((a_message == WM_KEYUP && a_key == 'S' && g_swallowKeyUp)) {
-			g_swallowKeyUp = false;
-			return true;
-		}
-		if (a_message == WM_CHAR && (a_key == 's' || a_key == 'S') && !typing) return true;
-		return false;
+		return false;   // no sort key: the header icons are clicked (owner 2026-11-04)
 	}
 
+	// Controller (owner 2026-11-04; Y and X swapped against the game, Y like the Inventory's sorting):
+	//  tap Y  = the sort icons (d-pad left/right moves, wrapping; A sorts / reverses; B or Y leaves)
+	//  hold Y = the Selected Filters buttons (RMI-027; left/right moves; A removes that filter or clears all; B or Y leaves)
+	//  tap X  = open the Filters panel; hold X = clear every filter
+	// Inside the Filters panel every button is the game's. A button used here stays hidden from the game until it is
+	// released (else B's release would reach the menu as Back).
 	void Controller(std::uint16_t& a_buttons)
 	{
-		if (!g_openFlag.load() || !Enabled()) { g_lastButtons = a_buttons; return; }
-		if ((a_buttons & kLeftThumb) && !(g_lastButtons & kLeftThumb)) ++g_cycle;
+		g_padSwallow &= a_buttons;   // released buttons belong to the game again
+		const std::uint16_t pressed = a_buttons & static_cast<std::uint16_t>(~g_lastButtons);
 		g_lastButtons = a_buttons;
-		a_buttons &= static_cast<std::uint16_t>(~kLeftThumb);   // ours while the Alchemy menu is open
+		if (!g_openFlag.load() || !Enabled() || g_filtersVisible.load()) {
+			if (g_padFocus.exchange(-1) >= 0) g_headerNow = true;
+			if (g_chipFocus.exchange(-1) >= 0) g_hoverNow = true;
+			g_xHold.Reset();
+			g_yHold.Reset();
+			a_buttons &= static_cast<std::uint16_t>(~g_padSwallow);
+			return;
+		}
+		const ULONGLONG now = GetTickCount64();
+		if (pressed & kPadX) g_padSwallow |= kPadX;
+		switch (g_xHold.Update((pressed & kPadX) != 0, (a_buttons & kPadX) != 0, now, kHoldClearMs)) {
+		case PadPress::Tap:  g_openFiltersRequest = true; break;
+		case PadPress::Hold: g_clearAllRequest = true; break;
+		default:             break;
+		}
+		const int sortFocus = g_padFocus.load(), chipFocus = g_chipFocus.load();
+		if (sortFocus >= 0 || chipFocus >= 0) {
+			if (pressed & (kPadB | kPadY)) {
+				g_padFocus = -1;
+				g_chipFocus = -1;
+				g_headerNow = true;
+				g_hoverNow = true;
+				g_yHold.Reset();
+			} else if (pressed & (kPadLeft | kPadRight)) {
+				const int dir = (pressed & kPadLeft) ? -1 : 1;
+				if (sortFocus >= 0) { g_padFocus = NavStep(sortFocus, dir, kIcons); g_headerNow = true; }
+				else { g_chipFocus = NavStep(chipFocus, dir, g_chipCount.load()); g_hoverNow = true; }
+			} else if (pressed & kPadA) {
+				if (sortFocus >= 0) g_iconClick = sortFocus;
+				else g_chipClick = chipFocus;
+			}
+			g_padSwallow |= static_cast<std::uint16_t>(a_buttons & (kPadUp | kPadDown | kPadLeft | kPadRight | kPadA | kPadB | kPadY));
+		} else {
+			if (pressed & kPadY) g_padSwallow |= kPadY;
+			switch (g_yHold.Update((pressed & kPadY) != 0, (a_buttons & kPadY) != 0, now, kHoldClearMs)) {
+			case PadPress::Tap:
+				g_padFocus = g_activeIcon.load();
+				g_headerNow = true;
+				break;
+			case PadPress::Hold:
+				if (g_chipCount.load() > 0) {
+					g_chipFocus = 0;
+					g_hoverNow = true;
+				}
+				break;
+			default:
+				break;
+			}
+		}
+		a_buttons &= static_cast<std::uint16_t>(~g_padSwallow);
 	}
 }

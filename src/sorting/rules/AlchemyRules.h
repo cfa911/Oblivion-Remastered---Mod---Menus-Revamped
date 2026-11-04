@@ -1,6 +1,7 @@
 #pragma once
 // Alchemy menu rules (IMP-MR-004/005/006): pure logic, no game types, so tests/alchemy_rules_tests.cpp can run on the host.
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <string>
 #include <string_view>
@@ -19,28 +20,114 @@ namespace alchemyrules
 		std::vector<std::string> knownEffects;  // display names of the effects the player knows
 	};
 
-	enum class SortKey { Name, Count, Weight, Value, KnownEffects, kCount };
+	// IMP-MR-005 (owner 2026-11-04): the sorts are native-style header icons in this order; Known effects was dropped
+	enum class SortKey { Name, Count, Weight, Value, kCount };
 
 	inline const char* SortLabel(SortKey a_key)
 	{
 		switch (a_key) {
-		case SortKey::Count:        return "Count";
-		case SortKey::Weight:       return "Weight";
-		case SortKey::Value:        return "Value";
-		case SortKey::KnownEffects: return "Known effects";
-		default:                    return "Name";
+		case SortKey::Count:  return "Count";
+		case SortKey::Weight: return "Weight";
+		case SortKey::Value:  return "Value";
+		default:              return "Name";
 		}
 	}
 
-	inline SortKey NextSort(SortKey a_key)
-	{
-		const int next = (static_cast<int>(a_key) + 1) % static_cast<int>(SortKey::kCount);
-		return static_cast<SortKey>(next);
-	}
-
+	// uDefaultSort 0..3; anything else (the old 4 = Known effects too) is Name
 	inline SortKey SortFromIni(int a_index)
 	{
 		return a_index >= 0 && a_index < static_cast<int>(SortKey::kCount) ? static_cast<SortKey>(a_index) : SortKey::Name;
+	}
+
+	// first click on an icon: A-Z for the name, highest first for the numbers
+	inline bool DefaultDescending(SortKey a_key) { return a_key != SortKey::Name; }
+
+	struct SortState
+	{
+		SortKey key = SortKey::Name;
+		bool    descending = false;
+	};
+
+	// a click on an icon: the same icon reverses the order, another one starts its own sort in its default direction
+	inline SortState Click(SortState a_state, SortKey a_key)
+	{
+		if (a_state.key == a_key) return { a_key, !a_state.descending };
+		return { a_key, DefaultDescending(a_key) };
+	}
+
+	// controller left/right over the icons; wraps like the native sort carousel (bDoNavigationLoop 1)
+	inline int NavStep(int a_index, int a_direction, int a_count)
+	{
+		if (a_count <= 0) return 0;
+		return ((a_index + a_direction) % a_count + a_count) % a_count;
+	}
+
+	// the Weight and Value columns: Inventory style, a dash when unknown
+	inline std::string FormatWeight(float a_weight)
+	{
+		if (a_weight < 0) return "\xE2\x80\x93";
+		const long hundredths = static_cast<long>(a_weight * 100.0f + 0.5f);
+		std::string out = std::to_string(hundredths / 100);
+		const long frac = hundredths % 100;
+		if (frac) {
+			out += '.';
+			out += static_cast<char>('0' + frac / 10);
+			if (frac % 10) out += static_cast<char>('0' + frac % 10);
+		}
+		return out;
+	}
+
+	inline std::string FormatValue(int a_value) { return a_value < 0 ? std::string("\xE2\x80\x93") : std::to_string(a_value); }
+
+	// the sort header line (owner 2026-11-04): x centres in SortKey order - Count (lightning) then A-Z at the list's left,
+	// Weight and Value centred over their columns (a_first: first icon centre from the list's left edge)
+	inline std::array<double, 4> HeaderX(double a_listLeft, double a_rowRight, double a_first, double a_step, double a_weightFromRight, double a_valueFromRight)
+	{
+		return { a_listLeft + a_first + a_step, a_listLeft + a_first, a_rowRight - a_weightFromRight, a_rowRight - a_valueFromRight };
+	}
+
+	// how far a column label must move down so its centre is on the row name's centre (both measured top + height)
+	inline double ColumnDy(double a_textY, double a_textH, double a_labelY, double a_labelH)
+	{
+		return (a_textY + a_textH * 0.5) - (a_labelY + a_labelH * 0.5);
+	}
+
+	// controller tap / hold on one button (owner 2026-11-04: tap Y sort, hold Y Selected Filters, tap X Filters, hold X
+	// clear all): Hold once when held for a_holdMs, Tap on a release before that, nothing else
+	enum class PadPress { None, Tap, Hold };
+
+	struct HoldTracker
+	{
+		unsigned long long downAt = 0;   // 0 = not down
+		bool               fired = false;
+
+		PadPress Update(bool a_pressed, bool a_down, unsigned long long a_now, unsigned long long a_holdMs)
+		{
+			if (a_pressed) {
+				downAt = a_now ? a_now : 1;
+				fired = false;
+			}
+			if (!downAt) return PadPress::None;
+			if (a_down) {
+				if (!fired && a_now - downAt >= a_holdMs) {
+					fired = true;
+					return PadPress::Hold;
+				}
+				return PadPress::None;
+			}
+			const bool tap = !fired;
+			downAt = 0;
+			return tap ? PadPress::Tap : PadPress::None;
+		}
+
+		void Reset() { downAt = 0; fired = false; }
+	};
+
+	// the focused Selected Filters button after the line changed: kept, the last one when the line shrank, -1 when empty
+	inline int ClampFocus(int a_focus, int a_count)
+	{
+		if (a_focus < 0 || a_count <= 0) return -1;
+		return a_focus < a_count ? a_focus : a_count - 1;
 	}
 
 	namespace detail
@@ -103,8 +190,26 @@ namespace alchemyrules
 	// An effect or item name reduced for matching: leading icon glyphs, a "[Tag] " prefix and a trailing " (N)" removed, lower case.
 	inline std::string MatchKey(std::string_view a_display) { return detail::Lower(detail::DropCount(detail::DropPrefix(a_display))); }
 
-	// The order to show a_items in: indices into a_items. Ties fall back to the name, then the original order.
-	inline std::vector<int> SortOrder(const std::vector<Ingredient>& a_items, SortKey a_key)
+	// IMP-MR-005: weight and value per ingredient name key ("LOC_FN_..."; an item's TESFullName is its key, KB inventory
+	// internals section 4). Built once from every loaded IngredientItem; the first form with a key wins.
+	using IngredientIndex = std::unordered_map<std::string, std::pair<float, int>>;
+
+	inline void AddIngredient(IngredientIndex& a_index, std::string_view a_key, float a_weight, int a_value)
+	{
+		if (a_key.rfind("LOC_FN_", 0) != 0 || a_key.size() <= 7) return;   // typed names and empty keys are not form keys
+		a_index.emplace(std::string(a_key), std::pair<float, int>{ a_weight, a_value });
+	}
+
+	// The weight and value for a row's name key; (-1, -1) when unknown (those rows sort last).
+	inline std::pair<float, int> IngredientStats(const IngredientIndex& a_index, const std::string& a_key)
+	{
+		const auto it = a_index.find(a_key);
+		return it != a_index.end() ? it->second : std::pair<float, int>{ -1.0f, -1 };
+	}
+
+	// The order to show a_items in: indices into a_items. a_descending reverses the key (Z-A, highest first); unknown
+	// weights/values stay last either way; ties fall back to the name A-Z, then the original order.
+	inline std::vector<int> SortOrder(const std::vector<Ingredient>& a_items, SortKey a_key, bool a_descending)
 	{
 		std::vector<int> order(a_items.size());
 		std::vector<std::string> names(a_items.size());
@@ -118,21 +223,19 @@ namespace alchemyrules
 			const auto& y = a_items[b];
 			switch (a_key) {
 			case SortKey::Count:
-				if (x.count != y.count) return x.count > y.count;
+				if (x.count != y.count) return a_descending ? x.count > y.count : x.count < y.count;
 				break;
 			case SortKey::Weight:
 				if ((x.weight < 0) != (y.weight < 0)) return y.weight < 0;   // unknown last
-				if (x.weight != y.weight) return x.weight < y.weight;
+				if (x.weight != y.weight) return a_descending ? x.weight > y.weight : x.weight < y.weight;
 				break;
 			case SortKey::Value:
 				if ((x.value < 0) != (y.value < 0)) return y.value < 0;
-				if (x.value != y.value) return x.value > y.value;
-				break;
-			case SortKey::KnownEffects:
-				if (x.knownEffects.size() != y.knownEffects.size()) return x.knownEffects.size() > y.knownEffects.size();
+				if (x.value != y.value) return a_descending ? x.value > y.value : x.value < y.value;
 				break;
 			default:
-				break;
+				if (names[a] != names[b]) return a_descending ? names[a] > names[b] : names[a] < names[b];
+				return false;
 			}
 			return byName(a, b);
 		});
@@ -263,9 +366,8 @@ namespace alchemyrules
 	};
 
 	// RMI-022: the counts need every ingredient's effect texts: read them when the menu opens and when the number of
-	// ingredients changes (brewing used one up), not on every filter click. Only the known-effects sort reads effects.
+	// ingredients changes (brewing used one up), not on every filter click.
 	inline bool NeedCounts(bool a_opened, int a_lastNum, int a_num) { return a_opened || a_lastNum != a_num; }
-	inline bool SortReadsEffects(SortKey a_key) { return a_key == SortKey::KnownEffects; }
 
 	// RMI-023: the ingredient's effect struct is read from the array property, not assumed; its effect-name field is
 	// EffectName (ModernEffectItemData) or Effect (OriginalInventoryMenuIngredientEffects); -1 when neither exists.
