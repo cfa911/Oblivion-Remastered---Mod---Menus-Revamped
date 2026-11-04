@@ -12,6 +12,7 @@
 #include "keyboard/Keyboard.h"
 #include "engine/WorldMap.h"
 #include "search/WorldMapSearch.h"
+#include "alchemy/AlchemyMenu.h"
 
 namespace core
 {
@@ -26,6 +27,7 @@ namespace core
 		LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM key, LPARAM position)
 		{
 			if (message == WM_TIMER && key == kTimer && GetCurrentThreadId() == g_thread) { Tick(); return 0; }
+			if (alchemy::Message(message, key, position)) return 0;
 			if (sorting::PopupOpen() && sorting::Message(message, key, position)) return 0;
 			if (mapsearch::Message(window, message, key, position)) return 0;
 			LRESULT result = 0;
@@ -107,6 +109,7 @@ namespace core
 				if (search::Context() == menus::Menu::kNone) keyboard::Close("menu closed");
 			}
 		}
+		alchemy::Tick();
 		hoverfix::Tick(menus::Active());
 		search::Tick(menus::Active());
 		mapsearch::Tick();

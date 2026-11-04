@@ -51,6 +51,9 @@ bMagic=0
 uIntervalMs=5000
 [Guard]
 uLimit=1
+[Alchemy]
+uDefaultSort=9
+bHideZeroCountEffects=1
 """, encoding="utf-16")
 
 main = r"""
@@ -80,6 +83,9 @@ check(v.keyboard.clearTextOnActivation,"absent keyboard clear key defaults on");
     check(v.smooth.hoverIntervalMs==1000,"hover interval clamps to 1000");
     check(v.smooth.objectGuardLimit==200000,"guard limit clamps to 200000");
     check(!v.smooth.metrics,"metrics default off");
+    check(v.alchemy.enabled,"alchemy features default on");
+    check(v.alchemy.defaultSort==4,"alchemy sort clamps to 4");
+    check(v.alchemy.hideZeroCountEffects,"hide zero-count effects reads");
 const auto ini=mrconfig::PluginFolder()/L"MenusRevamped.ini";
 WritePrivateProfileStringW(L"Search",L"bClearTextOnGameplay",L"0",ini.c_str());
 mrconfig::Load();
@@ -94,6 +100,10 @@ WritePrivateProfileStringW(L"Map",L"uWidth",L"560",ini.c_str());
 mrconfig::Load();
 check(!v.search.worldMap,"world map search independently disabled");
 check(v.search.mapBar.x==339.25 && v.search.mapBar.w==560,"map placement reads independently");
+WritePrivateProfileStringW(L"Alchemy",L"bEnabled",L"0",ini.c_str());
+WritePrivateProfileStringW(L"Alchemy",L"uDefaultSort",L"2",ini.c_str());
+mrconfig::Load();
+check(!v.alchemy.enabled && v.alchemy.defaultSort==2,"alchemy switch and sort read");
     std::cout<<checks<<" checks, "<<failed<<" failures\n";
     return failed ? 1 : 0;
 }

@@ -23,6 +23,9 @@ namespace mrconfig
 		g_values.smooth = smoothcfg::ReadIni(ini);
 		g_values.returnToListAfterFilter =
 			GetPrivateProfileIntW(L"Controller", L"bReturnToListAfterFilter", 1, ini.c_str()) != 0;
+		g_values.alchemy.enabled = ReadInt(ini, L"Alchemy", L"bEnabled", 1, 0, 1) != 0;
+		g_values.alchemy.defaultSort = ReadInt(ini, L"Alchemy", L"uDefaultSort", 0, 0, 4);
+		g_values.alchemy.hideZeroCountEffects = ReadInt(ini, L"Alchemy", L"bHideZeroCountEffects", 0, 0, 1) != 0;
 	}
 
 	const Values& Get() { return g_values; }

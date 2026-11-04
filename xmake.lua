@@ -22,7 +22,7 @@ target("MenusRevamped")
     })
     add_syslinks("user32", "imm32")
     -- Feature folders under src/; every include is a path from src/ ("engine/Ui.h").
-    add_files("src/core/*.cpp", "src/engine/*.cpp", "src/search/*.cpp", "src/keyboard/*.cpp", "src/sorting/*.cpp", "src/hover/*.cpp")
+    add_files("src/core/*.cpp", "src/engine/*.cpp", "src/search/*.cpp", "src/keyboard/*.cpp", "src/sorting/*.cpp", "src/hover/*.cpp", "src/alchemy/*.cpp")
     add_headerfiles("src/**.h")
     add_includedirs("src")
     set_pcxxheader("src/core/pch.h")

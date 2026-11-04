@@ -70,6 +70,7 @@ namespace mrconfig { struct Settings { bool returnToListAfterFilter = false; }; 
 namespace quests { void Tick() {} }
 namespace keyboard { bool Taking() { return false; } void Close(const char*, std::uint16_t = 0) {} }
 namespace hoverfix { void Tick(menus::Menu) {} }
+namespace alchemy { void Tick() {} bool Message(UINT, WPARAM, LPARAM) { return false; } }
 """
 middle = r"""
 namespace sorting {

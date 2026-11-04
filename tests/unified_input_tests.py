@@ -27,6 +27,7 @@ keyboard = keyboard.replace("using Clock = std::chrono::steady_clock;", "using C
 prefix = r"""
 #include <Windows.h>
 namespace mapsearch { bool Controller(WORD&,SHORT&,SHORT&,SHORT&,SHORT&,bool) { return false; } }
+namespace alchemy { void Controller(WORD&) {} }
 #include <Xinput.h>
 #include <chrono>
 #include <cstdint>
