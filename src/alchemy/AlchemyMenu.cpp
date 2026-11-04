@@ -18,6 +18,7 @@
 #include "engine/Ui.h"
 #include "engine/UiText.h"
 #include "sorting/rules/AlchemyRules.h"
+#include "sorting/rules/AlchemyFilterTabs.h"
 
 namespace alchemy
 {
@@ -44,11 +45,10 @@ namespace alchemy
 		constexpr double         kChipsDy = -16;     // the title + rows block, up into the strip top (owner 2026-11-04)
 		constexpr int            kChipRows = 2;      // active-filter button rows (owner 2026-11-04)
 		constexpr double         kRowGap = 5;        // between those rows
-		// the parchment strip above the Ingredients panel (owner "Better Mask" PSD v4 2026-11-04: 1090x240, a soft torn edge).
-		// On 2559x1439 it sits at 100,7 px, 1090 wide = 75.0, 5.25, 817.5 units; the panel background widget measured 60.8,
-		// 93.7, 845.5 wide there (log 2026-11-04 10:38), so the offsets are +14.2, -88.45, -28.0.
+		// Owner's updated Better Mask PSD (2026-11-04 18:50): 1090x263, at 100,0 on the 2559x1439 canvas.
+		// Panel background measured 60.8,93.7,845.5 viewport units; mask sits at 75, 0 with width 817.5.
 		constexpr const wchar_t* kStripFile = L"Alchemy-TopParchment.png";
-		constexpr double         kStripAspect = 240.0 / 1090.0, kStripDx = 14.2, kStripDy = -88.45, kStripDw = -28.0;
+		constexpr double         kStripAspect = 263.0 / 1090.0, kStripDx = 14.2, kStripDy = -93.7, kStripDw = -28.0;
 
 		struct RawArray { std::uint8_t* data; std::int32_t num; std::int32_t max; };
 
@@ -680,6 +680,37 @@ namespace alchemy
 			if (switched) ClickTab(filters, positive);
 		}
 
+		using FilterTab = alchemytabs::Tab;
+		FilterTab g_filterTab = FilterTab::All;
+		bool g_filterOpen = false, g_settingTab = false;
+		std::atomic<int> g_tabRequest{ -1 }, g_tabCycle{ 0 };
+		std::atomic<bool> g_filtersVisible{ false };
+		std::array<reflect::Handle, 3> g_tabLabels, g_tabLeft, g_tabRight, g_tabDashLeft, g_tabDashRight, g_tabUpperLeft, g_tabUpperRight, g_tabLowerLeft, g_tabLowerRight;
+		reflect::Handle g_tabOwner;
+		std::atomic<int> g_hoverTab{ -1 };
+		std::array<Rect, 3> g_tabRects{};
+
+		void ShowFilterTab(UE::UObject* a_filters, FilterTab a_tab)
+		{
+			auto* list = InnerList(Field(a_filters, "ListView_Filters"));
+			if (!list) return;
+			g_settingTab = true;
+			// Read fresh native lists: no long-lived raw object cache, and zero-count
+			// filtering cannot permanently remove entries from the combined source.
+			ClickTab(a_filters, false);
+			auto negative = ListItems(list);
+			ClickTab(a_filters, true);
+			auto positive = ListItems(list);
+			if (a_tab == FilterTab::Negative) ClickTab(a_filters, false);
+			SetItems(list, alchemytabs::Items(a_tab, positive, negative));
+			static bool announced = false;
+			if (!announced) { announced = true; logger::warn("alchemy: All / Positive / Negative recreated filter tabs ready (inward ornaments and full effect labels)"); }
+			g_settingTab = false;
+			g_filterTab = a_tab;
+			g_filterSignature = { -1, nullptr };
+			g_nextLayout = {};
+		}
+
 		// ---- our widgets
 		UE::UObject* MakeLabel(UE::UObject* a_canvas, const wchar_t* a_name, const float* a_ink, double a_size)
 		{
@@ -768,7 +799,7 @@ namespace alchemy
 			if (!back || g_chipStyle[a_index] == want) return;
 			// Clear all keeps the red rim; a filter button gets a black one (owner 2026-11-04)
 			const float* line = a_index == 0 ? kButtonLine : kButtonLineDark;
-			if (ui::RoundedBox(back, false, a_hovered ? kButtonHover : kButtonFill, line, 1.5f, 6.0f)) g_chipStyle[a_index] = want;
+			if (ui::RoundedBox(back, false, a_hovered ? kButtonHover : kButtonFill, line, 0.5f, 6.0f)) g_chipStyle[a_index] = want;
 		}
 
 		double MarkWidth()
@@ -808,10 +839,189 @@ namespace alchemy
 			for (auto& h : g_chipMarks) {
 				if (auto* l = reflect::Get(h)) ui::Visible(l, false);
 			}
+			for (const auto& h : g_tabLabels) if (auto* w = reflect::Get(h)) ui::Visible(w, false);
+			for (const auto& h : g_tabLeft) if (auto* w = reflect::Get(h)) ui::Visible(w, false);
+			for (const auto& h : g_tabRight) if (auto* w = reflect::Get(h)) ui::Visible(w, false);
+			for (const auto& h : g_tabDashLeft) if (auto* w = reflect::Get(h)) ui::Visible(w, false);
+			for (const auto& h : g_tabDashRight) if (auto* w = reflect::Get(h)) ui::Visible(w, false);
+			for (const auto& group : {g_tabUpperLeft, g_tabUpperRight, g_tabLowerLeft, g_tabLowerRight})
+				for (const auto& h : group) if (auto* w = reflect::Get(h)) ui::Visible(w, false);
+			g_hoverTab = -1;
 			g_hoverChip = -1;
 			std::scoped_lock lock(g_rectLock);
 			g_sortRect = {};
 			g_chipRects.clear();
+			g_tabRects = {};
+		}
+
+		UE::UObject* MakeTabOrnament(UE::UObject* a_canvas, UE::UObject* a_source, const wchar_t* a_name)
+		{
+			UE::UObject* slot = nullptr;
+			auto* image = ui::AddToCanvas(a_canvas, L"/Script/UMG.Image", a_name, &slot);
+			auto* source = a_source ? ui::FindInTree(a_source, "Image") : nullptr;
+			if (!image || !slot || !source) return nullptr;
+			const auto off = reflect::Offset(source->GetClass(), "Brush");
+			const auto size = ui::SizeOf(source->GetClass(), "Brush");
+			if (off < 0 || size <= 0 || size > 1024) return nullptr;
+			ui::CallFirst(image, L"SetBrush", reinterpret_cast<const std::uint8_t*>(source) + off, size);
+			const int z = 50;
+			ui::CallFirst(slot, L"SetZOrder", &z, sizeof(z));
+			return image;
+		}
+
+		void CopyIngredientsFont(UE::UObject* a_label, UE::UObject* a_title)
+		{
+			auto* text = a_title;
+			if (text && reflect::Offset(text->GetClass(), "Font") < 0) text = ui::FindInTree(text, "text_block");
+			if (!text) return;
+			const auto off = reflect::Offset(text->GetClass(), "Font");
+			const auto size = ui::SizeOf(text->GetClass(), "Font");
+			if (off < 0 || size <= 0 || size > 512) return;
+			auto* fontInfo = reinterpret_cast<UE::UStruct*>(UE::StaticFindObject<UE::UObject>(nullptr, nullptr, L"/Script/SlateCore.SlateFontInfo"));
+			const auto sizeOff = fontInfo ? reflect::Offset(fontInfo, "Size") : -1;
+			const auto sizeBytes = fontInfo ? ui::SizeOf(fontInfo, "Size") : -1;
+			if (sizeOff < 0 || sizeOff + sizeBytes > size || (sizeBytes != 4 && sizeBytes != 8)) return;
+			const auto* data = reinterpret_cast<const std::uint8_t*>(text) + off;
+			std::vector<std::uint8_t> font(data, data + size);
+			if (sizeBytes == 4) { const float value = 21; std::memcpy(font.data() + sizeOff, &value, 4); }
+			else { const double value = 21; std::memcpy(font.data() + sizeOff, &value, 8); }
+			ui::CallFirst(a_label, L"SetFont", font.data(), font.size());
+		}
+
+		void CopyTabFont(UE::UObject* a_label, UE::UObject* a_original)
+		{
+			auto* prefab = Field(a_original, "focus_text");
+			auto* text = prefab ? ui::FindInTree(prefab, "text_block") : nullptr;
+			if (!text) return;
+			const auto off = reflect::Offset(text->GetClass(), "Font");
+			const auto size = ui::SizeOf(text->GetClass(), "Font");
+			if (off >= 0 && size > 0 && size <= 512)
+				ui::CallFirst(a_label, L"SetFont", reinterpret_cast<const std::uint8_t*>(text) + off, size);
+		}
+
+		void LayoutFilterTabs(UE::UObject* a_menu)
+		{
+			auto* filters = Field(a_menu, "Alchemy_Filters");
+			const bool shown = filters && Flag(filters, "bIsActive");
+			if (!shown) {
+				for (const auto& group : {g_tabLabels, g_tabLeft, g_tabRight, g_tabDashLeft, g_tabDashRight, g_tabUpperLeft, g_tabUpperRight, g_tabLowerLeft, g_tabLowerRight})
+					for (const auto& h : group) if (auto* w = reflect::Get(h)) ui::Visible(w, false);
+				g_hoverTab = -1;
+				std::scoped_lock lock(g_rectLock); g_tabRects = {}; return;
+			}
+			auto* positive = Field(filters, "PositiveEffectsButton");
+			auto* negative = Field(filters, "NegativeEffectsButton");
+			Box p, n;
+			if (!ui::Measure(positive, p.x, p.y, p.w, p.h) || !ui::Measure(negative, n.x, n.y, n.w, n.h) || p.w <= 0 || n.w <= 0) return;
+			auto* canvas = ui::TreeRootCanvas(a_menu);
+			if (!canvas) return;
+			if (reflect::Get(g_tabOwner) != a_menu) {
+				g_tabLabels = {}; g_tabLeft = {}; g_tabRight = {}; g_tabDashLeft = {}; g_tabDashRight = {};
+				g_tabUpperLeft = {}; g_tabUpperRight = {}; g_tabLowerLeft = {}; g_tabLowerRight = {};
+				g_tabOwner = reflect::Hold(a_menu);
+				g_hoverTab = -1;
+			}
+			// Read original brush assets only; no live Blueprint button instances or style calls.
+			ui::Call negParent(negative, L"GetParent");
+			auto* dashRow = negParent && negParent.Run() ? negParent.Get<UE::UObject*>("ReturnValue") : nullptr;
+			auto* dashLeft = dashRow ? ui::FindInTree(dashRow, "PauseMenuDecoLeft_1") : nullptr;
+			Box dashSize{0, 0, 24, 20};
+			ui::Measure(dashLeft, dashSize.x, dashSize.y, dashSize.w, dashSize.h);
+			dashSize.w *= 0.8;
+			dashSize.h *= 0.8;
+			Box leftHint, rightHint;
+			double startX = p.x, endX = n.x + n.w;
+			if (ui::Measure(ui::FindInTree(filters, "NavigateLeft_InputHint"), leftHint.x, leftHint.y, leftHint.w, leftHint.h) &&
+			    ui::Measure(ui::FindInTree(filters, "NavigateRight_InputHint"), rightHint.x, rightHint.y, rightHint.w, rightHint.h) &&
+			    rightHint.x > leftHint.x + leftHint.w) {
+				startX = leftHint.x + leftHint.w + 12;
+				endX = rightHint.x - 12;
+			}
+			const double totalWidth = endX - startX;
+			const std::array<double, 3> widths{ totalWidth * 0.18, totalWidth * 0.41, totalWidth * 0.41 };
+			double cellX = startX;
+			const double scale = ui::ViewportScale();
+			std::array<Rect, 3> rects{};
+			constexpr const char* names[] = { "All", "Positive Effects", "Negative Effects" };
+			for (int i = 0; i < 3; ++i) {
+				auto* label = reflect::Get(g_tabLabels[i]);
+				const auto suffix = std::to_wstring(i);
+				if (!label) {
+					label = MakeLabel(canvas, (L"MrAlchemyTabText" + suffix).c_str(), kTitleInk, 19);
+					if (!label) continue;
+					g_tabLabels[i] = reflect::Hold(label);
+					uix::SetText(label, names[i]);
+					CopyTabFont(label, positive);
+				}
+				for (int stroke = 0; stroke < 3; ++stroke) for (int side = 0; side < 2; ++side) {
+					auto& handles = stroke == 0 ? (side == 0 ? g_tabLeft : g_tabRight) :
+					                stroke == 1 ? (side == 0 ? g_tabUpperLeft : g_tabUpperRight) :
+					                              (side == 0 ? g_tabLowerLeft : g_tabLowerRight);
+					if (!reflect::Get(handles[i])) {
+						const auto name = L"MrAlchemyArrow" + suffix + L"_" + std::to_wstring(stroke) + L"_" + std::to_wstring(side);
+						auto* image = MakeTabOrnament(canvas, dashLeft, name.c_str());
+						if (image) handles[i] = reflect::Hold(image);
+					}
+				}
+				if (!reflect::Get(g_tabDashLeft[i])) {
+					auto* image = MakeTabOrnament(canvas, dashLeft, (L"MrAlchemyTabDashLeft" + suffix).c_str());
+					if (image) g_tabDashLeft[i] = reflect::Hold(image);
+				}
+				if (!reflect::Get(g_tabDashRight[i])) {
+					auto* image = MakeTabOrnament(canvas, dashLeft, (L"MrAlchemyTabDashRight" + suffix).c_str());
+					if (image) g_tabDashRight[i] = reflect::Hold(image);
+				}
+				const bool selected = static_cast<int>(g_filterTab) == i;
+				const bool hovered = g_hoverTab.load() == i;
+				const double width = widths[i];
+				const double center = cellX + width / 2;
+				Place(label, center, p.y + p.h / 2, 0.5);
+				ui::Float(label, L"SetRenderOpacity", selected || hovered ? 1.0f : 0.5f);
+				ui::Visible(label, true);
+				const double halfText = DesiredWidth(label) / 2;
+				for (int stroke = 0; stroke < 3; ++stroke) for (int side = 0; side < 2; ++side) {
+					const auto& handles = stroke == 0 ? (side == 0 ? g_tabLeft : g_tabRight) :
+					                      stroke == 1 ? (side == 0 ? g_tabUpperLeft : g_tabUpperRight) :
+					                                    (side == 0 ? g_tabLowerLeft : g_tabLowerRight);
+					auto* image = reflect::Get(handles[i]);
+					if (!image) continue;
+					const double tip = side == 0 ? center - halfText - 8 : center + halfText + 8;
+					auto* slot = SlotOf(image);
+					ui::Vec2(slot, L"SetPosition", tip - dashSize.w, p.y + (p.h - dashSize.h) / 2);
+					ui::Vec2(slot, L"SetSize", dashSize.w, dashSize.h);
+					ui::Vec2(image, L"SetRenderTransformPivot", 1.0, 0.5);
+					ui::Vec2(image, L"SetRenderScale", side == 0 ? 1.0 : -1.0, 1.0);
+					const float angle = (stroke == 0 ? 0.0f : stroke == 1 ? 24.0f : -24.0f) * (side == 0 ? 1.0f : -1.0f);
+					ui::Float(image, L"SetRenderTransformAngle", angle);
+					ui::Visible(image, selected);
+				}
+				for (int side = 0; side < 2; ++side) {
+					auto* image = reflect::Get(side == 0 ? g_tabDashLeft[i] : g_tabDashRight[i]);
+					if (!image) continue;
+					auto* slot = SlotOf(image);
+					const double x = side == 0 ? center - halfText - dashSize.w - 8 : center + halfText + 8;
+					ui::Vec2(slot, L"SetPosition", x, p.y + (p.h - dashSize.h) / 2);
+					ui::Vec2(slot, L"SetSize", dashSize.w, dashSize.h);
+					ui::Vec2(image, L"SetRenderTransformPivot", 0.5, 0.5);
+					ui::Vec2(image, L"SetRenderScale", side == 0 ? 1.0 : -1.0, 1.0);
+					ui::Float(image, L"SetRenderOpacity", hovered ? 1.0f : 0.5f);
+					ui::Visible(image, !selected);
+				}
+				rects[i] = { cellX * scale, p.y * scale, width * scale, p.h * scale, true };
+				cellX += width;
+			}
+			// Original visuals stay transparent but keep layout for native list/input behavior.
+			for (auto* original : {positive, negative}) {
+				ui::Float(original, L"SetRenderOpacity", 0.0f);
+				ui::Call getParent(original, L"GetParent");
+				auto* row = getParent && getParent.Run() ? getParent.Get<UE::UObject*>("ReturnValue") : nullptr;
+				for (const char* name : {"PauseMenuDecoLeft", "PauseMenuDecoRight"}) {
+					const auto actual = std::string(name) + (original == negative ? "_1" : "");
+					if (auto* deco = row ? ui::FindInTree(row, actual) : nullptr) ui::Float(deco, L"SetRenderOpacity", 0.0f);
+				}
+			}
+			std::scoped_lock lock(g_rectLock);
+			g_tabRects = rects;
 		}
 
 		void Layout(UE::UObject* a_menu)
@@ -989,7 +1199,8 @@ namespace alchemy
 			if (!chipTitle) {
 				chipTitle = MakeLabel(canvas, L"MrAlchemyChipTitle", kTitleInk, 21);
 				if (chipTitle) {
-					uix::SetText(chipTitle, "Selected filters");
+					uix::SetText(chipTitle, "Selected Filters");
+					CopyIngredientsFont(chipTitle, title);
 					g_chipTitle = reflect::Hold(chipTitle);
 				}
 			}
@@ -1027,6 +1238,11 @@ namespace alchemy
 				               n == "Update filter button text" || n == "CloseFilterWidget" ? 3 :
 				               n == "Destruct"                                            ? 4 : 0;
 				it = s_kind.emplace(a_fn, k).first;
+			}
+			if (!g_settingTab && g_filtersVisible.load()) {
+				const auto event = pe::FunctionName(a_fn);
+				if (event.find("NextTab") != std::string::npos) g_tabCycle = 1;
+				else if (event.find("PreviousTab") != std::string::npos) g_tabCycle = -1;
 			}
 			if (it->second == 4) { g_menu = {}; return; }
 			if (reflect::Get(g_menu) != a_obj && reflect::IsLive(a_obj)) g_menu = reflect::Hold(a_obj);
@@ -1068,6 +1284,8 @@ namespace alchemy
 			g_open = open;
 			g_openFlag = open;
 			if (open) {
+				g_filterTab = FilterTab::All;
+				g_filterOpen = false;
 				g_state.Opened(NowMs());
 				g_countsOpened = true;
 				g_sort = SortFromIni(mrconfig::Get().alchemy.defaultSort);
@@ -1075,12 +1293,26 @@ namespace alchemy
 				g_filterSignature = { -1, nullptr };
 				g_nextLayout = {};
 			} else {
+				g_filtersVisible = false;
+				g_tabRequest = -1;
+				g_tabCycle = 0;
 				g_state.Closed();
 				HideOwn();
 				g_nameTyping = false;
 			}
 		}
 		if (!open) return;
+		auto* filters = Field(menu, "Alchemy_Filters");
+		const bool filtersOpen = filters && Active(filters);
+		g_filtersVisible = filtersOpen;
+		if (filtersOpen && !g_filterOpen) ShowFilterTab(filters, g_filterTab);
+		g_filterOpen = filtersOpen;
+		if (filtersOpen) {
+			if (const int requested = g_tabRequest.exchange(-1); requested >= 0 && requested < 3)
+				ShowFilterTab(filters, static_cast<FilterTab>(requested));
+			if (const int direction = g_tabCycle.exchange(0); direction != 0)
+				ShowFilterTab(filters, alchemytabs::Cycle(g_filterTab, direction));
+		}
 		if (g_cycle.exchange(0) > 0) {
 			g_sort = NextSort(g_sort);
 			g_dirtySort = true;
@@ -1125,6 +1357,7 @@ namespace alchemy
 		g_nextLayout = now + std::chrono::milliseconds(100);
 		if (auto* filters = Field(menu, "Alchemy_Filters"); filters && Active(filters)) DecorateRows(filters, SelectedNames(menu));
 		Layout(menu);
+		LayoutFilterTabs(menu);
 		auto* name = Field(menu, "Alchemy_NameBox");
 		ui::Call focus(name, L"HasFocusedDescendants");
 		g_nameTyping = focus && focus.Run() && focus.Get<bool>("ReturnValue");
@@ -1133,9 +1366,20 @@ namespace alchemy
 	bool Message(UINT a_message, WPARAM a_key, LPARAM a_position)
 	{
 		if (!g_openFlag.load() || !Enabled()) return false;
+		if (g_filtersVisible.load() && a_message == WM_KEYDOWN && (a_key == 'A' || a_key == 'D')) {
+			if (!(a_position & (1 << 30))) g_tabCycle = a_key == 'A' ? -1 : 1;
+			return true;
+		}
 		if (a_message == WM_LBUTTONDOWN) {
 			const double x = static_cast<short>(LOWORD(a_position)), y = static_cast<short>(HIWORD(a_position));
 			std::scoped_lock lock(g_rectLock);
+			if (g_filtersVisible.load()) {
+				for (int i = 0; i < 3; ++i) if (g_tabRects[i].Has(x, y)) {
+					g_tabRequest = i;
+					g_swallowUp = true;
+					return true;
+				}
+			}
 			if (g_sortRect.Has(x, y)) {
 				++g_cycle;
 				g_swallowUp = true;
@@ -1157,6 +1401,12 @@ namespace alchemy
 				std::scoped_lock lock(g_rectLock);
 				for (const auto& r : g_chipRects) boxes.push_back(r.ok ? Box{ r.x, r.y, r.w, r.h } : Box{});
 			}
+			int tabHit = -1;
+			{
+				std::scoped_lock lock(g_rectLock);
+				if (g_filtersVisible.load()) for (int i = 0; i < 3; ++i) if (g_tabRects[i].Has(x, y)) { tabHit = i; break; }
+			}
+			g_hoverTab = tabHit;
 			const int hit = HitIndex(boxes, x, y);
 			if (g_hoverChip.exchange(hit) != hit) g_hoverNow = true;
 			return false;   // the game still sees the mouse move
