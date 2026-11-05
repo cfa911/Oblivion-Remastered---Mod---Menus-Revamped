@@ -320,7 +320,7 @@ logger::debug("search keyboard: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f
 		void ShowText()
 		{
 			if (auto* h = reflect::Get(g_header)) {
-				uix::SetText(h, "Search: " + g_text + "_");
+				uix::SetText(h, std::string(g_menu == menus::Menu::kAlchemyName ? "Potion name: " : "Search: ") + g_text + "_");
 				uix::Ink(h, kInk);
 			uix::ApplyFont(h, g_headerSize);
 			}
@@ -411,7 +411,7 @@ logger::debug("search keyboard: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f
 	{
 		if (g_open) return true;
 		if (!search::Enabled(a_menu)) return false;
-		const bool mirror = (a_menu == menus::Menu::kContainerYours || a_menu == menus::Menu::kContainerTheirs) && !search::PanelOnLeft(a_menu);   // a list on the right of the screen: the keyboard goes on the left
+		const bool mirror = a_menu == menus::Menu::kAlchemyName || a_menu == menus::Menu::kAlchemyFilters || (a_menu == menus::Menu::kContainerYours || a_menu == menus::Menu::kContainerTheirs) && !search::PanelOnLeft(a_menu);   // a list on the right of the screen: the keyboard goes on the left
 		if (mirror != g_builtMirror && reflect::Get(g_root)) {   // built on the other side of the screen: built again there
 			ui::Call rm(reflect::Get(g_root), L"RemoveFromParent");
 			rm.Run();
@@ -422,7 +422,7 @@ logger::debug("search keyboard: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f
 		}
 		g_mirror = mirror;
 		if (!EnsureBuilt()) return false;
-		if (kbcfg::Get().clearTextOnActivation) search::SetText(a_menu, {});
+		if (a_menu != menus::Menu::kAlchemyName && kbcfg::Get().clearTextOnActivation) search::SetText(a_menu, {});
 		g_text = search::GetText(a_menu);
 		search::SetExternalInput(true);   // the search bar stops taking typed keys while the keyboard has the text
 		if (g_text.size() > kMaxText) g_text.resize(kMaxText);

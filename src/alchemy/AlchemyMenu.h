@@ -12,6 +12,12 @@ namespace alchemy
 {
 	void Tick();                                                   // every frame, from core::Tick
 	bool Message(UINT a_message, WPARAM a_key, LPARAM a_position); // window messages; true = handled (not passed to the game)
-	void Controller(std::uint16_t& a_buttons);                     // XInput read: left-stick click cycles the sort while the menu is open
+	void Controller(std::uint16_t& a_buttons, short& a_lx, short& a_ly); // custom modes only; native X/Y pass through
 	bool Open();
+	UE::UObject* Widget();
+	bool Naming(); // controller keyboard targets native potion-name field
+	bool SearchAvailable(); // no other Alchemy input mode owns the keys
+	bool SearchRect(UE::UObject* canvas, double& x, double& y, double& w, double& h, bool filters = false);
+	UE::UObject* FilterWidget();
+	bool FilterSearchAvailable();
 }

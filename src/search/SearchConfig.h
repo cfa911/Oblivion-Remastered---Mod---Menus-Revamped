@@ -8,6 +8,7 @@ namespace searchcfg
 	{
 		int  logLevel = 3;      // [Log] uLogLevel: 0 trace, 1 debug, 2 info, 3 warn (the default: warnings and errors only), 4 error
 
+		bool alchemy = true; // [Search] bAlchemy: ingredient names and known effect names
 		bool worldMap = true; // [Search] bWorldMap
 		bool inventory = true;  // [Search] bInventory: the Inventory menu has the search
 		bool magic = true;      // [Search] bMagic: the Magic menu has the search

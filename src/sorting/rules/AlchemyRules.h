@@ -62,6 +62,37 @@ namespace alchemyrules
 		return ((a_index + a_direction) % a_count + a_count) % a_count;
 	}
 
+
+	// Controller follows the rendered order; enum/INI values remain stable.
+	inline int SortNavStep(int a_index, int a_direction)
+	{
+		constexpr int visual[] = { 1, 0, 2, 3 }; // Lightning, A-Z, Weight, Price
+		for (int i = 0; i < 4; ++i)
+			if (visual[i] == a_index) return visual[NavStep(i, a_direction, 4)];
+		return visual[0];
+	}
+
+	// Horizontal movement retains the chip sequence; vertical movement uses actual row geometry.
+	template<class Rects>
+	int ChipStep(const Rects& a_rects, int a_index, int a_dx, int a_dy, int a_count)
+	{
+		if (a_dx) return NavStep(a_index, a_dx, a_count);
+		if (a_index < 0 || a_index >= static_cast<int>(a_rects.size()) || !a_rects[a_index].ok) return a_index;
+		const auto& current = a_rects[a_index];
+		const double x = current.x + current.w * 0.5, y = current.y + current.h * 0.5;
+		double best = 1e100;
+		int result = a_index;
+		for (int i = 0; i < a_count && i < static_cast<int>(a_rects.size()); ++i) {
+			const auto& r = a_rects[i];
+			const double dy = r.y + r.h * 0.5 - y;
+			if (!r.ok || dy * a_dy <= 1) continue;
+			const double dx = r.x + r.w * 0.5 - x;
+			const double score = dy * dy * 10000 + dx * dx;
+			if (score < best) { best = score; result = i; }
+		}
+		return result;
+	}
+
 	// the Weight and Value columns: Inventory style, a dash when unknown
 	inline std::string FormatWeight(float a_weight)
 	{

@@ -19,8 +19,8 @@ prefix = r'''
 using Clock = std::chrono::steady_clock;
 using namespace std::chrono_literals;
 namespace menus {
-enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests , kWorldMap};
-constexpr std::size_t kMenuCount = 7;
+enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests , kWorldMap, kAlchemy,kAlchemyName,kAlchemyFilters};
+constexpr std::size_t kMenuCount = 10;
 bool menuMode = false;
 bool AnyOpen() { return menuMode; }
 const char* Name(Menu) { return "menu"; }
@@ -36,9 +36,10 @@ const Values& Get() { return config; }
 }
 namespace container { bool open=false; bool Open() { return open; } }
 namespace worldmap { bool Open() { return false; } }
+namespace alchemy { bool Open() { return false; } }
 namespace quests { bool open=false; bool Open() { return open; } }
 namespace search {
-std::string queries[7], visible[7];
+std::string queries[10], visible[10];
 std::atomic<bool> g_sideShown[6], g_typing{false}, g_external{false};
 std::atomic<int> g_typingMenu{0};
 bool enabled=true;
@@ -123,6 +124,17 @@ search::queries[6]="Anvil"; menus::menuMode=true; search::Tick(Menu::kMagic);
 check(search::queries[6]=="Anvil","map query retained while switching pages");
 menus::menuMode=false; search::Tick(Menu::kNone);
 check(search::queries[6].empty(),"map query cleared on gameplay transition");
+keyboard::g_open=false; search::queries[8]="My Potion"; search::queries[7]="bonemeal";
+keyboard::Open(Menu::kAlchemyName,0x40);
+check(keyboard::g_mirror,"potion name keyboard opens on the left");
+check(keyboard::g_text=="My Potion" && search::queries[8]=="My Potion","opening potion name preserves its current text despite search clear-on-activation");
+check(search::queries[7]=="bonemeal","potion-name activation does not change ingredient search");
+keyboard::g_open=false;
+keyboard::Open(Menu::kAlchemyFilters,8);
+check(keyboard::g_mirror,"effect-search keyboard opens on left so effects stay visible");
+keyboard::g_open=false;
+keyboard::Open(Menu::kAlchemy,8);
+check(!keyboard::g_mirror,"ingredient-search keyboard keeps its existing right-side placement");
 std::cout<<checks<<" checks, "<<failed<<" failures\n";
 return failed ? 1 : 0;
 }

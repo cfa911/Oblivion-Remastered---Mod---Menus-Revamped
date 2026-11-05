@@ -1,6 +1,7 @@
 #include "search/SearchInternal.h"
 
 #include "search/SearchConfig.h"
+#include "alchemy/AlchemyMenu.h"
 #include "core/Config.h"
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
@@ -21,7 +22,15 @@ namespace search::detail
 		constexpr float kBarFill[4] = { 0.16f, 0.09f, 0.04f, 1.0f }, kBarEdge[4] = { 0.06f, 0.035f, 0.018f, 1.0f }, kBarFocus[4] = { 0.78f, 0.62f, 0.28f, 1.0f };
 		constexpr float kBarInk[4] = { 0.93f, 0.90f, 0.82f, 1.0f }, kBarHint[4] = { 0.58f, 0.53f, 0.45f, 1.0f };
 
-		// the user widget (the menu) a widget sits in
+		// Ingredients title #4c372f at 90% sRGB brightness, converted to linear.
+		constexpr float kAlchemyBarInk[4] = { 0.0585f, 0.0313f, 0.0235f, 1.0f };
+
+		const float* BarTextInk(menus::Menu a_menu, bool hint, bool sel)
+		{
+			if (a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) return kAlchemyBarInk;
+			return hint ? kBarHint : sel ? kBarFocus : kBarInk;
+		}
+
 		UE::UObject* OwnerWidget(UE::UObject* a_o)
 		{
 			static auto* userWidget = ui::Class(L"/Script/UMG.UserWidget");
@@ -42,7 +51,7 @@ namespace search::detail
 		auto* wrapper = IsSide(a_menu) || a_menu == menus::Menu::kQuests || a_menu == menus::Menu::kWorldMap ? nullptr : ui::FindInTree(menuW, a_menu == menus::Menu::kMagic ? "Magic_Spell_List" : "inv_cont_listview");
 		auto* owner = wrapper ? OwnerWidget(wrapper) : nullptr;
 		std::vector<UE::UObject*> cands{ menuW, owner };
-		if (a_menu == menus::Menu::kQuests || a_menu == menus::Menu::kWorldMap) {
+		if (a_menu == menus::Menu::kQuests || a_menu == menus::Menu::kWorldMap || a_menu == menus::Menu::kAlchemyFilters) {
 			for (auto* p = OwnerWidget(menuW); p; p = OwnerWidget(p)) cands.push_back(p);
 		}
 		for (auto* w : cands) {
@@ -60,12 +69,12 @@ namespace search::detail
 		// for the other side), else the black one, else a plain rounded box
 		UE::UObject* BarTexture(menus::Menu a_menu)
 		{
-			const int slot = a_menu == menus::Menu::kContainerYours ? 1 : a_menu == menus::Menu::kContainerTheirs ? 2 : 0;
-			static reflect::Handle s_tex[3];
-			static bool            s_failed[3] = { false, false, false };
+			const int slot = (a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) ? 3 : a_menu == menus::Menu::kContainerYours ? 1 : a_menu == menus::Menu::kContainerTheirs ? 2 : 0;
+			static reflect::Handle s_tex[4];
+			static bool            s_failed[4] = {};
 			if (auto* t = reflect::Get(s_tex[slot])) return t;
 			if (s_failed[slot]) return slot ? BarTexture(menus::Menu::kInventory) : nullptr;
-			const wchar_t* file = slot == 1 ? L"SearchBarYours.png" : slot == 2 ? L"SearchBarTheirs.png" : L"SearchBar.png";
+			const wchar_t* file = slot == 3 ? L"SearchBarAlchemy.png" : slot == 1 ? L"SearchBarYours.png" : slot == 2 ? L"SearchBarTheirs.png" : L"SearchBar.png";
 			const auto     path = mrconfig::PluginFolder() / L"MenusRevamped" / L"Search" / file;
 			auto*          tex = ui::ImportTexture(path);
 			if (!tex) {
@@ -118,18 +127,29 @@ namespace search::detail
 			if (auto* list = quests::ListWrapper(); list && ui::Measure(list, x, y, w, h)) logger::debug("own bar:   quest list at {:.0f},{:.0f} {:.0f}x{:.0f}", x, y, w, h);
 		}
 
+		UE::UObject* BarPart(UE::UObject* a_canvas, const wchar_t* a_class, const std::wstring& a_name, UE::UObject** a_slot)
+		{
+			if (auto* found = ui::FindInTree(a_canvas, textutil::Utf8(a_name)); found && ui::IsWithin(found, a_canvas)) {
+				const auto offset = reflect::Offset(found->GetClass(), "Slot");
+				*a_slot = offset >= 0 ? *reflect::At<UE::UObject*>(found, offset) : nullptr;
+				if (*a_slot) return found;
+			}
+			return ui::AddToCanvas(a_canvas, a_class, a_name.c_str(), a_slot);
+		}
+
 		bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
 		{
 			static int         s_n = 0;
-			const std::wstring n = std::to_wstring(++s_n);
+			const std::wstring n = a_menu == menus::Menu::kAlchemyFilters ? L"AlchemyFilters" : a_menu == menus::Menu::kAlchemy ? L"Alchemy" : std::to_wstring(++s_n);
 			const auto&        c = searchcfg::Get();
 			const auto&        place = a_menu == menus::Menu::kWorldMap ? c.mapBar : a_menu == menus::Menu::kMagic ? c.magicBar : a_menu == menus::Menu::kQuests ? c.questBar : c.inventoryBar;
 			double             barX = place.x, barW = place.w, barH = place.h;
 			double             barY = place.y;
 			if (IsSide(a_menu) && !ContainerBarRect(a_menu, a_canvas, barX, barY, barW, barH, true)) return false;
+			if ((a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) && !alchemy::SearchRect(a_canvas, barX, barY, barW, barH, a_menu == menus::Menu::kAlchemyFilters)) return false;
 			if (a_menu == menus::Menu::kQuests) LogQuestLayout(a_canvas);
 			UE::UObject* slot = nullptr;
-			auto*        frame = ui::AddToCanvas(a_canvas, L"/Script/UMG.Image", (L"IwmBarFrame" + n).c_str(), &slot);
+			auto*        frame = BarPart(a_canvas, L"/Script/UMG.Image", L"IwmBarFrame" + n, &slot);
 			if (!frame || !slot) return false;
 			ui::Vec2(slot, L"SetPosition", barX, barY);
 			ui::Vec2(slot, L"SetSize", barW, barH);
@@ -145,7 +165,7 @@ namespace search::detail
 			if (!textured) ui::RoundedBox(frame, false, kBarFill, kBarEdge, 2.0f);
 			ui::Visible(frame, true);
 			UE::UObject* lslot = nullptr;
-			auto*        label = ui::AddToCanvas(a_canvas, L"/Script/UMG.TextBlock", (L"IwmBarText" + n).c_str(), &lslot);
+			auto*        label = BarPart(a_canvas, L"/Script/UMG.TextBlock", L"IwmBarText" + n, &lslot);
 			if (!label || !lslot) return false;
 			ui::Vec2(lslot, L"SetAlignment", 0.5, 0.5);
 			const bool yes = true;
@@ -166,6 +186,8 @@ namespace search::detail
 			B.w = barW;
 			B.h = barH;
 			B.visible = true;
+			if (a_menu == menus::Menu::kAlchemy) B.hint = "Search ingredients or effects";
+			if (a_menu == menus::Menu::kAlchemyFilters) B.hint = "Search effects";
 			B.shown = "\x01";   // matches nothing real: the first update draws it
 			B.typing = false;
 			logger::debug("own bar: built in the {}", menus::Name(a_menu));
@@ -207,7 +229,7 @@ namespace search::detail
 			const std::string key = std::string(hint ? "#" : sel ? "*" : "=") + show;
 			if (key != B.shown) {
 				uix::SetText(label, show);
-				uix::Ink(label, hint ? kBarHint : sel ? kBarFocus : kBarInk);
+				uix::Ink(label, BarTextInk(a_menu, hint, sel));
 				uix::ApplyFont(label, searchcfg::Get().barFontSize, uix::NeedsFallbackFont(show));   // Greek, Cyrillic, kana, Han ...: a font that draws them
 				B.shown = key;
 			}
@@ -259,9 +281,13 @@ namespace search::detail
 	{
 		if (!OwnBarOn() || !reflect::Ok()) return;
 
-		if (!MenuEnabled(a_menu)) {
+		if (!MenuEnabled(a_menu) || ((a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) && !alchemy::Open())) {
 			if (g_typingMenu.load() == static_cast<int>(a_menu)) g_typing = false;
-			if (IsSide(a_menu)) HideBar(a_menu);
+			if (IsSide(a_menu) || a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) {
+				HideBar(a_menu);
+				std::scoped_lock lock(g_qMutex);
+				g_barPx[static_cast<int>(a_menu)] = {};
+			}
 			return;
 		}
 		BarWidgets& B = g_bar[static_cast<int>(a_menu)];
@@ -271,7 +297,7 @@ namespace search::detail
 			auto* canvas = BarCanvasFor(a_menu, !have);
 			if (!canvas) {
 				if (!have) return;
-			} else if (!have || canvas != reflect::Get(B.canvas)) {
+			} else if (!have || canvas != reflect::Get(B.canvas) || !ui::IsWithin(reflect::Get(B.frame), canvas)) {
 				if (have) logger::debug("own bar: the {}'s canvas is another one now - the bar is built again", menus::Name(a_menu));
 				for (auto* w : { reflect::Get(B.frame), reflect::Get(B.edge), reflect::Get(B.label) }) {
 					if (w) {
@@ -280,6 +306,15 @@ namespace search::detail
 					}
 				}
 				if (!BuildBar(a_menu, canvas)) return;
+			}
+		}
+		if (a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) {
+			auto* canvas = reflect::Get(B.canvas);
+			double x = 0, y = 0, w = 0, h = 0;
+			if (canvas && alchemy::SearchRect(canvas, x, y, w, h, a_menu == menus::Menu::kAlchemyFilters)) {
+				if (auto* slot = reflect::Get(B.frameSlot)) { ui::Vec2(slot, L"SetPosition", x, y); ui::Vec2(slot, L"SetSize", w, h); }
+				if (auto* slot = reflect::Get(B.labelSlot)) ui::Vec2(slot, L"SetPosition", x + w * 0.5, y + h * 0.5);
+				B.x = x; B.y = y; B.w = w; B.h = h;
 			}
 		}
 		UpdateBar(a_menu, a_now);

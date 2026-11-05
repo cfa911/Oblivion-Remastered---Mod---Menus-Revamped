@@ -1,6 +1,7 @@
 #include "search/SearchInternal.h"
 
 #include "search/SearchConfig.h"
+#include "alchemy/AlchemyMenu.h"
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
 #include "engine/WorldMap.h"
@@ -156,6 +157,11 @@ namespace search
 		bool BarMessage(HWND a_h, UINT a_m, WPARAM a_w, LPARAM a_l, LRESULT& result)
 		{
 
+			if (alchemy::Open() && !MenuEnabled(menus::Menu::kAlchemy) && !MenuEnabled(menus::Menu::kAlchemyFilters)) {
+				g_typing = false;
+				SyncIme(a_h);
+				return false;
+			}
 			if (OwnBarOn()) {
 				SyncIme(a_h);
 				auto       menu = menus::Active();
@@ -163,6 +169,7 @@ namespace search
 				if (cont) menu = g_typing.load() ? static_cast<menus::Menu>(g_typingMenu.load()) : SideUnderCursor();   // the container / barter menu: the side typed into, else the one the mouse is on
 				if (!cont && menu == menus::Menu::kNone && worldmap::Open()) menu = menus::Menu::kWorldMap;
 				if (!cont && menu == menus::Menu::kNone && quests::Open()) menu = menus::Menu::kQuests;
+				if (!cont && menu == menus::Menu::kNone && alchemy::Open()) menu = alchemy::FilterSearchAvailable() ? menus::Menu::kAlchemyFilters : menus::Menu::kAlchemy;
 				if (MenuEnabled(menu)) {
 					if (g_typing.load()) {
 						switch (a_m) {

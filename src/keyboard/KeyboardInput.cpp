@@ -45,7 +45,8 @@ namespace keyboardinput
 			if (menu != g_prevMenu) {   // a menu opened or closed (or the tab changed): the keyboard goes with it, a half-timed hold is forgotten
 				g_held = false;
 				g_fired = false;
-				keyboard::Close("menu changed");
+				// Rewrite validates the keyboard's target against this context. A keyboard
+				// just opened by the menu (potion naming) already targets the new context.
 				g_prevMenu = menu;
 			}
 
@@ -66,7 +67,9 @@ namespace keyboardinput
 			// (stepping the sort) is kept.
 				if (allowOpen && c.enabled && menu != menus::Menu::kNone) {
 					const bool  container = menu == menus::Menu::kContainerYours;
-					const WORD  right = static_cast<WORD>(c.button), left = static_cast<WORD>(container ? c.buttonLeft : 0);
+					// Alchemy reserves X/Y: hold D-pad Right always opens its search keyboard.
+				const WORD right = (menu == menus::Menu::kAlchemy || menu == menus::Menu::kAlchemyFilters) ? XINPUT_GAMEPAD_DPAD_RIGHT : static_cast<WORD>(c.button);
+				const WORD left = static_cast<WORD>(container ? c.buttonLeft : 0);
 					if ((right && (pressed & right)) || (left && (pressed & left))) {
 						g_btn = left && (pressed & left) ? left : right;
 						g_side = menu;

@@ -11,6 +11,7 @@ namespace searchcfg
 		Values     v;
 		if (std::filesystem::exists(ini)) {
 			v.logLevel = ReadInt(ini, L"Log", L"uLogLevel", v.logLevel, 0, 4);
+			v.alchemy = ReadInt(ini, L"Search", L"bAlchemy", v.alchemy ? 1 : 0, 0, 1) != 0;
 			v.worldMap = ReadInt(ini, L"Search", L"bWorldMap", v.worldMap ? 1 : 0, 0, 1) != 0;
 			v.inventory = ReadInt(ini, L"Search", L"bInventory", v.inventory ? 1 : 0, 0, 1) != 0;
 			v.magic = ReadInt(ini, L"Search", L"bMagic", v.magic ? 1 : 0, 0, 1) != 0;

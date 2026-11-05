@@ -114,6 +114,9 @@ namespace menus
 		switch (a_menu) {
 		case Menu::kInventory: return "inventory";
 		case Menu::kMagic: return "magic menu";
+		case Menu::kAlchemyName: return "potion name";
+		case Menu::kAlchemy: return "alchemy";
+		case Menu::kAlchemyFilters: return "alchemy effect filters";
 		case Menu::kWorldMap: return "world map";
 		case Menu::kQuests: return "quests tab";
 		case Menu::kContainerYours: return "your side of the container menu";

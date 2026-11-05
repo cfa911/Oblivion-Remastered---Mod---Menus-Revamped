@@ -1,6 +1,7 @@
 #include "search/SearchInternal.h"
 
 #include "search/SearchConfig.h"
+#include "alchemy/AlchemyMenu.h"
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
 #include "engine/WorldMap.h"
@@ -29,15 +30,15 @@ namespace search::detail
 	bool MenuEnabled(menus::Menu a_menu)
 	{
 
-		return (a_menu == menus::Menu::kInventory && searchcfg::Get().inventory) || (a_menu == menus::Menu::kMagic && searchcfg::Get().magic)|| (IsSide(a_menu) && searchcfg::Get().container && g_sideShown[static_cast<int>(a_menu)].load()) || (a_menu == menus::Menu::kQuests && searchcfg::Get().quests) || (a_menu == menus::Menu::kWorldMap && searchcfg::Get().worldMap);
+		return (a_menu == menus::Menu::kAlchemyFilters && searchcfg::Get().alchemy && alchemy::FilterSearchAvailable()) || (a_menu == menus::Menu::kAlchemyName && alchemy::Naming()) || (a_menu == menus::Menu::kAlchemy && searchcfg::Get().alchemy && alchemy::SearchAvailable()) || (a_menu == menus::Menu::kInventory && searchcfg::Get().inventory) || (a_menu == menus::Menu::kMagic && searchcfg::Get().magic)|| (IsSide(a_menu) && searchcfg::Get().container && g_sideShown[static_cast<int>(a_menu)].load()) || (a_menu == menus::Menu::kQuests && searchcfg::Get().quests) || (a_menu == menus::Menu::kWorldMap && searchcfg::Get().worldMap);
 	}
-	bool OwnBarOn() { return (searchcfg::Get().inventory || searchcfg::Get().magic || searchcfg::Get().container || searchcfg::Get().quests || searchcfg::Get().worldMap); }
+	bool OwnBarOn() { return (searchcfg::Get().alchemy || searchcfg::Get().inventory || searchcfg::Get().magic || searchcfg::Get().container || searchcfg::Get().quests || searchcfg::Get().worldMap); }
 	// a menu is present when it is the open one; in the container / barter menu both sides are
 	bool Present(menus::Menu a_menu, menus::Menu a_active)
 	{
-		return a_menu == a_active || (IsSide(a_menu) && a_active == menus::Menu::kNone && container::Open()) || (a_menu == menus::Menu::kQuests && a_active == menus::Menu::kNone && quests::Open()) || (a_menu == menus::Menu::kWorldMap && a_active == menus::Menu::kNone && worldmap::Open());
+		return ((a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) && alchemy::Open()) || a_menu == a_active || (IsSide(a_menu) && a_active == menus::Menu::kNone && container::Open()) || (a_menu == menus::Menu::kQuests && a_active == menus::Menu::kNone && quests::Open()) || (a_menu == menus::Menu::kWorldMap && a_active == menus::Menu::kNone && worldmap::Open());
 	}
-	UE::UObject* MenuWidget(menus::Menu a_menu) { return IsSide(a_menu) ? container::Widget() : a_menu == menus::Menu::kQuests ? quests::Page() : a_menu == menus::Menu::kWorldMap ? worldmap::Widget() : menus::Widget(a_menu); }
+	UE::UObject* MenuWidget(menus::Menu a_menu) { return a_menu == menus::Menu::kAlchemyFilters ? alchemy::FilterWidget() : a_menu == menus::Menu::kAlchemy ? alchemy::Widget() : IsSide(a_menu) ? container::Widget() : a_menu == menus::Menu::kQuests ? quests::Page() : a_menu == menus::Menu::kWorldMap ? worldmap::Widget() : menus::Widget(a_menu); }
 	std::string QueryOf(menus::Menu a_menu)
 	{
 		std::scoped_lock l(g_qMutex);
