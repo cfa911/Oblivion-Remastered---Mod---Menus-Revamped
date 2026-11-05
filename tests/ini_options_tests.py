@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
 
 root = Path(__file__).resolve().parents[1]
 src = root / "src"
@@ -54,7 +55,7 @@ default("Alchemy", "uMarkerDiameter", "18")   # owner 2026-11-05: circles 30% bi
 default("Alchemy", "sMarkerColors", "#316EE0,#DC3730,#48AE37,#EFCF2F,#9740C3,#ED8623,#27C0CC,#E05AA0")
 markers = read("sorting/rules/AlchemyEffectMarkers.h")
 check("constexpr unsigned char rgb" not in markers, "circle palette is not hard-coded inside MarkerColor")
-check("kMarkerDiameter" not in markers + read("alchemy/AlchemyMenu.cpp"), "circle diameter is not a compile-time constant")
+check("kMarkerDiameter" not in markers + source_paths.read("alchemy"), "circle diameter is not a compile-time constant")
 check("ParseMarkerPalette" in markers and "ParseMarkerPalette" in config, "config parses sMarkerColors")
 check('L"uMarkerDiameter", 18,' in config and "markerDiameter = 18;" in config and "g_markerDiameter = 18;" in markers, "code default circle size is 18")
 

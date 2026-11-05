@@ -250,6 +250,19 @@ int main()
 	check(ClampFocus(3, 5) == 3 && ClampFocus(5, 5) == 4 && ClampFocus(0, 0) == -1 && ClampFocus(-1, 3) == -1,
 		"Selected Filters focus: kept, moved to the last button when the line shrank, none when the line is empty");
 
+	// Ingredient search (IMP-MR-001): the name or any KNOWN effect contains the query; unknown effects never match
+	{
+		const auto lower = [](std::string s) { for (auto& c : s) c = static_cast<char>(c >= 'A' && c <= 'Z' ? c - 'A' + 'a' : c); return s; };
+		const auto contains = [&](std::string_view a_text, std::string_view a_query) { return lower(std::string(a_text)).find(lower(std::string(a_query))) != std::string::npos; };
+		const Ingredient apple{ "Apple", 1, 0.1f, 1, { "Restore Fatigue" } };
+		check(IngredientMatches(apple, "", contains), "an empty query matches every ingredient");
+		check(IngredientMatches(apple, "app", contains), "the name matches");
+		check(IngredientMatches(apple, "fatigue", contains), "a known effect matches");
+		check(!IngredientMatches(apple, "damage", contains), "anything else does not match");
+		const Ingredient unknown{ "Bloodgrass", 1, 0.1f, 1, {} };
+		check(!IngredientMatches(unknown, "fatigue", contains), "effects the player does not know are not searched");
+	}
+
 	std::printf("%d checks, %d failures\n", checks, failures);
 	return failures ? 1 : 0;
 }

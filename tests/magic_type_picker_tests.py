@@ -17,6 +17,7 @@ prefix = r'''
 #include <string_view>
 namespace UE { struct UObject {}; }
 namespace container { void SetTransferHandlers(void(*)(),void(*)()) {} }
+namespace mrconfig { struct PickerOn { bool inventory = true, magic = true, container = true, stolenFilter = true, enchantedFilter = true; }; struct Values { PickerOn picker; }; inline const Values& Get() { static Values v; return v; } }
 namespace sorting {
 enum class Mode { None, Inventory, Magic, Container };
 namespace detail {
