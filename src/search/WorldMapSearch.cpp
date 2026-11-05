@@ -1,6 +1,7 @@
 #include "search/WorldMapSearch.h"
 #include "search/SearchInternal.h"
 #include "search/SearchConfig.h"
+#include "core/Config.h"
 #include "engine/WorldMap.h"
 #include "engine/Ui.h"
 #include "engine/UiText.h"
@@ -263,7 +264,8 @@ namespace mapsearch
 		previous=raw; swallowed &= raw; buttons &= static_cast<std::uint16_t>(~swallowed);
 		if (keyboardOpen || !g_active || (!g_visible && !search::detail::g_typing.load())) return false;
 		const auto now=GetTickCount64();
-		const int direction=(raw&XINPUT_GAMEPAD_DPAD_UP || ly>16000)?-1:(raw&XINPUT_GAMEPAD_DPAD_DOWN || ly<-16000)?1:0;
+		const int dz=mrconfig::Get().stickDeadzone;
+		const int direction=(raw&XINPUT_GAMEPAD_DPAD_UP || ly>dz)?-1:(raw&XINPUT_GAMEPAD_DPAD_DOWN || ly<-dz)?1:0;
 		if(direction && (now>=next || (pressed&(XINPUT_GAMEPAD_DPAD_UP|XINPUT_GAMEPAD_DPAD_DOWN)))) { g_move.fetch_add(direction); next=now+160; }
 		if(pressed&XINPUT_GAMEPAD_A) { g_commandVersion=g_renderedVersion.load(); g_choose=100000; }
 		if(pressed&XINPUT_GAMEPAD_B) g_dismiss=true;

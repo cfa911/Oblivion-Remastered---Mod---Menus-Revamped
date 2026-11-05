@@ -17,6 +17,7 @@ namespace alchemy
 	UE::UObject* Widget();
 	bool Naming(); // controller keyboard targets native potion-name field
 	bool SearchAvailable(); // no other Alchemy input mode owns the keys
+	bool SearchShown();     // RMI-039: the ingredient bar is drawn (also while LB/RB focus chips or sort icons)
 	bool SearchRect(UE::UObject* canvas, double& x, double& y, double& w, double& h, bool filters = false);
 	UE::UObject* FilterWidget();
 	bool FilterSearchAvailable();

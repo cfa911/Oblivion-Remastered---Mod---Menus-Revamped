@@ -281,7 +281,9 @@ namespace search::detail
 	{
 		if (!OwnBarOn() || !reflect::Ok()) return;
 
-		if (!MenuEnabled(a_menu) || ((a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) && !alchemy::Open())) {
+		// RMI-039: the ingredient bar stays drawn while LB/RB focus chips or sort icons; typing into it stays blocked there
+		const bool drawn = a_menu == menus::Menu::kAlchemy ? searchcfg::Get().alchemy && alchemy::SearchShown() : MenuEnabled(a_menu);
+		if (!drawn || ((a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) && !alchemy::Open())) {
 			if (g_typingMenu.load() == static_cast<int>(a_menu)) g_typing = false;
 			if (IsSide(a_menu) || a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) {
 				HideBar(a_menu);

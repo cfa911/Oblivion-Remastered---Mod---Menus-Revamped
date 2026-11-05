@@ -1,4 +1,5 @@
 #include "sorting/PickerInternal.h"
+#include "core/Config.h"
 
 #include "core/Runtime.h"
 #include "engine/ContainerMenu.h"
@@ -164,11 +165,11 @@ namespace sorting
 				return widget;
 			};
 			// Register custom headers in their on-screen order: enchanted, stolen, category picker.
-			if (enchantedfilter::Supports(kind)) {
+			if (enchantedfilter::Supports(kind) && mrconfig::Get().picker.enchantedFilter) {
 				if (!make(L"SlEnchantedHeader", L"Enchanted.png", enchantedHeader, enchantedImage, enchantedFrame, 30, true)) return false;
 				PaintEnchanted();
 			}
-			if (stolenfilter::Supports(kind)) {
+			if (stolenfilter::Supports(kind) && mrconfig::Get().picker.stolenFilter) {
 				if (!make(L"SlStolenHeader", L"Stolen-Item.png", stolenHeader, stolenImage, stolenFrame, 30, true)) return false;
 				PaintStolen();
 			}

@@ -1,12 +1,47 @@
 #pragma once
 
 #include "AlchemyRules.h"
+#include <array>
 #include <cmath>
+#include <cstdint>
+#include <string_view>
 
 namespace alchemyrules
 {
 	inline constexpr int kMarkerLimit = 8, kIngredientMarkerLimit = 4;
-	inline constexpr double kMarkerDiameter = 14, kMarkerGap = 4, kMarkerBeforeWeight = 28;
+	inline constexpr double kMarkerGap = 4, kMarkerBeforeWeight = 28;
+	inline double g_markerDiameter = 18;   // [Alchemy] uMarkerDiameter
+	// Shared chip/ingredient palette, in selected-effect order (0xRRGGBB, sRGB). Solid colors, not game effect IDs.
+	inline constexpr std::array<std::uint32_t, kMarkerLimit> kDefaultMarkerPalette = {
+		0x316EE0, 0xDC3730, 0x48AE37, 0xEFCF2F, 0x9740C3, 0xED8623, 0x27C0CC, 0xE05AA0
+	};
+	inline std::array<std::uint32_t, kMarkerLimit> g_markerPalette = kDefaultMarkerPalette;   // [Alchemy] sMarkerColors
+
+	// "#DC3730,#48AE37,...": exactly kMarkerLimit hex colours, '#' optional, spaces ignored. False leaves a_out unchanged.
+	inline bool ParseMarkerPalette(std::string_view a_text, std::array<std::uint32_t, kMarkerLimit>& a_out)
+	{
+		std::array<std::uint32_t, kMarkerLimit> parsed{};
+		std::size_t count = 0;
+		while (true) {
+			const auto comma = a_text.find(',');
+			auto item = a_text.substr(0, comma);
+			while (!item.empty() && (item.front() == ' ' || item.front() == '\t' || item.front() == '#')) item.remove_prefix(1);
+			while (!item.empty() && (item.back() == ' ' || item.back() == '\t')) item.remove_suffix(1);
+			if (item.size() != 6 || count >= kMarkerLimit) return false;
+			std::uint32_t value = 0;
+			for (const char c : item) {
+				const int digit = c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'f' ? c - 'a' + 10 : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1;
+				if (digit < 0) return false;
+				value = value * 16 + static_cast<std::uint32_t>(digit);
+			}
+			parsed[count++] = value;
+			if (comma == std::string_view::npos) break;
+			a_text.remove_prefix(comma + 1);
+		}
+		if (count != kMarkerLimit) return false;
+		a_out = parsed;
+		return true;
+	}
 
 	inline float MarkerLinear(float a_srgb)
 	{
@@ -20,13 +55,8 @@ namespace alchemyrules
 
 	inline std::array<float, 4> MarkerColor(int a_index)
 	{
-		// Shared chip/ingredient palette, in selected-effect order. Solid colors, not game effect IDs.
-		constexpr unsigned char rgb[kMarkerLimit][3] = {
-			{ 220, 55, 48 }, { 72, 174, 55 }, { 151, 64, 195 }, { 239, 207, 47 },
-			{ 49, 110, 224 }, { 237, 134, 35 }, { 39, 192, 204 }, { 224, 90, 160 }
-		};
-		const auto& c = rgb[std::clamp(a_index, 0, kMarkerLimit - 1)];
-		return { MarkerLinear(c[0] / 255.0f), MarkerLinear(c[1] / 255.0f), MarkerLinear(c[2] / 255.0f), 1 };
+		const auto c = g_markerPalette[static_cast<std::size_t>(std::clamp(a_index, 0, kMarkerLimit - 1))];
+		return { MarkerLinear(((c >> 16) & 0xFF) / 255.0f), MarkerLinear(((c >> 8) & 0xFF) / 255.0f), MarkerLinear((c & 0xFF) / 255.0f), 1 };
 	}
 
 	inline std::vector<int> IngredientMarkers(const std::vector<std::string>& a_known, const std::vector<std::string>& a_selected)
@@ -46,6 +76,6 @@ namespace alchemyrules
 
 	inline double IngredientMarkerX(int a_index, int a_count, double a_weightFromRight)
 	{
-		return -a_weightFromRight - kMarkerBeforeWeight - a_count * kMarkerDiameter - (a_count - 1) * kMarkerGap + a_index * (kMarkerDiameter + kMarkerGap);
+		return -a_weightFromRight - kMarkerBeforeWeight - a_count * g_markerDiameter - (a_count - 1) * kMarkerGap + a_index * (g_markerDiameter + kMarkerGap);
 	}
 }

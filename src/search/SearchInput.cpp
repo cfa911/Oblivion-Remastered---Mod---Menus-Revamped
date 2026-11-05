@@ -154,6 +154,8 @@ namespace search
 			ImmReleaseContext(a_h, c);
 		}
 
+		bool g_swallowChar = false;   // a hotkey without Ctrl: its own WM_CHAR must not be typed into the bar
+
 		bool BarMessage(HWND a_h, UINT a_m, WPARAM a_w, LPARAM a_l, LRESULT& result)
 		{
 
@@ -188,6 +190,7 @@ namespace search
 							if (a_w == VK_ESCAPE || a_w == VK_RETURN) g_typing = false;
 							return true;
 						case WM_CHAR:
+							if (std::exchange(g_swallowChar, false)) return true;
 							Typed(static_cast<wchar_t>(a_w), menu);
 							return true;
 						case WM_IME_COMPOSITION:
@@ -231,7 +234,9 @@ namespace search
 						}
 					} else if (!ControllerKeyboardUp()) {
 						const bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0, alt = (GetKeyState(VK_MENU) & 0x8000) != 0;
-						if (a_m == WM_KEYDOWN && a_w == 'F' && ctrl && !alt) {
+						const auto& cfg = searchcfg::Get();
+						if (a_m == WM_KEYDOWN && cfg.hotkey != 0 && a_w == static_cast<WPARAM>(cfg.hotkey) && ctrl == cfg.hotkeyCtrl && !alt) {
+							g_swallowChar = !cfg.hotkeyCtrl && MapVirtualKeyW(static_cast<UINT>(cfg.hotkey), MAPVK_VK_TO_CHAR) != 0;   // a character key alone also makes a WM_CHAR; F3 does not
 							g_typingMenu = static_cast<int>(menu);
 							g_typing = true;
 							SyncIme(a_h);

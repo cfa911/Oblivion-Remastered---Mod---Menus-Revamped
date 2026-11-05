@@ -1,4 +1,5 @@
 #include "sorting/PickerInternal.h"
+#include "core/Config.h"
 
 #include "core/Runtime.h"
 #include "engine/ContainerMenu.h"
@@ -52,6 +53,9 @@ namespace sorting
 	{
 		static const bool s_transferHooked = (container::SetTransferHandlers(&OnTransferStarted, &OnTransferSettled), true);
 		(void)s_transferHooked;
+		const auto& on = mrconfig::Get().picker;   // [Picker] bInventory / bMagic / bContainer = 0: that menu stays native
+		if ((a_mode == Mode::Inventory && !on.inventory) || (a_mode == Mode::Magic && !on.magic) || (a_mode == Mode::Container && !on.container))
+			a_mode = Mode::None;
 		if (a_mode != Mode::Magic) g_pickers[4].Tick(-1, nullptr, nullptr, 1);
 		if (a_mode != Mode::Container) {
 			g_pickers[2].Tick(-1, nullptr, nullptr, 1);

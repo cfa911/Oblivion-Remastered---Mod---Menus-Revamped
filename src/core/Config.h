@@ -11,11 +11,17 @@ namespace mrconfig
 		smoothcfg::Values smooth;
 		kbcfg::Values keyboard;
 		bool returnToListAfterFilter = true;
+		int  stickDeadzone = 16000;           // [Controller] uStickDeadzone: left stick travel (of 32767) before it counts as a push
+		struct Picker
+		{
+			bool inventory = true, magic = true, container = true;   // [Picker] bInventory / bMagic / bContainer: category pickers per menu
+			bool stolenFilter = true, enchantedFilter = true;          // bStolenFilter / bEnchantedFilter: the toggle icons
+		} picker;
 		struct Alchemy
 		{
 			bool enabled = true;                 // [Alchemy] bEnabled: sort label, filter counts, active-filter line
 			int  defaultSort = 0;                // uDefaultSort 0 Name, 1 Count, 2 Weight, 3 Value (4, the old Known effects, = Name)
-			bool hideZeroCountEffects = false;   // bHideZeroCountEffects: hide (1) or grey out (0) effects no ingredient has
+			int  markerDiameter = 18;            // uMarkerDiameter: effect circle size, 8-20 (owner 2026-11-05: 30% over 14)
 		} alchemy;
 	};
 	void Load();
