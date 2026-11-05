@@ -24,6 +24,7 @@
 #include "engine/Ui.h"
 #include "engine/UiText.h"
 #include "sorting/rules/AlchemyRules.h"
+#include "sorting/rules/AlchemyEffectMarkers.h"
 #include "sorting/rules/ControllerPolicy.h"
 #include "sorting/rules/AlchemyFilterTabs.h"
 
@@ -127,6 +128,9 @@ namespace alchemy
 		Clock::time_point g_nextLayout{};
 		std::unordered_map<std::string, std::pair<float, int>> g_formData;   // display name -> weight, value (-1 unknown)
 		std::unordered_map<std::string, std::pair<float, int>> g_formMatch;  // the same by MatchKey (row text fallback)
+		std::unordered_map<std::string, std::vector<std::string>> g_markerEffects;
+		std::vector<std::string> g_markerNames; // only effects with a visible chip legend
+		std::array<reflect::Handle, kMarkerLimit> g_chipCircles;
 		alchemyrules::IngredientIndex g_ingredients;   // name key -> weight, value of every loaded IngredientItem
 		bool g_ingredientsBuilt = false;
 
@@ -180,6 +184,7 @@ namespace alchemy
 		std::vector<UE::UObject*> g_effectSearchItems;
 		std::string g_effectSearchQuery;
 		bool g_effectSearchReady = false, g_effectSearchDirty = false;
+		bool g_nativeClearRequested = false;
 		bool              g_swallowUp = false;
 		std::uint16_t     g_lastButtons = 0;
 
@@ -232,6 +237,11 @@ namespace alchemy
 
 		void SetItems(UE::UObject* a_list, const std::vector<UE::UObject*>& a_items)
 		{
+			// UListView copies this const input during the call. Avoid publishing a transient empty list.
+			ui::Call batch(a_list, L"BP_SetListItems");
+			const auto count = static_cast<std::int32_t>(a_items.size());
+			const RawArray items{ reinterpret_cast<std::uint8_t*>(const_cast<UE::UObject**>(a_items.data())), count, count };
+			if (batch && batch.Size("InListItems") == sizeof(items) && batch.Set("InListItems", items) && batch.Run()) return;
 			ui::Call clear(a_list, L"ClearListItems");
 			if (!clear) return;
 			clear.Run();
@@ -504,7 +514,7 @@ namespace alchemy
 			const auto  off = vm ? reflect::Offset(vm->GetClass(), "ItemsList") : -1;
 			if (!vm || !l.ok || off < 0) return;
 			const auto* arr = reflect::At<RawArray>(vm, off);
-			if (!NeedCounts(g_countsOpened, g_countsNum, arr->num)) return;
+			const bool needCounts = NeedCounts(g_countsOpened, g_countsNum, arr->num);
 			g_countsOpened = false;
 			g_countsNum = arr->num;
 			logger::flush();
@@ -513,6 +523,12 @@ namespace alchemy
 				Ingredient item;
 				if (ReadIngredient(arr->data + static_cast<std::ptrdiff_t>(i) * l.size, item, false)) all.push_back(std::move(item));
 			}
+			// Native rebuilds may reveal a newly learned effect without changing the ingredient count.
+			decltype(g_markerEffects) markerEffects;
+			for (const auto& item : all) markerEffects[MatchKey(item.name)] = item.knownEffects;
+			if (markerEffects != g_markerEffects) g_effectSearchDirty = true;
+			g_markerEffects = std::move(markerEffects);
+			if (!needCounts) return;
 			g_counts = EffectCounts(all);
 			static bool s_said = false;
 			if (!s_said && all.size() >= 5 && g_counts.empty()) {
@@ -631,11 +647,40 @@ namespace alchemy
 			ui::CallFirst(back, L"SetVisibility", &visible, sizeof(visible));
 		}
 
+		bool PadInput();
+
+		void ClearStaleFilterHover(const std::vector<UE::UObject*>& a_rows)
+		{
+			if (!PadInput()) return;
+			UE::UObject* focused = nullptr;
+			for (auto* row : a_rows) {
+				ui::Call own(row, L"HasAnyUserFocus");
+				ui::Call child(row, L"HasFocusedDescendants");
+				if ((own && own.Run() && own.Get<bool>("ReturnValue")) ||
+				    (child && child.Run() && child.Get<bool>("ReturnValue"))) {
+					if (focused) return;
+					focused = row;
+				}
+			}
+			if (!focused) return;
+			for (auto* row : a_rows) {
+				if (row == focused) continue;
+				auto* hover = Field(row, "Hovered_State");
+				if (!hover || !hover->GetClass()) continue;
+				const auto vis = reflect::Offset(hover->GetClass(), "Visibility");
+				if (vis >= 0 && *reflect::At<std::uint8_t>(hover, vis) == 0) {
+					const std::uint8_t collapsed = 1;
+					ui::CallFirst(hover, L"SetVisibility", &collapsed, sizeof(collapsed));
+				}
+			}
+		}
+
 		void DecorateRows(UE::UObject* a_filters, const std::vector<std::string>& a_active)
 		{
 			auto* list = InnerList(Field(a_filters, "ListView_Filters"));
 			if (!list) return;
 			const auto rows = DisplayedRows(list);
+			ClearStaleFilterHover(rows);
 			std::vector<std::string> rowTexts;
 			for (auto* row : rows) {
 				if (!g_entryClass && row->GetClass()) {
@@ -879,6 +924,10 @@ namespace alchemy
 			auto*      item = FindFilterItem(list, key);
 			bool       switched = false;
 			const bool positive = Flag(filters, "bIsOnPostiveEffect");
+			if (!item && ClickTab(filters, positive)) {
+				g_effectSearchDirty = true;
+				item = FindFilterItem(list, key);
+			}
 			if (!item && ClickTab(filters, !positive)) {
 				switched = true;
 				item = FindFilterItem(list, key);
@@ -1060,6 +1109,7 @@ namespace alchemy
 
 		void HideOwn()
 		{
+			for (auto& h : g_chipCircles) if (auto* w = reflect::Get(h)) ui::Visible(w, false);
 			for (auto& h : g_icons) if (auto* l = reflect::Get(h)) ui::Visible(l, false);
 			for (auto& h : g_iconBacks) if (auto* l = reflect::Get(h)) ui::Visible(l, false);
 			if (auto* l = reflect::Get(g_arrow)) ui::Visible(l, false);
@@ -1455,11 +1505,60 @@ namespace alchemy
 			return label;
 		}
 
+		// IMP-MR-011: named widgets belong to the row/menu widget tree, not the canvas itself.
+		UE::UObject* EffectCircle(UE::UObject* a_canvas, UE::UObject* a_owner, const wchar_t* a_name)
+		{
+			const std::wstring wide(a_name);
+			std::string name;
+			for (const wchar_t c : wide) name.push_back(static_cast<char>(c)); // stable names are ASCII
+			auto* image = ui::FindInTree(a_owner, name.c_str());
+			if (image && !ui::IsWithin(image, a_owner)) return nullptr;
+			if (!image) {
+				UE::UObject* slot = nullptr;
+				image = ui::AddToCanvas(a_canvas, L"/Script/UMG.Image", a_name, &slot);
+				if (!image || !slot) return nullptr;
+				const int z = 51;
+				ui::CallFirst(slot, L"SetZOrder", &z, sizeof(z));
+			}
+			return image;
+		}
+
+		void DecorateIngredientMarkers(UE::UObject* a_row, const std::string& a_name)
+		{
+			auto* canvas = ui::FindInTree(a_row, "CanvasPanel");
+			if (!canvas) return;
+			const auto it = g_markerEffects.find(MatchKey(a_name));
+			const auto markers = it == g_markerEffects.end() ? std::vector<int>{} : IngredientMarkers(it->second, g_markerNames);
+			const auto outline = MarkerOutline();
+			const float line = static_cast<float>(1.0 / (std::max)(0.01, static_cast<double>(ui::ViewportScale())));
+			for (int i = 0; i < kIngredientMarkerLimit; ++i) {
+				const auto wide = L"MrAlchemyEffect" + std::to_wstring(i);
+				std::string name;
+				for (const wchar_t c : wide) name.push_back(static_cast<char>(c));
+				auto* image = ui::FindInTree(a_row, name.c_str());
+				if (image && !ui::IsWithin(image, a_row)) continue;
+				const bool show = i < static_cast<int>(markers.size());
+				if (!image && show) image = EffectCircle(canvas, a_row, wide.c_str());
+				if (!image) continue;
+				ui::Visible(image, show);
+				if (!show) continue;
+				const auto fill = MarkerColor(markers[i]);
+				ui::RoundedBox(image, true, fill.data(), outline.data(), line);
+				if (auto* slot = SlotOf(image)) {
+					ui::Anchors(slot, 1.0, 0.5, 1.0, 0.5);
+					ui::Vec2(slot, L"SetAlignment", 0, 0.5);
+					ui::Vec2(slot, L"SetSize", kMarkerDiameter, kMarkerDiameter);
+					ui::Vec2(slot, L"SetPosition", IngredientMarkerX(i, static_cast<int>(markers.size()), kWeightCx), g_columnDy);
+				}
+			}
+		}
+
 		void DecorateIngredientRow(UE::UObject* a_row)
 		{
 			auto* text = a_row ? RowNameText(a_row) : nullptr;
 			if (!text) return;
 			const auto shown = uix::GetText(text);
+			DecorateIngredientMarkers(a_row, shown); // empty/recycled rows must also hide old markers
 			if (shown.empty()) return;
 			std::pair<float, int> stats{ -1.0f, -1 };
 			if (auto it = g_formData.find(shown); it != g_formData.end()) stats = it->second;
@@ -1483,12 +1582,26 @@ namespace alchemy
 			}
 		}
 
-		// from the tick only (never inside the game's own row call: RMI-022 / RMI-024)
+		UE::UClass* g_ingredientRowClass = nullptr;
+
+		void OnIngredientItemBound(UE::UObject* a_row, UE::UFunction* a_fn, void*)
+		{
+			if (!g_open || pe::FunctionName(a_fn) != "OnListItemObjectSet" || !reflect::IsLive(a_row)) return;
+			DecorateIngredientRow(a_row);
+			ui::Call prepass(a_row, L"ForceLayoutPrepass");
+			if (prepass) prepass.Run();
+		}
+
+		// Periodic refresh for existing rows. Rebinding also applies cosmetics before paint.
 		void DecorateIngredientRows(UE::UObject* a_menu)
 		{
 			auto* list = InnerList(Field(a_menu, "IngredientsListView"));
 			if (!list) return;
-			for (auto* row : DisplayedRows(list)) DecorateIngredientRow(row);
+			for (auto* row : DisplayedRows(list)) {
+				if (auto* cls = row->GetClass(); cls && cls != g_ingredientRowClass &&
+				    pe::WatchPost(cls, &OnIngredientItemBound)) g_ingredientRowClass = cls;
+				DecorateIngredientRow(row);
+			}
 		}
 
 		void Layout(UE::UObject* a_menu)
@@ -1560,6 +1673,8 @@ namespace alchemy
 
 			// active filters: in the strip's space (else their own line under the title row)
 			const auto names = SelectedNames(a_menu);
+			g_markerNames.clear();
+			for (auto& h : g_chipCircles) if (auto* w = reflect::Get(h)) ui::Visible(w, false);
 			std::vector<std::string> texts, meaning;
 			if (!names.empty()) {   // Clear all leftmost (owner 2026-11-04), then one entry per filter
 				texts.push_back("Clear all");
@@ -1607,7 +1722,7 @@ namespace alchemy
 					const auto known = g_textWidth.find(texts[i]);
 					const double w = known != g_textWidth.end() ? known->second : 10.0 * static_cast<double>(texts[i].size());
 					if (sizes[i][1] <= 0) sizes[i] = { w, 22.0 };
-					widths[i] = w + kButtonPadX * 2 + (i > 0 ? MarkWidth() + kMarkGap : 0.0);
+					widths[i] = w + kButtonPadX * 2 + (i > 0 ? MarkWidth() + kMarkGap : 0.0) + (i > 0 && i <= kMarkerLimit ? kMarkerDiameter + kMarkerGap : 0);
 				}
 				const std::string moreText = "+" + std::to_string(texts.size());   // widest marker text it can need
 				if (more) {
@@ -1640,6 +1755,21 @@ namespace alchemy
 						Place(chip, x, y, 0.0);
 					}
 					if (mark) ui::Visible(mark, i > 0);
+					if (i > 0 && i <= kMarkerLimit) {
+						auto* circle = EffectCircle(canvas, a_menu, (L"MrAlchemyChipColor" + std::to_wstring(i - 1)).c_str());
+						if (circle) {
+							g_chipCircles[i - 1] = reflect::Hold(circle);
+							const auto fill = MarkerColor(static_cast<int>(i - 1)), outline = MarkerOutline();
+							ui::RoundedBox(circle, true, fill.data(), outline.data(), static_cast<float>(1.0 / (std::max)(0.01, scale)));
+							if (auto* slot = SlotOf(circle)) {
+								ui::Vec2(slot, L"SetAlignment", 0, 0.5);
+								ui::Vec2(slot, L"SetPosition", x + widths[i] - kButtonPadX * 2 - kMarkerDiameter, y);
+								ui::Vec2(slot, L"SetSize", kMarkerDiameter, kMarkerDiameter);
+							}
+							ui::Visible(circle, true);
+						}
+						g_markerNames.push_back(names[i - 1]);
+					}
 					const auto box = ButtonBox(x, y, widths[i] - kButtonPadX * 2, sizes[i][1], kButtonPadX, kButtonPadY);
 					if (auto* slot = SlotOf(back)) {
 						ui::Vec2(slot, L"SetPosition", box.x, box.y);
@@ -1964,6 +2094,67 @@ namespace alchemy
 
 		bool Active(UE::UObject* a_menu) { return a_menu && Flag(a_menu, "bIsActive"); }
 
+		// Order the native getter's independent result before the game builds row widgets.
+		reflect::Handle g_ingredientSourceVM;
+		reflect::Handle g_ingredientEntryWrapper;
+
+		void OnIngredientEntryGenerated(UE::UObject* a_wrapper, UE::UFunction* a_fn, void* a_params)
+		{
+			if (!g_open || a_wrapper != reflect::Get(g_ingredientEntryWrapper) || !a_params ||
+			    a_fn->parmsSize != sizeof(UE::UObject*) ||
+			    !pe::FunctionName(a_fn).ends_with("_OnListEntryGeneratedDynamic__DelegateSignature")) return;
+			UE::UObject* row = nullptr;
+			std::memcpy(&row, a_params, sizeof(row));
+			if (!row || !reflect::IsLive(row)) return;
+			// This is the wrapper's post-generation event, after the native entry has its item.
+			// Only decorate the entry here. Replacing list items remains deferred (RMI-022).
+			DecorateIngredientRow(row);
+			ui::Call prepass(row, L"ForceLayoutPrepass");
+			if (prepass) prepass.Run();
+			g_nextLayout = {};
+		}
+
+		void SortNativeIngredientSource(UE::UObject* a_vm, UE::UFunction* a_fn, void* a_params)
+		{
+			if (!g_open || !g_sortRead || !a_params || a_vm != reflect::Get(g_ingredientSourceVM) ||
+			    pe::FunctionName(a_fn) != "GetItemsList") return;
+			const auto& layout = Props();
+			if (!layout.ok || layout.size != 0x40 || a_fn->parmsSize != sizeof(RawArray) ||
+			    reflect::Offset(a_fn, "ReturnValue") != 0 || ui::SizeOf(a_fn, "ReturnValue") != sizeof(RawArray)) return;
+			auto* element = ArrayStruct(a_fn, "ReturnValue");
+			if (!element || pe::Utf8(element->GetFName().ToString()) != "LegacyIngredientItemProperties") return;
+			const auto sourceOff = reflect::Offset(a_vm->GetClass(), "ItemsList");
+			if (sourceOff < 0) return;
+			const auto& result = *static_cast<const RawArray*>(a_params);
+			const auto* stored = reflect::At<RawArray>(a_vm, sourceOff);
+			if (!result.data || result.data == stored->data || result.num < 2 || result.num > 2000 || result.max < result.num) return;
+			const auto stride = static_cast<std::size_t>(layout.size);
+			std::vector<Ingredient> ingredients(static_cast<std::size_t>(result.num));
+			for (std::size_t i = 0; i < ingredients.size(); ++i) {
+				if (!ReadIngredient(result.data + i * stride, ingredients[i], true, false)) return;
+			}
+			const auto order = SortOrder(ingredients, g_sortState.key, g_sortState.descending);
+			bool changed = false;
+			for (std::size_t i = 0; i < order.size(); ++i) changed |= i != static_cast<std::size_t>(order[i]);
+			if (!changed) return;
+			// Permute whole structs in their existing allocation. Each owned member remains present exactly once.
+			std::vector<std::uint8_t> ordered(order.size() * stride);
+			for (std::size_t i = 0; i < order.size(); ++i)
+				std::memcpy(ordered.data() + i * stride, result.data + static_cast<std::size_t>(order[i]) * stride, stride);
+			std::memcpy(result.data, ordered.data(), ordered.size());
+		}
+
+		void WatchIngredientSource(UE::UObject* a_menu)
+		{
+			auto* vm = Field(a_menu, "VAlchemyMenuViewModel");
+			if (vm && vm != reflect::Get(g_ingredientSourceVM) && pe::WatchPost(vm->GetClass(), &SortNativeIngredientSource))
+				g_ingredientSourceVM = reflect::Hold(vm);
+			auto* wrapper = Field(a_menu, "IngredientsListView");
+			if (wrapper && wrapper != reflect::Get(g_ingredientEntryWrapper) &&
+			    pe::WatchPost(wrapper->GetClass(), &OnIngredientEntryGenerated))
+				g_ingredientEntryWrapper = reflect::Hold(wrapper);
+		}
+
 		void OnMenuEvent(UE::UObject* a_obj, UE::UFunction* a_fn, void*)
 		{
 			if (!a_obj || !a_fn || !Enabled()) return;
@@ -1974,7 +2165,9 @@ namespace alchemy
 				const int  k = n == "UpdateItemsList"                                     ? 1 :
 				               n == "BP_OnActivated" || n == "BP_OnDeactivated"           ? 2 :
 				               n == "Update filter button text" || n == "CloseFilterWidget" ? 3 :
-				               n == "Destruct"                                            ? 4 : 0;
+			               n == "Destruct"                                            ? 4 :
+			               n == "InpActEvt_IA_Specific_AlchemyMenu_ClearAllFilters_Keyboard_K2Node_EnhancedInputActionEvent_2" ||
+			               n == "InpActEvt_IA_Specific_AlchemyMenu_ClearAllFilters_K2Node_EnhancedInputActionEvent_7" ? 5 : 0;
 				it = s_kind.emplace(a_fn, k).first;
 			}
 			if (!g_settingTab && g_filtersVisible.load()) {
@@ -1983,9 +2176,9 @@ namespace alchemy
 				else if (event.find("PreviousTab") != std::string::npos) g_tabCycle = -1;
 			}
 			if (it->second == 4) { g_menu = {}; return; }
+			if (it->second == 5 && g_open) g_nativeClearRequested = true;
 			if (reflect::Get(g_menu) != a_obj && reflect::IsLive(a_obj)) g_menu = reflect::Hold(a_obj);
 			if (it->second == 1) g_state.ListBuilt();
-			if (it->second == 1 && !g_settingTab && g_filtersVisible.load()) g_effectSearchDirty = true;
 			if (it->second == 1 && !g_inside && g_open) {
 				g_searchList.nativeDirty = true;   // the game rebuilt the ingredient list: sort it on the next tick -
 				// never inside the game's own call (RMI-022: rebuilding the list here released rows the game still used)
@@ -2069,6 +2262,7 @@ namespace alchemy
 				g_tabRequest = -1;
 				g_tabCycle = 0;
 				g_state.Closed();
+				g_nativeClearRequested = false;
 				HideOwn();
 				g_nameTyping = false;
 			g_nameMode = false;
@@ -2080,6 +2274,7 @@ namespace alchemy
 			}
 		}
 		if (!open) return;
+		WatchIngredientSource(menu);
 		auto* nameBox = Field(menu, "Alchemy_NameBox");
 		PotionNameTick(nameBox);
 		ui::Call nameFocus(nameBox, L"HasFocusedDescendants");
@@ -2128,6 +2323,7 @@ namespace alchemy
 			g_nextLayout = {};
 		}
 		if (!g_state.CanRead(NowMs(), kSettleMs)) return;
+		if (std::exchange(g_nativeClearRequested, false)) RemoveEveryFilter(menu);
 		g_inside = true;
 		if (g_dirtyCounts) ComputeCounts(menu);
 		if (g_dirtySort) ApplySort(menu);

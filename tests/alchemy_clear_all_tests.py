@@ -22,7 +22,8 @@ def check(ok, why):
         print("FAIL", why)
 
 
-check("ClearAllFilters" not in src, "no call to the ClearAllFilters input-event stub (it does nothing)")
+check('std::exchange(g_nativeClearRequested, false)) RemoveEveryFilter(menu)' in src,
+      "native clear events route to the same deferred action as the chip")
 branch = re.search(r"if \(meaning\.empty\(\)\)(.*?)\n\t\t\t\}", src, re.S)
 helper = src[src.find("void RemoveEveryFilter("):]
 helper = helper[:helper.find("\n\t\t}\n")]

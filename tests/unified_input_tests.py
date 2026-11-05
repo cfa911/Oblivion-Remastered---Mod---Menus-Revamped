@@ -46,6 +46,7 @@ constexpr std::size_t kMenuCount = 6;
 menus::Menu context=menus::Menu::kInventory, openedFor=menus::Menu::kNone;
 bool keyboardOpen=false, popup=false;
 int keyboardUses=0, pickerUses=0,ticks=0,publishes=0;
+int capsToggles=0;
 std::uint16_t closingMask=0;
 namespace search { menus::Menu Context() { return context; } }
 namespace kbcfg {
@@ -53,6 +54,7 @@ struct Config { bool enabled=true; int button=8,buttonLeft=4,holdMs=400; } confi
 const Config& Get() { return config; }
 }
 namespace keyboard {
+void ToggleCapsLock() { ++capsToggles; }
 bool Taking() { return keyboardOpen; }
 bool CanOpen(menus::Menu m) { return m!=menus::Menu::kNone; }
 bool Open(menus::Menu m,std::uint16_t) { keyboardOpen=true; openedFor=m; return true; }
@@ -111,6 +113,16 @@ int main() {
     XINPUT_STATE pad{}; input::Chained(0,&pad);
     check(!pad.Gamepad.wButtons && !pad.Gamepad.sThumbRX,"open keyboard owns pad buttons and sticks");
     check(pad.Gamepad.bLeftTrigger==150,"native tab-switch triggers retained while keyboard open");
+input::native.Gamepad.bRightTrigger=150;
+input::Chained(0,&pad);
+check(capsToggles==1 && pad.Gamepad.bRightTrigger==0,"R2 toggles caps and is consumed while typing");
+input::Chained(0,&pad);
+check(capsToggles==1,"held R2 does not repeat");
+input::native.Gamepad.bRightTrigger=0;
+input::Chained(0,&pad);
+input::native.Gamepad.bRightTrigger=150;
+input::Chained(0,&pad);
+check(capsToggles==2 && pad.Gamepad.bRightTrigger==0,"second R2 press toggles caps again");
     const auto uses=pickerUses;
     read(0x2000,710);
     check(!keyboardOpen && pickerUses==uses,"keyboard closing sample cannot also operate picker");
