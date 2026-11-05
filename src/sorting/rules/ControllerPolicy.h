@@ -8,7 +8,7 @@ namespace pickerpad
 {
 	constexpr std::uint16_t Up = 0x0001, Down = 0x0002, Left = 0x0004, Right = 0x0008;
 	constexpr std::uint16_t A = 0x1000, B = 0x2000, Y = 0x8000;
-	constexpr int Deadzone = 16000;
+	inline int Deadzone = 16000;   // [Controller] uStickDeadzone, set once when the INI is read
 	enum class Direction { None, Left, Right, Up, Down };
 	struct Input { std::uint16_t buttons = 0; short x = 0, y = 0, rx = 0, ry = 0; std::uint8_t lt = 0, rt = 0; };
 

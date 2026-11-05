@@ -33,6 +33,8 @@ uLogLevel=9
 [Search]
 bMagic=0
 bIme=0
+uHotkey=191
+bHotkeyCtrl=0
 [Bar]
 uFontSize=200
 [Inventory]
@@ -44,8 +46,15 @@ uXOffset=-2000
 uHoldMs=5
 uLeftPercent=40
 uRightPercent=45
+uRepeatDelayMs=5
+uRepeatRateMs=9999
+uClearHoldMs=50
 [Controller]
 bReturnToListAfterFilter=0
+uStickDeadzone=99999
+[Picker]
+bMagic=0
+bStolenFilter=0
 [Hover]
 bMagic=0
 uIntervalMs=5000
@@ -53,11 +62,14 @@ uIntervalMs=5000
 uLimit=1
 [Alchemy]
 uDefaultSort=9
-bHideZeroCountEffects=1
+uMarkerDiameter=40
+sMarkerColors=#112233,nope
 """, encoding="utf-16")
 
 main = r"""
 #include "core/Config.h"
+#include "sorting/rules/AlchemyEffectMarkers.h"
+#include "sorting/rules/ControllerPolicy.h"
 #include <iostream>
 int main() {
     int checks=0, failed=0;
@@ -85,7 +97,22 @@ check(v.keyboard.clearTextOnActivation,"absent keyboard clear key defaults on");
     check(!v.smooth.metrics,"metrics default off");
     check(v.alchemy.enabled,"alchemy features default on");
     check(v.alchemy.defaultSort==4,"alchemy sort clamps to 4");
-    check(v.alchemy.hideZeroCountEffects,"hide zero-count effects reads");
+    check(v.search.hotkey==191 && !v.search.hotkeyCtrl,"search hotkey and Ctrl switch read");
+    check(v.keyboard.repeatDelayMs==100 && v.keyboard.repeatRateMs==500,"keyboard repeat clamps to 100 / 500");
+    check(v.keyboard.clearHoldMs==200,"hold-to-clear below 200 (but not 0) rises to 200");
+    check(v.stickDeadzone==30000 && pickerpad::Deadzone==30000,"deadzone clamps to 30000 and reaches the picker rules");
+    check(v.picker.inventory && !v.picker.magic && v.picker.container,"picker menu switches, absent ones default on");
+    check(!v.picker.stolenFilter && v.picker.enchantedFilter,"toggle icon switches");
+    check(v.alchemy.markerDiameter==20 && alchemyrules::g_markerDiameter==20,"circle size clamps to 20");
+    check(alchemyrules::g_markerPalette==alchemyrules::kDefaultMarkerPalette,"bad colour list keeps the default palette");
+    {
+        auto p=alchemyrules::kDefaultMarkerPalette;
+        check(alchemyrules::ParseMarkerPalette("#0072B2, E69F00,#56b4e9,#F0E442,#009E73,#D55E00,#CC79A7,#FFFFFF",p) && p[0]==0x0072B2 && p[2]==0x56B4E9 && p[7]==0xFFFFFF,"8 colours parse, '#' optional, any case");
+        auto q=alchemyrules::kDefaultMarkerPalette;
+        check(!alchemyrules::ParseMarkerPalette("#0072B2,#E69F00",q) && q==alchemyrules::kDefaultMarkerPalette,"too few colours rejected");
+        check(!alchemyrules::ParseMarkerPalette("#0072B2,#E69F00,#56B4E9,#F0E442,#009E73,#D55E00,#CC79A7,#FFFFFF,#000000",q),"too many colours rejected");
+        check(!alchemyrules::ParseMarkerPalette("#0072B2,#E69F00,#56B4E9,#F0E442,#009E73,#D55E00,#CC79A7,#FFFFFG",q),"non-hex rejected");
+    }
 const auto ini=mrconfig::PluginFolder()/L"MenusRevamped.ini";
 WritePrivateProfileStringW(L"Search",L"bClearTextOnGameplay",L"0",ini.c_str());
 mrconfig::Load();
@@ -104,6 +131,11 @@ WritePrivateProfileStringW(L"Alchemy",L"bEnabled",L"0",ini.c_str());
 WritePrivateProfileStringW(L"Alchemy",L"uDefaultSort",L"2",ini.c_str());
 mrconfig::Load();
 check(!v.alchemy.enabled && v.alchemy.defaultSort==2,"alchemy switch and sort read");
+WritePrivateProfileStringW(L"Alchemy",L"sMarkerColors",L"#0072B2,#E69F00,#56B4E9,#F0E442,#009E73,#D55E00,#CC79A7,#FFFFFF",ini.c_str());
+WritePrivateProfileStringW(L"SearchKeyboard",L"uClearHoldMs",L"0",ini.c_str());
+mrconfig::Load();
+check(alchemyrules::g_markerPalette[1]==0xE69F00,"valid colour list replaces the palette");
+check(v.keyboard.clearHoldMs==0,"hold-to-clear 0 = never");
     std::cout<<checks<<" checks, "<<failed<<" failures\n";
     return failed ? 1 : 0;
 }

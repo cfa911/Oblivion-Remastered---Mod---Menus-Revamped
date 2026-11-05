@@ -19,6 +19,10 @@ namespace kbcfg
 			v.rightPercent = ReadInt(ini, L"SearchKeyboard", L"uRightPercent", v.rightPercent, v.leftPercent + 10, 100);
 			v.bottomPercent = ReadInt(ini, L"SearchKeyboard", L"uBottomPercent", v.bottomPercent, v.topPercent + 10, 100);
 			v.textPercent = ReadInt(ini, L"SearchKeyboard", L"uTextPercent", v.textPercent, 30, 300);
+			v.repeatDelayMs = ReadInt(ini, L"SearchKeyboard", L"uRepeatDelayMs", v.repeatDelayMs, 100, 1000);
+			v.repeatRateMs = ReadInt(ini, L"SearchKeyboard", L"uRepeatRateMs", v.repeatRateMs, 30, 500);
+			v.clearHoldMs = ReadInt(ini, L"SearchKeyboard", L"uClearHoldMs", v.clearHoldMs, 0, 3000);
+			if (v.clearHoldMs != 0 && v.clearHoldMs < 200) v.clearHoldMs = 200;
 			logger::info("config: {} read", ini.string());
 		} else {
 			logger::warn("config: {} not found - compiled defaults in use", ini.string());

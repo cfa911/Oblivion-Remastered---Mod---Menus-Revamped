@@ -1,4 +1,6 @@
 #include "core/Config.h"
+#include "sorting/rules/AlchemyEffectMarkers.h"
+#include "sorting/rules/ControllerPolicy.h"
 
 namespace mrconfig
 {
@@ -25,7 +27,25 @@ namespace mrconfig
 			GetPrivateProfileIntW(L"Controller", L"bReturnToListAfterFilter", 1, ini.c_str()) != 0;
 		g_values.alchemy.enabled = ReadInt(ini, L"Alchemy", L"bEnabled", 1, 0, 1) != 0;
 		g_values.alchemy.defaultSort = ReadInt(ini, L"Alchemy", L"uDefaultSort", 0, 0, 4);
-		g_values.alchemy.hideZeroCountEffects = ReadInt(ini, L"Alchemy", L"bHideZeroCountEffects", 0, 0, 1) != 0;
+		g_values.alchemy.markerDiameter = ReadInt(ini, L"Alchemy", L"uMarkerDiameter", 18, 8, 20);
+		alchemyrules::g_markerDiameter = g_values.alchemy.markerDiameter;
+		{
+			wchar_t colors[256]{};
+			GetPrivateProfileStringW(L"Alchemy", L"sMarkerColors", L"", colors, 256, ini.c_str());
+			std::string narrow;
+			for (const wchar_t* c = colors; *c; ++c) narrow.push_back(*c < 128 ? static_cast<char>(*c) : '?');
+			auto palette = alchemyrules::kDefaultMarkerPalette;
+			if (!narrow.empty() && !alchemyrules::ParseMarkerPalette(narrow, palette))
+				logger::warn("config: [Alchemy] sMarkerColors needs 8 colours like #DC3730, comma-separated; default colours in use");
+			alchemyrules::g_markerPalette = palette;
+		}
+		g_values.stickDeadzone = ReadInt(ini, L"Controller", L"uStickDeadzone", 16000, 4000, 30000);
+		pickerpad::Deadzone = g_values.stickDeadzone;
+		g_values.picker.inventory = ReadInt(ini, L"Picker", L"bInventory", 1, 0, 1) != 0;
+		g_values.picker.magic = ReadInt(ini, L"Picker", L"bMagic", 1, 0, 1) != 0;
+		g_values.picker.container = ReadInt(ini, L"Picker", L"bContainer", 1, 0, 1) != 0;
+		g_values.picker.stolenFilter = ReadInt(ini, L"Picker", L"bStolenFilter", 1, 0, 1) != 0;
+		g_values.picker.enchantedFilter = ReadInt(ini, L"Picker", L"bEnchantedFilter", 1, 0, 1) != 0;
 	}
 
 	const Values& Get() { return g_values; }

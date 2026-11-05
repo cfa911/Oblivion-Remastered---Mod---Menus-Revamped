@@ -124,8 +124,11 @@ namespace alchemy
 		int             g_countsNum = -1;        // ... and when the number of ingredients changes
 		int             g_itemNames = 0;    // VModernAlchemyEffect name field: 0 not learned yet, 1 learned (g_nameOffset), -1 not found
 		std::int32_t    g_nameOffset = -1;  // learned from a row: +0x38 (the run-4 guess) was not it (2026-11-04)
-		std::pair<std::int32_t, void*> g_filterSignature{ -1, nullptr };
 		Clock::time_point g_nextLayout{};
+		bool            g_framePlaced = false;   // RMI-038: the last Layout found the native title row and placed the frame
+		bool            g_earlyLayout = false;   // the frame was drawn before this opening's list was built
+		double          g_frameX = 0;            // the native title row's x at the last Layout
+		bool            g_frameMoving = false;   // it moved since the Layout before: the menu is sliding in (about 220 ms on reopening)
 		std::unordered_map<std::string, std::pair<float, int>> g_formData;   // display name -> weight, value (-1 unknown)
 		std::unordered_map<std::string, std::pair<float, int>> g_formMatch;  // the same by MatchKey (row text fallback)
 		std::unordered_map<std::string, std::vector<std::string>> g_markerEffects;
@@ -619,7 +622,7 @@ namespace alchemy
 					g_nameOffset = LearnTextOffset(texts, shown);
 					g_itemNames = g_nameOffset >= 0 ? 1 : -1;
 				if (g_itemNames == 1) g_effectSearchDirty = true;
-					if (g_itemNames < 0) logger::warn("alchemy: no effect name found in the filter item (size {:X}, {} texts, row \"{}\"); one-click removal and hiding empty effects are off", size, texts.size(), shown);
+					if (g_itemNames < 0) logger::warn("alchemy: no effect name found in the filter item (size {:X}, {} texts, row \"{}\"); one-click removal is off", size, texts.size(), shown);
 				}
 			}
 		}
@@ -703,19 +706,8 @@ namespace alchemy
 				g_nameOffset = LearnTextOffsetFromRows(perItem, rowTexts);
 				g_itemNames = g_nameOffset >= 0 ? 1 : -1;
 				if (g_itemNames == 1) g_effectSearchDirty = true;
-				if (g_itemNames < 0) logger::warn("alchemy: no effect name found in {} filter items against {} rows; one-click removal and hiding empty effects are off", perItem.size(), rowTexts.size());
+				if (g_itemNames < 0) logger::warn("alchemy: no effect name found in {} filter items against {} rows; one-click removal is off", perItem.size(), rowTexts.size());
 			}
-			if (!mrconfig::Get().alchemy.hideZeroCountEffects || g_itemNames != 1 || !g_countsReady) return;
-			auto items = ListItems(list);
-			const std::pair<std::int32_t, void*> signature{ static_cast<std::int32_t>(items.size()), items.empty() ? nullptr : items.front() };
-			if (signature == g_filterSignature) return;
-			std::vector<UE::UObject*> keep;
-			for (auto* item : items) {
-				std::string name;
-				if (!EffectItemName(item, name) || CountOf(name) > 0) keep.push_back(item);
-			}
-			if (!keep.empty() && keep.size() < items.size()) SetItems(list, keep);
-			g_filterSignature = { static_cast<std::int32_t>(keep.size()), keep.empty() ? nullptr : keep.front() };
 		}
 
 		// ---- IMP-MR-005: sort
@@ -966,7 +958,6 @@ namespace alchemy
 					textutil::Contains(name, g_effectSearchQuery, searchcfg::Get().ignoreAccents)) matches.push_back(item);
 			}
 			if (ListItems(list) != matches) SetItems(list, matches);
-			g_filterSignature = { -1, nullptr };
 		}
 
 		void ShowFilterTab(UE::UObject* a_filters, FilterTab a_tab)
@@ -990,7 +981,6 @@ namespace alchemy
 			if (!announced) { announced = true; logger::warn("alchemy: All / Positive / Negative recreated filter tabs ready (inward ornaments and full effect labels)"); }
 			g_settingTab = false;
 			g_filterTab = a_tab;
-			g_filterSignature = { -1, nullptr };
 			g_nextLayout = {};
 		}
 
@@ -1547,7 +1537,7 @@ namespace alchemy
 				if (auto* slot = SlotOf(image)) {
 					ui::Anchors(slot, 1.0, 0.5, 1.0, 0.5);
 					ui::Vec2(slot, L"SetAlignment", 0, 0.5);
-					ui::Vec2(slot, L"SetSize", kMarkerDiameter, kMarkerDiameter);
+					ui::Vec2(slot, L"SetSize", g_markerDiameter, g_markerDiameter);
 					ui::Vec2(slot, L"SetPosition", IngredientMarkerX(i, static_cast<int>(markers.size()), kWeightCx), g_columnDy);
 				}
 			}
@@ -1604,12 +1594,13 @@ namespace alchemy
 			}
 		}
 
-		void Layout(UE::UObject* a_menu)
+		void Layout(UE::UObject* a_menu, bool a_readNames = true)   // a_readNames false: before the list is built (RMI-021)
 		{
 			auto* canvas = ui::TreeRootCanvas(a_menu);
 			auto* applied = Field(a_menu, "AppliedFilters_Text");
 			auto* filtersButton = Field(a_menu, "Filters_Button");
 			auto* listWidget = Field(a_menu, "IngredientsListView");
+			g_framePlaced = false;
 			if (!canvas) return;
 			auto* title = reflect::Get(g_titleBox);
 			if (!title) {
@@ -1621,6 +1612,8 @@ namespace alchemy
 			const bool haveFilters = filtersButton && ui::Measure(filtersButton, f.x, f.y, f.w, f.h) && f.w > 0;
 			const bool haveList = listWidget && ui::Measure(listWidget, lb.x, lb.y, lb.w, lb.h);
 			if (haveTitle) t.w = TextWidth(t.w, DesiredWidth(title));
+			g_frameMoving = haveTitle && t.x != g_frameX;
+			if (haveTitle) g_frameX = t.x;
 			constexpr double kGap = 14;
 			const auto  row = PlaceTitleRow(t, f, haveList ? lb.y : 0, kGap);
 			static bool s_said = false;
@@ -1672,7 +1665,7 @@ namespace alchemy
 			}
 
 			// active filters: in the strip's space (else their own line under the title row)
-			const auto names = SelectedNames(a_menu);
+			const auto names = a_readNames ? SelectedNames(a_menu) : std::vector<std::string>{};
 			g_markerNames.clear();
 			for (auto& h : g_chipCircles) if (auto* w = reflect::Get(h)) ui::Visible(w, false);
 			std::vector<std::string> texts, meaning;
@@ -1722,7 +1715,7 @@ namespace alchemy
 					const auto known = g_textWidth.find(texts[i]);
 					const double w = known != g_textWidth.end() ? known->second : 10.0 * static_cast<double>(texts[i].size());
 					if (sizes[i][1] <= 0) sizes[i] = { w, 22.0 };
-					widths[i] = w + kButtonPadX * 2 + (i > 0 ? MarkWidth() + kMarkGap : 0.0) + (i > 0 && i <= kMarkerLimit ? kMarkerDiameter + kMarkerGap : 0);
+					widths[i] = w + kButtonPadX * 2 + (i > 0 ? MarkWidth() + kMarkGap : 0.0) + (i > 0 && i <= kMarkerLimit ? g_markerDiameter + kMarkerGap : 0);
 				}
 				const std::string moreText = "+" + std::to_string(texts.size());   // widest marker text it can need
 				if (more) {
@@ -1763,8 +1756,8 @@ namespace alchemy
 							ui::RoundedBox(circle, true, fill.data(), outline.data(), static_cast<float>(1.0 / (std::max)(0.01, scale)));
 							if (auto* slot = SlotOf(circle)) {
 								ui::Vec2(slot, L"SetAlignment", 0, 0.5);
-								ui::Vec2(slot, L"SetPosition", x + widths[i] - kButtonPadX * 2 - kMarkerDiameter, y);
-								ui::Vec2(slot, L"SetSize", kMarkerDiameter, kMarkerDiameter);
+								ui::Vec2(slot, L"SetPosition", x + widths[i] - kButtonPadX * 2 - g_markerDiameter, y);
+								ui::Vec2(slot, L"SetSize", g_markerDiameter, g_markerDiameter);
 							}
 							ui::Visible(circle, true);
 						}
@@ -1820,6 +1813,7 @@ namespace alchemy
 			std::scoped_lock lock(g_rectLock);
 			g_iconRects = iconRects;
 			g_chipRects = rects;
+			g_framePlaced = true;
 		}
 
 		// ---- controller hints (owner 2026-11-04; KB game-internals "Alchemy footer (bottom hint bar)")
@@ -2213,6 +2207,10 @@ namespace alchemy
 	{
 		return Open() && !g_nameTyping.load() && !g_filtersVisible.load() && g_padFocus.load() < 0 && g_chipFocus.load() < 0;
 	}
+	bool SearchShown()
+	{
+		return Open() && !g_nameTyping.load() && !g_filtersVisible.load();
+	}
 	UE::UObject* FilterWidget() { return Field(Widget(), "Alchemy_Filters"); }
 	bool FilterSearchAvailable()
 	{
@@ -2255,7 +2253,6 @@ namespace alchemy
 				g_padFocus = -1;
 				g_hoverIcon = -1;
 				g_dirtySort = g_dirtyCounts = true;
-				g_filterSignature = { -1, nullptr };
 				g_nextLayout = {};
 			} else {
 				g_filtersVisible = false;
@@ -2322,7 +2319,20 @@ namespace alchemy
 			}
 			g_nextLayout = {};
 		}
-		if (!g_state.CanRead(NowMs(), kSettleMs)) return;
+		if (!g_state.CanRead(NowMs(), kSettleMs)) {
+			// RMI-038: the frame (mask strip, sort icons, tabs, footer hints, and the list gap the search bar sits in) reads no item
+			// data, so it is drawn at once; retried every tick until the native widgets are measured. Data reads still wait.
+			const auto early = Clock::now();
+			if (early < g_nextLayout) return;
+			Layout(menu, false);
+			if (!g_framePlaced) return;
+			g_earlyLayout = true;
+			g_nextLayout = g_frameMoving ? early : early + std::chrono::milliseconds(100);   // sliding: every tick
+			LayoutFilterTabs(menu);
+			LayoutFooter(menu, filtersOpen, PadInput());
+			return;
+		}
+		if (std::exchange(g_earlyLayout, false)) g_nextLayout = {};   // the list is built: full layout now, with filter names
 		if (std::exchange(g_nativeClearRequested, false)) RemoveEveryFilter(menu);
 		g_inside = true;
 		if (g_dirtyCounts) ComputeCounts(menu);
@@ -2350,6 +2360,7 @@ namespace alchemy
 		LayoutFilterTabs(menu);
 		const bool pad = PadInput();
 		LayoutFooter(menu, filtersOpen, pad);
+		if (g_frameMoving) g_nextLayout = now;   // still sliding in: place again on the next tick
 		auto* name = Field(menu, "Alchemy_NameBox");
 		ui::Call focus(name, L"HasFocusedDescendants");
 		g_nameTyping = focus && focus.Run() && focus.Get<bool>("ReturnValue");

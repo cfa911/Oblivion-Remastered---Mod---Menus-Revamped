@@ -17,6 +17,7 @@ prefix=r'''
 #include <cstdint>
 #include <iostream>
 namespace search::detail { std::atomic<bool> g_typing{false}, g_external{false}; }
+namespace mrconfig { struct Values { int stickDeadzone=16000; }; inline const Values& Get(){ static Values v; return v; } }
 constexpr int kRows=12;
 struct Rect { double x=0,y=0,w=0,h=0; bool valid=false; };
 std::array<Rect,kRows> g_hits;

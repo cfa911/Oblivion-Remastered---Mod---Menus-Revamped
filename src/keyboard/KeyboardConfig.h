@@ -14,6 +14,8 @@ namespace kbcfg
 		int  holdMs = 400;      // uHoldMs: how long the button is held before the keyboard opens
 		int  leftPercent = 49, topPercent = 14, rightPercent = 93, bottomPercent = 87;   // where it sits, as a share of the screen
 		int  textPercent = 100; // uTextPercent: the keys' text size
+		int  repeatDelayMs = 350, repeatRateMs = 110;   // uRepeatDelayMs / uRepeatRateMs: holding a direction moves again after, then every
+		int  clearHoldMs = 700;  // uClearHoldMs: holding X this long clears the text; 0 = never
 	};
 
 	Values        ReadIni(const std::filesystem::path& ini);

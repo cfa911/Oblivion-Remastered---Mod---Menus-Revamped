@@ -511,7 +511,7 @@ logger::debug("search keyboard: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f
 		else if (raw & XINPUT_GAMEPAD_DPAD_DOWN) want = kDown;
 		else if (raw & XINPUT_GAMEPAD_DPAD_LEFT) want = kLeft;
 		else if (raw & XINPUT_GAMEPAD_DPAD_RIGHT) want = kRight;
-		else if (std::abs(a_lx) > 16000 || std::abs(a_ly) > 16000) {
+		else if (const int dz = mrconfig::Get().stickDeadzone; std::abs(a_lx) > dz || std::abs(a_ly) > dz) {
 			if (std::abs(a_lx) >= std::abs(a_ly)) want = a_lx < 0 ? kLeft : kRight;
 			else want = a_ly > 0 ? kUp : kDown;
 		}
@@ -519,11 +519,11 @@ logger::debug("search keyboard: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f
 			g_prevWant = want;
 			if (want) {
 				Move(want);
-				g_nextRepeat = a_now + 350ms;
+				g_nextRepeat = a_now + std::chrono::milliseconds(kbcfg::Get().repeatDelayMs);
 			}
 		} else if (want && a_now >= g_nextRepeat) {
 			Move(want);
-			g_nextRepeat = a_now + 110ms;
+			g_nextRepeat = a_now + std::chrono::milliseconds(kbcfg::Get().repeatRateMs);
 		}
 
 		if (pressed & XINPUT_GAMEPAD_A) {
@@ -539,11 +539,11 @@ logger::debug("search keyboard: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f
 				Push();
 			}
 		}
-		if (raw & XINPUT_GAMEPAD_X) {   // X deletes a character; held for 0.7 s it clears the whole text
+		if (raw & XINPUT_GAMEPAD_X) {   // X deletes a character; held for uClearHoldMs (0 = never) it clears the whole text
 			if (pressed & XINPUT_GAMEPAD_X) {
 				Backspace();
-				g_xNext = a_now + 700ms;
-				g_xCleared = false;
+				g_xNext = a_now + std::chrono::milliseconds(kbcfg::Get().clearHoldMs);
+				g_xCleared = kbcfg::Get().clearHoldMs == 0;
 			} else if (!g_xCleared && a_now >= g_xNext) {
 				g_xCleared = true;
 				g_text.clear();

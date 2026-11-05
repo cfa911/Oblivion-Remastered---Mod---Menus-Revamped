@@ -17,6 +17,8 @@ namespace searchcfg
 		bool ime = true;        // [Search] bIme: Japanese / Chinese input methods type into the bars (the window gets its input context back while a bar is typed into)
 		bool ignoreAccents = true;  // [Search] bIgnoreAccents: "cafe" finds "Café", "a" finds "ä"; a typed accent finds only that letter (case is always ignored)
 		bool clearTextOnGameplay = true;  // [Search] bClearTextOnGameplay: clear stored searches when leaving menus for gameplay
+		int  hotkey = 'F';      // [Search] uHotkey: Windows key code that starts typing (70 = F); 0 = mouse click only
+		bool hotkeyCtrl = true; // [Search] bHotkeyCtrl: 1 = Ctrl + the key, 0 = the key alone
 
 		int    barFontSize = 19;   // [Bar] uFontSize
 		double barX = 289, barY = 111, barW = 486, barH = 36;   // where the bar sits in the menu's root canvas (menu units), and its size
