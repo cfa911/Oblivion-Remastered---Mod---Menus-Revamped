@@ -23,6 +23,7 @@ namespace keyboard
 
 	// one controller read while it is open: a_raw the buttons, the left stick, now
 	void Rewrite(std::uint16_t a_raw, std::int16_t a_lx, std::int16_t a_ly, std::chrono::steady_clock::time_point a_now);
+	void ToggleCapsLock();
 
 	void Close(const char* a_why, std::uint16_t a_held = 0);
 

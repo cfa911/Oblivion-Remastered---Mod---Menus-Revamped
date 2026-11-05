@@ -57,6 +57,13 @@ namespace keyboard
 
 		reflect::Handle                                g_root, g_header;
 		std::vector<reflect::Handle>                   g_keyImg;
+		std::vector<reflect::Handle> g_keyLabels;
+		bool g_capsLock = false;
+
+		char KeyCharacter(const Key& a_key)
+		{
+			return g_capsLock ? static_cast<char>(std::toupper(static_cast<unsigned char>(a_key.ch))) : a_key.ch;
+		}
 		int                                            g_builds = 0;
 		bool                                           g_mirror = false, g_builtMirror = false;   // the keyboard on the left of the screen, for the container menu's other side
 		ULONGLONG                                      g_lastBuild = 0;
@@ -217,17 +224,24 @@ const double W = R - L, H = B - T;
 				imgs.push_back(reflect::Hold(img));
 			}
 			// the labels go over every image (a later child draws above an earlier one)
+			std::vector<reflect::Handle> labels;
 			for (std::size_t i = 0; i < keys.size(); ++i) {
-				if (!AddLabel(canvas, L"IwmOskText" + n + L"_" + std::to_wstring(i), layout.key[i], scale * (keys[i].kind == Kind::kChar ? 36.0 : 28.0), keys[i].label)) {
+				const auto& key = keys[i];
+				const auto caption = key.kind == Kind::kChar ? std::string(1, KeyCharacter(key)) : key.label;
+				auto* label = AddLabel(canvas, L"IwmOskText" + n + L"_" + std::to_wstring(i), layout.key[i],
+					scale * (key.kind == Kind::kChar ? 36.0 : 28.0), caption);
+				if (!label) {
 					logger::debug("search keyboard: the game's text prefab is not loaded yet");
 					return false;
 				}
+				labels.push_back(reflect::Hold(label));
 			}
 			g_headerSize = scale * 34.0;
 				auto* header = AddLabel(canvas, L"IwmOskHeader" + n, layout.header, g_headerSize, "Search: _");
 			{   // the pad's buttons as the game draws them: a dark disc with a light ring and the letter, then what the button does
 				struct Hint { const char* glyph; const char* text; };
-				const std::array<Hint, 4> hints{ { { "A", "Type" }, { "X", "Delete (hold: clear)" }, { "Y", "Space" }, { "B", "Done" } } };
+				const std::array<Hint, 5> hints{ { { "A", "Type" }, { "X", "Delete (hold: clear)" }, { "Y", "Space" },
+					{ "RT", "Caps Lock" }, { "B", "Done" } } };
 				// sizes at full scale; the whole row is then shrunk to fit the page if it is wider than it
 				const double cy = (layout.hint.y0 + layout.hint.y1) * 0.5;
 				const double textFull = scale * 22.0;
@@ -251,8 +265,10 @@ const double W = R - L, H = B - T;
 					const Rect disc{ x, cy - dh * 0.5, x + dw, cy + dh * 0.5 };
 					const std::wstring id = n + L"_" + std::to_wstring(i);
 					{   // the game's own button icon (Art/UI/Icons/Icons_Inputs/Xbox, the set its prompts use); a drawn disc and letter when it cannot be loaded
-						const std::wstring tn = std::wstring(L"T_Icon_Xbox_") + static_cast<wchar_t>(hints[i].glyph[0]);
-						auto*              tex = ui::Load((L"/Game/Art/UI/Icons/Icons_Inputs/Xbox/" + tn + L"." + tn).c_str());
+						const bool singleGlyph = hints[i].glyph[1] == '\0';
+						std::wstring tn = L"T_Icon_Xbox_";
+						for (const char* c = hints[i].glyph; *c; ++c) tn += static_cast<wchar_t>(*c);
+						auto* tex = ui::Load((L"/Game/Art/UI/Icons/Icons_Inputs/Xbox/" + tn + L"." + tn).c_str());
 						static bool        s_said = false;
 						if (!s_said) {
 							s_said = true;
@@ -267,7 +283,7 @@ const double W = R - L, H = B - T;
 							b.Run();
 						} else {
 							if (!AddImage(canvas, L"IwmOskGlyph" + id, disc, kGlyphFill, kGlyphEdge, 2.5f, true)) return false;
-							AddLabel(canvas, L"IwmOskGlyphText" + id, disc, textSize * 0.9, hints[i].glyph, kGlyphInk);
+							AddLabel(canvas, L"IwmOskGlyphText" + id, disc, textSize * (singleGlyph ? 0.9 : 0.7), hints[i].glyph, kGlyphInk);
 						}
 					}
 					const double tx = x + dw + gap;
@@ -283,6 +299,7 @@ const double W = R - L, H = B - T;
 			g_root = reflect::Hold(root);
 			g_header = reflect::Hold(header);
 			g_keyImg = std::move(imgs);
+			g_keyLabels = std::move(labels);
 			g_builtMirror = g_mirror;
 logger::debug("search keyboard: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f}%,{:.0f}% of the screen", g_builds, layout.panel.x0 * 100, layout.panel.y0 * 100,
 				layout.panel.x1 * 100, layout.panel.y1 * 100);
@@ -384,8 +401,7 @@ logger::debug("search keyboard: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f
 			case Kind::kChar:
 			case Kind::kSpace:
 				if (g_text.size() < kMaxText) {
-					// the first letter of a search is a capital (the search itself ignores the case)
-					g_text.push_back(g_text.empty() && k.kind == Kind::kChar ? static_cast<char>(std::toupper(static_cast<unsigned char>(k.ch))) : k.ch);
+					g_text.push_back(KeyCharacter(k));
 					Push();
 				}
 				break;
@@ -400,6 +416,18 @@ logger::debug("search keyboard: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f
 	}
 
 	bool Active() { return g_open; }
+
+	void ToggleCapsLock()
+	{
+		if (!g_open) return;
+		g_capsLock = !g_capsLock;
+		const auto& keys = Keys();
+		for (std::size_t i = 0; i < keys.size() && i < g_keyLabels.size(); ++i) {
+			const auto& key = keys[i];
+			if (key.kind != Kind::kChar || key.ch < 'a' || key.ch > 'z') continue;
+			if (auto* label = reflect::Get(g_keyLabels[i])) uix::SetText(label, std::string(1, KeyCharacter(key)));
+		}
+	}
 	bool Taking() { return g_open; }
 
 	bool CanOpen(menus::Menu a_menu)

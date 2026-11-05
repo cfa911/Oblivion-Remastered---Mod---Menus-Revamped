@@ -17,7 +17,7 @@ namespace keyboardinput
 
 		// ---- state, touched only inside the read (the game thread) ----
 		WORD        g_prevRaw = 0;
-		BYTE        g_prevOutLT = 0, g_prevOutRT = 0;
+		bool        g_rtDown = false, g_swallowRT = false;
 		SHORT       g_prevOutRX = 0, g_prevOutRY = 0;
 		menus::Menu g_prevMenu = menus::Menu::kNone;
 
@@ -38,6 +38,10 @@ namespace keyboardinput
 			const WORD raw = a_pad.wButtons;
 			const WORD pressed = raw & static_cast<WORD>(~g_prevRaw);
 			g_prevRaw = raw;
+			const bool rtDown = a_pad.bRightTrigger > (g_rtDown ? 20 : XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
+			const bool rtPressed = rtDown && !g_rtDown;
+			g_rtDown = rtDown;
+			if (!rtDown) g_swallowRT = false;
 			const auto now = Clock::now();
 			const auto menu = search::Context();   // the Inventory, the Magic menu, or the container / barter menu (as kContainerYours)
 			const auto& c = kbcfg::Get();
@@ -53,14 +57,18 @@ namespace keyboardinput
 
 			// the keyboard has the pad: the menu stands still, the game sees an idle controller
 			if (keyboard::Taking()) {
+				if (rtPressed) keyboard::ToggleCapsLock();
+				g_swallowRT = rtDown;
 				keyboard::Rewrite(raw, a_pad.sThumbLX, a_pad.sThumbLY, now);
 				a_pad.wButtons = 0;
-				// the triggers go through: LT / RT switch the menu's tabs and the search follows the list (the keyboard itself does not use them)
+				// R2 belongs to Caps Lock. L2 remains available for native tab switching.
+				a_pad.bRightTrigger = 0;
 				a_pad.sThumbLX = a_pad.sThumbLY = a_pad.sThumbRX = a_pad.sThumbRY = 0;
 				return;
 			}
 
 			WORD out = raw;
+			if (g_swallowRT) a_pad.bRightTrigger = 0;
 			out &= static_cast<WORD>(~keyboard::Swallow(raw));   // held when the keyboard closed (B, Start...): the game never sees them
 
 			// A hold on the button opens the keyboard; a tap is replayed after the release, so the game's own use of the button
@@ -110,6 +118,7 @@ namespace keyboardinput
 		if (!connected) {
 			keyboard::Close("controller disconnected");
 			g_prevRaw = 0;
+			g_rtDown = g_swallowRT = false;
 			g_held = g_fired = false;
 			g_pulse = 0; g_prevMenu = menus::Menu::kNone;
 			return;
