@@ -20,6 +20,17 @@ namespace alchemyrules
 		std::vector<std::string> knownEffects;  // display names of the effects the player knows
 	};
 
+	// IMP-MR-001: an ingredient matches a search when its name or one of its KNOWN effects contains the query.
+	// a_contains(text, query) is the caller's comparison (the menu passes textutil::Contains with the accent setting).
+	template <class Contains>
+	bool IngredientMatches(const Ingredient& a_item, std::string_view a_query, Contains&& a_contains)
+	{
+		if (a_query.empty() || a_contains(a_item.name, a_query)) return true;
+		for (const auto& effect : a_item.knownEffects)
+			if (a_contains(effect, a_query)) return true;
+		return false;
+	}
+
 	// IMP-MR-005 (owner 2026-11-04): the sorts are native-style header icons in this order; Known effects was dropped
 	enum class SortKey { Name, Count, Weight, Value, kCount };
 

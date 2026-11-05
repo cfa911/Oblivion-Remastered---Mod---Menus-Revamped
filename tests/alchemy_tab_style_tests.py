@@ -1,6 +1,9 @@
 """Native prefab integration guard; appearance still requires in-game acceptance."""
+import sys
 from pathlib import Path
-s = (Path(__file__).resolve().parents[1] / 'src/alchemy/AlchemyMenu.cpp').read_text(encoding='utf-8')
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import source_paths
+s = source_paths.read('alchemy')
 body = s[s.index('void LayoutFilterTabs('):s.index('void Layout(', s.index('void LayoutFilterTabs('))]
 checks = [
     ('WBP_ModernMenu_Alchemy_FilterEffectButton' not in body and 'ui::CreateWidget' not in body, 'no native button instances'),

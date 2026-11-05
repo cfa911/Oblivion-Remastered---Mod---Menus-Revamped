@@ -41,6 +41,7 @@ auto* p=new Widget{x,y,w,h}; records.push_back({name,p});return p;
 void Brush(Widget*,const wchar_t*){}
 namespace enchantedfilter { bool Supports(int){return true;} }
 namespace stolenfilter { bool Supports(int){return true;} }
+namespace mrconfig { struct PickerOn { bool inventory = true, magic = true, container = true, stolenFilter = true, enchantedFilter = true; }; struct Values { PickerOn picker; }; inline const Values& Get() { static Values v; return v; } }
 namespace itemtags { struct Data{const wchar_t* icons[1]={L"Category.png"};}; Data Info(int){return {};}}
 void PaintEnchanted(){} void PaintStolen(){}
 bool Create(){
