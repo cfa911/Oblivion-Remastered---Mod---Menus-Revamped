@@ -49,15 +49,13 @@ tick = src[src.find("\tvoid Tick()"):src.find("\tbool Message(")]
 check("DecorateIngredientRows(" in tick, "the tick writes the ingredient columns")
 check("g_sortState = { SortFromIni(" not in tick or "g_sortRead" in tick, "the INI default is read once, the sort is kept between openings")
 pad = src[src.find("\tvoid Controller("):]
-check("kPadY" in pad and "kPadA" in pad and "kPadB" in pad and "NavStep(" in src, "controller as the Inventory: Y enters the sort icons, A applies, B leaves")
-# owner 2026-11-04: Y and X swapped - X opens the Filters panel (tap) or clears every filter (hold)
-check("kPadX" in pad and "kHoldClearMs" in src and "g_openFiltersRequest" in pad and "g_clearAllRequest" in pad,
-      "tap X = open Filters, hold X = clear all filters")
-check('"Filters_Button"' in src and "OpenFilters(" in src, "Filters opens through the menu's own Filters button bound event")
-check("RemoveEveryFilter(" in src, "hold X and the Clear all button share one clear-all path")
+check("kPadRB" in pad and "kPadA" in pad and "kPadB" in pad and "NavStep(" in src, "RB enters sort icons, A applies, B leaves")
+check("kPadX" not in pad and "kPadY" not in pad, "native X Create and Y tap/hold pass through without interception")
+check("OpenFilters(" not in src and "g_clearAllRequest" not in src and "g_openFiltersRequest" not in src, "no duplicate native Filters or clear-all requests")
+check("RemoveEveryFilter(" in src, "custom chip Clear all retains its existing removal path")
 # styling batch (owner 2026-11-04): header line between the title and the rows, white active background, centred numbers
 check("HeaderX(" in src and "SetPadding" in src, "icons on their own line over the columns; the list moves down for it")
-check("kActiveTint[4] = { 1.0f, 1.0f, 1.0f" in src, "the active icon's background is white")
+check("kActiveTint[4] = { 0.55f, 0.35f, 0.20f" in src, "active sort is brown; hover unchanged")
 check("ColumnDy(" in src, "column numbers are centred on the row's name")
 check("kGapTrimPx" in src and "kIconLiftPx" in src and "kLeftShiftPx" in src, "owner pixel adjustments 2026-11-04: gap -4, icon line +3 up, left icons +4 right")
 # second batch (owner 2026-11-04): 3 px more bottom margin, left icons 10 px more right, Inventory-style separators
@@ -68,24 +66,27 @@ check("MrAlchemySortRule" in src and "SetRenderTransformAngle" in src, "a horizo
 # bottom bar shows Hold Y Selected Filters, Y Sort, X Filters, Hold X Clear All Filters; the Filters button shows X
 check("GetCurrentInputType" in src, "pad or keyboard from the game's CommonInputSubsystem")
 check('"BA_Box"' in src and "MrAlchemyHint" in src and "Text_ActionName" in src, "own hints in the footer's BA_Box, styled from a native entry's label")
-check("T_Icon_Xbox_X" in src and "T_Icon_Xbox_Y" in src, "the game's X/Y glyphs")
+check("T_Icon_Xbox_Y" in src, "native Y glyph used for Filters hints")
+for key in ("LB", "RB", "DPad_Right"):
+    check(f"T_Icon_Xbox_{key}.T_Icon_Xbox_{key}" in src, f"native {key} glyph is loaded from the game")
+check("keyText" not in src and "MrAlchemyHintDirection" not in src, "footer uses glyph images without text-key substitutes")
 # owner screenshot on b2d70c38: IconRimBrush drew a white box; hints touched each other; Filters button still Y
 check("IconRimBrush" not in src and "ProgressMaterialBrush" in src and "BrushResource(" in body("UE::UObject* MakeHint("),
       "hold ring from the progress brush, used only when it has a picture (IconRimBrush is a plain white box)")
 check("kHintSpacing" in body("UE::UObject* MakeHint("), "own hints are spaced from their neighbours")
-check("WBP_ModernPrefab_ControllerInputHint" in body("void LayoutFiltersGlyph("), "the Filters button's glyph is its ControllerInputHint widget")
+check("LayoutFiltersGlyph(" not in src, "native Filters Y glyph needs no override")
 for label in ("Selected Filters", "Sort", "Filters", "Clear All Filters"):
     check(f'"{label}"' in src, f"hint label {label}")
 check("BoundInputAction" in src and "ClearAll" in src, "the native hold-Y entry is found by its input action, not its (localised) text")
-check("MrAlchemyFiltersGlyph" in src and '"InputActionWidget"' in src, "the Filters button's Y glyph is covered by an X glyph on a pad")
+check("MrAlchemyFiltersGlyph" not in src, "no custom Filters glyph is created")
 # owner screenshot on 3332239a: hold-Y entry not relabelled, own glyphs small and raised, Filters button still Y
 check("HoldTreshold" in src, "the native hold entry is found by its hold time (its input action name has no 'ClearAll')")
 make = body("UE::UObject* MakeHint(")
 check(make.count("FillSlot(") >= 2, "glyph and rim fill their box (overlay slots start top-left at the brush size)")
-check("FindByClass(" in src and "CommonActionWidget" in src, "the Filters button's glyph is found by its class in the button's tree")
+check("FindByClass(" not in src, "unused Filters glyph tree walker removed")
 # owner screenshots on db35721d: on the second opening a second X glyph appeared and the first stayed at the old place
-glyph_fn = body("void LayoutFiltersGlyph(")
-check('FindInTree(a_menu, "MrAlchemyFiltersGlyph")' in glyph_fn, "the Filters glyph is reused by name before one is made (the menu widget is reused)")
+glyph_fn = ""
+check("g_filtersGlyph" not in src, "no obsolete Filters glyph handle")
 close = src[src.find("g_dyDone.clear();"):]
 close = close[:close.find("\n\t\t\t}")]
 check("g_filtersGlyph = {}" not in close, "closing the menu keeps the glyph's handle (no orphan, no duplicate)")
@@ -99,8 +100,8 @@ footer = body("void LayoutFooter(")
 # Filters, Add to Potion) on the keyboard bar - the game's per-entry visibility must not be touched
 check("SetVisibility" not in footer and "SetRenderOpacity" in footer and "MrAlchemyBar" in footer,
       "on a pad our own bar replaces BA_Box by opacity; the game's entries keep their own visibility")
-# RMI-027: hold Y enters the Selected Filters buttons
+# RMI-030: LB enters the Selected Filters buttons
 pad2 = src[src.find("\tvoid Controller("):]
-check("HoldTracker" in src and "g_chipFocus" in pad2 and "ClampFocus(" in src, "hold Y: controller focus on the Selected Filters buttons")
+check("kPadLB" in pad2 and "g_chipFocus" in pad2 and "ClampFocus(" in src and "HoldTracker" not in src, "LB enters Selected Filters without custom hold tracking")
 print(f"{checks} checks, {failures} failures")
 sys.exit(1 if failures else 0)

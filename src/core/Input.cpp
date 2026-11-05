@@ -29,7 +29,7 @@ namespace input
 				core::Tick();   // on every read, a connected pad or not
 				if (rc == ERROR_SUCCESS && a_state) {
 					auto& pad = a_state->Gamepad;
-					alchemy::Controller(pad.wButtons);
+					alchemy::Controller(pad.wButtons, pad.sThumbLX, pad.sThumbLY);
 					const bool keyboardHadInput = keyboard::Taking();
 					keyboardinput::Process(*a_state, !sorting::PopupOpen(), true);
 					const bool mapHadInput = mapsearch::Controller(pad.wButtons, pad.sThumbLX, pad.sThumbLY, pad.sThumbRX, pad.sThumbRY, keyboard::Taking());

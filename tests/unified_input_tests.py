@@ -27,7 +27,7 @@ keyboard = keyboard.replace("using Clock = std::chrono::steady_clock;", "using C
 prefix = r"""
 #include <Windows.h>
 namespace mapsearch { bool Controller(WORD&,SHORT&,SHORT&,SHORT&,SHORT&,bool) { return false; } }
-namespace alchemy { void Controller(WORD&) {} }
+namespace alchemy { void Controller(WORD&,SHORT&,SHORT&) {} }
 #include <Xinput.h>
 #include <chrono>
 #include <cstdint>
@@ -40,7 +40,7 @@ struct FakeClock {
     static time_point now() { return time_point{}+std::chrono::milliseconds(milliseconds); }
 };
 namespace menus {
-enum class Menu { kNone,kInventory,kMagic,kContainerYours,kContainerTheirs,kQuests , kWorldMap};
+enum class Menu { kNone,kInventory,kMagic,kContainerYours,kContainerTheirs,kQuests , kWorldMap,kAlchemy,kAlchemyName,kAlchemyFilters};
 constexpr std::size_t kMenuCount = 6;
 }
 menus::Menu context=menus::Menu::kInventory, openedFor=menus::Menu::kNone;
@@ -59,6 +59,7 @@ bool Open(menus::Menu m,std::uint16_t) { keyboardOpen=true; openedFor=m; return 
 void Close(const char*) { keyboardOpen=false; }
 void Rewrite(std::uint16_t buttons,short,short,FakeClock::time_point) {
     ++keyboardUses;
+if(context!=openedFor && !(context==menus::Menu::kContainerYours && openedFor==menus::Menu::kContainerTheirs)) { keyboardOpen=false; return; }
     if(buttons & (0x2000|0x10)) { keyboardOpen=false; closingMask=buttons; }
 }
 std::uint16_t Swallow(std::uint16_t raw) { closingMask &= raw; return closingMask; }
@@ -140,6 +141,23 @@ int main() {
     auto released=packets.Update(1,{});
     check(first!=released,"synthetic right-stick/trigger release moves packet stamp");
     check(publishes>0,"driver publishes keyboard ownership for wheel readers");
+    context=menus::Menu::kAlchemy; kbcfg::config.button=0x8000;
+    read(0,3000); read(8,3100); read(8,3600);
+    check(keyboardOpen && openedFor==menus::Menu::kAlchemy,"Alchemy uses hold D-pad Right even when shared activation is remapped to Y");
+    keyboardOpen=false; read(0,3700); read(0x8000,3800); read(0x8000,4300);
+    check(!keyboardOpen,"Alchemy Y stays with sorting and cannot activate search");
+context=menus::Menu::kAlchemyName;
+keyboard::Open(context,0x40);
+read(0x40,4400);
+check(keyboardOpen && openedFor==menus::Menu::kAlchemyName,"externally opened potion keyboard survives its matching context transition");
+context=menus::Menu::kAlchemy;
+read(0,4500);
+check(!keyboardOpen,"leaving potion naming still closes its keyboard");
+context=menus::Menu::kAlchemyFilters;
+read(0,4600);read(8,4700);read(8,5200);
+check(keyboardOpen && openedFor==menus::Menu::kAlchemyFilters,"filter search uses its own controller text target on hold D-pad Right");
+keyboardOpen=false;read(0,5300);read(0x8000,5400);read(0x8000,5900);
+check(!keyboardOpen,"filter-panel Y remains native even when shared activation remapped");
     std::cout<<checks<<" checks, "<<failed<<" failures\n";
     return failed ? 1 : 0;
 }
