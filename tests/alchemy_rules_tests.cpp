@@ -16,7 +16,7 @@ int main()
 	};
 
 	// ---- IMP-MR-005 (owner 2026-11-04): four sorts as native header icons, click = sort, click again = reverse
-	check(static_cast<int>(SortKey::kCount) == 4, "Name, Count, Weight, Value (Known effects dropped)");
+	check(static_cast<int>(SortKey::kCount) == 5, "Name, Count, Weight, Value and Colors");
 	check(std::string(SortLabel(SortKey::Name)) == "Name" && std::string(SortLabel(SortKey::Value)) == "Value", "labels");
 	check(SortFromIni(3) == SortKey::Value && SortFromIni(4) == SortKey::Name && SortFromIni(99) == SortKey::Name && SortFromIni(-1) == SortKey::Name,
 		"INI index, out of range (and the old Known effects 4) = Name");
@@ -64,7 +64,10 @@ int main()
 
 	// ---- header line between the title and the rows (owner 2026-11-04 screenshot): lightning (Count) then A-Z at the
 	// list's left, weight and coin centred over their columns
-	check(HeaderX(100, 800, 25, 52, 120, 45) == std::array<double, 4>{ 177, 125, 680, 755 }, "x centres in SortKey order: Name, Count, Weight, Value");
+	const auto centers = HeaderX(100, 800, 25, 52, 120, 45);
+	check(centers.size() == 5 && centers[0] == 177 && centers[1] == 125 &&
+	      centers[2] == 680 && centers[3] == 755 && centers[4] == 628,
+	      "Colors is one icon step left of Weight, with other columns unchanged");
 	check(ColumnDy(10, 20, 4, 12) == 10 && ColumnDy(0, 10, 0, 10) == 0, "column numbers move to the name's vertical centre");
 
 	// ---- IMP-MR-005: weight/value by the ingredient's name key

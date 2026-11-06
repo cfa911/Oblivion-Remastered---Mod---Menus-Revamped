@@ -27,6 +27,12 @@ using namespace alchemyrules;
 namespace UE { struct UObject { std::wstring id; std::string text; UObject* parent=nullptr; bool visible=false, circle=false; double x=0,y=0,w=0,h=0,ax=0; float line=0; std::array<float,4> fill{}, outline{}; }; }
 std::map<std::wstring, UE::UObject> widgets;
 UE::UObject text, canvas, weight, price;
+namespace reflect {
+using Handle = UE::UObject*;
+Handle Hold(UE::UObject* object) { return object; }
+UE::UObject* Get(Handle object) { return object; }
+}
+int markerBrushWrites = 0;
 namespace ui {
 UE::UObject* FindInTree(UE::UObject*, const char* name) {
 if(std::string(name)=="CanvasPanel") return &canvas;
@@ -41,7 +47,7 @@ void Anchors(UE::UObject* o,double x,double,double,double) {o->ax=x;}
 void Vec2(UE::UObject* o,const wchar_t* action,double x,double y) { if(std::wstring(action)==L"SetPosition"){o->x=x;o->y=y;} if(std::wstring(action)==L"SetSize"){o->w=x;o->h=y;} }
 bool CallFirst(UE::UObject*,const wchar_t*,const void*,size_t) {return true;}
 double ViewportScale(){return 1;}
-bool RoundedBox(UE::UObject* o,bool circle,const float* fill,const float* outline,float line,float=6) {o->circle=circle; o->line=line; std::copy_n(fill,4,o->fill.begin());std::copy_n(outline,4,o->outline.begin());return true;}
+bool RoundedBox(UE::UObject* o,bool circle,const float* fill,const float* outline,float line,float=6) {++markerBrushWrites; o->circle=circle; o->line=line; std::copy_n(fill,4,o->fill.begin());std::copy_n(outline,4,o->outline.begin());return true;}
 bool Measure(UE::UObject*,double&,double&,double&,double&){return false;}
 }
 namespace uix {std::string GetText(UE::UObject* o){return o->text;} void SetText(UE::UObject* o,const std::string& t){o->text=t;}}
@@ -50,7 +56,7 @@ UE::UObject* RowNameText(UE::UObject*){return &text;}
 UE::UObject* ColumnLabel(UE::UObject*,UE::UObject*,const wchar_t*,double){return nullptr;}
 double g_columnDy=0; bool g_dyKnown=true;
 std::unordered_set<UE::UObject*> g_dyDone;
-constexpr double kWeightCx=120,kValueCx=45;
+constexpr double kWeightCx=120,kValueCx=45,kIconStep=52;
 std::unordered_map<std::string,std::pair<float,int>> g_formData,g_formMatch;
 std::unordered_map<std::string,std::vector<std::string>> g_markerEffects;
 std::vector<std::string> g_markerNames;
@@ -65,6 +71,7 @@ g_markerNames={"Fire Shield","Chameleon","Invisibility","Light","Nighteye","Disp
 g_markerEffects[MatchKey(text.text)]={"Light","Fire Shield","Chameleon","Invisibility"};
 DecorateIngredientRow(&row);
 check(visible()==4,"four known selected effects draw four markers");
+check(weight.x == -114.25 && price.x == -45, "Weight text is centered between its dividers; Value keeps its center");
 bool circles=true,aligned=true,stroke=true;
 double right=-1e6,left=1e6;
 for(auto& [id,w]:widgets) if(w.visible){circles &= w.circle;aligned &= w.ax==1 && w.x+w.w<=-kWeightCx-10;stroke &= w.line==1;right=std::max(right,w.x+w.w);left=std::min(left,w.x);}
@@ -81,20 +88,34 @@ check(IngredientMarkers({"unknown"},{"Light"}).empty(),"effects outside known se
 bool distinct=true;for(int i=0;i<8;++i)for(int j=i+1;j<8;++j)distinct &= MarkerColor(i)!=MarkerColor(j);
 check(distinct,"eight legend slots use distinct colors");
 #endif
+const auto writes = markerBrushWrites;
+DecorateIngredientRow(&row);
+check(markerBrushWrites == writes, "idle redraw does not rewrite unchanged marker brushes");
+g_columnDy = 3;
+DecorateIngredientRow(&row);
+check(widgets.begin()->second.y == 3, "marker position follows column geometry changes");
+const auto colourOrder = SortOrder({
+    {"Alpha", 1, 0, 0, {}, {1, 2}},
+    {"Bravo", 1, 0, 0, {}, {0}},
+    {"Charlie", 1, 0, 0, {}, {0, 2}},
+    {"Delta", 1, 0, 0, {}}
+}, SortKey::Colors, true);
+check(colourOrder == std::vector<int>{2, 0, 1, 3}, "color sort uses count then earliest selected position");
+check(MarkerColor(11) != MarkerColor(7), "twelfth color is available");
 const auto allocated=widgets.size();
 text.text="Other Herb";g_markerEffects[MatchKey(text.text)]={"Nighteye"};DecorateIngredientRow(&row);
 check(visible()==1,"recycled row hides three stale circles");
 check(widgets.size()==allocated,"named marker widgets are reused");
 double singleRight=-1e6;for(auto& [id,w]:widgets)if(w.visible)singleRight=std::max(singleRight,w.x+w.w);
 check(visible()==1 && std::abs(singleRight-right)<0.001,"one and four markers share the right edge");
-text.text="Unknown Herb";g_markerEffects[MatchKey(text.text)]={"Unknown","Cure Disease"};DecorateIngredientRow(&row);
-check(visible()==0,"unselected or ninth selected effect has no visible legend color");
+text.text="Unknown Herb";g_markerEffects[MatchKey(text.text)]={"Unknown"};DecorateIngredientRow(&row);
+check(visible()==0,"unselected effect has no visible legend color");
 g_markerNames.clear();text.text="[Ingr] Test Herb";DecorateIngredientRow(&row);
 check(visible()==0,"clear all hides all ingredient circles");
 std::cout<<checks<<" checks, "<<failed<<" failures\n";return failed?1:0;
 }
 '''
-helpers = ''
+helpers = src[src.index('struct IngredientMarkerStyle'):src.index('void HideOwn()')]
 for signature in ['UE::UObject* EffectCircle(', 'void DecorateIngredientMarkers(']:
     helpers += source_paths.function(src, signature)
 cpp = out / 'alchemy_effect_markers_tests.cpp'

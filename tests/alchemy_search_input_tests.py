@@ -28,7 +28,7 @@ std::mutex g_rectLock;
 std::vector<Rect> g_chipRects;
 constexpr std::uint16_t kPadUp=1,kPadDown=2,kPadLeft=4,kPadRight=8,kPadA=0x1000,kPadB=0x2000,kPadX=0x4000,kPadY=0x8000;
 constexpr ULONGLONG kHoldClearMs=500;
-constexpr int kIcons=4;
+constexpr int kIcons=5;
 constexpr std::uint16_t kPadName=0x40;
 constexpr std::uint16_t kPadLB=0x100,kPadRB=0x200;
 std::atomic<bool> g_nameKeyboardRequest{false}, g_canName{true};
@@ -68,7 +68,7 @@ check(g_padFocus==-1 && g_chipFocus==-1 && !g_openFiltersRequest,"Y release does
 reset(); native=kPadRB; Controller(native);
 check(g_padFocus==g_activeIcon && native==0,"RB enters sort and is consumed");
 native=0; Controller(native); tap(kPadRight); tap(kPadA);
-check(g_iconClick==2,"sort follows visual A-Z to Weight and confirm still works");
+check(g_iconClick==4,"sort follows visual A-Z to Colors and confirm still works");
 tap(kPadB); check(g_padFocus==-1,"B leaves sorting");
 reset(); native=kPadLB; Controller(native);
 check(g_chipFocus==0 && native==0,"LB enters Selected Filters and is consumed");
@@ -87,9 +87,9 @@ check(g_nameKeyboardRequest,"L3 can open the controller keyboard when native nam
 reset(); g_nameTyping=false; g_sortNav={}; g_sortState={SortKey::Name,true}; g_iconClick=-1;
 tap(kPadRB);
 short x=25000,y=0; std::uint16_t buttons=0; Drive(buttons,x,y);
-check(g_padFocus==2 && x==0 && y==0,"sort stick Right follows visual order and never leaks to native list");
+check(g_padFocus==4 && x==0 && y==0,"sort stick Right follows visual order and never leaks to native list");
 x=25000; Drive(buttons,x,y);
-check(g_padFocus==2,"held stick does not move again on every input read");
+check(g_padFocus==4,"held stick does not move again on every input read");
 x=0; Drive(buttons,x,y); x=-25000; Drive(buttons,x,y);
 check(g_padFocus==0 && x==0,"sort stick Left moves back");
 x=0; Drive(buttons,x,y); tap(kPadUp); ApplySortInput();
@@ -103,15 +103,15 @@ check(!g_sortState.descending && y==0,"sort stick Up sets ascending and is consu
 y=0; Drive(buttons,x,y); y=-25000; Drive(buttons,x,y); ApplySortInput();
 check(g_sortState.descending && y==0,"sort stick Down sets descending and is consumed");
 y=0; Drive(buttons,x,y); tap(kPadRight); tap(kPadUp); ApplySortInput();
-check(g_sortState.key==SortKey::Weight && !g_sortState.descending,"direction applies to focused column even if it was not the active sort");
+check(g_sortState.key==SortKey::Colors && !g_sortState.descending,"direction applies to focused column even if it was not the active sort");
 tap(kPadB); g_sortDirection=-1; buttons=kPadUp; x=0;y=25000;Drive(buttons,x,y);
 check(buttons==kPadUp && y==25000 && g_sortDirection==-1,"outside Sort mode Up and analog stay native");
 buttons=0;x=y=0;Drive(buttons,x,y); tap(kPadLB); buttons=kPadDown;y=-25000;Drive(buttons,x,y);
 check(g_sortDirection==-1 && y==0,"Selected Filters owns analog but never changes sort direction");
 reset(); g_sortNav={}; g_activeIcon=1; tap(kPadRB);
-const int clockwise[]={0,2,3,1};
-for(int want:clockwise) { tap(kPadRight); check(g_padFocus==want,"carousel wraps Lightning A-Z Weight Price in visual order"); }
-const int counterclockwise[]={3,2,0,1};
+const int clockwise[]={0,4,2,3,1};
+for(int want:clockwise) { tap(kPadRight); check(g_padFocus==want,"carousel wraps Count A-Z Colors Weight Price in visual order"); }
+const int counterclockwise[]={3,2,4,0,1};
 for(int want:counterclockwise) { tap(kPadLeft); check(g_padFocus==want,"carousel reverse follows visual order"); }
 reset(); g_sortNav={};g_chipCount=4;
 g_chipRects={{0,0,70,20,true},{80,0,100,20,true},{0,30,90,20,true},{100,30,90,20,true}};

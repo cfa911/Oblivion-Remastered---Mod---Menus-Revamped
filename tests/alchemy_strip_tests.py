@@ -40,12 +40,12 @@ check("kStripAspect = 263.0 / 1090.0" in src and "kStripDy = -93.7" in src,
 m = re.search(r"kChipText = (\d+)", src)
 check(m is not None and int(m.group(1)) < 17 and src.count("kChipInk, kChipText)") >= 2,
       "the button texts are smaller than before (17)")
-check("kChipRows = 2" in src, "two rows of buttons")
+check("kChipRows = 3" in src, "up to three rows of buttons")
 # owner 2026-11-04 (second look): smaller text and boxes, title 4 bigger (21), the block moved up into the strip's top
 m = re.search(r"kChipText = (\d+)", src)
 check(m is not None and int(m.group(1)) <= 13, "button text smaller again (13)")
 check("kButtonPadX = 7, kButtonPadY = 2" in src, "smaller button boxes")
-check('L"MrAlchemyChipTitle", kTitleInk, 21)' in src, "title 4 bigger (17 -> 21)")
+check('L"MrAlchemyChipTitle", ink, 23.1)' in src, "title is 10 percent larger (21 -> 23.1)")
 check(re.search(r"chipsY = st\.chipsY \+ kChipsDy", src) is not None and re.search(r"kChipsDy = -\d+", src) is not None,
       "the block moved up")
 # owner 2026-11-04: Clear all stays red; a filter button has a black rim and black text, its x mark red
@@ -59,7 +59,7 @@ check(re.search(r'MrAlchemyChipX[^;]*kChipInk', src) is not None, "the x mark is
 check('L"MrAlchemyChipX",' not in src and re.search(r'L"MrAlchemyChipX" \+ std::to_wstring', src) is not None,
       "each x mark gets its own name")
 check(re.search(r"g_chips\.empty\(\) \? kChipInk : kSortInk", src) is not None, "Clear all text red, filter names dark")
-check('L"MrAlchemyChipTitle", kTitleInk, 21)' in src and "kTitleInk[4] = { 0.0723f, 0.0382f, 0.0284f, 1.0f }" in src,
-      "title colour #4c372f (owner 2026-11-04), as linear colour")
+check('L"MrAlchemyChipTitle", ink, 23.1)' in src and "kTitleInk[0] * 0.8f, kTitleInk[1] * 0.8f, kTitleInk[2] * 0.8f, 1.0f" in src,
+      "title ink is 20 percent darker in linear color")
 print(f"{checks} checks, {failures} failures")
 sys.exit(1 if failures else 0)

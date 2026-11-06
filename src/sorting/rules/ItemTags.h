@@ -216,7 +216,7 @@ namespace itemtags
 	// (hostile side effects of a mixed potion add nothing), or Other when none matches.
 	constexpr bool IsPoison(unsigned a_count, int a_hostileCount, bool a_poisonType = false)
 	{
-		return a_poisonType || (a_count > 0 && a_hostileCount >= static_cast<int>(a_count));
+		return a_poisonType || (a_count > 0 && a_hostileCount == static_cast<int>(a_count));
 	}
 	constexpr std::uint32_t PotionTags(const std::uint32_t* a_codes, unsigned a_count, int a_hostileCount, bool a_poisonType = false)
 	{

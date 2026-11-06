@@ -36,7 +36,7 @@ namespace mrconfig
 			for (const wchar_t* c = colors; *c; ++c) narrow.push_back(*c < 128 ? static_cast<char>(*c) : '?');
 			auto palette = alchemyrules::kDefaultMarkerPalette;
 			if (!narrow.empty() && !alchemyrules::ParseMarkerPalette(narrow, palette))
-				logger::warn("config: [Alchemy] sMarkerColors needs 8 colours like #DC3730, comma-separated; default colours in use");
+				logger::warn("config: [Alchemy] sMarkerColors needs 8 or 12 colours like #DC3730, comma-separated; default colours in use");
 			alchemyrules::g_markerPalette = palette;
 		}
 		g_values.stickDeadzone = ReadInt(ini, L"Controller", L"uStickDeadzone", 16000, 4000, 30000);

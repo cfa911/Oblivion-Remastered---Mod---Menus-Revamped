@@ -72,6 +72,12 @@ int main()
 	const std::uint32_t mixed[]{ Code('R','E','H','E'), Code('F','O','S','P'), Code('I','N','V','I') };
 	check(PotionTags(mixed, 3, 0) == (Potion | bit(5) | bit(6) | bit(8)), "several effects: every matching group, no Other");
 
+	const std::uint32_t reportedBrew[]{
+		Code('B','R','D','N'), Code('F','R','S','H'), Code('R','E','F','A'), Code('R','S','F','I'), Code('F','I','S','H')
+	};
+	check(PotionTags(reportedBrew, 5, 9) == (Potion | bit(5) | bit(7)),
+		"RMI-042: inconsistent hostile count cannot classify a native potion as Poison");
+
 	// Poison groups.
 	const Case poisons[]{
 		{ Code('D','G','H','E'), 12, "Damage Health" }, { Code('D','G','S','P'), 12, "Damage Magicka" },

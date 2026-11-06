@@ -8,19 +8,20 @@
 
 namespace alchemyrules
 {
-	inline constexpr int kMarkerLimit = 8, kIngredientMarkerLimit = 4;
+	inline constexpr int kMarkerLimit = 12, kIngredientMarkerLimit = 4;
 	inline constexpr double kMarkerGap = 4, kMarkerBeforeWeight = 28;
 	inline double g_markerDiameter = 18;   // [Alchemy] uMarkerDiameter
 	// Shared chip/ingredient palette, in selected-effect order (0xRRGGBB, sRGB). Solid colors, not game effect IDs.
 	inline constexpr std::array<std::uint32_t, kMarkerLimit> kDefaultMarkerPalette = {
-		0x316EE0, 0xDC3730, 0x48AE37, 0xEFCF2F, 0x9740C3, 0xED8623, 0x27C0CC, 0xE05AA0
+		0x316EE0, 0xDC3730, 0x48AE37, 0xEFCF2F, 0x9740C3, 0xED8623, 0x27C0CC, 0xE05AA0,
+		0x607D24, 0x91512C, 0x545F91, 0xF2A8A1
 	};
 	inline std::array<std::uint32_t, kMarkerLimit> g_markerPalette = kDefaultMarkerPalette;   // [Alchemy] sMarkerColors
 
-	// "#DC3730,#48AE37,...": exactly kMarkerLimit hex colours, '#' optional, spaces ignored. False leaves a_out unchanged.
+	// "#DC3730,#48AE37,...": 8 legacy or 12 hex colours, '#' optional, spaces ignored. False leaves a_out unchanged.
 	inline bool ParseMarkerPalette(std::string_view a_text, std::array<std::uint32_t, kMarkerLimit>& a_out)
 	{
-		std::array<std::uint32_t, kMarkerLimit> parsed{};
+		std::array<std::uint32_t, kMarkerLimit> parsed = kDefaultMarkerPalette;
 		std::size_t count = 0;
 		while (true) {
 			const auto comma = a_text.find(',');
@@ -38,7 +39,7 @@ namespace alchemyrules
 			if (comma == std::string_view::npos) break;
 			a_text.remove_prefix(comma + 1);
 		}
-		if (count != kMarkerLimit) return false;
+		if (count != 8 && count != kMarkerLimit) return false;
 		a_out = parsed;
 		return true;
 	}

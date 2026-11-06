@@ -32,10 +32,12 @@ namespace alchemy
 
 		void PotionNameTick(UE::UObject* a_name)
 		{
+			static std::string initialName;
 			ui::Call enabled(a_name, L"GetIsEnabled");
 			g_canName = a_name && ui::ShownOnScreen(a_name) && enabled && enabled.Run() && enabled.Get<bool>("ReturnValue");
 			if (g_nameKeyboardRequest.exchange(false) && g_canName.load() && !keyboard::Taking()) {
 				g_nameApplied = ReadPotionName(a_name);
+				initialName = g_nameApplied;
 				search::SetText(menus::Menu::kAlchemyName, g_nameApplied);
 				ui::Call start(a_name, L"StartEditText"); if (start) start.Run();
 				g_nameMode = true;
@@ -56,8 +58,17 @@ namespace alchemy
 			}
 			if (commit) {
 				ui::Call stop(a_name, L"StopEditText"); if (stop) stop.Run();
+				// The wrapper setters update the displayed field; native typing also notifies the menu.
+				if (value != initialName && !NameTextCall(Widget(),
+				    L"BndEvt__WBP_ModernMenu_AlchemyMenu_Alchemy_NameBox_K2Node_ComponentBoundEvent_11_OnEditableTextChangedEvent__DelegateSignature",
+				    "Text", value)) {
+					static bool warned = false;
+					if (!warned) {
+						warned = true;
+						logger::warn("alchemy: native brew-name handler unavailable");
+					}
+				}
 				g_nameMode = false;
-				logger::debug("alchemy: controller potion name committed");
 			}
 		}
 

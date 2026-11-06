@@ -52,7 +52,7 @@ check(re.search(r"stolenfilter::Supports\(kind\)\s*&&\s*mrconfig::Get\(\)\.picke
 
 # 13: Alchemy circles
 default("Alchemy", "uMarkerDiameter", "18")   # owner 2026-11-05: circles 30% bigger than 14
-default("Alchemy", "sMarkerColors", "#316EE0,#DC3730,#48AE37,#EFCF2F,#9740C3,#ED8623,#27C0CC,#E05AA0")
+default("Alchemy", "sMarkerColors", "#316EE0,#DC3730,#48AE37,#EFCF2F,#9740C3,#ED8623,#27C0CC,#E05AA0,#607D24,#91512C,#545F91,#F2A8A1")
 markers = read("sorting/rules/AlchemyEffectMarkers.h")
 check("constexpr unsigned char rgb" not in markers, "circle palette is not hard-coded inside MarkerColor")
 check("kMarkerDiameter" not in markers + source_paths.read("alchemy"), "circle diameter is not a compile-time constant")
