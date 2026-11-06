@@ -9,6 +9,7 @@ namespace smoothcfg
 		bool inventoryHover = true;   // [Hover] bInventory: the Inventory list's hover events are throttled
 		bool containerHover = true;   // [Hover] bContainer: both barter/container lists
 		bool magicHover = true;       // [Hover] bMagic: the same in the Magic menu
+		int  hoverSettleMs = 100;    // [Hover] uSettleMs: deliver a hover once the pointer has stayed on one row this long (0 = use uIntervalMs instead)
 		int  hoverIntervalMs = 200;   // [Hover] uIntervalMs: at most one hover event per this many ms goes through (0 = none is held back)
 
 		bool objectGuard = true;           // [Guard] bEnabled: ask the engine for a garbage collection before it runs out of object slots (the game dies at 2,162,688)

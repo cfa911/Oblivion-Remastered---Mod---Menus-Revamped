@@ -80,6 +80,7 @@ namespace smoothcfg
 		v.magicHover = read(L"Hover", L"bMagic", 1, 0, 1) != 0;
 		v.containerHover = read(L"Hover", L"bContainer", 1, 0, 1) != 0;
 		v.hoverIntervalMs = read(L"Hover", L"uIntervalMs", 200, 0, 1000);
+		v.hoverSettleMs = read(L"Hover", L"uSettleMs", 100, 0, 1000);
 		v.objectGuard = read(L"Guard", L"bEnabled", 1, 0, 1) != 0;
 		v.objectGuardLimit = read(L"Guard", L"uLimit", 1500000, 200000, 2100000);
 		v.objectGuardCooldown = read(L"Guard", L"uCooldown", 10, 1, 600);

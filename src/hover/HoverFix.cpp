@@ -29,6 +29,9 @@ namespace hoverfix
 			reflect::Handle owner;
 			ULONGLONG lastAt = 0;
 			Pending pending;
+			ULONGLONG lastEvent = 0;    // settle mode: when the last hover event arrived (any row)
+			ULONGLONG lastChange = 0;   // settle mode: when the pending row last changed
+			reflect::Handle shown;      // the item last delivered to the game
 		};
 
 		std::vector<State> g_state;
@@ -94,13 +97,37 @@ namespace hoverfix
 			auto& st = *it;
 			const auto now = GetTickCount64();
 			if (replay) g_replayReady = false;   // one call only; nested rebuild hovers stay gated
-			if (replay || now - st.lastAt >= static_cast<ULONGLONG>(cfg.hoverIntervalMs)) {
+			auto* item = *static_cast<UE::UObject**>(a_params);
+			const auto deliver = [&] {
 				st.lastAt = now;
 				st.pending.has = false;
+				st.shown = item && reflect::IsLive(item) ? reflect::Hold(item) : reflect::Handle{};
 				++g_let;
 				return false;
+			};
+			if (replay) return deliver();
+			// Settle mode: every delivered hover rebuilds the details panel (about 1,100 objects in Inventory), while rows
+			// and the hover sound do not depend on it. A sweep delivers nothing; the row the pointer rests on is delivered
+			// once it has stayed the same for uSettleMs (Replay), the first hover after a rest at once, a repeat never.
+			if (cfg.hoverSettleMs > 0) {
+				const bool resting = now - st.lastEvent >= static_cast<ULONGLONG>(cfg.hoverSettleMs);
+				st.lastEvent = now;
+				if (item && item == reflect::Get(st.shown)) {
+					st.pending.has = false;   // back on (or still on) the row already shown
+					++g_skipped;
+					return true;
+				}
+				if (resting) return deliver();
+				if (!item || !reflect::IsLive(item)) {
+					st.pending.has = false;
+				} else if (!st.pending.has || reflect::Get(st.pending.item) != item) {
+					st.pending = { reflect::Hold(a_obj), reflect::Hold(item), a_fn, true };
+					st.lastChange = now;
+				}
+				++g_skipped;
+				return true;
 			}
-			auto* item = *static_cast<UE::UObject**>(a_params);
+			if (now - st.lastAt >= static_cast<ULONGLONG>(cfg.hoverIntervalMs)) return deliver();
 			if (item && reflect::IsLive(item)) {
 				st.pending = { reflect::Hold(a_obj), reflect::Hold(item), a_fn, true };
 			} else {
@@ -110,7 +137,8 @@ namespace hoverfix
 			return true;
 		}
 
-		void Replay()
+		// a_force: deliver every held hover now, whatever its timer (FlushOnInput).
+		void Replay(bool a_force = false)
 		{
 			std::erase_if(g_state, [](const auto& st) { return !reflect::Get(st.owner); });
 			// Copy due calls before ProcessEvent: its nested events can grow g_state.
@@ -122,7 +150,10 @@ namespace hoverfix
 					st.pending.has = false;
 					continue;
 				}
-				if (!st.pending.has || now - st.lastAt < static_cast<ULONGLONG>(mrconfig::Get().smooth.hoverIntervalMs)) continue;
+				const auto& cfg = mrconfig::Get().smooth;
+				if (!st.pending.has) continue;
+				if (!a_force && cfg.hoverSettleMs > 0 ? now - st.lastChange < static_cast<ULONGLONG>(cfg.hoverSettleMs) :
+											 !a_force && now - st.lastAt < static_cast<ULONGLONG>(cfg.hoverIntervalMs)) continue;
 				due.push_back(st.pending);
 				st.pending.has = false;
 				st.lastAt = now;
@@ -140,6 +171,20 @@ namespace hoverfix
 				g_replayObject = nullptr;
 				g_replayFunction = nullptr;
 			}
+		}
+
+		// Number keys (OnPressedQuickKey) and the Inventory details action button act on the menu's CurrentHoveredItem, which
+		// only a delivered hover sets (RegisterSendClickOnItemHandler(CurrentHoveredItem)). So a key or button event on the
+		// Inventory or Magic menu delivers any held hover before its body runs. Learned once per UFunction.
+		void FlushOnInput(UE::UObject*, UE::UFunction* a_fn, void*)
+		{
+			static std::map<UE::UFunction*, bool> s_input;
+			auto it = s_input.find(a_fn);
+			if (it == s_input.end()) {
+				const auto name = pe::FunctionName(a_fn);
+				it = s_input.emplace(a_fn, name.starts_with("InpActEvt_") || name.find("OnActionClicked") != std::string::npos).first;
+			}
+			if (it->second && !g_replayObject) Replay(true);
 		}
 
 		// ---- metrics ([Metrics] bEnabled) ----
@@ -296,6 +341,7 @@ namespace hoverfix
 		void Discover(menus::Menu a_menu)
 		{
 			static bool s_invFilter = false, s_magicFilter = false, s_tile = false, s_invMetric = false, s_magicMetric = false;
+			static bool s_invFlush = false, s_magicFlush = false;
 			if (a_menu == menus::Menu::kContainerYours || a_menu == menus::Menu::kContainerTheirs) {
 				// Existing weak-cached side roots; no new global or per-frame tree scan.
 				if (!s_invFilter) {
@@ -318,6 +364,7 @@ namespace hoverfix
 			} else if (a_menu == menus::Menu::kInventory) {
 				auto* menu = menus::Widget(menus::Menu::kInventory);
 				if (!menu) return;
+				if (!s_invFlush) s_invFlush = pe::Watch(menus::ClassOf(menus::Menu::kInventory), &FlushOnInput);
 				if (mrconfig::Get().smooth.metrics && !s_invMetric) {
 					s_invMetric = true;
 					logger::info("hover fix: Inventory frame metrics {}", pe::Watch(menus::ClassOf(menus::Menu::kInventory), &MenuMetric) ? "on" : "failed");
@@ -336,6 +383,7 @@ namespace hoverfix
 			} else if (a_menu == menus::Menu::kMagic) {
 				auto* cls = menus::ClassOf(menus::Menu::kMagic);
 				if (!cls) return;
+				if (!s_magicFlush) s_magicFlush = pe::Watch(cls, &FlushOnInput);
 				if (mrconfig::Get().smooth.metrics && !s_magicMetric) {
 					s_magicMetric = true;
 					logger::info("hover fix: Magic frame metrics {}", pe::Watch(cls, &MenuMetric) ? "on" : "failed");

@@ -58,6 +58,7 @@ bStolenFilter=0
 [Hover]
 bMagic=0
 uIntervalMs=5000
+uSettleMs=5000
 [Guard]
 uLimit=1
 [Alchemy]
@@ -93,6 +94,7 @@ check(v.keyboard.clearTextOnActivation,"absent keyboard clear key defaults on");
     check(!v.returnToListAfterFilter,"controller option reads");
     check(v.smooth.inventoryHover && !v.smooth.magicHover,"hover switches");
     check(v.smooth.hoverIntervalMs==1000,"hover interval clamps to 1000");
+    check(v.smooth.hoverSettleMs==1000,"hover settle clamps to 1000");
     check(v.smooth.objectGuardLimit==200000,"guard limit clamps to 200000");
     check(!v.smooth.metrics,"metrics default off");
     check(v.alchemy.enabled,"alchemy features default on");
