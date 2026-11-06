@@ -18,6 +18,7 @@ namespace alchemyrules
 		float                    weight = 0;    // the form's weight; < 0 when unknown
 		int                      value = 0;     // the form's value; < 0 when unknown
 		std::vector<std::string> knownEffects;  // display names of the effects the player knows
+		std::vector<int> markerPositions;
 	};
 
 	// IMP-MR-001: an ingredient matches a search when its name or one of its KNOWN effects contains the query.
@@ -32,7 +33,7 @@ namespace alchemyrules
 	}
 
 	// IMP-MR-005 (owner 2026-11-04): the sorts are native-style header icons in this order; Known effects was dropped
-	enum class SortKey { Name, Count, Weight, Value, kCount };
+	enum class SortKey { Name, Count, Weight, Value, Colors, kCount };
 
 	inline const char* SortLabel(SortKey a_key)
 	{
@@ -40,6 +41,7 @@ namespace alchemyrules
 		case SortKey::Count:  return "Count";
 		case SortKey::Weight: return "Weight";
 		case SortKey::Value:  return "Value";
+		case SortKey::Colors: return "Colors";
 		default:              return "Name";
 		}
 	}
@@ -47,7 +49,7 @@ namespace alchemyrules
 	// uDefaultSort 0..3; anything else (the old 4 = Known effects too) is Name
 	inline SortKey SortFromIni(int a_index)
 	{
-		return a_index >= 0 && a_index < static_cast<int>(SortKey::kCount) ? static_cast<SortKey>(a_index) : SortKey::Name;
+		return a_index >= 0 && a_index < static_cast<int>(SortKey::Colors) ? static_cast<SortKey>(a_index) : SortKey::Name;
 	}
 
 	// first click on an icon: A-Z for the name, highest first for the numbers
@@ -77,9 +79,9 @@ namespace alchemyrules
 	// Controller follows the rendered order; enum/INI values remain stable.
 	inline int SortNavStep(int a_index, int a_direction)
 	{
-		constexpr int visual[] = { 1, 0, 2, 3 }; // Lightning, A-Z, Weight, Price
-		for (int i = 0; i < 4; ++i)
-			if (visual[i] == a_index) return visual[NavStep(i, a_direction, 4)];
+		constexpr int visual[] = { 1, 0, 4, 2, 3 }; // Lightning, A-Z, Colors, Weight, Price
+		for (int i = 0; i < 5; ++i)
+			if (visual[i] == a_index) return visual[NavStep(i, a_direction, 5)];
 		return visual[0];
 	}
 
@@ -123,9 +125,16 @@ namespace alchemyrules
 
 	// the sort header line (owner 2026-11-04): x centres in SortKey order - Count (lightning) then A-Z at the list's left,
 	// Weight and Value centred over their columns (a_first: first icon centre from the list's left edge)
-	inline std::array<double, 4> HeaderX(double a_listLeft, double a_rowRight, double a_first, double a_step, double a_weightFromRight, double a_valueFromRight)
+	inline std::array<double, 5> HeaderX(double a_listLeft, double a_rowRight, double a_first, double a_step, double a_weightFromRight, double a_valueFromRight)
 	{
-		return { a_listLeft + a_first + a_step, a_listLeft + a_first, a_rowRight - a_weightFromRight, a_rowRight - a_valueFromRight };
+		return { a_listLeft + a_first + a_step, a_listLeft + a_first, a_rowRight - a_weightFromRight, a_rowRight - a_valueFromRight,
+			         a_rowRight - a_weightFromRight - a_step };
+	}
+
+	// Midpoint between the Colors | Weight and Weight | Value dividers.
+	inline constexpr double WeightColumnInset(double a_weight, double a_value, double a_iconStep)
+	{
+		return a_weight - (a_weight - a_value - a_iconStep) * 0.25;
 	}
 
 	// how far a column label must move down so its centre is on the row name's centre (both measured top + height)
@@ -264,6 +273,11 @@ namespace alchemyrules
 			const auto& x = a_items[a];
 			const auto& y = a_items[b];
 			switch (a_key) {
+			case SortKey::Colors:
+				if (x.markerPositions.size() != y.markerPositions.size())
+					return a_descending ? x.markerPositions.size() > y.markerPositions.size() : x.markerPositions.size() < y.markerPositions.size();
+				if (x.markerPositions != y.markerPositions) return x.markerPositions < y.markerPositions;
+				break;
 			case SortKey::Count:
 				if (x.count != y.count) return a_descending ? x.count > y.count : x.count < y.count;
 				break;

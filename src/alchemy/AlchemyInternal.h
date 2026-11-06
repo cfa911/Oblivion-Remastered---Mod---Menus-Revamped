@@ -50,7 +50,7 @@ namespace alchemy
 		constexpr std::uint16_t kPadLB = 0x0100, kPadRB = 0x0200;
 		// IMP-MR-005 (owner 2026-11-04): the game's own sort header textures, loaded from the game at run time (KB
 		// docs/inventory/internals.md "Native sort header icon textures"); index = SortKey (Name, Count, Weight, Value)
-		constexpr int            kIcons = 4;
+		constexpr int            kIcons = static_cast<int>(SortKey::kCount);
 		constexpr const wchar_t* kTexPaths[] = {
 			L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_sorting.T_Property_1_sorting",
 			L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_cost.T_Property_1_cost",   // Count: placeholder (owner 2026-11-04)
@@ -72,11 +72,12 @@ namespace alchemy
 		constexpr double         kHintGlyph = 40;   // own footer hint glyph (viewport units) when the native one is not measured
 		constexpr double         kHintGap = 10;     // glyph to label
 		constexpr double         kHintSpacing = 22; // between our hints and their left neighbour (owner screenshot b2d70c38)
-		constexpr double         kSepWidth = 2;   // separators lightning|A-Z and weight|value, icon height
+		constexpr double         kSepWidth = 2;   // vertical dividers at icon height
 		constexpr double         kIconSize = 34, kIconBack = 46, kIconStep = 52, kArrowSize = 14;   // viewport units
 		constexpr float          kActiveTint[4] = { 0.55f, 0.35f, 0.20f, 1.0f };    // active sort: brown; hover/focus unchanged (owner 2026-11-05)
 		constexpr float          kFocusTint[4] = { 1.0f, 1.0f, 1.0f, 0.55f };    // hovered / controller focus: fainter
 		constexpr double         kSearchSpace = 44, kSearchHeight = 36;
+		constexpr double         kHeaderRuleDropPx = 3;
 		constexpr double         kHeaderGap = 40;   // the list moves down this much; the icon line sits in the gap
 		constexpr double         kFirstIcon = 25;   // first icon's centre from the list's left edge
 		// owner adjustments 2026-11-04, in screen pixels (divided by the viewport scale): the gap 4 px smaller, the icon
@@ -97,7 +98,7 @@ namespace alchemy
 		constexpr double         kChipText = 13;     // button text size (17 -> 15 -> 13, owner 2026-11-04)
 		constexpr double         kTitleAbove = 32;   // "Selected filters" sits this far above the first row
 		constexpr double         kChipsDy = -16;     // the title + rows block, up into the strip top (owner 2026-11-04)
-		constexpr int            kChipRows = 2;      // active-filter button rows (owner 2026-11-04)
+		constexpr int            kChipRows = 3;      // active-filter button rows (owner 2026-11-04)
 		constexpr double         kRowGap = 5;        // between those rows
 		// Owner's updated Better Mask PSD (2026-11-04 18:50): 1090x263, at 100,0 on the 2559x1439 canvas.
 		// Panel background measured 60.8,93.7,845.5 viewport units; mask sits at 75, 0 with width 817.5.
@@ -146,7 +147,7 @@ namespace alchemy
 		inline reflect::Handle              g_titleBox, g_strip, g_stripTexture;
 		inline std::array<reflect::Handle, kIcons>    g_icons, g_iconBacks;   // the sort header (index = SortKey)
 		inline reflect::Handle                         g_arrow;   // direction mark on the active icon
-		inline std::array<reflect::Handle, 2>          g_seps;    // lightning | A-Z and weight | value (owner 2026-11-04)
+		inline std::array<reflect::Handle, 3>          g_seps;    // Count | Name, Weight | Value, Colors | Weight
 		inline reflect::Handle                         g_rule;    // the line under the icons, across the list (owner 2026-11-04)
 		inline int                                     g_arrowDir = -1;   // texture on g_arrow: -1 none, 0 up, 1 down
 		inline std::array<reflect::Handle, kTexCount>  g_tex;

@@ -1,4 +1,5 @@
 #include "alchemy/AlchemyInternal.h"
+#include "sorting/Icons.h"
 
 namespace alchemy
 {
@@ -270,8 +271,19 @@ namespace alchemy
 			return r;
 		}
 
+		struct IngredientMarkerStyle
+		{
+			reflect::Handle image;
+			reflect::Handle slot;
+			int colour = -1;
+			float line = 0;
+			double x = 0, y = 0, diameter = 0;
+		};
+		std::unordered_map<UE::UObject*, IngredientMarkerStyle> g_ingredientMarkerStyles;
+
 		void HideOwn()
 		{
+			g_ingredientMarkerStyles.clear();
 			for (auto& h : g_chipCircles) if (auto* w = reflect::Get(h)) ui::Visible(w, false);
 			for (auto& h : g_icons) if (auto* l = reflect::Get(h)) ui::Visible(l, false);
 			for (auto& h : g_iconBacks) if (auto* l = reflect::Get(h)) ui::Visible(l, false);
@@ -334,8 +346,8 @@ namespace alchemy
 			if (sizeOff < 0 || sizeOff + sizeBytes > size || (sizeBytes != 4 && sizeBytes != 8)) return;
 			const auto* data = reinterpret_cast<const std::uint8_t*>(text) + off;
 			std::vector<std::uint8_t> font(data, data + size);
-			if (sizeBytes == 4) { const float value = 21; std::memcpy(font.data() + sizeOff, &value, 4); }
-			else { const double value = 21; std::memcpy(font.data() + sizeOff, &value, 8); }
+			if (sizeBytes == 4) { const float value = 23.1f; std::memcpy(font.data() + sizeOff, &value, 4); }
+			else { const double value = 23.1; std::memcpy(font.data() + sizeOff, &value, 8); }
 			ui::CallFirst(a_label, L"SetFont", font.data(), font.size());
 		}
 
@@ -551,7 +563,8 @@ namespace alchemy
 			auto*        wrapper = Field(a_menu, "IngredientsListView");
 			const double px = a_scale > 0 ? 1.0 / a_scale : 1.0;   // one screen pixel in viewport units
 			const double gap = kHeaderGap - kGapTrimPx * px;
-			PadList(wrapper, gap + (searchcfg::Get().alchemy ? kSearchSpace : 0));
+			const double ruleDrop = kHeaderRuleDropPx * px;
+			PadList(wrapper, gap + ruleDrop + (searchcfg::Get().alchemy ? kSearchSpace : 0));
 			Box        lb, rb;
 			const bool haveList = wrapper && ui::Measure(wrapper, lb.x, lb.y, lb.w, lb.h) && lb.w > 0;
 			auto*      list = InnerList(wrapper);
@@ -565,7 +578,11 @@ namespace alchemy
 					if (auto* b = MakeImage(a_canvas, (L"MrAlchemySortBack" + std::to_wstring(i)).c_str(), NativeTexture(kTexBack), 49, kIconBack)) bh = reflect::Hold(b);
 				}
 				if (!reflect::Get(ih)) {
-					if (auto* m = MakeImage(a_canvas, (L"MrAlchemySortIcon" + std::to_wstring(i)).c_str(), NativeTexture(i), 50, kIconSize)) ih = reflect::Hold(m);
+					const int count = static_cast<int>(SortKey::Count);
+					auto* texture = i == count ? icons::Texture(L"Category-All.png") :
+						NativeTexture(i == static_cast<int>(SortKey::Colors) ? count : i);
+					if (i == count && !texture) texture = NativeTexture(count);
+					if (auto* m = MakeImage(a_canvas, (L"MrAlchemySortIcon" + std::to_wstring(i)).c_str(), texture, 50, kIconSize)) ih = reflect::Hold(m);
 				}
 			}
 			if (!reflect::Get(g_arrow)) {
@@ -585,14 +602,16 @@ namespace alchemy
 				}
 			}
 			const double rowRight = haveRow ? rb.x + rb.w : lb.x + lb.w;
-			const auto   xs = HeaderX(lb.x + kLeftShiftPx * px, rowRight, kFirstIcon, kIconStep, kWeightCx, kValueCx);
-			const double cy = lb.y - gap * 0.5 - kIconLiftPx * px;
+			const auto xs = HeaderX(lb.x + kLeftShiftPx * px, rowRight, kFirstIcon, kIconStep, kWeightCx, kValueCx);
+			const double originalListTop = lb.y - ruleDrop;
+			const double cy = originalListTop - gap * 0.5 - kIconLiftPx * px;
 			const int    active = static_cast<int>(g_sortState.key);
 			const int    focus = g_padFocus.load(), hover = g_hoverIcon.load();
 			for (int i = 0; i < kIcons; ++i) {
 				auto*        icon = reflect::Get(g_icons[static_cast<std::size_t>(i)]);
 				auto*        back = reflect::Get(g_iconBacks[static_cast<std::size_t>(i)]);
-				const double cx = xs[static_cast<std::size_t>(i)];
+				const double cx = xs[static_cast<std::size_t>(i)] +
+					(i == static_cast<int>(SortKey::Weight) ? kWeightCx - WeightColumnInset(kWeightCx, kValueCx, kIconStep) : 0.0);
 				if (icon) {
 					if (auto* slot = SlotOf(icon)) ui::Vec2(slot, L"SetPosition", cx, cy);
 					ui::Visible(icon, room);
@@ -606,8 +625,8 @@ namespace alchemy
 					ui::Visible(back, room && lit);
 				}
 			}
-			// separators halfway between lightning (Count) and A-Z (Name), and between Weight and Value
-			const double sepX[2] = { (xs[0] + xs[1]) * 0.5, (xs[2] + xs[3]) * 0.5 };
+			// Match each divider to the midpoint between its two icons.
+			const double sepX[] = { (xs[0] + xs[1]) * 0.5, (xs[2] + xs[3]) * 0.5, (xs[4] + xs[2]) * 0.5 };
 			for (std::size_t i = 0; i < g_seps.size(); ++i) {
 				auto* sep = reflect::Get(g_seps[i]);
 				if (!sep) continue;
@@ -618,7 +637,7 @@ namespace alchemy
 				const double length = (std::max)(0.0, rowRight - lb.x);
 				if (auto* slot = SlotOf(rule)) {
 					ui::Vec2(slot, L"SetSize", kSepWidth, length);   // before the turn: width x length
-					ui::Vec2(slot, L"SetPosition", (lb.x + rowRight) * 0.5, (cy + kIconSize * 0.5 + lb.y) * 0.5);
+					ui::Vec2(slot, L"SetPosition", (lb.x + rowRight) * 0.5, (cy + kIconSize * 0.5 + originalListTop) * 0.5 + ruleDrop);
 				}
 				ui::Visible(rule, room && length > 0);
 			}
@@ -628,7 +647,8 @@ namespace alchemy
 					SetTexture(arrow, NativeTexture(dir ? kTexDown : kTexUp));
 					g_arrowDir = dir;
 				}
-				const double ax = xs[static_cast<std::size_t>(active)];
+				const double ax = xs[static_cast<std::size_t>(active)] +
+					(active == static_cast<int>(SortKey::Weight) ? kWeightCx - WeightColumnInset(kWeightCx, kValueCx, kIconStep) : 0.0);
 				if (auto* slot = SlotOf(arrow)) ui::Vec2(slot, L"SetPosition", ax + (kIconBack - kArrowSize) * 0.5, cy + (kIconBack - kArrowSize) * 0.5);
 				ui::Visible(arrow, room);
 			}
@@ -703,17 +723,36 @@ namespace alchemy
 				const bool show = i < static_cast<int>(markers.size());
 				if (!image && show) image = EffectCircle(canvas, a_row, wide.c_str());
 				if (!image) continue;
+				auto* slot = SlotOf(image);
+				const int colour = show ? markers[i] : -1;
+				const int count = static_cast<int>(markers.size());
+				// Keep the first selected effect nearest Weight.
+				const double x = show ? IngredientMarkerX(count - 1 - i, count, kWeightCx) : 0;
+				const auto cached = g_ingredientMarkerStyles.find(image);
+				if (cached != g_ingredientMarkerStyles.end()) {
+					const auto& style = cached->second;
+					if (reflect::Get(style.image) == image && style.colour == colour &&
+					    (!show || (slot && reflect::Get(style.slot) == slot && style.line == line &&
+					               style.x == x && style.y == g_columnDy && style.diameter == g_markerDiameter))) continue;
+					g_ingredientMarkerStyles.erase(cached);
+				}
 				ui::Visible(image, show);
-				if (!show) continue;
-				const auto fill = MarkerColor(markers[i]);
-				ui::RoundedBox(image, true, fill.data(), outline.data(), line);
-				if (auto* slot = SlotOf(image)) {
+				if (!show) {
+					g_ingredientMarkerStyles[image] = { reflect::Hold(image), {}, colour };
+					continue;
+				}
+				const auto fill = MarkerColor(colour);
+				const bool brushed = ui::RoundedBox(image, true, fill.data(), outline.data(), line);
+				if (slot) {
 					ui::Anchors(slot, 1.0, 0.5, 1.0, 0.5);
 					ui::Vec2(slot, L"SetAlignment", 0, 0.5);
 					ui::Vec2(slot, L"SetSize", g_markerDiameter, g_markerDiameter);
-					// owner 2026-11-05: rows draw in reverse selection order (first filter next to Weight); the chip line keeps 1, 2, 3
-					const int count = static_cast<int>(markers.size());
-					ui::Vec2(slot, L"SetPosition", IngredientMarkerX(count - 1 - i, count, kWeightCx), g_columnDy);
+					ui::Vec2(slot, L"SetPosition", x, g_columnDy);
+					if (brushed) {
+						g_ingredientMarkerStyles[image] = {
+							reflect::Hold(image), reflect::Hold(slot), colour, line, x, g_columnDy, g_markerDiameter
+						};
+					}
 				}
 			}
 		}
@@ -730,7 +769,8 @@ namespace alchemy
 			else if (auto m = g_formMatch.find(MatchKey(shown)); m != g_formMatch.end()) stats = m->second;
 			for (int c = 0; c < 2; ++c) {
 				auto* label = ui::FindInTree(a_row, c ? "MrAlchemyValue" : "MrAlchemyWeight");
-				if (!label) label = ColumnLabel(a_row, text, c ? L"MrAlchemyValue" : L"MrAlchemyWeight", c ? kValueCx : kWeightCx);
+				const double inset = c ? kValueCx : WeightColumnInset(kWeightCx, kValueCx, kIconStep);
+				if (!label) label = ColumnLabel(a_row, text, c ? L"MrAlchemyValue" : L"MrAlchemyWeight", inset);
 				if (!label) continue;
 				const auto want = c ? FormatValue(stats.second) : FormatWeight(stats.first);
 				if (uix::GetText(label) != want) uix::SetText(label, want);
@@ -742,7 +782,7 @@ namespace alchemy
 					}
 				}
 				if (g_dyKnown && g_dyDone.insert(label).second) {
-					if (auto* slot = SlotOf(label)) ui::Vec2(slot, L"SetPosition", -(c ? kValueCx : kWeightCx), g_columnDy);
+					if (auto* slot = SlotOf(label)) ui::Vec2(slot, L"SetPosition", -inset, g_columnDy);
 				}
 			}
 		}
@@ -839,7 +879,7 @@ namespace alchemy
 
 			// active filters: in the strip's space (else their own line under the title row)
 			const auto names = a_readNames ? SelectedNames(a_menu) : std::vector<std::string>{};
-			g_markerNames.clear();
+			const auto previousMarkers = std::exchange(g_markerNames, {});
 			for (auto& h : g_chipCircles) if (auto* w = reflect::Get(h)) ui::Visible(w, false);
 			std::vector<std::string> texts, meaning;
 			if (!names.empty()) {   // Clear all leftmost (owner 2026-11-04), then one entry per filter
@@ -900,11 +940,12 @@ namespace alchemy
 					}
 				}
 				const auto   mw = g_textWidth.count(moreText) ? g_textWidth[moreText] : 30.0;
-				// two rows (owner 2026-11-04): Clear all leftmost on the first, the rest wraps under it, "+N" last
-				const auto   flow = FlowButtons(widths, row.chipsRight - row.chipsX, kGap, mw, kChipRows);
+
 				double       lineH = 0;
 				for (const auto& sz : sizes) lineH = (std::max)(lineH, sz[1] + kButtonPadY * 2);
 				const double step = lineH + kRowGap;
+				const int rows = chipsY + 2 * step + lineH * 0.5 + kRowGap <= t.y ? kChipRows : 2;
+				const auto flow = FlowButtons(widths, row.chipsRight - row.chipsX, kGap, mw, rows);
 				const double x0 = row.chipsX + kButtonPadX;
 				const int    hovered = g_hoverChip.load(), padFocus = g_chipFocus.load();
 				for (std::size_t i = 0; i < flow.row.size(); ++i) {
@@ -952,10 +993,12 @@ namespace alchemy
 					moreShown = true;
 				}
 			}
+			if (g_sortState.key == SortKey::Colors && g_markerNames != previousMarkers) g_dirtySort = true;
 			if (more) ui::Visible(more, moreShown);
 			auto* chipTitle = reflect::Get(g_chipTitle);
 			if (!chipTitle) {
-				chipTitle = MakeLabel(canvas, L"MrAlchemyChipTitle", kTitleInk, 21);
+				constexpr float ink[] = { kTitleInk[0] * 0.8f, kTitleInk[1] * 0.8f, kTitleInk[2] * 0.8f, 1.0f };
+				chipTitle = MakeLabel(canvas, L"MrAlchemyChipTitle", ink, 23.1);
 				if (chipTitle) {
 					uix::SetText(chipTitle, "Selected Filters");
 					CopyIngredientsFont(chipTitle, title);

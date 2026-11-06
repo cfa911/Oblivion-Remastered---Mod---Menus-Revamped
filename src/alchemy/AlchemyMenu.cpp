@@ -34,7 +34,7 @@ namespace alchemy
 		void SortNativeIngredientSource(UE::UObject* a_vm, UE::UFunction* a_fn, void* a_params)
 		{
 			if (!g_open || !g_sortRead || !a_params || a_vm != reflect::Get(g_ingredientSourceVM) ||
-			    pe::FunctionName(a_fn) != "GetItemsList") return;
+			pe::FunctionName(a_fn) != "GetItemsList") return;
 			const auto& layout = Props();
 			if (!layout.ok || layout.size != 0x40 || a_fn->parmsSize != sizeof(RawArray) ||
 			    reflect::Offset(a_fn, "ReturnValue") != 0 || ui::SizeOf(a_fn, "ReturnValue") != sizeof(RawArray)) return;
@@ -48,7 +48,9 @@ namespace alchemy
 			const auto stride = static_cast<std::size_t>(layout.size);
 			std::vector<Ingredient> ingredients(static_cast<std::size_t>(result.num));
 			for (std::size_t i = 0; i < ingredients.size(); ++i) {
-				if (!ReadIngredient(result.data + i * stride, ingredients[i], true, false)) return;
+				if (!ReadIngredient(result.data + i * stride, ingredients[i], true, g_sortState.key == SortKey::Colors)) return;
+				if (g_sortState.key == SortKey::Colors)
+					ingredients[i].markerPositions = IngredientMarkers(ingredients[i].knownEffects, g_markerNames);
 			}
 			const auto order = SortOrder(ingredients, g_sortState.key, g_sortState.descending);
 			bool changed = false;
@@ -151,7 +153,8 @@ namespace alchemy
 		const double scale = ui::ViewportScale();
 		const double gap = kHeaderGap - kGapTrimPx / (scale > 0 ? scale : 1);
 		a_x = lx - cx + lw * 0.1; // centered, 20% narrower overall (owner final styling)
-		a_y = ly - cy - (a_filters ? 0 : gap) - kSearchSpace;
+		constexpr double kIngredientSearchLiftPx = 15;
+		a_y = ly - cy - (a_filters ? 0 : gap + (kIngredientSearchLiftPx + kHeaderRuleDropPx) / (scale > 0 ? scale : 1)) - kSearchSpace;
 		a_w = lw * 0.8;
 		a_h = kSearchHeight;
 		return true;

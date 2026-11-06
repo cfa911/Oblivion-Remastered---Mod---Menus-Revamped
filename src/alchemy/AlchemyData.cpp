@@ -402,15 +402,25 @@ namespace alchemy
 			if (items.empty()) { g_searchList.Commit(live); return; }
 			const auto propsOff = reflect::Offset(items.front()->GetClass(), "Properties");
 			if (propsOff < 0) return;
-			std::vector<Ingredient> data(items.size());
-			const auto query = searchcfg::Get().alchemy && searchcfg::Get().ownFilter ? search::GetText(menus::Menu::kAlchemy) : std::string();
-			const bool effects = !query.empty(); // search reads known effects; sorting alone does not
-			logger::flush();
-			for (std::size_t i = 0; i < items.size(); ++i) {
-				if (!ReadIngredient(reinterpret_cast<const std::uint8_t*>(items[i]) + propsOff, data[i], true, effects)) return;   // all or nothing
-			}
-			static bool s_warned = false;
-			if (!s_warned && data.size() >= 5 && std::none_of(data.begin(), data.end(), [](const Ingredient& i) { return i.weight >= 0; })) {
+			std::vector<Ingredient> data;
+		std::vector<UE::UObject*> matches;
+		data.reserve(items.size());
+		matches.reserve(items.size());
+		const auto query = searchcfg::Get().alchemy && searchcfg::Get().ownFilter ? search::GetText(menus::Menu::kAlchemy) : std::string();
+		const bool colors = g_sortState.key == SortKey::Colors;
+		const bool effects = !query.empty() || colors;
+		bool hasWeight = false;
+		for (auto* item : items) {
+			Ingredient ingredient;
+			if (!ReadIngredient(reinterpret_cast<const std::uint8_t*>(item) + propsOff, ingredient, true, effects)) return; // all or nothing
+			hasWeight |= ingredient.weight >= 0;
+			if (!MatchesQuery(ingredient, query)) continue;
+			if (colors) ingredient.markerPositions = IngredientMarkers(ingredient.knownEffects, g_markerNames);
+			data.push_back(std::move(ingredient));
+			matches.push_back(item);
+		}
+		static bool s_warned = false;
+			if (!s_warned && items.size() >= 5 && !hasWeight) {
 				s_warned = true;
 				logger::warn("alchemy: no ingredient weight/value found (name key lookup); those sorts fall back to the name");
 			}
@@ -418,7 +428,7 @@ namespace alchemy
 			std::erase_if(order, [&](int i) { return !MatchesQuery(data[static_cast<std::size_t>(i)], query); });
 						std::vector<UE::UObject*> sorted;
 			sorted.reserve(order.size());
-			for (int i : order) sorted.push_back(items[static_cast<std::size_t>(i)]);
+			for (int i : order) sorted.push_back(matches[static_cast<std::size_t>(i)]);
 			g_searchList.Commit(sorted);
 			if (sorted == live) return;
 			UE::UObject* selected = nullptr;

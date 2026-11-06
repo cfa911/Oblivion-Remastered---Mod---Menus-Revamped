@@ -94,8 +94,10 @@ namespace geardata
 						if (effect) codes[count++] = *reinterpret_cast<std::uint32_t*>(effect + 0x08);
 						node = reinterpret_cast<void**>(node[1]);
 					}
-					a_tags = itemtags::PotionTags(codes, count, static_cast<RE::EffectItemList*>(potion)->hostileCount,
-						potion->GetSpellType() == RE::MagicSystem::SpellType::kPoison);
+					const auto type = potion->GetSpellType();
+					// A truncated list cannot prove that every effect is hostile.
+					const auto hostile = node ? -1 : static_cast<RE::EffectItemList*>(potion)->hostileCount;
+					a_tags = itemtags::PotionTags(codes, count, hostile, type == RE::MagicSystem::SpellType::kPoison);
 					return true;
 				}
 				a_tags = itemtags::MiscTags(static_cast<unsigned>(object->GetFormType()), object->GetFormID(), 0);

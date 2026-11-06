@@ -15,7 +15,9 @@ prefix=r'''
 #include <vector>
 namespace UE { struct UObject {}; }
 namespace menus { enum class Menu { kAlchemyName }; }
-std::string nativeName="Old Potion",query;
+std::string nativeName="Old Potion",brewName="Old Potion",query;
+UE::UObject menu;
+UE::UObject* Widget() { return &menu; }
 std::vector<std::wstring> calls;
 bool enabled=true,visible=true,build=true,taking=false,modeBeforeOpen=false;
 std::atomic<bool> g_canName{false},g_nameMode{false},g_nameKeyboardRequest{false};
@@ -38,7 +40,17 @@ bool Taking() { return taking; }
 bool Open(menus::Menu,std::uint16_t) { modeBeforeOpen=g_nameMode.load(); taking=build; return taking; }
 }
 std::string ReadPotionName(UE::UObject*) { return nativeName; }
-bool NameTextCall(UE::UObject*,const wchar_t* fn,const char*,const std::string& value,bool=false) { calls.push_back(fn); nativeName=value; return true; }
+bool NameTextCall(UE::UObject* target,const wchar_t* fn,const char* param,const std::string& value,bool=false) {
+    if (target == &menu) {
+        if (std::wstring(fn) != L"BndEvt__WBP_ModernMenu_AlchemyMenu_Alchemy_NameBox_K2Node_ComponentBoundEvent_11_OnEditableTextChangedEvent__DelegateSignature" ||
+            std::string(param) != "Text") return false;
+        brewName = value;
+    } else {
+        calls.push_back(fn);
+        nativeName = value;
+    }
+    return true;
+}
 '''
 main=r'''
 int main() {
@@ -49,11 +61,16 @@ g_nameKeyboardRequest=true; PotionNameTick(&box);
 check(taking && g_nameMode && modeBeforeOpen,"name context is published before opening keyboard");
 check(query=="Old Potion" && nativeName=="Old Potion","opening loads current native text without clearing it");
 query="Test Potion"; calls.clear(); PotionNameTick(&box);
-check(nativeName=="Test Potion","keyboard edits reach native text bridge");
+check(nativeName=="Test Potion" && brewName=="Old Potion","live edits preview the new text until keyboard close");
 check(calls.size()==3 && calls[1]==L"SetUserInputText" && calls[2]==L"UpdateOnTextChanged","editing uses observed wrapper setter and change route");
 taking=false; calls.clear(); PotionNameTick(&box);
 check(!g_nameMode && nativeName=="Test Potion","closing retains entered name and releases name context");
 check(calls.size()==5 && calls[3]==L"Update on Text Committed" && calls[4]==L"StopEditText","closing commits before stopping native editing");
+check(brewName=="Test Potion","closing sends controller-entered text to the native brew-name handler");
+brewName="sentinel";
+g_nameKeyboardRequest=true; PotionNameTick(&box);
+taking=false; PotionNameTick(&box);
+check(brewName=="sentinel","reopening and closing unchanged does not send a new brew name");
 build=false; g_nameKeyboardRequest=true; calls.clear(); PotionNameTick(&box);
 check(!g_nameMode && !taking && calls.back()==L"StopEditText","failed keyboard build unwinds native editing");
 visible=false; g_nameKeyboardRequest=true; calls.clear(); PotionNameTick(&box);

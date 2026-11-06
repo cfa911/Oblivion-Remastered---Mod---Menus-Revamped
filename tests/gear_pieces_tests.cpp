@@ -76,7 +76,7 @@ int main()
 	check(itemtags::Includes(Index(Alchemy::Restore), itemtags::PotionTags(rest, 1, 0)) && !itemtags::Includes(Index(Alchemy::Poisons), itemtags::PotionTags(rest, 1, 0)), "restore health");
 	check(itemtags::Includes(Index(Alchemy::Restore), itemtags::PotionTags(mixed, 2, 1)) && !itemtags::Includes(Index(Alchemy::Poisons), itemtags::PotionTags(mixed, 2, 1)), "mixed potion is restore, not poison");
 	check(itemtags::Includes(Index(Alchemy::Cures), itemtags::PotionTags(cure, 1, 0)) && itemtags::Includes(Index(Alchemy::Restore), itemtags::PotionTags(fatigue, 1, 0)), "cure and fatigue");
-	check(itemtags::Includes(Index(Alchemy::Damage), itemtags::PotionTags(damage, 1, 2)) && !itemtags::Includes(Index(Alchemy::Restore), itemtags::PotionTags(damage, 1, 2)), "poison is damage, not restore");
+	check(itemtags::Includes(Index(Alchemy::Damage), itemtags::PotionTags(damage, 1, 1)) && !itemtags::Includes(Index(Alchemy::Restore), itemtags::PotionTags(damage, 1, 1)), "poison is damage, not restore");
 	check(itemtags::PotionTags(nullptr, 0, 0) == (AlchemyBit(Alchemy::Potions) | AlchemyBit(Alchemy::Other)), "unclassified potion is Other");
 	// Actual master ALCH records: 00098499 PotionRestoreMagicka and 00098477 PotionFortifyMagicka.
 	const std::uint32_t potionRESP[] = { Code('R', 'E', 'S', 'P') };

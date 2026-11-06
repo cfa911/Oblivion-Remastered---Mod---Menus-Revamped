@@ -17,7 +17,8 @@ prefix = r'''
 #include <cstdint>
 #include <cstring>
 #include <iostream>
-#include "sorting/rules/AlchemyRules.h"
+#include "sorting/rules/AlchemyEffectMarkers.h"
+std::vector<std::string> g_markerNames;
 #include "search/ListLifecycle.h"
 #include "engine/TextUtil.h"
 using namespace alchemyrules;
@@ -35,7 +36,8 @@ int g_searchCache=1;
 namespace reflect { int Offset(void*, const char*) { return 0; } UE::UObject* Get(int) { return &cache; } }
 bool RootSearchItems(UE::UObject*, const std::vector<UE::UObject*>&) { return true; }
 namespace logger {
-void flush() {}
+int flushes = 0;
+void flush() { ++flushes; }
 template<class... T> void warn(T&&...) {}
 }
 std::vector<UE::UObject*> visible;
@@ -64,6 +66,14 @@ if(!effects) data.knownEffects.clear();
 return true;
 }
 '''
+prefix += r'''
+std::size_t sortInputSize = 0;
+auto TrackSortOrder(const std::vector<Ingredient>& items, SortKey key, bool descending) {
+    sortInputSize = items.size();
+    return alchemyrules::SortOrder(items, key, descending);
+}
+#define SortOrder TrackSortOrder
+'''
 main = r'''
 int main() {
 int checks=0, failed=0;
@@ -72,6 +82,8 @@ UE::UObject menu, apple{{"Apple",4,1,2,{"Restore Health"}}}, berry{{"Berry",2,2,
 auto native=[&] { g_searchList.nativeDirty=true; visible={&apple,&berry,&flower}; selection=&berry; };
 native(); query="app"; ApplySort(&menu);
 check(visible==std::vector<UE::UObject*>{&apple},"partial ingredient name narrows native list");
+    check(sortInputSize==1,"selective search sorts only matching ingredients");
+    check(logger::flushes==0,"typing does not flush the log");
 native(); query="RESTORE"; ApplySort(&menu);
 check(visible==std::vector<UE::UObject*>{&apple,&flower},"known effects match case-insensitively");
 native(); query="no-match"; ApplySort(&menu);
