@@ -3,11 +3,12 @@
 // ============================================================================================================
 // Two fixes for the game's own Inventory, Magic and barter/container menus, and a way to measure them. Game thread.
 //
-// 1. The hover storm. The lists of the Inventory, Magic and barter/container menus fire an OnItemHovered event on about every other mouse move, and
-//    every one of them makes the game rebuild all the visible rows; the rebuild itself fires a hover event for each row it builds.
-//    On a long list that is up to 45,000 new engine objects per second: the cursor lags, the frame rate halves and, held long
-//    enough, the game stops with "Maximum number of UObjects exceeded". At most one hover event per [Hover] uIntervalMs goes
-//    through; the last one skipped is delivered once the interval is over, so the details panel never stays on the wrong row.
+// 1. Hover work. Every hover the game receives makes it rebuild the details panel (Inventory about 1,100 engine objects,
+//    Magic about 700; rows are not rebuilt, measured 2026-11-06). [Hover] uSettleMs (default 100): a sweep delivers
+//    nothing, the row the pointer rests on is delivered once it has settled, the first hover after a rest at once, a
+//    repeat of the shown item never. 0 uses [Hover] uIntervalMs instead (at most one event per interval, the last
+//    held one delivered afterwards). Key and button events in Inventory/Magic deliver a held hover first: quick keys
+//    and the details action button act on the last delivered hover.
 // 2. The object guard: whatever creates the objects, in any menu and in gameplay, independent of the hover switches, the live count is checked once a second and a garbage collection is asked for
 //    above [Guard] uLimit (at most once per cooldown).
 //

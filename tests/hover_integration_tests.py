@@ -66,6 +66,7 @@ bool IsLive(UE::UObject* o) {return o && o->live;}
 struct Settings {
  bool inventoryHover=true,magicHover=true,containerHover=true,metrics=false;
  int hoverIntervalMs=200;
+ int hoverSettleMs=0;   // 0 = time throttle (these tests); settle tests set it
  bool objectGuard=true;int objectGuardLimit=1500000,objectGuardCooldown=10;
 };
 Settings settings;
@@ -84,7 +85,9 @@ int watches=0;
 namespace pe {
 std::string FunctionName(UE::UFunction* f) {return f->name;}
 std::string Utf8(const std::string& s) {return s;}
-template<class F> bool Watch(UE::UClass*,F) {return true;}
+using WatchFn=void (*)(UE::UObject*,UE::UFunction*,void*);
+std::vector<std::pair<UE::UClass*,WatchFn>> watchedHandlers;
+template<class F> bool Watch(UE::UClass* c,F f) {watchedHandlers.push_back({c,f});return true;}
 template<class F> bool WatchFilter(UE::UClass*,F) {++watches;return true;}
 template<class F> bool Intercept(UE::UClass*,F) {++watches;return true;}
 }
