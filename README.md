@@ -1,6 +1,6 @@
 # Menus Revamped
 
-## 1.3.1 release candidate
+## 1.4.0
 
 Search Inventory, Magic, Quests, containers, shops and discovered world-map locations.
 Combine item and spell filters with text, enchanted-only and stolen-only filtering;
@@ -27,10 +27,18 @@ switching menu pages retains text. `[SearchKeyboard] bClearTextOnActivation=1`
 clears the current bar whenever the controller keyboard opens. Set either to 0 to
 retain its previous behavior. Restart after editing the INI.
 
-1.3.1 is a compatibility release: Ring and Amulet filters also find rings and amulets
-whose slot was removed by "Unlimited Equipment of Amulets and Rings" (Nexus 497) or
-"Equip Unlimited Rings" (Nexus 943). Development features are owner-accepted. The fresh
-1.3.1 shipped-default smoke test and Vortex archive installation remain pending; see the KB release handoff.
+### Alchemy (new in 1.4.0)
+
+Search ingredients by name or known effect, and effects by name in the All / Positive /
+Negative filter tabs, which show how many ingredients have each effect. Sort ingredients by
+Count, Name, Weight, Value or Colors (click again to reverse); rows show Weight and Value.
+The Selected Filters line removes a filter with one click or all with Clear all; each selected
+effect has a colour, shown as circles on matching ingredient rows (`[Alchemy]`). Controller:
+L3 names the potion, LB reaches Selected Filters, RB the sort icons; X, Y and hold Y stay native.
+
+1.4.0 also adds RT Caps Lock on the controller keyboard, a hover settle delay
+(`[Hover] uSettleMs`) and new `[Picker]`, `[Search]`, `[SearchKeyboard]` and `[Controller]`
+options; see `CHANGELOG.md`.
 
 ## Magic filters
 
@@ -118,7 +126,7 @@ One include root, `src/`; includes are paths from it (`"engine/Ui.h"`).
 
 ## Validation status
 
-This is the 1.3.1 release candidate; final release-default acceptance is tracked in the KB. The owner has accepted the integrated development build (SearchLight, SearchLight - Controller Keyboard, Sorting Overhaul and the Smooth Menus hover fix as one plugin) in the ordinary integration scenarios, including container/barter performance and the idle-focus flicker. Exhaustive input-device and lifecycle coverage is not claimed.
+This is release 1.4.0; release-default acceptance is tracked in the KB. The owner has accepted the integrated development build (SearchLight, SearchLight - Controller Keyboard, Sorting Overhaul and the Smooth Menus hover fix as one plugin) in the ordinary integration scenarios, including container/barter performance and the idle-focus flicker. Exhaustive input-device and lifecycle coverage is not claimed.
 
 Open and fixed issues are tracked per bug in the knowledge-base repository (`bugs/menus-revamped`, `RMI-` series; older entries `SL-` and `SO-`). Do not rely on this README for the list of open problems. No research probe sources are part of this repository and no diagnostic is deployed.
 
