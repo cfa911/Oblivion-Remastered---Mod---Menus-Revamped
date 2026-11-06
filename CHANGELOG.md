@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.4.0 - 2026-11-06
+
+- Alchemy: search ingredients by name or known effect, and search effects by name in the filter list.
+- Alchemy: All, Positive Effects and Negative Effects filter tabs; each effect shows how many ingredients have it.
+- Alchemy: sort ingredients by Count, Name, Weight, Value or Colors from a sort line under the Ingredients title
+  (click again to reverse); each row shows its Weight and Value.
+- Alchemy: a Selected Filters line with Clear all and one-click removal of each filter, up to three rows.
+- Alchemy: each selected effect gets a colour, and ingredient rows show matching circles beside Weight
+  (12 colours; `[Alchemy] uMarkerDiameter` and `sMarkerColors`).
+- Alchemy controller: L3 names the potion with the controller keyboard, LB reaches Selected Filters, RB reaches the
+  sort icons; X Create, Y Filters and hold Y Clear all stay native. A potion named with the controller keeps its name.
+- Alchemy: the game's Clear Filters reliably clears every filter; selected filter rows keep their look while
+  scrolling; mixed brews are listed under Potions.
+- Controller keyboard: RT toggles Caps Lock everywhere.
+- Hover: the details panel updates once the pointer rests on a row (`[Hover] uSettleMs`, default 100) instead of
+  for every row swept past; quick keys and the Inventory action button still act on the row under the pointer.
+- New INI options: `[Picker]` bInventory, bMagic, bContainer, bStolenFilter, bEnchantedFilter; `[Search]` uHotkey,
+  bHotkeyCtrl; `[SearchKeyboard]` uRepeatDelayMs, uRepeatRateMs, uClearHoldMs; `[Controller]` uStickDeadzone.
+
 ## 1.3.1 - 2026-11-03
 
 - Ring and Amulet filters now also find rings and amulets whose equipment slot was removed by
