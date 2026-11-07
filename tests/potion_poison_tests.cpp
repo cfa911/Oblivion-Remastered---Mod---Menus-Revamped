@@ -1,5 +1,6 @@
 #include "../src/sorting/rules/PickerNavigation.h"
 
+#include <cstdint>
 #include <cstdio>
 #include <initializer_list>
 #include <string_view>
@@ -126,6 +127,25 @@ int main()
 	for (unsigned leaf : { 0u, 1u, 4u }) {   // All, Tools, Ingredients
 		next = pickernav::Choose(Tab::Potions, Tab::Potions, 0, 5, leaf);
 		check(next.close && next.choice == leaf && pickernav::Highlight(Tab::Potions, Tab::Potions, 0, leaf) == leaf, "All/Ingredients/Tools are leaves");
+	}
+
+	// RMI-050 measured rows (probe run 1, 2026-11-07): MGEF flags from the log; hostileCount was 2 on the two master
+	// single-effect poisons, so classification uses the MGEF flags.
+	{
+		constexpr auto code = [](const char (&c)[5]) { return std::uint32_t(c[0]) | std::uint32_t(c[1]) << 8 | std::uint32_t(c[2]) << 16 | std::uint32_t(c[3]) << 24; };
+		const auto poisons = AlchemyBit(Alchemy::Poisons), potions = AlchemyBit(Alchemy::Potions);
+		const std::uint32_t slnc[] = { code("SLNC") }, slncFlags[] = { 0x01201D73 };
+		const std::uint32_t drsp[] = { code("DRSP") }, drspFlags[] = { 0x01201C77 };
+		check((PotionTags(slnc, 1, HostileEffects(slncFlags, 1)) & poisons) != 0, "Strong Poison of Silence (0009849E) is a poison");
+		check((PotionTags(drsp, 1, HostileEffects(drspFlags, 1)) & poisons) != 0, "Strong Poison of Separation (00098466) is a poison");
+		const std::uint32_t sabs[] = { code("SABS") }, sabsFlags[] = { 0x01200872 };
+		check((PotionTags(sabs, 1, HostileEffects(sabsFlags, 1)) & potions) != 0, "Spell Absorption potion stays a potion");
+		const std::uint32_t mixed[] = { code("FOHE"), code("BRDN"), code("FOSP"), code("DGHE") }, mixedFlags[] = { 0x01201C72, 0x01201C73, 0x01201C72, 0x21201C75 };
+		check(HostileEffects(mixedFlags, 4) == 2, "mixed brew FF0040EE: two hostile effects");
+		check((PotionTags(mixed, 4, HostileEffects(mixedFlags, 4)) & potions) != 0, "mixed brew stays a potion");
+		const std::uint32_t brew[] = { code("DGSP"), code("PARA"), code("SLNC") }, brewFlags[] = { 0x01201475, 0x01200D73, 0x01201D73 };
+		check(HostileEffects(brewFlags, 3) == 3 && (PotionTags(brew, 3, HostileEffects(brewFlags, 3)) & poisons) != 0, "all-hostile brew FF003862 is a poison");
+		check(HostileEffects(nullptr, 0) == 0, "no effects: none hostile");
 	}
 
 	std::printf("potion/poison %d checks, %d failures\n", checks, failures);

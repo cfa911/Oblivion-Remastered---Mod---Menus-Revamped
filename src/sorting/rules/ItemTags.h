@@ -212,12 +212,23 @@ namespace itemtags
 		{ Code('P', 'A', 'R', 'A'), Alchemy::Disable }, { Code('S', 'L', 'N', 'C'), Alchemy::Disable }, { Code('B', 'R', 'D', 'N'), Alchemy::Disable },
 	};
 
-	// Poison = native poison spell type, or every effect hostile (same rule as the wheel; owner RMI-014).
+	// Poison = native poison spell type, or every effect hostile (same rule as the wheel; owner RMI-014). The hostile
+	// count comes from HostileEffects (MGEF flags), not EffectItemList::hostileCount (RMI-050).
 	// A poison carries Poisons plus its poison groups; a potion carries Potions plus every matching potion group
 	// (hostile side effects of a mixed potion add nothing), or Other when none matches.
 	constexpr bool IsPoison(unsigned a_count, int a_hostileCount, bool a_poisonType = false)
 	{
 		return a_poisonType || (a_count > 0 && a_hostileCount == static_cast<int>(a_count));
+	}
+	// RMI-050: hostile effects counted from each effect's MGEF data flags (bit 0x1 = hostile; KB game-internals
+	// "Alchemy hostility"), because EffectItemList::hostileCount is unreliable. -1 = unknown.
+	constexpr std::uint32_t kMgefHostile = 0x1;
+	constexpr int HostileEffects(const std::uint32_t* a_mgefFlags, unsigned a_count)
+	{
+		int hostile = 0;
+		for (unsigned i = 0; i < a_count; ++i)
+			if (a_mgefFlags[i] & kMgefHostile) ++hostile;
+		return hostile;
 	}
 	constexpr std::uint32_t PotionTags(const std::uint32_t* a_codes, unsigned a_count, int a_hostileCount, bool a_poisonType = false)
 	{
