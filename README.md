@@ -1,5 +1,10 @@
 # Menus Revamped
 
+## 1.4.1
+
+1.4.1 fixes a rare game crash when a menu's sort bar was rebuilt while the game was closing or
+replacing it (for example when looting a body); see `CHANGELOG.md`.
+
 ## 1.4.0
 
 Search Inventory, Magic, Quests, containers, shops and discovered world-map locations.
@@ -126,7 +131,7 @@ One include root, `src/`; includes are paths from it (`"engine/Ui.h"`).
 
 ## Validation status
 
-This is release 1.4.0; release-default acceptance is tracked in the KB. The owner has accepted the integrated development build (SearchLight, SearchLight - Controller Keyboard, Sorting Overhaul and the Smooth Menus hover fix as one plugin) in the ordinary integration scenarios, including container/barter performance and the idle-focus flicker. Exhaustive input-device and lifecycle coverage is not claimed.
+This is release 1.4.1; release-default acceptance is tracked in the KB. The owner has accepted the integrated development build (SearchLight, SearchLight - Controller Keyboard, Sorting Overhaul and the Smooth Menus hover fix as one plugin) in the ordinary integration scenarios, including container/barter performance and the idle-focus flicker. Exhaustive input-device and lifecycle coverage is not claimed.
 
 Open and fixed issues are tracked per bug in the knowledge-base repository (`bugs/menus-revamped`, `RMI-` series; older entries `SL-` and `SO-`). Do not rely on this README for the list of open problems. No research probe sources are part of this repository and no diagnostic is deployed.
 

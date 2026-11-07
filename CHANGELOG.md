@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.1 - 2026-11-07
+
+- Fixed a rare game crash when the category picker was put back into a menu's sort bar while the game was
+  closing or replacing that bar (seen when looting a body). The rebuild now checks the bar is still alive and
+  stops safely instead of crashing.
+
 ## 1.4.0 - 2026-11-06
 
 - Alchemy: search ingredients by name or known effect, and search effects by name in the filter list.
