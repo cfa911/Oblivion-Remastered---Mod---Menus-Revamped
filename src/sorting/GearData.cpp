@@ -86,17 +86,25 @@ namespace geardata
 					return true;
 				}
 				if (auto* potion = object->As<RE::AlchemyItem>()) {
-					std::uint32_t codes[8]{};
+					std::uint32_t codes[8]{}, flags[8]{};
 					unsigned count = 0;
+					bool flagsRead = true;
 					auto** node = reinterpret_cast<void**>(&static_cast<RE::EffectItemList*>(potion)->effectList);
 					for (int n = 0; node && n < 8; ++n) {
 						auto* effect = reinterpret_cast<std::uint8_t*>(node[0]);
-						if (effect) codes[count++] = *reinterpret_cast<std::uint32_t*>(effect + 0x08);
+						if (effect) {
+							// RMI-050: hostility from the effect's MGEF (effect +0x28 -> EffectSetting, data.flags +0xB0),
+							// not EffectItemList::hostileCount, which reads 2 on one-effect master poisons (1.512.105.0).
+							std::uint8_t* setting = nullptr;
+							flagsRead = flagsRead && Read(effect + 0x28, &setting, sizeof(setting)) && setting &&
+							            Read(setting + 0xB0, &flags[count], sizeof(flags[count]));
+							codes[count++] = *reinterpret_cast<std::uint32_t*>(effect + 0x08);
+						}
 						node = reinterpret_cast<void**>(node[1]);
 					}
 					const auto type = potion->GetSpellType();
-					// A truncated list cannot prove that every effect is hostile.
-					const auto hostile = node ? -1 : static_cast<RE::EffectItemList*>(potion)->hostileCount;
+					// A truncated list or an unreadable effect cannot prove that every effect is hostile.
+					const auto hostile = node || !flagsRead ? -1 : itemtags::HostileEffects(flags, count);
 					a_tags = itemtags::PotionTags(codes, count, hostile, type == RE::MagicSystem::SpellType::kPoison);
 					return true;
 				}

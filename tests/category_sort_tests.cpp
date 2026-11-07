@@ -159,6 +159,50 @@ int main()
 	check(!itemsort::IsSortCommand(itemsort::GroupCommand(Action::Click)) && !itemsort::IsGroupCommand(itemsort::SortCommand(Key::Name)), "no clash with sort commands");
 	check(!itemsort::IsGroupCommand(-1) && !itemsort::IsGroupCommand(-4) && !itemsort::IsGroupCommand(0), "no clash with picker commands");
 
+	// RMI-051 (owner 2026-11-07): Alchemy groups follow the popup tree: Tools, Potions by Potion type (Restore, Fortify,
+	// Ward, Stealth, Utility, Cures, Other), Poisons by Poison type (Damage, Elemental, Disable), Ingredients.
+	{
+		constexpr auto code = [](const char (&c)[5]) { return std::uint32_t(c[0]) | std::uint32_t(c[1]) << 8 | std::uint32_t(c[2]) << 16 | std::uint32_t(c[3]) << 24; };
+		const std::uint32_t rehe[] = { code("REHE") }, fohe[] = { code("FOHE") }, rsfi[] = { code("RSFI") }, chml[] = { code("CHML") },
+			neye[] = { code("NEYE") }, cudi[] = { code("CUDI") }, sabs[] = { code("SABS") }, dghe[] = { code("DGHE") }, fidg[] = { code("FIDG") },
+			slnc[] = { code("SLNC") }, both[] = { code("FOHE"), code("REHE") };
+		const auto rank = [](std::uint32_t tags) { return itemsort::GroupRank(Tab::Potions, tags); };
+		const int tools = rank(itemtags::AlchemyTags(19)), restore = rank(itemtags::PotionTags(rehe, 1, 0)), fortify = rank(itemtags::PotionTags(fohe, 1, 0)),
+			ward = rank(itemtags::PotionTags(rsfi, 1, 0)), stealth = rank(itemtags::PotionTags(chml, 1, 0)), utility = rank(itemtags::PotionTags(neye, 1, 0)),
+			cures = rank(itemtags::PotionTags(cudi, 1, 0)), other = rank(itemtags::PotionTags(nullptr, 0, 0)), damage = rank(itemtags::PotionTags(dghe, 1, 1)),
+			elemental = rank(itemtags::PotionTags(fidg, 1, 1)), disable = rank(itemtags::PotionTags(slnc, 1, 1)), ingredients = rank(itemtags::AlchemyTags(25));
+		(void)sabs;
+		check(tools >= 0 && tools < restore, "alchemy: tools first");
+		check(restore < fortify && fortify < ward && ward < stealth && stealth < utility && utility < cures && cures < other, "potions by potion type, popup order");
+		check(other < damage && damage < elemental && elemental < disable, "poisons after potions, by poison type");
+		check(disable < ingredients, "ingredients last");
+		check(rank(itemtags::PotionTags(both, 2, 0)) == restore, "several types: the first in popup order");
+		const auto cat = [](unsigned c, std::uint32_t tags) { return (tags & itemtags::kTagBits) | (c << 28); };
+		const auto all = [&](unsigned c, std::uint32_t tags) { return itemsort::GroupRank(Tab::AllItems, cat(c, tags)); };
+		const int allRestore = all(3, itemtags::PotionTags(rehe, 1, 0)), allFortify = all(3, itemtags::PotionTags(fohe, 1, 0)),
+			allDisable = all(3, itemtags::PotionTags(slnc, 1, 1)), allIngredient = all(3, itemtags::AlchemyTags(25));
+		check(all(2, itemtags::GearTags(0x0040)) < all(3, itemtags::AlchemyTags(19)) && allRestore < allFortify && allFortify < allDisable &&
+			allDisable < allIngredient && allIngredient < all(4, itemtags::MiscTags(39, 1, 0)) && all(3, 0) > allIngredient && all(3, 0) < all(4, itemtags::MiscTags(39, 1, 0)),
+			"all items: alchemy sub-groups inside the alchemy category");
+	}
+
+	// RMI-051 Magic (owner 2026-11-07): Type sort = type -> school; School sort = school -> type; Effect sort = type ->
+	// effect; A-Z inside (rows carry no value).
+	{
+		using magicrows::kSpellTag, magicrows::kScrollTag, magicrows::kPowerTag;
+		const std::uint64_t alt = itemtags::SchoolTags(0, 0), rest = itemtags::SchoolTags(5, 0);
+		const std::uint32_t fire = magiceffects::Code("FIDG"), heal = magiceffects::Code("REHE");
+		const auto eff = [](std::uint32_t code) { return static_cast<std::uint64_t>(itemtags::EffectTags(&code, 1)) << 32; };
+		const auto r = [](int g, std::uint64_t m) { return itemsort::MagicGroupRank(g, m); };
+		check(r(5, kSpellTag | alt) < r(5, kSpellTag | rest) && r(5, kSpellTag | rest) < r(5, kScrollTag | alt) &&
+			r(5, kScrollTag | rest) < r(5, kPowerTag | alt), "type sort: type, then school");
+		check(r(1, alt | kSpellTag) < r(1, alt | kPowerTag) && r(1, alt | kPowerTag) < r(1, rest | kSpellTag), "school sort: school, then type");
+		check(r(2, kSpellTag | eff(fire)) < r(2, kSpellTag | eff(heal)) && r(2, kSpellTag | eff(heal)) < r(2, kPowerTag | eff(fire)),
+			"effect sort: type, then effect");
+		check(r(5, magicrows::kPassAll | kScrollTag) > r(5, kSpellTag | rest) && r(5, magicrows::kPassAll | kScrollTag) < r(5, kPowerTag | alt),
+			"unresolved scroll keeps its type group");
+	}
+
 	std::printf("category_sort_tests: %d checks passed\n", checks);
 	return 0;
 }

@@ -276,23 +276,57 @@ namespace itemsort
 
 	// An item row's group from its classification tags (bits 28-31: category). All items: the category in tab order,
 	// then that tab's own order (unclassified rows of a category after its groups); a row without a category: none.
+	// Alchemy follows its popup tree (RMI-051): Tools 0, Potions by Potion type 1..7 (no type 8), Poisons by Poison type
+	// 9..11 (no type 12), Ingredients 13; -1 none. A row with several types takes the first in popup order.
+	inline int AlchemyRank(std::uint32_t a_tags)
+	{
+		using itemtags::Alchemy;
+		using itemtags::Index;
+		const auto has = [&](Alchemy a_choice) { return itemtags::Includes(Index(a_choice), a_tags); };
+		const auto first = [&](Alchemy a_from, Alchemy a_to) {
+			for (unsigned id = Index(a_from); id <= Index(a_to); ++id)
+				if (itemtags::Includes(id, a_tags)) return static_cast<int>(id - Index(a_from));
+			return -1;
+		};
+		if (has(Alchemy::Tools)) return 0;
+		if (has(Alchemy::Potions)) { const int t = first(Alchemy::Restore, Alchemy::Other); return t < 0 ? 8 : 1 + t; }
+		if (has(Alchemy::Poisons)) { const int t = first(Alchemy::Damage, Alchemy::Disable); return t < 0 ? 12 : 9 + t; }
+		if (has(Alchemy::Ingredients)) return 13;
+		return -1;
+	}
+
 	inline int GroupRank(itemtags::Tab a_tab, std::uint32_t a_tags)
 	{
+		if (a_tab == itemtags::Tab::Potions) return AlchemyRank(a_tags);
 		if (a_tab != itemtags::Tab::AllItems) return FirstChoice(a_tab, a_tags);
 		const unsigned category = itemtags::CategoryOf(a_tags);
 		if (category < 1 || category > 4) return -1;
-		const int sub = FirstChoice(static_cast<itemtags::Tab>(category - 1), a_tags);
+		const auto tab = static_cast<itemtags::Tab>(category - 1);
+		const int sub = tab == itemtags::Tab::Potions ? AlchemyRank(a_tags) : FirstChoice(tab, a_tags);
 		return static_cast<int>(category) * 32 + (sub < 0 ? 31 : sub);
 	}
 
-	// A spell row's group for the Magic filter of picker kind a_group: 1 school (A-Z), 2 effect family, 5 type
-	// (spells, scrolls, powers). Rows the Magic filters cannot classify (kPassAll) have none.
+	// A spell row's group for the Magic filter of picker kind a_group (RMI-051, owner 2026-11-07): 5 Type sort = type
+	// (spells, scrolls, powers) then school; 1 School sort = school then type; 2 Effect sort = type then effect family.
+	// A missing level sorts after the known ones of that level; rows with neither level known (e.g. kPassAll
+	// without a type tag) have none.
 	inline int MagicGroupRank(int a_group, std::uint64_t a_mask)
 	{
-		if (a_mask & magicrows::kPassAll) return -1;
-		if (a_group == 5) return (a_mask & magicrows::kSpellTag) ? 0 : (a_mask & magicrows::kScrollTag) ? 1 : (a_mask & magicrows::kPowerTag) ? 2 : -1;
-		return FirstChoice(a_group == 2 ? itemtags::Tab::MagicEffect : itemtags::Tab::MagicSchool,
-			static_cast<std::uint32_t>(a_group == 2 ? a_mask >> 32 : a_mask));
+		// An unresolved row (kPassAll) keeps its type tag (e.g. a scroll), but its school and effect are unknown.
+		const bool unresolved = (a_mask & magicrows::kPassAll) != 0;
+		const int type = (a_mask & magicrows::kSpellTag) ? 0 : (a_mask & magicrows::kScrollTag) ? 1 : (a_mask & magicrows::kPowerTag) ? 2 : -1;
+		const int school = unresolved ? -1 : FirstChoice(itemtags::Tab::MagicSchool, static_cast<std::uint32_t>(a_mask));
+		const int effect = unresolved ? -1 : FirstChoice(itemtags::Tab::MagicEffect, static_cast<std::uint32_t>(a_mask >> 32));
+		const auto pair = [](int a_first, int a_second) {
+			if (a_first < 0 && a_second < 0) return -1;
+			return (a_first < 0 ? 63 : a_first) * 64 + (a_second < 0 ? 63 : a_second);
+		};
+		switch (a_group) {
+		case 5:  return pair(type, school);
+		case 1:  return pair(school, type);
+		case 2:  return pair(type, effect);
+		default: return -1;
+		}
 	}
 
 	// Picker command ids for a filter's category sort (sort commands use -100..-159, picker commands -1..-6).
