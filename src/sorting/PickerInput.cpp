@@ -70,10 +70,6 @@ namespace sorting
 			for (int k = 0; k < kSorts && sortHit < 0; ++k) if (sortPx[k].Hit(x, y)) sortHit = k;
 			if (sortHit >= 0) {
 				command = itemsort::SortCommand(static_cast<itemsort::Key>(sortHit));
-				static int s_logged = 0;   // TEMP-DIAG RMI-045: which of our sort rectangles takes a click
-				if (s_logged++ < 60)
-					logger::warn("TEMP-DIAG own-sort: click kind {} sort {} at {:.0f},{:.0f} rect {:.0f},{:.0f} {:.0f}x{:.0f}", kind, sortHit, x, y,
-						sortPx[sortHit].x, sortPx[sortHit].y, sortPx[sortHit].w, sortPx[sortHit].h);
 			}
 			else if (enchantedPx.Hit(x, y)) command = enchantedfilter::kToggleCommand;
 		else if (stolenPx.Hit(x, y)) command = stolenfilter::kToggleCommand;
@@ -119,8 +115,6 @@ namespace sorting
 			const bool enchantedFocused = picker.EnchantedFocused();
 			const int sortFocused = picker.active.load() ? picker.SortFocused() : -1;
 			if (picker.sortFocus != sortFocused) {
-				static int s_logged = 0;   // TEMP-DIAG RMI-046: our sort focus (it consumes A/Up/Down/Left/Right while >= 0)
-				if (s_logged++ < 300) logger::warn("TEMP-DIAG own-sort: focus kind {} {} -> {}", picker.kind, picker.sortFocus, sortFocused);
 				picker.sortFocus = sortFocused; picker.PaintSorts();
 			}
 			if (picker.enchantedFocus != enchantedFocused) { picker.enchantedFocus = enchantedFocused; picker.PaintEnchanted(); }

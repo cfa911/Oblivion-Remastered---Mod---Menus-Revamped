@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.5.0 - 2026-11-07
+
+- Sorting: every native sort is replaced by the mod's own sort buttons in the Inventory, containers and shops (both
+  sides, including quick loot and Transfer), the Magic spell pages and Active Effects. Click to sort, click again to
+  reverse; on a controller, Up/Down on a focused sort chooses the direction.
+- Category sort on the filters: left click a category filter (controller: Up/Down on it) groups the list in that
+  filter's order, again reverses it; right click (controller: A) opens the filter. New INI option
+  `[Picker] bCategorySort` (default 1: every tab starts grouped; 0: starts A-Z).
+- Inside a category group, items run from the highest value, equal values A-Z; the reversed order is the exact
+  reverse. Items with the same name no longer change places between refreshes.
+- Alchemy groups: Tools, Potions by Potion type, Poisons by Poison type, Ingredients (also on the All items tab).
+  Magic groups: Type sort = type then school, School sort = school then type, Effect sort = type then effect,
+  names A-Z.
+- Filter orders: Weapons Claymores to Other; Gear head to toe, then Amulet and Ring; Alchemy Tools, Potions, Poisons,
+  Ingredients; Misc Tools, Soul gems, Books, Scrolls (new), Keys, Other; Weakness next to Absorb in the Magic effects.
+- The Magic school and type filters show the game's own icons for "All".
+- Fixed: some poisons (for example Strong Poison of Silence and Strong Poison of Separation) were listed as potions.
+
 ## 1.4.1 - 2026-11-07
 
 - Fixed a rare game crash when the category picker was put back into a menu's sort bar while the game was
