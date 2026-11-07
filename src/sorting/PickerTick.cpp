@@ -231,8 +231,7 @@ namespace sorting::detail
 			if (SortCarouselFocused() != quickLootWant)
 				if (auto* side = container::SideContent(kind)) {
 					ui::Call focus(side, L"UpdateFilterFocus");
-					const bool sent = focus && focus.Size("InIsFilterFocused") == 1 && focus.Set("InIsFilterFocused", quickLootWant) && focus.Run();
-					logger::warn("TEMP-DIAG own-sort: quick loot Y kind {} -> sort row {} sent={}", kind, quickLootWant, sent);
+					if (focus && focus.Size("InIsFilterFocused") == 1 && focus.Set("InIsFilterFocused", quickLootWant)) focus.Run();
 				}
 		}
 		int cmd = -1;

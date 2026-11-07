@@ -1,4 +1,4 @@
-Menus Revamped 1.4.1
+Menus Revamped 1.5.0
 Oblivion Remastered - OBSE64 plugin
 
 REQUIREMENTS
@@ -33,6 +33,13 @@ Weight, Value or Colors; click again to reverse. Selected Filters removes one fi
 with a click or all with Clear all. Selected effects get colours shown as circles on
 matching ingredients. Controller: L3 names the potion, LB Selected Filters, RB sort;
 X, Y and hold Y stay native. RT toggles Caps Lock on the controller keyboard.
+SORTING
+Inventory, containers, shops and Magic use the mod's own sort buttons: click to
+sort, again to reverse (controller: Up/Down on a focused sort). Left click a
+category filter (controller: Up/Down on it) to group the list in the filter's
+order, again to reverse; right click (controller: A) opens the filter. Inside a
+group items run from the highest value. Alchemy groups follow Potion and Poison
+types; Magic nests Type/School/Effect groups, names A-Z.
 CONTROLS
 Click a search bar to type. Enter/Escape leaves typing mode. Ctrl+A selects
 the text; Delete removes selected text. Click picker icons to choose a filter.
@@ -48,7 +55,8 @@ MenusRevamped.ini is beside MenusRevamped.dll. Restart after changing settings.
 [SearchKeyboard] bClearTextOnActivation=1 clears the bar when the keyboard opens.
 Set either clearing option to 0 to keep previous text. Menu-page switching retains it.
 [Picker], [Search] uHotkey, [SearchKeyboard], [Controller], [Alchemy] and [Hover]
-uSettleMs hold the 1.4.0 options; each is explained in the INI.
+uSettleMs hold the 1.4.0 options; [Picker] bCategorySort=1 (1.5.0) starts every
+tab grouped by category, 0 starts A-Z. Each option is explained in the INI.
 Default artwork lives in MenusRevamped/Search, Keyboard and Sorting.
 Runtime reads the unified configuration only, not the old standalone INIs.
 For custom legacy settings/artwork, use tools/stage_menus_revamped.py from the

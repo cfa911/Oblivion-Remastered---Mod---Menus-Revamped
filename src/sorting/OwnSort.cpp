@@ -30,7 +30,6 @@ namespace sorting::detail
 	namespace
 	{
 		struct RawArray { std::uint8_t* data; std::int32_t num; std::int32_t max; };
-		std::atomic<int> g_refills{ 0 };   // TEMP-DIAG: refills seen, to prove a click republishes
 		// Category sort: item keys a grouped refill could not place (no classification yet), per FilterState slot
 		// (0 Inventory, 1 player side, 2 container side). When the classification lands with any of them, one republish.
 		std::vector<std::uint64_t> g_waiting[3];
@@ -126,7 +125,6 @@ namespace sorting::detail
 			const int off = reflect::Offset(a_fn, "NewList");
 			if (off < 0 || ui::SizeOf(a_fn, "NewList") != static_cast<std::int32_t>(sizeof(RawArray))) return;
 			auto& items = *reinterpret_cast<RawArray*>(static_cast<std::uint8_t*>(a_params) + off);
-			++g_refills;
 			const int page = MagicPageNow(*picker);
 			const bool active = picker->kind == 6;
 			if (active ? page != 4 : (page < 0 || page >= 4)) return;
@@ -191,11 +189,6 @@ namespace sorting::detail
 			const int off = reflect::Offset(a_fn, "Items");
 			if (off < 0 || ui::SizeOf(a_fn, "Items") != static_cast<std::int32_t>(sizeof(RawArray))) return;
 			auto& items = *reinterpret_cast<RawArray*>(static_cast<std::uint8_t*>(a_params) + off);
-			++g_refills;
-			if (kind != 0) {
-				static int s_logged = 0;
-				if (s_logged++ < 200) logger::warn("TEMP-DIAG own-sort: refill kind {} ({}) rows {}", kind, name, items.num);
-			}
 			if (!items.data || items.num < 2 || items.num > 4000 || items.max < items.num) return;
 			const auto tab = TabNow(*picker);
 			const auto state = itemsort::Effective(picker->SortAt(static_cast<int>(tab)), itemsort::Keys(tab));
@@ -326,7 +319,6 @@ namespace sorting::detail
 		const std::uint8_t other = a_picker.kind == 1 ? static_cast<std::uint8_t>(itemsort::NativeSortType(itemsort::Key::Cost)) :
 			a_picker.kind == 6 ? static_cast<std::uint8_t>(itemsort::NativeSortType(itemsort::Key::Category)) : 1;   // page 4 offers 0 and 2
 		next = next ? 0 : other;
-		const int before = g_refills.load();
 		// 1st choice: the Blueprint path the native sort buttons use (parameter `SortType` in the offline decode, KB
 		// evidence own-sorts-20261107 "Native sort call chain"); it calls the view model setter itself.
 		UE::UObject*   bpOwner = nullptr;
@@ -347,14 +339,11 @@ namespace sorting::detail
 				L"BndEvt__WBP_ModernMenu_Container_cont_take_maincontent_K2Node_ComponentBoundEvent_43_OnSortTypeUpdated__DelegateSignature";
 		}
 		bool ok = false;
-		const char* path = "none";
 		if (bpOwner) {
 			ui::Call event(bpOwner, bpEvent);
-			if (event && event.Size("SortType") == 1 && event.Set("SortType", next)) { ok = event.Run(); path = "blueprint"; }
-			else logger::warn("TEMP-DIAG own-sort: blueprint event found={} SortType size={}", static_cast<bool>(event), event ? event.Size("SortType") : -1);
+			if (event && event.Size("SortType") == 1 && event.Set("SortType", next)) ok = event.Run();
 		}
-		if (!ok && vm) { ok = SetNativeSort(vm, setter, next); path = "setter"; }
-		logger::warn("TEMP-DIAG own-sort: kind {} via {} -> {} ok={} refills {} -> {}", a_picker.kind, path, next, ok, before, g_refills.load());
+		if (!ok && vm) ok = SetNativeSort(vm, setter, next);
 		if (!ok) logger::warn("Menus Revamped: own sort could not ask the game to refresh the list (kind {})", a_picker.kind);
 	}
 
@@ -398,17 +387,6 @@ namespace sorting::detail
 			}
 			quickLootHint = reflect::Hold(hint);
 			quickLootHintShown = -1;
-			static bool s_named = false;   // TEMP-DIAG: record the glyph's name and parents in the KB
-			if (!s_named) {
-				s_named = true;
-				std::string chain;
-				for (auto* w = hint; w && w != filter && chain.size() < 300;) {
-					chain += pe::Utf8(w->GetFName().ToString()) + " < ";
-					ui::Call parent(w, L"GetParent");
-					w = parent && parent.Run() ? parent.Get<UE::UObject*>("ReturnValue") : nullptr;
-				}
-				logger::warn("TEMP-DIAG own-sort: container Y glyph {}", chain);
-			}
 		}
 		if (!quickLoot) { quickLootHintShown = -1; return; }   // hand it back to the game untouched
 		const int want = alchemy::detail::PadInput() ? 1 : 0;
