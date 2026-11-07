@@ -57,18 +57,32 @@ namespace ui
 
 	bool Call::RunGuarded() { return m_fn && m_obj && GuardedProcessEvent(m_obj, m_fn, m_params.data()); }
 
+	namespace
+	{
+		bool CallFirstImpl(UE::UObject* a_obj, const wchar_t* a_fn, const void* a_bytes, std::size_t a_size, bool a_guarded)
+		{
+			auto* fn = a_obj ? a_obj->FindFunction(UE::FName(a_fn, UE::EFindName::Find)) : nullptr;
+			auto* st = reinterpret_cast<UE::UStruct*>(fn);
+			auto* f = st ? reinterpret_cast<std::uint8_t*>(st->childProperties) : nullptr;
+			const auto off = f ? *reinterpret_cast<const std::int32_t*>(f + 0x44) : -1;
+			if (off < 0) return false;
+			std::vector<std::uint8_t> params(static_cast<std::size_t>(std::max(st->propertiesSize, 0)) + a_size + 16, 0);
+			std::memcpy(params.data() + off, a_bytes, a_size);
+			if (a_guarded) return GuardedProcessEvent(a_obj, fn, params.data());
+			pe::OwnCall own(a_obj, fn);
+			a_obj->ProcessEvent(fn, params.data());
+			return true;
+		}
+	}
+
 	bool CallFirst(UE::UObject* a_obj, const wchar_t* a_fn, const void* a_bytes, std::size_t a_size)
 	{
-		auto* fn = a_obj ? a_obj->FindFunction(UE::FName(a_fn, UE::EFindName::Find)) : nullptr;
-		auto* st = reinterpret_cast<UE::UStruct*>(fn);
-		auto* f = st ? reinterpret_cast<std::uint8_t*>(st->childProperties) : nullptr;
-		const auto off = f ? *reinterpret_cast<const std::int32_t*>(f + 0x44) : -1;
-		if (off < 0) return false;
-		std::vector<std::uint8_t> params(static_cast<std::size_t>(std::max(st->propertiesSize, 0)) + a_size + 16, 0);
-		std::memcpy(params.data() + off, a_bytes, a_size);
-		pe::OwnCall own(a_obj, fn);
-		a_obj->ProcessEvent(fn, params.data());
-		return true;
+		return CallFirstImpl(a_obj, a_fn, a_bytes, a_size, false);
+	}
+
+	bool CallFirstGuarded(UE::UObject* a_obj, const wchar_t* a_fn, const void* a_bytes, std::size_t a_size)
+	{
+		return CallFirstImpl(a_obj, a_fn, a_bytes, a_size, true);
 	}
 
 	void Vec2(UE::UObject* a_obj, const wchar_t* a_fn, double a_x, double a_y)

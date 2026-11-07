@@ -41,6 +41,9 @@ namespace reflect
 	// earlier frame must never come here (a freed row's index is garbage - the crash of 2026-09-29 09:15, dropping an
 	// item with X: IsLive from HighlightedItem read freed memory). Kept pointers are Handles.
 	bool IsLive(UE::UObject* a_obj);
+	// IsLive and not being destroyed: not Garbage/Unreachable/PendingKill in its object-array item and not
+	// BeginDestroyed/FinishDestroyed. A closing menu's widgets stay in their slots until GC purges them (RMI-043).
+	bool Usable(UE::UObject* a_obj);
 
 	// A pointer kept across frames with the object-array slot it was found in. Get() asks the SLOT whether it still
 	// holds that object and never reads the object itself.

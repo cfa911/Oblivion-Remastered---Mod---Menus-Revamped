@@ -32,9 +32,11 @@ struct Call {
     Call(Widget*,const wchar_t*){}
     bool Set(const char*,Widget* p){content=p;return true;}
 bool Run(){if(content)added.push_back(content);return content!=nullptr;}
+bool RunGuarded(){return Run();}
     template<class T> T Get(const char*){return reinterpret_cast<T>(&content->slot);}
 };
 bool CallFirst(Widget* p,const wchar_t*,const void* bytes,unsigned n){if(!p||n!=16)return false;std::memcpy(reinterpret_cast<Slot*>(p)->padding.data(),bytes,n);return true;}
+bool CallFirstGuarded(Widget* p,const wchar_t* f,const void* bytes,unsigned n){return CallFirst(p,f,bytes,n);}
 }
 struct Picker {
 Widget image,stolen,enchanted,panel; Widget* enchantedHeader=&enchanted,*stolenHeader=&stolen,*carousel=nullptr,*headerImage=nullptr;

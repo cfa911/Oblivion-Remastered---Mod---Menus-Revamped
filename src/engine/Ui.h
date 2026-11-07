@@ -47,6 +47,8 @@ namespace ui
 	// or-world-context-calls-are-guarded)
 	bool GuardedProcessEvent(UE::UObject* a_obj, UE::UFunction* a_fn, void* a_params);
 	bool CallFirst(UE::UObject* a_obj, const wchar_t* a_fn, const void* a_bytes, std::size_t a_size);
+	// CallFirst through the SEH guard: false when the function is missing or the call faulted
+	bool CallFirstGuarded(UE::UObject* a_obj, const wchar_t* a_fn, const void* a_bytes, std::size_t a_size);
 	void Vec2(UE::UObject* a_obj, const wchar_t* a_fn, double a_x, double a_y);
 	void Float(UE::UObject* a_obj, const wchar_t* a_fn, float a_v);
 	void Visible(UE::UObject* a_widget, bool a_visible);   // HitTestInvisible / Collapsed
