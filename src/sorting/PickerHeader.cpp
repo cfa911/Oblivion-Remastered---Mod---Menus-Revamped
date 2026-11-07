@@ -71,8 +71,11 @@ namespace sorting
 
 	bool Picker::InsertHeader(UE::UObject* a_panel, UE::UObject* navigation)
 	{
+		// RMI-043: a closing menu's filter bar and buttons stay in their object slots until GC; clearing and re-adding
+		// them called through a freed vtable inside AddChild. Refuse to touch a bar that is being destroyed.
+		if (!reflect::Usable(a_panel) || !reflect::Usable(navigation)) return false;
 		ui::Call count(a_panel, L"GetChildrenCount");
-		if (!count || !count.Run()) return false;
+		if (!count || !count.RunGuarded()) return false;
 		const int n = count.Get<int>("ReturnValue");
 		if (n < 1 || n > 12) return false;
 		struct Child
@@ -87,9 +90,10 @@ namespace sorting
 		int schoolAt = -1;  // the school picker takes the place of the native School sort button
 		for (int i = 0; i < n; ++i) {
 			ui::Call get(a_panel, L"GetChildAt"); get.Set("Index", i);
-			if (!get.Run()) return false;
+			if (!get.RunGuarded()) return false;
 			auto* widget = get.Get<UE::UObject*>("ReturnValue");
 			if (!widget || widget == reflect::Get(header) || widget == reflect::Get(stolenHeader) || widget == reflect::Get(enchantedHeader)) continue;
+			if (!reflect::Usable(widget)) return false;  // never clear the bar when a native child could not be re-added
 			Child child{ widget };
 			auto** slot = reflect::At<UE::UObject*>(widget, reflect::Offset(widget->GetClass(), "Slot"));
 			if (!slot || !*slot) return false;
@@ -129,7 +133,7 @@ namespace sorting
 				~Rollback() {
 					if (complete) return;
 					for (const auto& handle : { picker.header, picker.stolenHeader, picker.enchantedHeader })
-						if (auto* widget = reflect::Get(handle)) { ui::Call remove(widget, L"RemoveFromParent"); remove.Run(); }
+						if (auto* widget = reflect::Get(handle)) { ui::Call remove(widget, L"RemoveFromParent"); remove.RunGuarded(); }
 					picker.header = {}; picker.carousel = {}; picker.headerImage = {}; picker.headerFrame = {};
 					picker.stolenHeader = {}; picker.stolenImage = {}; picker.stolenFrame = {};
 					picker.enchantedHeader = {}; picker.enchantedImage = {}; picker.enchantedFrame = {};
@@ -181,16 +185,16 @@ namespace sorting
 		}
 		const auto addHeader = [&](UE::UObject* widget) {
 			ui::Call add(a_panel, L"AddChild");
-			if (!add.Set("Content", widget) || !add.Run()) return false;
+			if (!add.Set("Content", widget) || !add.RunGuarded()) return false;
 			// Category replacements keep the native 54-unit footprint; extra toggles have no side padding.
 			const bool toggle = widget == reflect::Get(stolenHeader) || widget == reflect::Get(enchantedHeader);
 			const float side = toggle ? 0.0f : 2.5f;
 			const std::array<float, 4> padding{ side, 0, side, 0 };
-			return ui::CallFirst(add.Get<UE::UObject*>("ReturnValue"), L"SetPadding", padding.data(), sizeof(padding));
+			return ui::CallFirstGuarded(add.Get<UE::UObject*>("ReturnValue"), L"SetPadding", padding.data(), sizeof(padding));
 		};
 		// InsertChildAt/ShiftChild are not reflected: reattach the same native widgets preserving slot layout and existing
 		// bindings, with our icon first, before A-Z (and before the other picker's icon when both are attached).
-		ui::Call clear(a_panel, L"ClearChildren"); if (!clear.Run()) return false;
+		ui::Call clear(a_panel, L"ClearChildren"); if (!clear.RunGuarded()) return false;
 		if (schoolAt < 0) {  // no native school button: the stolen-only icon leftmost (owner), then our picker
 			if (auto* enchanted = reflect::Get(enchantedHeader); enchanted && !addHeader(enchanted)) return false;
 			if (auto* stolen = reflect::Get(stolenHeader); stolen && !addHeader(stolen)) return false;
@@ -198,12 +202,14 @@ namespace sorting
 		}
 		for (std::size_t i = 0; i < children.size(); ++i) {
 			if (static_cast<int>(i) == schoolAt) { if (!addHeader(box)) return false; }
-			ui::Call add(a_panel, L"AddChild"); add.Set("Content", children[i].widget); add.Run();
+			ui::Call add(a_panel, L"AddChild");
+			if (!add.Set("Content", children[i].widget) || !add.RunGuarded()) return false;
 			auto* slot = add.Get<UE::UObject*>("ReturnValue");
-			ui::CallFirst(slot, L"SetPadding", children[i].padding.data(), 16);
-			if (children[i].hasSize) ui::CallFirst(slot, L"SetSize", children[i].size.data(), 8);
-			ui::CallFirst(slot, L"SetHorizontalAlignment", &children[i].horizontal, 1);
-			ui::CallFirst(slot, L"SetVerticalAlignment", &children[i].vertical, 1);
+			if (!slot) return false;
+			ui::CallFirstGuarded(slot, L"SetPadding", children[i].padding.data(), 16);
+			if (children[i].hasSize) ui::CallFirstGuarded(slot, L"SetSize", children[i].size.data(), 8);
+			ui::CallFirstGuarded(slot, L"SetHorizontalAlignment", &children[i].horizontal, 1);
+			ui::CallFirstGuarded(slot, L"SetVerticalAlignment", &children[i].vertical, 1);
 		}
 		return true;
 	}

@@ -13,7 +13,7 @@ hook = "\n".join(l for l in source_paths.read("pe-hook").splitlines() if not l.s
 call = source_paths.read("ui-call")
 call_bodies = "\n".join(source_paths.function(call, head) for head in (
     "\tCall::Call(", "\tvoid* Call::At(", "\tbool Call::Run(", "\tbool GuardedProcessEvent(", "\tbool Call::RunGuarded(",
-    "\tbool CallFirst("))
+    "\t\tbool CallFirstImpl(", "\tbool CallFirst(", "\tbool CallFirstGuarded("))
 for marker in source_paths.UI_CALL_EXTRA:
     call_bodies = source_paths.function(call, marker) + "\n" + call_bodies
 

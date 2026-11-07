@@ -161,6 +161,18 @@ namespace reflect
 		return item && reinterpret_cast<UE::UObject*>(item->object) == a_o;
 	}
 
+	bool Usable(UE::UObject* a_obj)
+	{
+		if (!IsLive(a_obj)) return false;
+		auto* item = UE::FUObjectArray::GetSingleton()->IndexToObject(a_obj->internalIndex);
+		constexpr auto dying = UE::EInternalObjectFlags::Garbage | UE::EInternalObjectFlags::Unreachable |
+			UE::EInternalObjectFlags::PendingKill;
+		if (!item || item->HasAnyFlags(dying)) return false;
+		constexpr auto destroyed = static_cast<std::int32_t>(UE::EObjectFlags::BeginDestroyed) |
+			static_cast<std::int32_t>(UE::EObjectFlags::FinishDestroyed);
+		return (static_cast<std::int32_t>(a_obj->objectFlags) & destroyed) == 0;
+	}
+
 	Handle Hold(UE::UObject* a_live)
 	{
 		return a_live ? Handle{ a_live, a_live->internalIndex } : Handle{};
