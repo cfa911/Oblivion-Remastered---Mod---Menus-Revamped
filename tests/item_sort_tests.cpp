@@ -2,6 +2,7 @@
 #include "../src/sorting/rules/ItemSort.h"
 
 #include <cstdio>
+#include <string>
 #include <cstdlib>
 #include <vector>
 
@@ -119,6 +120,45 @@ int main()
 		check(itemsort::Order(effects, { Key::School, false }) == std::vector{ 2, 1, 0 }, "school ascending, ties by name");
 		check(itemsort::Order(effects, { Key::Category, false }) == std::vector{ 2, 0, 1 }, "category ascending, ties by name");
 		check(itemsort::Order(effects, { Key::EffectValue, true }) == std::vector{ 1, 2, 0 }, "effect value descending, ties by name");
+	}
+
+	// RMI-049 (owner 2026-11-07): same-name rows by value highest first, then weight, in every sort and direction;
+	// a reversed category sort reverses the groups AND the names inside each group (rows without a group stay last).
+	{
+		// The owner's soul gem list (Misc, Soul gems category sort), given in a scrambled game order.
+		struct G { const char* name; float price; };
+		const G in[] = { { "Common Soul Gem", 50 }, { "Grand Soul Gem", 200 }, { "Petty Soul Gem", 10 }, { "Black Soul Gem", 500 },
+			{ "Greater Soul Gem", 350 }, { "Common Soul Gem", 80 }, { "Azura's Star", 2500 }, { "Grand Soul Gem", 150 },
+			{ "Lesser Soul Gem", 25 }, { "Grand Soul Gem", 350 }, { "Common Soul Gem", 40 }, { "Black Soul Gem", 500 },
+			{ "Grand Soul Gem", 500 }, { "Common Soul Gem", 50 } };
+		std::vector<itemsort::Row> gems;
+		for (const auto& g : in) { itemsort::Row r; r.name = g.name; r.price = g.price; r.weight = 0.3f; r.group = 2; gems.push_back(r); }
+		const auto shown = [&](itemsort::State st) {
+			std::vector<std::string> out;
+			for (int i : itemsort::Order(gems, st)) out.push_back(gems[i].name + " " + std::to_string(static_cast<int>(gems[i].price)));
+			return out;
+		};
+		const std::vector<std::string> green{ "Azura's Star 2500", "Black Soul Gem 500", "Black Soul Gem 500", "Grand Soul Gem 500",
+			"Grand Soul Gem 350", "Greater Soul Gem 350", "Grand Soul Gem 200", "Grand Soul Gem 150", "Common Soul Gem 80",
+			"Common Soul Gem 50", "Common Soul Gem 50", "Common Soul Gem 40", "Lesser Soul Gem 25", "Petty Soul Gem 10" };
+		check(shown({ Key::Name, false, 2 }) == green, "owner list: green = value highest first, equal values A-Z");
+		check(shown({ Key::Name, true, 2 }) == std::vector<std::string>(green.rbegin(), green.rend()), "owner list: red = exact reverse");
+		std::vector<itemsort::Row> twins(3);
+		twins[0].name = "Common Soul Gem"; twins[0].price = 50; twins[0].weight = 0.3f;
+		twins[1].name = "Common Soul Gem"; twins[1].price = 80; twins[1].weight = 0.3f;
+		twins[2].name = "Common Soul Gem"; twins[2].price = 50; twins[2].weight = 0.4f;
+		check(itemsort::Order(twins, { Key::Name, false }) == std::vector{ 1, 2, 0 }, "A-Z: same names by value then weight");
+		check(itemsort::Order(twins, { Key::Name, true }) == std::vector{ 1, 2, 0 }, "Z-A: same names still by value then weight");
+		check(itemsort::Order(twins, { Key::Weight, false }) == std::vector{ 1, 0, 2 }, "weight ties by name, then value");
+	}
+	{
+		std::vector<itemsort::Row> mixed(4);
+		mixed[0].name = "Bread"; mixed[0].group = 1;
+		mixed[1].name = "Apple"; mixed[1].group = 1;
+		mixed[2].name = "Zzz";   mixed[2].group = -1;
+		mixed[3].name = "Cheese"; mixed[3].group = 3;
+		check(itemsort::Order(mixed, { Key::Name, false, 1 }) == std::vector{ 1, 0, 3, 2 }, "groups ascending, A-Z inside, none last");
+		check(itemsort::Order(mixed, { Key::Name, true, 1 }) == std::vector{ 3, 0, 1, 2 }, "groups descending, Z-A inside, none still last");
 	}
 
 	std::printf("item_sort_tests: %d checks passed\n", checks);
