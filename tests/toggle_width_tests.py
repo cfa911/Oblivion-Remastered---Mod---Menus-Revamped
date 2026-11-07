@@ -46,6 +46,8 @@ namespace itemtags { struct Data{const wchar_t* icons[1]={L"Category.png"};}; Da
 void PaintEnchanted(){} void PaintStolen(){}
 namespace itemsort { enum class Key { Name, Health, Damage, Armor, Weight, Value, Cost, EffectValue, Category, School, Magnitude, kCount }; const wchar_t* TexturePath(Key){return L"tex";} constexpr const wchar_t* kActiveBackground=L"back"; std::vector<Key> MagicKeys(){return {Key::Name,Key::Cost};} std::vector<Key> ActiveKeys(){return {Key::Name,Key::EffectValue,Key::Category,Key::School,Key::Magnitude};} }
 bool TextureBrush(Widget*,const wchar_t*){return true;}
+namespace ui { void Visible(Widget*,bool){} }
+reflect::Handle groupBack{},groupArrow{};
 void BrushHeader(const wchar_t*){}
 constexpr int kSorts=11; bool OwnSorts(){return true;}
 reflect::Handle sortHeaders[11]{},sortImages[11]{},sortFrames[11]{},sortArrows[11]{},sortBacks[11]{};
@@ -64,6 +66,11 @@ int checks=0,failed=0;
 auto check=[&](bool ok,const char* why){++checks;if(!ok){++failed;std::cout<<"FAIL "<<why<<"\n";}};
 check(Create(),"factory succeeds");
 auto find=[](const std::wstring& name){for(auto& r:records)if(r.name==name+L"1")return r.widget;return static_cast<Widget*>(nullptr);};
+{
+auto* back=find(L"SlPieceGroupBack");auto* arrow=find(L"SlPieceGroupArrow");
+check(back&&back->x==0&&back->w==49&&back->h==49&&groupBack==back,"category sort parchment fills the 49-wide filter");
+check(arrow&&arrow->x==35&&arrow->y==35&&arrow->w==12&&groupArrow==arrow,"category sort arrow in the corner like the sorts");
+}
 for(const auto* prefix:{L"SlEnchantedHeader",L"SlStolenHeader",L"SlPieceHeader"}){
 const bool toggle=std::wstring(prefix)!=L"SlPieceHeader";
 auto* size=find(std::wstring(prefix)+L"Size");auto* frame=find(std::wstring(prefix)+L"Frame");auto* image=find(std::wstring(prefix)+L"Icon");

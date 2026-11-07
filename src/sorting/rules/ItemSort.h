@@ -4,6 +4,7 @@
 // Pure rules, no engine types: unit-tested in tests/item_sort_tests.cpp.
 
 #include "sorting/rules/ItemTags.h"
+#include "sorting/rules/MagicRows.h"
 
 #include <algorithm>
 #include <span>
@@ -19,6 +20,7 @@ namespace itemsort
 	{
 		Key  key = Key::Name;
 		bool descending = false;
+		int  group = -1;   // >= 0: the category sort of that filter (picker kind); the key is then unused
 
 		bool operator==(const State&) const = default;
 	};
@@ -29,6 +31,7 @@ namespace itemsort
 		std::string name;
 		float       price = -1, weight = -1, damage = -1, armor = -1, health = -1, cost = -1;
 		float       effectValue = -1, category = -1, school = -1, magnitude = -1;   // Magic Active Effects
+		int         group = -1;   // category-sort rank of the row (-1 = none: sorts last)
 	};
 
 	// The sorts a tab offers, left to right (owner screenshots of the 1.4.1 native bars).
@@ -113,7 +116,7 @@ namespace itemsort
 	// A remembered sort the tab does not offer falls back to A-Z ascending.
 	inline State Effective(State a_state, itemtags::Tab a_tab)
 	{
-		return Offers(a_tab, a_state.key) ? a_state : State{};
+		return a_state.group >= 0 || Offers(a_tab, a_state.key) ? a_state : State{};
 	}
 
 	inline float Number(const Row& a_row, Key a_key)
@@ -153,6 +156,12 @@ namespace itemsort
 		}
 		const bool d = a_state.descending;
 		std::stable_sort(order.begin(), order.end(), [&](int a, int b) {
+			if (a_state.group >= 0) {   // category sort: groups in order (reversed when descending), A-Z inside, none last
+				const int x = a_rows[a].group, y = a_rows[b].group;
+				if ((x < 0) != (y < 0)) return y < 0;
+				if (x != y) return (x < y) != d;
+				return names[a] < names[b];
+			}
 			if (a_state.key == Key::Name) return names[a] != names[b] && ((names[a] < names[b]) != d);
 			const float x = Number(a_rows[a], a_state.key), y = Number(a_rows[b], a_state.key);
 			if ((x < 0) != (y < 0)) return y < 0;
@@ -165,7 +174,8 @@ namespace itemsort
 	// The state after a command on a tab (the remembered state first falls back to what the tab offers).
 	inline State Apply(State a_state, itemtags::Tab a_tab, Key a_key, Action a_action)
 	{
-		const auto current = Effective(a_state, a_tab);
+		auto current = Effective(a_state, a_tab);
+		if (current.group >= 0) current = { Key::kCount, false };   // a sort button switches the category sort off
 		switch (a_action) {
 		case Action::Ascending:  return { a_key, false };
 		case Action::Descending: return { a_key, true };
@@ -190,12 +200,13 @@ namespace itemsort
 
 	inline State Effective(State a_state, std::span<const Key> a_keys)
 	{
-		return std::find(a_keys.begin(), a_keys.end(), a_state.key) != a_keys.end() ? a_state : State{};
+		return a_state.group >= 0 || std::find(a_keys.begin(), a_keys.end(), a_state.key) != a_keys.end() ? a_state : State{};
 	}
 
 	inline State Apply(State a_state, std::span<const Key> a_keys, Key a_key, Action a_action)
 	{
-		const auto current = Effective(a_state, a_keys);
+		auto current = Effective(a_state, a_keys);
+		if (current.group >= 0) current = { Key::kCount, false };
 		switch (a_action) {
 		case Action::Ascending:  return { a_key, false };
 		case Action::Descending: return { a_key, true };
@@ -215,4 +226,57 @@ namespace itemsort
 		if (a_name == "Magnitude") return static_cast<int>(Key::Magnitude);
 		return -1;
 	}
+
+	// ---- Category sort on the filters (owner 2026-11-07, KB evidence own-sorts-20261107 "Brainstorm: sort by our filters").
+	// Group order = the popup's choice order (choice ids are in the owner's order), A-Z inside a group; only one sort is
+	// active at a time (a sort button or one filter); the filters themselves still combine.
+
+	// A filter's category sort: click = start ascending / reverse; controller Up / Down = ascending / descending.
+	inline State ApplyGroup(State a_state, int a_group, Action a_action)
+	{
+		switch (a_action) {
+		case Action::Ascending:  return { Key::Name, false, a_group };
+		case Action::Descending: return { Key::Name, true, a_group };
+		default:                 return { Key::Name, a_state.group == a_group && !a_state.descending, a_group };
+		}
+	}
+
+	// The first state of a tab: grouped by its category filter ([Picker] bCategorySort=1) or A-Z.
+	inline State Default(bool a_categorySort, int a_group) { return a_categorySort ? State{ Key::Name, false, a_group } : State{}; }
+
+	// The first of the row's choices (1..count-1) in the tab's order; -1 none.
+	inline int FirstChoice(itemtags::Tab a_tab, std::uint32_t a_tags)
+	{
+		const auto count = itemtags::Info(a_tab).count;
+		for (unsigned choice = 1; choice < count && choice <= 28; ++choice)
+			if ((a_tags >> (choice - 1)) & 1u) return static_cast<int>(choice);
+		return -1;
+	}
+
+	// An item row's group from its classification tags (bits 28-31: category). All items: the category in tab order,
+	// then that tab's own order (unclassified rows of a category after its groups); a row without a category: none.
+	inline int GroupRank(itemtags::Tab a_tab, std::uint32_t a_tags)
+	{
+		if (a_tab != itemtags::Tab::AllItems) return FirstChoice(a_tab, a_tags);
+		const unsigned category = itemtags::CategoryOf(a_tags);
+		if (category < 1 || category > 4) return -1;
+		const int sub = FirstChoice(static_cast<itemtags::Tab>(category - 1), a_tags);
+		return static_cast<int>(category) * 32 + (sub < 0 ? 31 : sub);
+	}
+
+	// A spell row's group for the Magic filter of picker kind a_group: 1 school (A-Z), 2 effect family, 5 type
+	// (spells, scrolls, powers). Rows the Magic filters cannot classify (kPassAll) have none.
+	inline int MagicGroupRank(int a_group, std::uint64_t a_mask)
+	{
+		if (a_mask & magicrows::kPassAll) return -1;
+		if (a_group == 5) return (a_mask & magicrows::kSpellTag) ? 0 : (a_mask & magicrows::kScrollTag) ? 1 : (a_mask & magicrows::kPowerTag) ? 2 : -1;
+		return FirstChoice(a_group == 2 ? itemtags::Tab::MagicEffect : itemtags::Tab::MagicSchool,
+			static_cast<std::uint32_t>(a_group == 2 ? a_mask >> 32 : a_mask));
+	}
+
+	// Picker command ids for a filter's category sort (sort commands use -100..-159, picker commands -1..-6).
+	constexpr int kGroupCommandBase = -200;
+	inline int    GroupCommand(Action a_action) { return kGroupCommandBase - static_cast<int>(a_action); }
+	inline bool   IsGroupCommand(int a_cmd) { return a_cmd <= kGroupCommandBase && a_cmd > kGroupCommandBase - 3; }
+	inline Action GroupCommandAction(int a_cmd) { return static_cast<Action>(kGroupCommandBase - a_cmd); }
 }

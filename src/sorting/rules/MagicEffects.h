@@ -8,7 +8,8 @@
 // Runtime classification is code-based, never spell-name or school based.
 namespace magiceffects
 {
-	enum class Choice : unsigned { All, Fire, Frost, Shock, Damage, Drain, Absorb, Restore, Fortify, Shield, Resistance, Weakness, Summon, Bound, Control, Stealth, Utility, Other, Count };
+	// Choice order = popup and category-sort order (owner 2026-11-07: Weakness next to the attacks).
+	enum class Choice : unsigned { All, Fire, Frost, Shock, Damage, Drain, Absorb, Weakness, Restore, Fortify, Shield, Resistance, Summon, Bound, Control, Stealth, Utility, Other, Count };
 	constexpr unsigned kChoiceCount = static_cast<unsigned>(Choice::Count);
 	struct ChoiceInfo { const char* name; const char* label; const wchar_t* icon; };
 	inline constexpr std::array<ChoiceInfo, kChoiceCount> kChoices{{
@@ -19,11 +20,11 @@ namespace magiceffects
 		{ "Damage", "Damage", L"Effect-Damage.png" },
 		{ "Drain", "Drain", L"Effect-Drain.png" },
 		{ "Absorb", "Absorb", L"Effect-Absorb.png" },
+		{ "Weakness", "Weak", L"Effect-Weakness.png" },
 		{ "Restore & Cure", "Restore", L"Effect-Restore.png" },
 		{ "Fortify", "Fortify", L"Effect-Fortify.png" },
 		{ "Shield", "Shield", L"Effect-Shield.png" },
 		{ "Resistance", "Resist", L"Effect-Resistance.png" },
-		{ "Weakness", "Weak", L"Effect-Weakness.png" },
 		{ "Summon", "Summon", L"Effect-Summon.png" },
 		{ "Bound Equipment", "Bound", L"Effect-Bound.png" },
 		{ "Control", "Control", L"Effect-Control.png" },

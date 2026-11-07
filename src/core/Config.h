@@ -16,6 +16,7 @@ namespace mrconfig
 		{
 			bool inventory = true, magic = true, container = true;   // [Picker] bInventory / bMagic / bContainer: category pickers per menu
 			bool stolenFilter = true, enchantedFilter = true;          // bStolenFilter / bEnchantedFilter: the toggle icons
+			bool categorySort = true;                                  // bCategorySort: lists start grouped by the category filter's order
 		} picker;
 		struct Alchemy
 		{

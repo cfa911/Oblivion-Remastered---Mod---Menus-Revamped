@@ -100,7 +100,9 @@ namespace geardata
 					a_tags = itemtags::PotionTags(codes, count, hostile, type == RE::MagicSystem::SpellType::kPoison);
 					return true;
 				}
-				a_tags = itemtags::MiscTags(static_cast<unsigned>(object->GetFormType()), object->GetFormID(), 0);
+				std::uint8_t bookFlags = 0;   // Misc Scrolls (owner 2026-11-07): BOOK DATA flag 0x01, or an enchanted book
+				if (auto* book = object->As<RE::TESObjectBOOK>()) bookFlags = static_cast<std::uint8_t>((book->data.flags & 1u) | (book->formEnchanting ? 1u : 0u));
+				a_tags = itemtags::MiscTags(static_cast<unsigned>(object->GetFormType()), object->GetFormID(), bookFlags);
 				return true;
 			} __except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) { return false; }
 		}

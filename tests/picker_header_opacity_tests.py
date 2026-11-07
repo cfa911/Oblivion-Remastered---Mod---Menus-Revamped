@@ -7,8 +7,9 @@ import source_paths
 root=Path(__file__).resolve().parents[1]
 out=Path(sys.argv[1]); out.mkdir(parents=True,exist_ok=True)
 body=source_paths.function((root/'src/sorting/PickerPopup.cpp').read_text(),'void Picker::PaintController(')
+body+='\n'+source_paths.function((root/'src/sorting/OwnSort.cpp').read_text(),'void Picker::PaintGroup()')
 code=r'''
-#include "sorting/rules/ItemTags.h"
+#include "sorting/rules/ItemSort.h"
 #include "sorting/rules/PickerHighlight.h"
 #include <cstdio>
 struct Widget { float opacity=1; };
@@ -16,7 +17,9 @@ namespace reflect { using Handle=Widget*; Widget* Get(Handle p){return p;} }
 namespace ui {
 template<class... T> void RoundedBox(T...) {}
 bool Float(Widget* p,const wchar_t*,float value){if(p)p->opacity=value;return true;}
+void Visible(Widget* p,bool on){if(p)p->opacity=on?1.0f:0.0f;}
 }
+bool TextureBrush(Widget*,const wchar_t*){return true;}
 constexpr float kClear[4]={};
 struct Picker {
     unsigned choice=0,category=0,cursor=0;
@@ -24,7 +27,11 @@ struct Picker {
     itemtags::Tab view=itemtags::Tab::MagicSchool;
     Widget image; reflect::Handle headerImage=&image,headerFrame=nullptr;
     reflect::Handle cells[itemtags::kMaxChoices]{};
-void PaintStolen() {} void PaintEnchanted() {} void PaintController();
+    int kind=0; reflect::Handle groupBack=nullptr,groupArrow=nullptr; itemsort::State state;
+    struct { bool load() const { return true; } } active;
+    Picker* SortHost(){return this;} bool OwnSorts() const {return true;}
+    itemsort::State& SortAt(int){return state;} int SortSlot() const {return 0;}
+void PaintStolen() {} void PaintEnchanted() {} void PaintController(); void PaintGroup();
 };
 '''+body+r'''
 unsigned checks=0,failures=0;
@@ -40,6 +47,10 @@ int main(){
     picker.PaintController(); Check(picker.image.opacity==1,"All Items -> Weapons -> All weapons stays at full opacity");
     picker.category=0;
     picker.PaintController(); Check(picker.image.opacity==0.5f,"returning to All restores half opacity");
+    picker.state.group=0;   // category sort active on this filter (owner 2026-11-07): shown like an active sort
+    picker.PaintController(); Check(picker.image.opacity==1,"an active category sort shows the filter at full opacity");
+    picker.state.group=2;
+    picker.PaintController(); Check(picker.image.opacity==0.5f,"another filter's category sort does not");
     std::printf("%u checks, %u failures\n",checks,failures);return failures?1:0;
 }
 '''

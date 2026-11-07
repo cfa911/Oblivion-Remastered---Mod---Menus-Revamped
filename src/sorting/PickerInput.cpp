@@ -50,10 +50,19 @@ namespace sorting
 		{
 			std::scoped_lock lock(inputLock);
 			if (a_message == WM_LBUTTONUP && swallowUp) { swallowUp = false; return true; }
+			if (a_message == WM_RBUTTONUP && swallowRightUp) { swallowRightUp = false; return true; }
 			if (a_message == WM_KEYUP && a_key == VK_ESCAPE && swallowEscape) { swallowEscape = false; return true; }
 			if (!inputActive) return false;
 			if (a_message == WM_LBUTTONDBLCLK && GetTickCount64() <= doubleClickUntil) { swallowUp = true; return true; }
 			if (a_message == WM_KEYDOWN && a_key == VK_ESCAPE && inputOpen) { command = -2; commandFromController = false; swallowEscape = true; return true; }
+			// Owner 2026-11-07: right click on a filter opens its popup (left click = its category sort).
+			if (a_message == WM_RBUTTONDOWN) {
+				const double rx = static_cast<short>(LOWORD(a_position)), ry = static_cast<short>(HIWORD(a_position));
+				if (kind == 6 || !headerPx.Hit(rx, ry)) return false;
+				command = pickergrid::kToggleCommand; commandFromController = false;
+				swallowRightUp = true;
+				return true;
+			}
 			if (a_message != WM_LBUTTONDOWN) return false;
 			commandFromController = false;
 			const double x = static_cast<short>(LOWORD(a_position)), y = static_cast<short>(HIWORD(a_position));
@@ -68,7 +77,7 @@ namespace sorting
 			}
 			else if (enchantedPx.Hit(x, y)) command = enchantedfilter::kToggleCommand;
 		else if (stolenPx.Hit(x, y)) command = stolenfilter::kToggleCommand;
-			else if (headerPx.Hit(x, y)) command = pickergrid::kToggleCommand;
+			else if (headerPx.Hit(x, y)) command = inputOpen || !groupInput ? pickergrid::kToggleCommand : itemsort::GroupCommand(itemsort::Action::Click);
 			else if (inputOpen) {
 				command = -2;
 				for (int i = 0; i < itemtags::kMaxChoices; ++i) if (cellsPx[i].Hit(x, y)) { command = i; break; }
@@ -162,10 +171,13 @@ namespace sorting
 			} else {
 				// Native methods retain their original A/up/down reversal. Only our focused header owns these.
 				// Only A opens the filter popup: Up/Down are swallowed and do nothing (owner 2026-11-07: Down acting as A confused).
+				// Category sort (owner 2026-11-07): Up/Down on the filter group the list ascending/descending.
 				g_pad.Consume(raw, pickerpad::A | pickerpad::Up | pickerpad::Down | pickerpad::Left | pickerpad::Right, true);
 				if (g_pad.pressed & pickerpad::A) {
 					picker.controllerPopup = true; picker.Queue(pickergrid::kToggleCommand);
 				}
+				else if (g_pad.pulse == pickerpad::Direction::Up && picker.GroupSorts()) picker.Queue(itemsort::GroupCommand(itemsort::Action::Ascending));
+				else if (g_pad.pulse == pickerpad::Direction::Down && picker.GroupSorts()) picker.Queue(itemsort::GroupCommand(itemsort::Action::Descending));
 				else if (g_pad.pulse == pickerpad::Direction::Left || g_pad.pulse == pickerpad::Direction::Right) {
 					ui::Call navigate(reflect::Get(picker.carousel),
 						g_pad.pulse == pickerpad::Direction::Left ? L"NavigateToPrevElement" : L"NavigateToNextElement");

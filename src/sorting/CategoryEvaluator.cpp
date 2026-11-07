@@ -20,6 +20,14 @@ namespace sorting
 		// null forms, so the key is the row's name, weight and type; a wrong match lasts only until the reply.
 		std::unordered_map<std::uint64_t, std::uint64_t> g_rowTags;
 
+		bool CachedRowTags(std::uint64_t a_key, std::uint64_t& a_tags)
+		{
+			const auto known = a_key ? g_rowTags.find(a_key) : g_rowTags.end();
+			if (known == g_rowTags.end()) return false;
+			a_tags = known->second;
+			return true;
+		}
+
 		void ResetShared(unsigned slot)
 		{
 			geardata::Cancel(slot);
@@ -76,6 +84,7 @@ namespace sorting
 			}
 			state.ticket = state.dataDeadline = 0;
 			changed = true;
+			TagsLanded(slot);   // category sort: rows that had no group at the last refill may have one now
 		}
 		if (state.ticket && GetTickCount64() > state.dataDeadline) {
 			geardata::Cancel(slot); state.ticket = state.dataDeadline = 0;

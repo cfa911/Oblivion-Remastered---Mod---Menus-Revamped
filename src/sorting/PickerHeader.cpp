@@ -169,7 +169,7 @@ namespace sorting
 						if (auto* widget = reflect::Get(picker.sortHeaders[k])) { ui::Call remove(widget, L"RemoveFromParent"); remove.RunGuarded(); }
 						picker.sortHeaders[k] = {}; picker.sortImages[k] = {}; picker.sortFrames[k] = {}; picker.sortArrows[k] = {}; picker.sortBacks[k] = {};
 					}
-					picker.header = {}; picker.carousel = {}; picker.headerImage = {}; picker.headerFrame = {};
+					picker.header = {}; picker.carousel = {}; picker.headerImage = {}; picker.headerFrame = {}; picker.groupBack = {}; picker.groupArrow = {};
 					picker.stolenHeader = {}; picker.stolenImage = {}; picker.stolenFrame = {};
 					picker.enchantedHeader = {}; picker.enchantedImage = {}; picker.enchantedFrame = {};
 				}
@@ -214,8 +214,15 @@ namespace sorting
 				if (!make(L"SlStolenHeader", L"Stolen-Item.png", stolenHeader, stolenImage, stolenFrame, 30, true)) return false;
 				PaintStolen();
 			}
-			box = make(L"SlPieceHeader", itemtags::Info(tab).icons[0], header, headerImage, headerFrame);
+			UE::UObject* headerInner = nullptr;
+			box = make(L"SlPieceHeader", itemtags::Info(tab).icons[0], header, headerImage, headerFrame, 49.0f, false, &headerInner);
 			if (!box) return false;
+			if (kind != 6) {   // category sort shown like an active sort: the game's parchment under the icon and the arrow
+				auto* back = CanvasChild(headerInner, L"/Script/UMG.Image", (std::wstring(L"SlPieceGroupBack") + suffix).c_str(), 0, 0, 49, 49, 0);
+				auto* arrow = CanvasChild(headerInner, L"/Script/UMG.Image", (std::wstring(L"SlPieceGroupArrow") + suffix).c_str(), 35, 35, 12, 12, 2);
+				if (back) { TextureBrush(back, itemsort::kActiveBackground); ui::Visible(back, false); groupBack = reflect::Hold(back); }
+				if (arrow) { ui::Visible(arrow, false); groupArrow = reflect::Hold(arrow); }
+			}
 			BrushHeader(itemtags::Info(tab).icons[0]);   // Magic school/type "All": the game's own icon
 			// Own sort buttons after the category picker in the game's order (A-Z first); navigation order = screen order.
 			if (OwnSorts()) {

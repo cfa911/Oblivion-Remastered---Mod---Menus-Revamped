@@ -76,8 +76,9 @@ check('UpdateFilterFocus' in picker and 'quickLootY' in picker, 'quick loot: Y o
 pad = source_paths.function(picker, 'void Controller(')
 header_branch = pad[pad.find('// Native methods retain their original A/up/down reversal.'):] if pad else ''
 header_branch = header_branch[:header_branch.find('UpdateNativeBackgroundMask();')]
-check(header_branch and 'Direction::Down' not in header_branch.split('NavigateTo')[0] and 'Direction::Up' not in header_branch.split('NavigateTo')[0],
-      'only A opens a filter popup; Up/Down do not')
+updown = [line for line in header_branch.split('NavigateTo')[0].splitlines() if 'Direction::Up' in line or 'Direction::Down' in line]
+check(header_branch and updown and all('GroupCommand' in line and 'kToggleCommand' not in line for line in updown),
+      'only A opens a filter popup; Up/Down are the category sort (owner 2026-11-07)')
 
 # RMI-048: with own sorts the native A-Z is always collapsed, so the RMI-004 detach (keyed on it) must not run.
 check(detach and 'if (OwnSorts()) return;' in detach.split('ClearOwnFromBar()')[0], 'own sorts: the RMI-004 Transfer detach no longer runs (our A-Z replaces the native one)')
@@ -105,7 +106,9 @@ check(carousel and 'kind == 6' in carousel.split('IsFilterFocused')[0], 'kind 6 
 # Owner 2026-11-07 (visual batch): spell tabs' type (star) and school (scroll) pickers show the game's original icons
 # in their "All" state, loaded at run time (no game art shipped); the other choices keep their PNGs.
 brush = source_paths.function(picker, 'void Picker::BrushHeader(')
-check(brush and 'T_Property_1_LesserPower' in brush and 'T_Property_1_school' in brush and 'TextureBrush(' in brush, 'BrushHeader: game star/scroll for All')
+all_texture = source_paths.function(own, 'const wchar_t* AllTexture(')
+check(brush and 'AllTexture(kind)' in brush and 'TextureBrush(' in brush and all_texture and 'T_Property_1_LesserPower' in all_texture and
+      'T_Property_1_school' in all_texture, 'BrushHeader: game star/scroll for All')
 check(reset and 'BrushHeader(' in reset and 'Brush(image' not in reset, 'tab reset paints through BrushHeader')
 check(tick and 'BrushHeader(HeaderIcon())' in tick, 'a choice paints through BrushHeader')
 check(insert and 'BrushHeader(' in insert, 'the header is painted through BrushHeader when created')

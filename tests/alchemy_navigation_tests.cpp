@@ -14,7 +14,7 @@ int main()
 		if (!ok) { std::fprintf(stderr, "FAIL %s\n", label); std::exit(1); }
 	};
 	check(Info(Tab::Potions).count == 5 && Info(Tab::PotionEffects).count == 8 && Info(Tab::PoisonEffects).count == 4, "root and potion submenu counts");
-	const char* roots[]{ "All", "Potions", "Poisons", "Ingredients", "Tools" };
+	const char* roots[]{ "All", "Tools", "Potions", "Poisons", "Ingredients" };   // owner order 2026-11-07
 	const char* families[]{ "All potions", "Restore", "Fortify", "Ward", "Stealth", "Utility", "Cures", "Other" };
 	for (unsigned i = 0; i < 5; ++i) check(Info(Tab::Potions).names[i] == std::string_view(roots[i]), "agreed Alchemy root");
 	for (unsigned i = 0; i < 8; ++i) check(Info(Tab::PotionEffects).names[i] == std::string_view(families[i]), "agreed potion families");
@@ -36,13 +36,13 @@ int main()
 		"mixed groups remain independent; one hostile effect is not a poison");
 	check(PotionTags(nullptr, 0, 0) == (AlchemyBit(Alchemy::Potions) | AlchemyBit(Alchemy::Other)), "unknown/empty-effect potion is reachable through Other");
 	// Parents/back/cancel preserve the applied choice. Tools and Ingredients are leaves.
-	auto next = pickernav::Choose(Tab::Potions, Tab::Potions, 0, Index(Alchemy::Tools), 1);
+	auto next = pickernav::Choose(Tab::Potions, Tab::Potions, 0, Index(Alchemy::Tools), Index(Alchemy::Potions));
 	check(next.view == Tab::PotionEffects && !next.close && next.choice == Index(Alchemy::Tools), "enter Potions without applying");
 	next = pickernav::Back(Tab::Potions, next.view, next.category, next.choice);
-	check(next.view == Tab::Potions && next.cursor == 1 && !next.close && next.choice == Index(Alchemy::Tools), "Back returns to Alchemy without applying");
+	check(next.view == Tab::Potions && next.cursor == Index(Alchemy::Potions) && !next.close && next.choice == Index(Alchemy::Tools), "Back returns to Alchemy without applying");
 	next = pickernav::Back(Tab::Potions, next.view, next.category, next.choice);
 	check(next.close && next.choice == Index(Alchemy::Tools), "Back at root closes only");
-	for (unsigned leaf : { 0u, 3u, 4u }) {
+	for (unsigned leaf : { 0u, Index(Alchemy::Tools), Index(Alchemy::Ingredients) }) {
 		next = pickernav::Choose(Tab::Potions, Tab::Potions, 0, 5, leaf);
 		check(next.close && next.choice == leaf, "All/Ingredients/Tools have no submenu");
 	}
@@ -51,15 +51,15 @@ int main()
 		check(next.close && next.choice == PotionSelection(i) && next.category == 0, "direct potion leaf maps to flat tag");
 		check(pickernav::Highlight(Tab::Potions, Tab::PotionEffects, 0, next.choice) == i, "potion highlight round-trip");
 		check(std::wstring_view(SelectionIcon(Tab::Potions, next.choice)) == Info(Tab::PotionEffects).icons[i], "header follows actual potion leaf");
-		check(pickernav::Highlight(Tab::Potions, Tab::Potions, 0, next.choice) == 1, "root highlights Potions for every family");
+		check(pickernav::Highlight(Tab::Potions, Tab::Potions, 0, next.choice) == Index(Alchemy::Potions), "root highlights Potions for every family");
 	}
 	// All Items -> Alchemy -> Potions: three levels, not an invalid category 8.
 	next = pickernav::Choose(Tab::AllItems, Tab::AllItems, 1, 9, 3);
 	check(next.view == Tab::Potions && next.category == 1 && next.choice == 9 && !next.close, "enter Alchemy without changing weapon filter");
-	next = pickernav::Choose(Tab::AllItems, next.view, next.category, next.choice, 1);
+	next = pickernav::Choose(Tab::AllItems, next.view, next.category, next.choice, Index(Alchemy::Potions));
 	check(next.view == Tab::PotionEffects && next.category == 1 && next.choice == 9 && !next.close, "enter nested Potions without changing filter");
 	next = pickernav::Back(Tab::AllItems, next.view, next.category, next.choice);
-	check(next.view == Tab::Potions && next.cursor == 1 && next.category == 1 && next.choice == 9 && !next.close, "nested Back preserves old filter");
+	check(next.view == Tab::Potions && next.cursor == Index(Alchemy::Potions) && next.category == 1 && next.choice == 9 && !next.close, "nested Back preserves old filter");
 	next = pickernav::Back(Tab::AllItems, next.view, next.category, next.choice);
 	check(next.view == Tab::AllItems && next.cursor == 3 && !next.close, "second Back returns to All Items categories");
 	for (unsigned i = 0; i < 8; ++i) {
@@ -68,7 +68,7 @@ int main()
 		check(pickernav::Highlight(Tab::AllItems, Tab::PotionEffects, next.category, next.choice) == i, "All Items leaf highlight");
 		check(pickernav::Highlight(Tab::AllItems, Tab::AllItems, next.category, next.choice) == 3, "All Items top highlight");
 	}
-	for (unsigned i : { 0u, 3u, 4u }) {
+	for (unsigned i : { 0u, Index(Alchemy::Tools), Index(Alchemy::Ingredients) }) {
 		next = pickernav::Choose(Tab::AllItems, Tab::Potions, 1, 9, i);
 		check(next.category == 3 && next.choice == i && next.close, "All Items Alchemy leaf");
 	}
@@ -100,9 +100,9 @@ int main()
 			check(Info(view).icons[i] != nullptr, "every new cell has an editable icon");
 		}
 	}
-	check(MiscTags(27, 0xC, 0) == (1u << 3), "actual base repair hammer is Misc Tools");
-	check(MiscTags(27, 0x0100000C, 0) == (1u << 4), "unrelated plugin-local ID0C is not a repair hammer");
-	check(MiscTags(26, 0x2CF9F, 0) == (1u << 3), "actual torch is Misc Tools");
-	check(MiscTags(42, 0x41FD3, 0) == (1u << 4), "sigil stone stays Other");
+	check(MiscTags(27, 0xC, 0) == (1u << 0), "actual base repair hammer is Misc Tools");
+	check(MiscTags(27, 0x0100000C, 0) == (1u << 5), "unrelated plugin-local ID0C is not a repair hammer");
+	check(MiscTags(26, 0x2CF9F, 0) == (1u << 0), "actual torch is Misc Tools");
+	check(MiscTags(42, 0x41FD3, 0) == (1u << 5), "sigil stone stays Other");
 	std::printf("%d alchemy/navigation checks passed\n", checks);
 }

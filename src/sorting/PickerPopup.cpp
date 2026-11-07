@@ -95,9 +95,7 @@ namespace sorting::detail
 		auto* image = reflect::Get(headerImage);
 		if (!image || !a_icon) return;
 		const bool all = std::wcscmp(a_icon, itemtags::Info(tab).icons[0]) == 0;
-		const wchar_t* game = !all ? nullptr :
-			kind == 1 ? L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_school.T_Property_1_school" :
-			kind == 5 ? L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_LesserPower.T_Property_1_LesserPower" : nullptr;
+		const wchar_t* game = all ? AllTexture(kind) : nullptr;
 		if (!game || !TextureBrush(image, game)) Brush(image, a_icon);   // a missing game texture falls back to the PNG
 	}
 
@@ -136,7 +134,9 @@ namespace sorting::detail
 				LayoutChild(reflect::Get(cells[i]), x, y, pickergrid::CellWidth, pickergrid::CellHeight);
 				LayoutChild(reflect::Get(icons[i]), x + (pickergrid::CellWidth - 42) / 2.0, y + 1, 42, 40);
 				LayoutChild(reflect::Get(labels[i]), x, y + 41, pickergrid::CellWidth, 21);
-				Brush(reflect::Get(icons[i]), info.icons[i]);
+				// The popup's "All" of the Magic school/type pickers: the game's icon too (owner, R14 test 2026-11-07).
+				const wchar_t* game = i == 0 && view == tab ? AllTexture(kind) : nullptr;
+				if (!game || !TextureBrush(reflect::Get(icons[i]), game)) Brush(reflect::Get(icons[i]), info.icons[i]);
 				const auto display = std::string(itemtags::PopupLabel(view, i));
 				uix::SetText(reflect::Get(labels[i]), display);
 				ui::Call tooltip(reflect::Get(labels[i]), L"SetToolTipText");
@@ -170,7 +170,7 @@ namespace sorting::detail
 
 	void Picker::PaintController()
 	{
-		ui::Float(reflect::Get(headerImage), L"SetRenderOpacity", choice || category ? 1.0f : 0.5f);
+		PaintGroup();   // header opacity, and the category sort's parchment/arrow (hidden under the controller focus fill)
 		// Applied membership is not focus. Match the owner's native square, borderless #E6E4DF reference.
 		ui::RoundedBox(reflect::Get(headerFrame), false, controllerFocus ? pickerhighlight::kFill.data() : kClear,
 			kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);

@@ -69,6 +69,8 @@ namespace sorting {
 middle = r"""
 FilterState g_states[3];
 std::unordered_map<std::uint64_t,std::uint64_t> g_rowTags;
+std::vector<unsigned> landed;   // category sort: classification arrivals reported per slot
+void TagsLanded(unsigned slot) { landed.push_back(slot); }
 struct Picker {
     int kind=0; unsigned choice=0,appliedChoice=0,category=0,appliedCategory=0;
     bool stolenOnly=false,appliedStolen=false;
@@ -252,6 +254,7 @@ sorting::g_pickers[3].enchantedOnly=true;
 check(sorting::Evaluate(4,enchantedRows,203)==Rows({&magicGear,&both,&unreadable}),"other container side independently supports enchanted");
 sorting::g_pickers[0].kind=1; sorting::g_pickers[0].enchantedOnly=true;
 check(sorting::Evaluate(2,enchantedRows,204)==enchantedRows,"Magic never enchanted-filtered");
+check(!sorting::landed.empty(),"a classification arrival is reported (category sort republish)");
 std::cout<<checks<<" checks, "<<failed<<" failures\n";
     return failed ? 1 : 0;
 }

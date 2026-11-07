@@ -67,6 +67,14 @@ namespace sorting
 		stolenfilter::Status StolenStatus(UE::UObject* item);
 		enchantedfilter::Status EnchantedStatus(UE::UObject* item);
 		void ComputeMagicMasks(const std::vector<UE::UObject*>& a_items, FilterState& state);
+		// The item key of an OriginalInventoryMenuItemProperties struct (form id, else name + weight + type), as the
+		// classification cache uses it; 0 when unreadable.
+		std::uint64_t RowKey(const std::uint8_t* a_properties);
+		bool CachedRowTags(std::uint64_t a_key, std::uint64_t& a_tags);   // CategoryEvaluator.cpp
+		struct MagicScroll { int index = -1; magicrows::Spell magic; };
+		struct MagicLists { std::vector<magicrows::Spell> spells; std::vector<MagicScroll> scrolls; };
+		MagicLists ReadMagicLists();
+		std::uint64_t MagicRowMask(unsigned a_range, unsigned a_school, int a_index, const MagicLists& a_lists);
 
 		// ---- our header widgets (PickerHeader.cpp) ----
 		extern std::vector<reflect::Handle> g_ownedHeaders;
@@ -80,7 +88,8 @@ namespace sorting
 			int kind = -1;  // -1 inactive, 0 inventory, 1/2 Magic school/effect, 3/4 container sides, 5 Magic type, 6 Magic Active Effects sorts
 			std::mutex inputLock;
 			Rect headerPx, popupPx, cellsPx[itemtags::kMaxChoices];
-			bool inputActive = false, inputOpen = false, swallowUp = false, swallowEscape = false;
+			bool inputActive = false, inputOpen = false, swallowUp = false, swallowEscape = false, swallowRightUp = false;
+			bool groupInput = false;   // under inputLock: a left click on the filter sorts by category (its sort host is live)
 			std::uint64_t doubleClickUntil = 0;
 			int command = -1;
 			bool commandFromController = false;
@@ -113,7 +122,13 @@ namespace sorting
 			int sortFocus = -1;   // our sort button with controller focus, -1 none
 			std::vector<reflect::Handle> nativeSorts;
 			// Per Inventory/container tab (Weapons..AllItems) or Magic spell page (Target..All); kept across tabs and openings.
-			itemsort::State sorts[6];   // slot 5: Magic Active Effects (kind 6)
+			// Slots 0-4 Inventory/container tabs, 5 Magic Active Effects (kind 6), 6-9 Magic spell pages (own memory: the
+			// Inventory and Magic share g_pickers[0]).
+			static constexpr int kMagicSorts = 6;
+			itemsort::State sorts[10];
+			unsigned seededKinds = 0;   // kinds whose slots got the INI default (bCategorySort) once
+			bool pendingRepublish = false;   // the classification landed for rows the category sort could not place
+			reflect::Handle groupBack, groupArrow;   // the category sort shown on the filter like an active sort
 			int magicPage = 0, paintedSlot = -1;
 			// Quick loot has no native sort row: a Y the game ignored opens/closes ours (deadline, wanted focus).
 			std::uint64_t quickLootY = 0;
@@ -125,8 +140,13 @@ namespace sorting
 			bool OwnSorts() const { return kind == 0 || kind == 1 || kind == 3 || kind == 4 || kind == 6; }
 			std::vector<itemsort::Key> SortKeys() const { return kind == 1 ? itemsort::MagicKeys() : kind == 6 ? itemsort::ActiveKeys() : itemsort::Keys(tab); }
 			bool Offers(itemsort::Key a_key) const { const auto keys = SortKeys(); return std::find(keys.begin(), keys.end(), a_key) != keys.end(); }
-			int SortSlot() const { return kind == 1 ? magicPage : kind == 6 ? 5 : static_cast<int>(tab); }
-			itemsort::State& SortAt(int a_slot) { return sorts[a_slot >= 0 && a_slot < 6 ? a_slot : 4]; }
+			int SortSlot() const { return kind == 1 ? kMagicSorts + magicPage : kind == 6 ? 5 : static_cast<int>(tab); }
+			itemsort::State& SortAt(int a_slot) { return sorts[a_slot >= 0 && a_slot < 10 ? a_slot : 4]; }
+			// Category sort: the picker whose sort memory this filter uses (Magic school/effect/type: the school picker).
+			Picker* SortHost();
+			bool GroupSorts() { auto* host = SortHost(); return kind != 6 && host && host->OwnSorts(); }
+			void SeedSorts();   // the INI default for this kind's slots, once
+			void PaintGroup();  // parchment + arrow on the filter while its category sort is active
 			bool OwnsSortHeader(UE::UObject* a_widget) const { for (const auto& h : sortHeaders) if (a_widget && reflect::Get(h) == a_widget) return true; return false; }
 
 			unsigned Shift() const { return kind == 2 ? 32u : 0u; }
@@ -182,6 +202,8 @@ namespace sorting
 		// OwnSort.cpp: the list order and the republish after a click
 		void WatchRefills(Picker& a_picker);
 		void Republish(Picker& a_picker);
+		void TagsLanded(unsigned a_slot);   // Evaluate: classification arrived; republish once if grouped rows waited for it
+		const wchar_t* AllTexture(int a_kind);   // the game's own icon for a Magic school/type "All" (header and popup)
 		bool IsOwnSortHeader(UE::UObject* a_widget);
 	}
 }

@@ -117,6 +117,7 @@ namespace sorting::detail
 			kind = a_kind;
 		}
 		active.store(true);  // page identity is independent of whether its new widgets have finished layout
+		SeedSorts();   // first time this kind is seen: every tab starts with the INI default (bCategorySort), before any paint
 		if (!tabSet || tab != wanted) {  // another tab: its own choices and filter
 			if (tabSet) { const auto hold = transfer; Reset(); transfer = hold; }  // the RMI-004 Transfer hold may span a page change
 			tab = wanted; view = wanted; styled = false;
@@ -237,7 +238,19 @@ namespace sorting::detail
 		int cmd = -1;
 		bool fromController = false;
 		{ std::scoped_lock lock(inputLock); cmd = command; fromController = commandFromController; command = -1; commandFromController = false; }
-		if (itemsort::IsSortCommand(cmd)) {
+		if (pendingRepublish && OwnSorts()) {   // the classification landed for rows the category sort could not place
+			pendingRepublish = false;
+			Republish(*this);
+		}
+		if (itemsort::IsGroupCommand(cmd)) {
+			if (auto* host = SortHost(); host && host->OwnSorts()) {
+				auto& state = host->SortAt(host->SortSlot());
+				state = itemsort::ApplyGroup(state, kind, itemsort::GroupCommandAction(cmd));
+				host->PaintSorts();   // the host's buttons go plain; every filter of the host repaints its category sort
+				Republish(*host);
+			}
+		}
+		else if (itemsort::IsSortCommand(cmd)) {
 			auto& state = SortAt(SortSlot());
 			state = itemsort::Apply(state, SortKeys(), itemsort::SortCommandKey(cmd), itemsort::SortCommandAction(cmd));
 			PaintSorts();
@@ -296,10 +309,11 @@ namespace sorting::detail
 				rect.x *= a_viewportScale; rect.y *= a_viewportScale; rect.w *= a_viewportScale; rect.h *= a_viewportScale;
 			}
 		}
+		const bool groupSorts = GroupSorts();
 		// Never hold the window-message mutex across ProcessEvent / geometry calls.
 		{
 			std::scoped_lock lock(inputLock);
-			inputActive = true; inputOpen = open;
+			inputActive = true; inputOpen = open; groupInput = groupSorts;
 			if (measure) { popupPx = popupRect; std::copy(std::begin(cellRects), std::end(cellRects), cellsPx); }
 		}
 		active.store(true);

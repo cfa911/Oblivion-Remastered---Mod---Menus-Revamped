@@ -11,6 +11,7 @@
 
 #include "sorting/PickerInternal.h"
 
+#include "core/Config.h"
 #include "core/Runtime.h"
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
@@ -30,6 +31,9 @@ namespace sorting::detail
 	{
 		struct RawArray { std::uint8_t* data; std::int32_t num; std::int32_t max; };
 		std::atomic<int> g_refills{ 0 };   // TEMP-DIAG: refills seen, to prove a click republishes
+		// Category sort: item keys a grouped refill could not place (no classification yet), per FilterState slot
+		// (0 Inventory, 1 player side, 2 container side). When the classification lands with any of them, one republish.
+		std::vector<std::uint64_t> g_waiting[3];
 
 		struct Layout
 		{
@@ -63,7 +67,7 @@ namespace sorting::detail
 		Picker* ActivePicker(int a_kind);
 
 		// Magic rows (KB probing/snippets/mr-hover-refill.md, tab-pages "Property"): Name FText, Property float = cost.
-		struct MagicLayout { bool ok = false; int size = 0, name = -1, cost = -1, category = -1, school = -1, effectValue = -1; };
+		struct MagicLayout { bool ok = false, groups = false; int size = 0, name = -1, cost = -1, category = -1, school = -1, effectValue = -1, type = -1, index = -1; };
 
 		const MagicLayout& MagicProps()
 		{
@@ -84,6 +88,11 @@ namespace sorting::detail
 			       ui::SizeOf(st, "Category") == 1 && ui::SizeOf(st, "School") == 1 && ui::SizeOf(st, "EffectValue") == 1 &&
 			       ui::SizeOf(st, "Name") == static_cast<std::int32_t>(sizeof(UE::FText));
 			if (!l.ok) logger::warn("Menus Revamped: Magic item layout unexpected (size {}); own Magic sorts keep the game's order", l.size);
+			// Category sort: range (Type) and InventoryIndex (KB probing/snippets/mr-hover-refill.md: Type+41, InventoryIndex+44).
+			l.type = reflect::Offset(st, "Type");
+			l.index = reflect::Offset(st, "InventoryIndex");
+			l.groups = l.ok && l.type >= 0 && l.index >= 0 && ui::SizeOf(st, "Type") == 1 && ui::SizeOf(st, "InventoryIndex") == 4;
+			if (l.ok && !l.groups) logger::warn("Menus Revamped: Magic item Type/InventoryIndex not found; the Magic category sort keeps A-Z");
 			return l;
 		}
 
@@ -123,11 +132,18 @@ namespace sorting::detail
 			if (active ? page != 4 : (page < 0 || page >= 4)) return;
 			if (!items.data || items.num < 2 || items.num > 4000 || items.max < items.num) return;
 			const auto state = active ? itemsort::Effective(picker->SortAt(5), itemsort::ActiveKeys()) :
-			                            itemsort::Effective(picker->SortAt(page), itemsort::MagicKeys());
+			                            itemsort::Effective(picker->SortAt(Picker::kMagicSorts + page), itemsort::MagicKeys());
 			const auto stride = static_cast<std::size_t>(l.size);
 			std::vector<itemsort::Row> rows(static_cast<std::size_t>(items.num));
+			const bool grouped = !active && state.group >= 0 && l.groups;
+			const auto lists = grouped ? ReadMagicLists() : MagicLists{};   // the same masks the Magic filters use, read now
 			for (std::size_t i = 0; i < rows.size(); ++i) {
 				const auto* e = items.data + i * stride;
+				if (grouped) {
+					std::int32_t index = 0;
+					std::memcpy(&index, e + l.index, 4);
+					rows[i].group = itemsort::MagicGroupRank(state.group, MagicRowMask(e[l.type], e[l.school], index, lists));
+				}
 				rows[i].name = reflect::Text(*reinterpret_cast<const UE::FText*>(e + l.name));
 				std::memcpy(&rows[i].cost, e + l.cost, 4);
 				rows[i].magnitude = rows[i].cost;   // the same Property column: magnitude on Active Effects rows
@@ -185,9 +201,17 @@ namespace sorting::detail
 			const auto state = itemsort::Effective(picker->SortAt(static_cast<int>(tab)), itemsort::Keys(tab));
 			const auto stride = static_cast<std::size_t>(l.size);
 			std::vector<itemsort::Row> rows(static_cast<std::size_t>(items.num));
+			auto& waiting = g_waiting[kind == 0 ? 0 : kind - 2];
+			waiting.clear();
 			for (std::size_t i = 0; i < rows.size(); ++i) {
 				const auto* e = items.data + i * stride;
 				auto& row = rows[i];
+				if (state.group >= 0) {   // category sort: the row's classification, cached by item key
+					std::uint64_t tags = 0;
+					const auto key = RowKey(e);
+					if (CachedRowTags(key, tags)) row.group = itemsort::GroupRank(tab, static_cast<std::uint32_t>(tags));
+					else if (key) waiting.push_back(key);
+				}
 				row.name = reflect::Text(*reinterpret_cast<const UE::FText*>(e + l.name));
 				std::memcpy(&row.price, e + l.price, 4);
 				std::memcpy(&row.weight, e + l.weight, 4);
@@ -209,6 +233,51 @@ namespace sorting::detail
 			}
 			return false;
 		}
+	}
+
+	void TagsLanded(unsigned a_slot)
+	{
+		if (a_slot > 2 || g_waiting[a_slot].empty()) return;
+		std::uint64_t tags = 0;
+		const bool placed = std::any_of(g_waiting[a_slot].begin(), g_waiting[a_slot].end(), [&](std::uint64_t key) { return CachedRowTags(key, tags); });
+		g_waiting[a_slot].clear();   // rows that never classify do not republish again (no loop)
+		if (!placed) return;
+		if (auto* picker = ActivePicker(a_slot == 0 ? 0 : static_cast<int>(a_slot) + 2)) picker->pendingRepublish = true;
+	}
+
+	Picker* Picker::SortHost()
+	{
+		if (kind == 2 || kind == 5) return g_pickers[0].kind == 1 && g_pickers[0].active.load() ? &g_pickers[0] : nullptr;
+		return this;
+	}
+
+	void Picker::SeedSorts()
+	{
+		if (!OwnSorts() || kind == 6 || kind < 0 || (seededKinds & (1u << kind))) return;
+		seededKinds |= 1u << kind;
+		const bool on = mrconfig::Get().picker.categorySort;
+		const int first = kind == 1 ? kMagicSorts : 0, count = kind == 1 ? 4 : 5;
+		for (int slot = first; slot < first + count; ++slot) sorts[slot] = itemsort::Default(on, kind);   // Magic default: school
+	}
+
+	// The filter shows its active category sort like an active sort button: the game's parchment and the arrow.
+	void Picker::PaintGroup()
+	{
+		auto* host = active.load() ? SortHost() : nullptr;
+		const auto state = host && host->OwnSorts() ? host->SortAt(host->SortSlot()) : itemsort::State{};
+		const bool on = state.group >= 0 && state.group == kind && kind != 6;
+		if (auto* back = reflect::Get(groupBack)) ui::Visible(back, on && !controllerFocus);
+		if (auto* arrow = reflect::Get(groupArrow)) {
+			if (on) TextureBrush(arrow, state.descending ? itemsort::kArrowDown : itemsort::kArrowUp);
+			ui::Visible(arrow, on);
+		}
+		ui::Float(reflect::Get(headerImage), L"SetRenderOpacity", on || choice || category ? 1.0f : 0.5f);
+	}
+
+	const wchar_t* AllTexture(int a_kind)
+	{
+		return a_kind == 1 ? L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_school.T_Property_1_school" :
+			a_kind == 5 ? L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_LesserPower.T_Property_1_LesserPower" : nullptr;
 	}
 
 	void WatchRefills(Picker& a_picker)
@@ -381,8 +450,9 @@ namespace sorting::detail
 		if (!OwnSorts()) return;
 		paintedSlot = SortSlot();
 		const auto state = itemsort::Effective(SortAt(paintedSlot), SortKeys());
+		for (auto& peer : g_pickers) if (peer.SortHost() == this) peer.PaintGroup();
 		for (int k = 0; k < kSorts; ++k) {
-			const bool on = state.key == static_cast<itemsort::Key>(k), focus = sortFocus == k;
+			const bool on = state.group < 0 && state.key == static_cast<itemsort::Key>(k), focus = sortFocus == k;
 			ui::RoundedBox(reflect::Get(sortFrames[k]), false, focus ? pickerhighlight::kFill.data() : kClear, kClear,
 				pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 			if (auto* back = reflect::Get(sortBacks[k])) ui::Visible(back, on && !focus);

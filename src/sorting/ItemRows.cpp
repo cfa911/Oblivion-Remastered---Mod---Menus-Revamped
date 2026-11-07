@@ -46,6 +46,22 @@ namespace sorting
 			return properties;
 		}
 
+		std::uint64_t RowKey(const std::uint8_t* a_properties)
+		{
+			auto* properties = ItemProperties();
+			const auto formOffset = properties ? reflect::Offset(properties, "form") : -1;
+			const auto nameOffset = properties ? reflect::Offset(properties, "Name") : -1;
+			if (!a_properties || formOffset < 0 || nameOffset < 0) return 0;
+			const auto value = FormID(*reinterpret_cast<UE::UObject* const*>(a_properties + formOffset));
+			static const auto weightOffset = reflect::Offset(properties, "Weight"), typeOffset = reflect::Offset(properties, "Type");
+			std::string key = value ? std::to_string(value) : reflect::Text(*reinterpret_cast<const UE::FText*>(a_properties + nameOffset));
+			if (!value && weightOffset >= 0 && typeOffset >= 0) {
+				key.append(reinterpret_cast<const char*>(a_properties + weightOffset), sizeof(float));
+				key.push_back(static_cast<char>(a_properties[typeOffset]));
+			}
+			return key.empty() ? 0 : std::hash<std::string>{}(key) | 1;
+		}
+
 		std::uint32_t ContainerForm(UE::UObject* item, std::uint64_t* a_key)
 		{
 			auto* properties = ItemProperties();
@@ -58,15 +74,7 @@ namespace sorting
 			auto* form = *reinterpret_cast<UE::UObject**>(static_cast<std::uint8_t*>(result) + formOffset);
 			const auto value = FormID(form);
 			auto* name = reinterpret_cast<UE::FText*>(static_cast<std::uint8_t*>(result) + nameOffset);
-			if (a_key) {
-				static const auto weightOffset = reflect::Offset(properties, "Weight"), typeOffset = reflect::Offset(properties, "Type");
-				std::string key = value ? std::to_string(value) : reflect::Text(*name);
-				if (!value && weightOffset >= 0 && typeOffset >= 0) {
-					key.append(reinterpret_cast<const char*>(static_cast<std::uint8_t*>(result) + weightOffset), sizeof(float));
-					key.push_back(static_cast<char>(*(static_cast<std::uint8_t*>(result) + typeOffset)));
-				}
-				*a_key = key.empty() ? 0 : std::hash<std::string>{}(key) | 1;
-			}
+			if (a_key) *a_key = RowKey(static_cast<const std::uint8_t*>(result));   // the same key the refill's category sort reads
 			name->~FText();
 			return value;
 		}
@@ -144,11 +152,7 @@ namespace sorting
 			__except (EXCEPTION_EXECUTE_HANDLER) { return false; }
 		}
 
-		struct ScrollRow
-		{
-			int index = -1;
-			SpellRow magic;
-		};
+		using ScrollRow = MagicScroll;
 		static void* ScrollHead()
 		{
 			static REL::Relocation<void**> head{ REL::ID(1464952) };
@@ -187,30 +191,44 @@ namespace sorting
 			return n;
 		}
 
+		MagicLists ReadMagicLists()
+		{
+			MagicLists lists;
+			lists.spells.resize(600);
+			lists.spells.resize(static_cast<std::size_t>(ReadSpellsRaw(lists.spells.data(), 600)));
+			lists.scrolls.resize(600);
+			lists.scrolls.resize(static_cast<std::size_t>(ReadScrollsRaw(lists.scrolls.data(), 600)));
+			return lists;
+		}
+
+		// A Magic row's filter mask (school | effect << 32 | type tag) from its range, school and InventoryIndex.
+		std::uint64_t MagicRowMask(unsigned a_range, unsigned a_school, int a_index, const MagicLists& a_lists)
+		{
+			const auto& spells = a_lists.spells;
+			const auto scroll = std::find_if(a_lists.scrolls.begin(), a_lists.scrolls.end(), [a_index](const auto& row) { return row.index == a_index; });
+			const auto mask = scroll != a_lists.scrolls.end() ? magicrows::Mask(a_range, a_school, 1, &scroll->magic, 1) :
+				magicrows::Mask(a_range, a_school, a_index, spells.data(), spells.size());
+			const auto type = magicrows::CastableRange(a_range) ?
+				scroll != a_lists.scrolls.end() ? magicrows::kScrollTag : mask != kPassAll ?
+					magicrows::TypeTag(spells[static_cast<std::size_t>(a_index) - 1].type) : 0ull : 0ull;
+			return mask | type;
+		}
+
 		void ComputeMagicMasks(const std::vector<UE::UObject*>& a_items, FilterState& state)
 		{
-			std::vector<SpellRow> spells(600);
-			spells.resize(static_cast<std::size_t>(ReadSpellsRaw(spells.data(), 600)));
-			std::vector<ScrollRow> scrolls(600);
-			scrolls.resize(static_cast<std::size_t>(ReadScrollsRaw(scrolls.data(), 600)));
+			const auto lists = ReadMagicLists();
 			for (auto* item : a_items) {
 				const int index = Index(item);
 				std::uint8_t range = 0, school = 0;
 				const bool read = item && ReadByte(item, 0x51, range) && ReadByte(item, 0x58, school);
-				const auto scroll = std::find_if(scrolls.begin(), scrolls.end(), [index](const auto& row) { return row.index == index; });
-				const auto mask = !read ? kPassAll : scroll != scrolls.end() ?
-					magicrows::Mask(range, school, 1, &scroll->magic, 1) :
-					magicrows::Mask(range, school, index, spells.data(), spells.size());
+				const auto mask = read ? MagicRowMask(range, school, index, lists) : kPassAll;
 				// A genuine unresolved row still fails open; report once, never every row/menu tick.
 				static bool warned = false;
-				if (!warned && read && magicrows::CastableRange(range) && mask == kPassAll) {
+				if (!warned && read && magicrows::CastableRange(range) && (mask & kPassAll)) {
 					warned = true;
-					logger::warn("Menus Revamped: spell/scroll category filtering could not resolve a Magic row (index={}, range={}, captured={}); leaving it unfiltered", index, range, spells.size());
+					logger::warn("Menus Revamped: spell/scroll category filtering could not resolve a Magic row (index={}, range={}, captured={}); leaving it unfiltered", index, range, lists.spells.size());
 				}
-				const auto type = read && magicrows::CastableRange(range) ?
-					scroll != scrolls.end() ? magicrows::kScrollTag : mask != kPassAll ?
-						magicrows::TypeTag(spells[static_cast<std::size_t>(index) - 1].type) : 0ull : 0ull;
-				state.masks[index] = mask | type;
+				state.masks[index] = mask;
 			}
 		}
 	}
