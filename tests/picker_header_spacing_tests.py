@@ -38,8 +38,10 @@ bool RunGuarded(){return Run();}
 bool CallFirst(Widget* p,const wchar_t*,const void* bytes,unsigned n){if(!p||n!=16)return false;std::memcpy(reinterpret_cast<Slot*>(p)->padding.data(),bytes,n);return true;}
 bool CallFirstGuarded(Widget* p,const wchar_t* f,const void* bytes,unsigned n){return CallFirst(p,f,bytes,n);}
 }
+namespace itemsort { enum class Key { Name, Health, Damage, Armor, Weight, Value }; }
 struct Picker {
 Widget image,stolen,enchanted,panel; Widget* enchantedHeader=&enchanted,*stolenHeader=&stolen,*carousel=nullptr,*headerImage=nullptr;
+Widget sorts[6]; Widget* sortHeaders[6]={&sorts[0],&sorts[1],&sorts[2],&sorts[3],&sorts[4],&sorts[5]};
     unsigned choice=0,category=0;
     void PaintController(){if(headerImage)headerImage->opacity=choice||category?1.0f:0.5f;}
     bool Attach(bool replacement); bool Created();
@@ -58,6 +60,8 @@ Check(!added.empty() && added.front()==&appended.enchanted,"enchanted is the fir
     Check(Spaced(appended.image.slot),"custom content plus symmetric padding matches native 54px footprint");
 Check(appended.stolen.slot.padding==std::array<float,4>{0,0,0,0},"stolen toggle has no side padding");
 Check(appended.enchanted.slot.padding==std::array<float,4>{0,0,0,0},"enchanted toggle has no side padding");
+for(auto& sort:appended.sorts) Check(Spaced(sort.slot),"own sort buttons have symmetric 2.5 margins (Value's extra width is inside the button)");
+Check(added.size()>=9 && added[3]==&appended.sorts[0] && added[8]==&appended.sorts[5],"own sorts follow the category picker in one pass");
     Picker replacement; replacement.Attach(true);
     Check(Spaced(replacement.image.slot),"native-replacement custom picker has equal side padding");
     replacement.Created();

@@ -18,7 +18,9 @@ namespace sorting
 
 		bool Picker::SortCarouselFocused()
 		{
-			if (!active.load() || !ui::ShownOnScreen(reflect::Get(header))) return false;
+			// The Active Effects host (kind 6) keeps its category header hidden: our A-Z stands for the bar there (R12 log).
+			auto* anchor = kind == 6 ? reflect::Get(sortHeaders[static_cast<int>(itemsort::Key::Name)]) : reflect::Get(header);
+			if (!active.load() || !ui::ShownOnScreen(anchor)) return false;
 			ui::Call mode(reflect::Get(menu), L"IsFilterFocused");
 			if (mode && mode.Size("IsClosed") == 1) {
 				if (!mode.RunGuarded() || !mode.Get<std::uint8_t>("IsClosed")) return false;
@@ -55,7 +57,16 @@ namespace sorting
 			if (a_message != WM_LBUTTONDOWN) return false;
 			commandFromController = false;
 			const double x = static_cast<short>(LOWORD(a_position)), y = static_cast<short>(HIWORD(a_position));
-			if (enchantedPx.Hit(x, y)) command = enchantedfilter::kToggleCommand;
+			int sortHit = -1;
+			for (int k = 0; k < kSorts && sortHit < 0; ++k) if (sortPx[k].Hit(x, y)) sortHit = k;
+			if (sortHit >= 0) {
+				command = itemsort::SortCommand(static_cast<itemsort::Key>(sortHit));
+				static int s_logged = 0;   // TEMP-DIAG RMI-045: which of our sort rectangles takes a click
+				if (s_logged++ < 60)
+					logger::warn("TEMP-DIAG own-sort: click kind {} sort {} at {:.0f},{:.0f} rect {:.0f},{:.0f} {:.0f}x{:.0f}", kind, sortHit, x, y,
+						sortPx[sortHit].x, sortPx[sortHit].y, sortPx[sortHit].w, sortPx[sortHit].h);
+			}
+			else if (enchantedPx.Hit(x, y)) command = enchantedfilter::kToggleCommand;
 		else if (stolenPx.Hit(x, y)) command = stolenfilter::kToggleCommand;
 			else if (headerPx.Hit(x, y)) command = pickergrid::kToggleCommand;
 			else if (inputOpen) {
@@ -76,6 +87,7 @@ namespace sorting
 			g_pad.Disconnect();
 			for (auto& picker : g_pickers) {
 				picker.returnToList.Cancel();
+				if (picker.sortFocus >= 0) { picker.sortFocus = -1; picker.PaintSorts(); }
 				if (picker.controllerFocus || picker.controllerPopup || picker.stolenFocus || picker.enchantedFocus) {
 					picker.controllerFocus = picker.controllerPopup = picker.stolenFocus = picker.enchantedFocus = false; picker.PaintController();
 				}
@@ -84,11 +96,24 @@ namespace sorting
 		}
 		const pickerpad::Input raw{ buttons, x, y };
 		g_pad.Sample(raw, GetTickCount64());
+		if (g_pad.pressed & pickerpad::Y)
+			for (auto& picker : g_pickers)
+				// Quick loot only (the player side is not shown); in Transfer and barter the game's Y works.
+				if (picker.kind == 4 && picker.active.load() && ui::ShownOnScreen(reflect::Get(picker.menu)) && !container::SideShown(3)) {
+					picker.quickLootWant = !picker.SortCarouselFocused();
+					picker.quickLootY = GetTickCount64() + 150;   // the game's Y handler toggles Transfer sort rows itself
+				}
 		Picker* owner = nullptr;
 		for (auto& picker : g_pickers) {
 			const bool focused = picker.ControllerFocused();
 			const bool stolenFocused = picker.StolenFocused();
 			const bool enchantedFocused = picker.EnchantedFocused();
+			const int sortFocused = picker.active.load() ? picker.SortFocused() : -1;
+			if (picker.sortFocus != sortFocused) {
+				static int s_logged = 0;   // TEMP-DIAG RMI-046: our sort focus (it consumes A/Up/Down/Left/Right while >= 0)
+				if (s_logged++ < 300) logger::warn("TEMP-DIAG own-sort: focus kind {} {} -> {}", picker.kind, picker.sortFocus, sortFocused);
+				picker.sortFocus = sortFocused; picker.PaintSorts();
+			}
 			if (picker.enchantedFocus != enchantedFocused) { picker.enchantedFocus = enchantedFocused; picker.PaintEnchanted(); }
 			if (picker.stolenFocus != stolenFocused) { picker.stolenFocus = stolenFocused; picker.PaintStolen(); }
 			if (picker.controllerFocus != focused) {
@@ -100,7 +125,7 @@ namespace sorting
 				picker.PaintController();
 			}
 			// A mouse-opened picker is modal for the pad too, but only while its menu is active.
-			if (!owner && picker.active.load() && ui::ShownOnScreen(reflect::Get(picker.menu)) && (focused || stolenFocused || enchantedFocused || picker.open)) owner = &picker;
+			if (!owner && picker.active.load() && ui::ShownOnScreen(reflect::Get(picker.menu)) &&(focused || stolenFocused || enchantedFocused || sortFocused >= 0 || picker.open)) owner = &picker;
 		}
 		if (owner) {
 			auto& picker = *owner;
@@ -114,6 +139,17 @@ namespace sorting
 				else if (g_pad.pulse != pickerpad::Direction::None)
 					picker.cursor = pickerpad::Move(picker.cursor, itemtags::Info(picker.view).count, g_pad.pulse);
 				if (newlyOwned || picker.cursor != previousCursor) picker.PaintController();
+			} else if (picker.sortFocus >= 0) {
+				g_pad.Consume(raw, pickerpad::A | pickerpad::Up | pickerpad::Down | pickerpad::Left | pickerpad::Right, true);
+				const auto key = static_cast<itemsort::Key>(picker.sortFocus);
+				if (g_pad.pressed & pickerpad::A) picker.Queue(itemsort::SortCommand(key));
+				else if (g_pad.pulse == pickerpad::Direction::Up) picker.Queue(itemsort::SortCommand(key, itemsort::Action::Ascending));
+				else if (g_pad.pulse == pickerpad::Direction::Down) picker.Queue(itemsort::SortCommand(key, itemsort::Action::Descending));
+				else if (g_pad.pulse == pickerpad::Direction::Left || g_pad.pulse == pickerpad::Direction::Right) {
+					ui::Call navigate(reflect::Get(picker.carousel),
+						g_pad.pulse == pickerpad::Direction::Left ? L"NavigateToPrevElement" : L"NavigateToNextElement");
+					navigate.RunGuarded();
+				}
 			} else if (picker.stolenFocus || picker.enchantedFocus) {
 				// A toggles the stolen-only icon; up/down are swallowed like on the picker; Y stays native (exit).
 				g_pad.Consume(raw, pickerpad::A | pickerpad::Up | pickerpad::Down | pickerpad::Left | pickerpad::Right, true);
@@ -125,8 +161,9 @@ namespace sorting
 				}
 			} else {
 				// Native methods retain their original A/up/down reversal. Only our focused header owns these.
+				// Only A opens the filter popup: Up/Down are swallowed and do nothing (owner 2026-11-07: Down acting as A confused).
 				g_pad.Consume(raw, pickerpad::A | pickerpad::Up | pickerpad::Down | pickerpad::Left | pickerpad::Right, true);
-				if ((g_pad.pressed & pickerpad::A) || g_pad.pulse == pickerpad::Direction::Up || g_pad.pulse == pickerpad::Direction::Down) {
+				if (g_pad.pressed & pickerpad::A) {
 					picker.controllerPopup = true; picker.Queue(pickergrid::kToggleCommand);
 				}
 				else if (g_pad.pulse == pickerpad::Direction::Left || g_pad.pulse == pickerpad::Direction::Right) {

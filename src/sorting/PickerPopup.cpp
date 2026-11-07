@@ -88,6 +88,19 @@ namespace sorting::detail
 		return true;
 	}
 
+	// Owner 2026-11-07: on the spell tabs the school (scroll) and type (star) pickers show the game's original sort icons
+	// in their "All" state, loaded from the game at run time (no game art shipped); other choices keep their PNGs.
+	void Picker::BrushHeader(const wchar_t* a_icon)
+	{
+		auto* image = reflect::Get(headerImage);
+		if (!image || !a_icon) return;
+		const bool all = std::wcscmp(a_icon, itemtags::Info(tab).icons[0]) == 0;
+		const wchar_t* game = !all ? nullptr :
+			kind == 1 ? L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_school.T_Property_1_school" :
+			kind == 5 ? L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_LesserPower.T_Property_1_LesserPower" : nullptr;
+		if (!game || !TextureBrush(image, game)) Brush(image, a_icon);   // a missing game texture falls back to the PNG
+	}
+
 	const wchar_t* Picker::HeaderIcon() const
 	{
 		if (tab != itemtags::Tab::AllItems) return itemtags::SelectionIcon(tab, choice);
@@ -134,7 +147,7 @@ namespace sorting::detail
 				}
 			}
 		}
-		if (auto* image = reflect::Get(headerImage)) Brush(image, HeaderIcon());
+		BrushHeader(HeaderIcon());
 		PaintController();
 	}
 
