@@ -150,7 +150,7 @@ int main()
 		rows[3].name = "Mystery";     rows[3].group = -1;
 		rows[4].name = "Cuirass";     rows[4].group = 2;
 		check(itemsort::Order(rows, itemsort::ApplyGroup({}, 0, Action::Ascending)) == std::vector{ 1, 4, 2, 0, 3 }, "grouped ascending");
-		check(itemsort::Order(rows, itemsort::ApplyGroup({}, 0, Action::Descending)) == std::vector{ 2, 0, 4, 1, 3 }, "grouped reversed: groups reversed, A-Z inside, unknown last");
+		check(itemsort::Order(rows, itemsort::ApplyGroup({}, 0, Action::Descending)) == std::vector{ 0, 2, 4, 1, 3 }, "grouped reversed: groups reversed, Z-A inside (RMI-049), unknown last");
 	}
 
 	// ---- commands ----

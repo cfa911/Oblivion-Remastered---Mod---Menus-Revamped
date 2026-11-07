@@ -144,8 +144,10 @@ namespace itemsort
 		return out;
 	}
 
-	// The display order: a permutation of the row indices. Missing numbers last in both directions;
-	// ties by name ascending, then the original order.
+	// The display order: a permutation of the row indices. Missing numbers last in both directions; ties by name
+	// ascending, then same-name rows by value highest first, then weight highest first (RMI-049), then the original order.
+	// A category sort (RMI-049, owner list): groups in order, inside a group value highest first, equal values A-Z, then
+	// weight highest first; descending is the exact reverse. Rows without a group or a value stay last both ways.
 	inline std::vector<int> Order(std::span<const Row> a_rows, State a_state)
 	{
 		std::vector<int>         order(a_rows.size());
@@ -155,18 +157,37 @@ namespace itemsort
 			names[i] = FoldName(a_rows[i].name);
 		}
 		const bool d = a_state.descending;
+		// Highest first, missing last; 0 when equal.
+		const auto higher = [](float x, float y) -> int {
+			if ((x < 0) != (y < 0)) return y < 0 ? -1 : 1;
+			if (x < 0 || x == y) return 0;
+			return x > y ? -1 : 1;
+		};
+		const auto sameName = [&](int a, int b) {
+			if (const int c = higher(a_rows[a].price, a_rows[b].price)) return c < 0;
+			return higher(a_rows[a].weight, a_rows[b].weight) < 0;
+		};
+		const auto byName = [&](int a, int b, bool a_desc) {
+			if (names[a] != names[b]) return (names[a] < names[b]) != a_desc;
+			return sameName(a, b);
+		};
 		std::stable_sort(order.begin(), order.end(), [&](int a, int b) {
-			if (a_state.group >= 0) {   // category sort: groups in order (reversed when descending), A-Z inside, none last
+			if (a_state.group >= 0) {
 				const int x = a_rows[a].group, y = a_rows[b].group;
 				if ((x < 0) != (y < 0)) return y < 0;
 				if (x != y) return (x < y) != d;
-				return names[a] < names[b];
+				const float pa = a_rows[a].price, pb = a_rows[b].price;
+				if ((pa < 0) != (pb < 0)) return pb < 0;
+				if (const int c = higher(pa, pb)) return (c < 0) != d;
+				if (names[a] != names[b]) return (names[a] < names[b]) != d;
+				if (const int c = higher(a_rows[a].weight, a_rows[b].weight)) return (c < 0) != d;
+				return false;
 			}
-			if (a_state.key == Key::Name) return names[a] != names[b] && ((names[a] < names[b]) != d);
+			if (a_state.key == Key::Name) return byName(a, b, d);
 			const float x = Number(a_rows[a], a_state.key), y = Number(a_rows[b], a_state.key);
 			if ((x < 0) != (y < 0)) return y < 0;
 			if (x >= 0 && x != y) return (x < y) != d;
-			return names[a] < names[b];
+			return byName(a, b, false);
 		});
 		return order;
 	}
