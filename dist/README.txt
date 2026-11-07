@@ -1,4 +1,4 @@
-Menus Revamped 1.4.0
+Menus Revamped 1.4.1
 Oblivion Remastered - OBSE64 plugin
 
 REQUIREMENTS
