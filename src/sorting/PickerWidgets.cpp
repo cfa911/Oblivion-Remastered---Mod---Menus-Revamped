@@ -24,6 +24,27 @@ namespace sorting
 			}
 		}
 
+		bool TextureBrush(UE::UObject* a_image, const wchar_t* a_gamePath)
+		{
+			static std::unordered_map<std::wstring, reflect::Handle> s_loaded;
+			auto& held = s_loaded[a_gamePath];
+			auto* texture = reflect::Get(held);
+			if (!texture) {
+				texture = ui::Load(a_gamePath);
+				if (!texture) {
+					static bool s_warned = false;
+					if (!s_warned) { s_warned = true; logger::warn("Menus Revamped: game sort texture {} not found; that icon is blank", pe::Utf8(UE::FString(a_gamePath))); }
+					return false;
+				}
+				held = reflect::Hold(texture);
+			}
+			ui::Call set(a_image, L"SetBrushFromTexture");
+			if (!set) return false;
+			set.Set("Texture", texture);
+			set.Set("bMatchSize", false);
+			return set.Run();
+		}
+
 		UE::UObject* CanvasChild(UE::UObject* a_canvas, const wchar_t* a_class, const wchar_t* a_name, double x, double y, double w, double h, int z, UE::UObject** a_slot)
 		{
 			UE::UObject* slot = nullptr;

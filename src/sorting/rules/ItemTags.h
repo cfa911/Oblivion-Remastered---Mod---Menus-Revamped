@@ -18,8 +18,9 @@ namespace itemtags
 	// Flat tag/selection IDs keep parent navigation separate from applied membership.
 	// Potions is the native page-2 enum; its popup root is now Alchemy (All, Potions, Poisons, Ingredients, Tools).
 	// Potions and Poisons each open their own group submenu (owner regrouping 2026-10-30).
+	// Root order = popup and category-sort order (owner 2026-11-07): Tools, Potions, Poisons, Ingredients.
 	enum class Alchemy : unsigned {
-		All, Potions, Poisons, Ingredients, Tools,
+		All, Tools, Potions, Poisons, Ingredients,
 		Restore, Fortify, Ward, Stealth, Utility, Cures, Other,
 		Damage, Elemental, Disable
 	};
@@ -65,14 +66,14 @@ namespace itemtags
 	{
 		static const TabInfo tabs[] = {
 			{ "Weapon type", weaponkinds::kCount,
-				{ "All", "Daggers", "Shortswords", "Longswords", "Claymores", "War axes", "Battleaxes", "Maces", "Warhammers", "Bows", "Arrows", "Staves", "Other weapons" },
-				{ L"Weapon-All.png", L"Weapon-Dagger.png", L"Weapon-Shortsword.png", L"Weapon-Longsword.png", L"Weapon-Claymore.png", L"Weapon-WarAxe.png", L"Weapon-Battleaxe.png", L"Weapon-Mace.png", L"Weapon-Warhammer.png", L"Weapon-Bow.png", L"Weapon-Arrow.png", L"Weapon-Staff.png", L"Weapon-Other.png" } },
-			{ "Equipment piece", 9, { "All", "Ring", "Amulet", "Head", "Torso", "Arms", "Feet", "Legwear", "Shield" },
-				{ L"Gear-All.png", L"Gear-Ring.png", L"Gear-Amulet.png", L"Gear-Head.png", L"Gear-Torso.png", L"Gear-Arms.png", L"Gear-Feet.png", L"Gear-Legwear.png", L"Gear-Shield.png" } },
-			{ "Alchemy", 5, { "All", "Potions", "Poisons", "Ingredients", "Tools" },
-				{ L"Alchemy-All.png", L"Alchemy-Potions.png", L"Alchemy-Poisons.png", L"Alchemy-Ingredients.png", L"Alchemy-Tools.png" } },
-			{ "Item type", 6, { "All", "Keys", "Soul gems", "Books", "Tools", "Other" },
-				{ L"Misc-All.png", L"Misc-Keys.png", L"Misc-SoulGems.png", L"Misc-Books.png", L"Misc-Tools.png", L"Misc-Other.png" } },
+				{ "All", "Claymores", "Longswords", "Shortswords", "Daggers", "War axes", "Battleaxes", "Maces", "Warhammers", "Staves", "Bows", "Arrows", "Other weapons" },
+				{ L"Weapon-All.png", L"Weapon-Claymore.png", L"Weapon-Longsword.png", L"Weapon-Shortsword.png", L"Weapon-Dagger.png", L"Weapon-WarAxe.png", L"Weapon-Battleaxe.png", L"Weapon-Mace.png", L"Weapon-Warhammer.png", L"Weapon-Staff.png", L"Weapon-Bow.png", L"Weapon-Arrow.png", L"Weapon-Other.png" } },
+			{ "Equipment piece", 9, { "All", "Head", "Torso", "Arms", "Legwear", "Feet", "Shield", "Amulet", "Ring" },
+				{ L"Gear-All.png", L"Gear-Head.png", L"Gear-Torso.png", L"Gear-Arms.png", L"Gear-Legwear.png", L"Gear-Feet.png", L"Gear-Shield.png", L"Gear-Amulet.png", L"Gear-Ring.png" } },
+			{ "Alchemy", 5, { "All", "Tools", "Potions", "Poisons", "Ingredients" },
+				{ L"Alchemy-All.png", L"Alchemy-Tools.png", L"Alchemy-Potions.png", L"Alchemy-Poisons.png", L"Alchemy-Ingredients.png" } },
+			{ "Item type", 7, { "All", "Tools", "Soul gems", "Books", "Scrolls", "Keys", "Other" },
+				{ L"Misc-All.png", L"Misc-Tools.png", L"Misc-SoulGems.png", L"Misc-Books.png", L"MagicType-Scrolls.png", L"Misc-Keys.png", L"Misc-Other.png" } },
 			// All Items: the four tab categories first; a category then opens its own choices.
 			{ "Item category", 5, { "All", "Weapons", "Gear", "Alchemy", "Misc" },
 				{ L"Category-All.png", L"Category-Weapons.png", L"Category-Gear.png", L"Category-Alchemy.png", L"Category-Misc.png" } },
@@ -158,7 +159,7 @@ namespace itemtags
 		return 0;
 	}
 
-	// Gear: biped slot mask -> bits in the order Ring, Amulet, Head, Torso, Arms, Feet, Legwear, Shield.
+	// Gear: biped slot mask -> bits in the order Head, Torso, Arms, Legwear, Feet, Shield, Amulet, Ring.
 	constexpr std::uint32_t GearTags(std::uint16_t a_biped, std::string_view a_model = {}, std::string_view a_world = {})
 	{
 		if (a_biped == 0) a_biped = SlotsFromModel(a_model) | SlotsFromModel(a_world);
@@ -246,18 +247,18 @@ namespace itemtags
 		return magiceffects::Tags(a_codes, a_count);
 	}
 
-	// Misc: form type (RE::FormType) + base form id + book flags -> Keys, Soul gems, Books/Scrolls, Tools, Other.
-	// Installed master: Lockpick 0xA and RepairHammer 0xC. Inventory lights (including
-	// torches) are Tools. Alchemy apparatus/ingredients have their own Alchemy groups.
-	constexpr std::uint32_t MiscTags(unsigned a_formType, std::uint32_t a_formId, std::uint8_t)
+	// Misc: form type (RE::FormType) + base form id + book flags -> Tools, Soul gems, Books, Scrolls, Keys, Other
+	// (choices 1..6, owner order 2026-11-07). Installed master: Lockpick 0xA and RepairHammer 0xC. Inventory lights
+	// (including torches) are Tools. Book DATA flag 0x01 = scroll (GearData also passes it for an enchanted book).
+	constexpr std::uint32_t MiscTags(unsigned a_formType, std::uint32_t a_formId, std::uint8_t a_bookFlags)
 	{
 		switch (a_formType) {
-		case 39: return 1u << 0;  // key
+		case 27: return ((a_formId & 0x00FFFFFFu) == 0x0Au || a_formId == 0x0Cu) ? (1u << 0) : (1u << 5);
+		case 26: return 1u << 0;  // inventory light/torch
 		case 38: return 1u << 1;  // soul gem
-		case 21: return 1u << 2;  // book or scroll
-		case 27: return ((a_formId & 0x00FFFFFFu) == 0x0Au || a_formId == 0x0Cu) ? (1u << 3) : (1u << 4);
-		case 26: return 1u << 3;  // inventory light/torch
-		case 42: return 1u << 4;  // sigil stone
+		case 21: return (a_bookFlags & 1u) ? (1u << 3) : (1u << 2);  // scroll or book
+		case 39: return 1u << 4;  // key
+		case 42: return 1u << 5;  // sigil stone
 		default: return 0;
 		}
 	}

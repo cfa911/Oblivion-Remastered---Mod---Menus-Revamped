@@ -18,7 +18,7 @@ int main()
 		4, 4, 4, 32, 3, 8, 8, 256, 256, 256, 256, 256, 256, 64, 64,
 		64, 64, 64, 64, 64, 64, 192, 128, 64, 64, 64, 12, 64, 8192, 16
 	};
-	constexpr unsigned expected[] = { 30, 14, 6, 1, 4, 1, 1, 3, 1 };
+	constexpr unsigned expected[] = { 30, 1, 4, 1, 3, 1, 1, 6, 14 };   // All, Head, Torso, Arms, Legwear, Feet, Shield, Amulet, Ring
 	for (unsigned piece = 0; piece < 9; ++piece) {
 		unsigned count = 0;
 		for (auto slots : fixture) if (gearpieces::Includes(static_cast<Piece>(piece), slots)) ++count;
@@ -44,23 +44,23 @@ int main()
 	check(itemtags::TabFromPage(3, tab) && tab == itemtags::Tab::Misc, "page 3 is misc");
 	check(itemtags::TabFromPage(4, tab) && tab == itemtags::Tab::AllItems && !itemtags::TabFromPage(5, tab) && !itemtags::TabFromPage(-1, tab), "page 4 is all items");
 	check(itemtags::Info(itemtags::Tab::Weapons).count == weaponkinds::kCount && itemtags::Info(itemtags::Tab::Gear).count == 9 &&
-		itemtags::Info(itemtags::Tab::Potions).count == 5 && itemtags::Info(itemtags::Tab::Misc).count == 6, "choice counts");
-	// Gear tags still agree with the captured masks: Ring is choice 1, Shield choice 8.
-	check(itemtags::Includes(1, itemtags::GearTags(0xC0)) && itemtags::Includes(7, itemtags::GearTags(12)) && !itemtags::Includes(6, itemtags::GearTags(8)), "gear tags");
+		itemtags::Info(itemtags::Tab::Potions).count == 5 && itemtags::Info(itemtags::Tab::Misc).count == 7, "choice counts");   // Misc Scrolls (owner 2026-11-07)
+	// Gear tags still agree with the captured masks: Head is choice 1, Ring choice 8 (owner order 2026-11-07).
+	check(itemtags::Includes(8, itemtags::GearTags(0xC0)) && itemtags::Includes(4, itemtags::GearTags(12)) && !itemtags::Includes(5, itemtags::GearTags(8)), "gear tags");
 	// RMI-008: slot-removing mods (Nexus 497) leave rings/amulets with no slot; their model folder still names them.
 	// Measured on the 669 active vanilla/DLC/Altar/UOR CLOT records (2026-11-03): no plain item has slot mask 0.
-	check(itemtags::Includes(1, itemtags::GearTags(0, "Clothes\\Ring\\RingGold.NIF")), "no-slot ring by biped model");
-	check(itemtags::Includes(1, itemtags::GearTags(0, {}, "Clothes\\Ring\\ND01\\RingND.NIF")), "no-slot ring by world model subfolder");
-	check(itemtags::Includes(2, itemtags::GearTags(0, "clothes/amulet/amulet01.nif")), "no-slot amulet, any case and slash");
+	check(itemtags::Includes(8, itemtags::GearTags(0, "Clothes\\Ring\\RingGold.NIF")), "no-slot ring by biped model");
+	check(itemtags::Includes(8, itemtags::GearTags(0, {}, "Clothes\\Ring\\ND01\\RingND.NIF")), "no-slot ring by world model subfolder");
+	check(itemtags::Includes(7, itemtags::GearTags(0, "clothes/amulet/amulet01.nif")), "no-slot amulet, any case and slash");
 	check(itemtags::GearTags(0, "Clothes\\Wizard\\Robe.NIF") == 0 && itemtags::GearTags(0, "IdleObjects\\SESheogorathCane.NIF") == 0, "other no-slot clothing stays untagged");
 	check(itemtags::GearTags(0, "Clothes\\Ringmail\\Shirt.NIF") == 0, "folder must be exactly ring");
 	check(itemtags::GearTags(0x10, "Clothes\\Ring\\Ring.NIF") == itemtags::GearTags(0x10), "native slots win over the model folder");
 	check(itemtags::Includes(0, 0), "All keeps untagged items");
 	check(!itemtags::Includes(1, 0), "untagged item is not choice 1");
 	// Detailed melee tags use model/icon hints within native skill/handedness boundaries.
-	check(itemtags::Includes(1, itemtags::WeaponTags(0, "Dagger.NIF")) && itemtags::Includes(4, itemtags::WeaponTags(1, "Claymore.NIF")), "blade subtypes");
+	check(itemtags::Includes(4, itemtags::WeaponTags(0, "Dagger.NIF")) && itemtags::Includes(1, itemtags::WeaponTags(1, "Claymore.NIF")), "blade subtypes");
 	check(itemtags::Includes(5, itemtags::WeaponTags(2, "WarAxe.NIF")) && itemtags::Includes(6, itemtags::WeaponTags(3, "Battleaxe.NIF")), "axe subtypes");
-	check(itemtags::Includes(9, itemtags::WeaponTags(5)) && itemtags::Includes(static_cast<unsigned>(weaponkinds::Kind::Staff), itemtags::WeaponTags(4)), "bow and staff unchanged");
+	check(itemtags::Includes(10, itemtags::WeaponTags(5)) && itemtags::Includes(static_cast<unsigned>(weaponkinds::Kind::Staff), itemtags::WeaponTags(4)), "bow and staff unchanged");
 	check(!itemtags::Includes(2, itemtags::WeaponTags(0)) && itemtags::Includes(static_cast<unsigned>(weaponkinds::Kind::Other), itemtags::WeaponTags(-1)) && itemtags::Includes(static_cast<unsigned>(weaponkinds::Kind::Other), itemtags::WeaponTags(9)), "unknown weapon fallback");
 	// Potion family IDs are flat applied tags, independent of the nested popup.
 	using itemtags::Code;
@@ -93,13 +93,14 @@ int main()
 	check(itemtags::PotionTags(mixedMagicka, 4, 1) == mixedTags, "mixed potion with one hostile effect is not a poison");
 	check(!itemtags::IncludesAll(2, Index(Alchemy::Restore), itemtags::PotionTags(potionRESP, 1, 0) | (3u << 28)), "Restore cannot leak into Gear");
 	// Misc: stable native item kinds and the independently verified base repair-hammer form.
-	check(itemtags::Includes(1, itemtags::MiscTags(39, 0x123, 0)), "key");
+	check(itemtags::Includes(5, itemtags::MiscTags(39, 0x123, 0)), "key");
 	check(itemtags::Includes(2, itemtags::MiscTags(38, 0x2CF9F, 0)), "soul gem");
-	check(itemtags::Includes(3, itemtags::MiscTags(21, 0x5, 1)), "book or scroll");
-	check(itemtags::Includes(4, itemtags::MiscTags(27, 0x0A, 0)) && itemtags::Includes(4, itemtags::MiscTags(27, 0xFF00000A, 0)), "existing lockpick rule retained");
-	check(itemtags::Includes(4, itemtags::MiscTags(27, 0x0C, 0)) && !itemtags::Includes(5, itemtags::MiscTags(27, 0x0C, 0)), "base repair hammer moves to Tools");
-	check(itemtags::Includes(5, itemtags::MiscTags(27, 0x191, 0)) && !itemtags::Includes(4, itemtags::MiscTags(27, 0x191, 0)), "other misc");
-	check(itemtags::Includes(4, itemtags::MiscTags(26, 0x2CF9F, 0)) && itemtags::Includes(5, itemtags::MiscTags(42, 0x41FD3, 0)), "torch Tools and sigil stone Other");
+	check(itemtags::Includes(3, itemtags::MiscTags(21, 0x5, 0)), "book");
+	check(itemtags::Includes(4, itemtags::MiscTags(21, 0x5, 1)) && !itemtags::Includes(3, itemtags::MiscTags(21, 0x5, 1)), "scroll (book flag 0x01)");
+	check(itemtags::Includes(1, itemtags::MiscTags(27, 0x0A, 0)) && itemtags::Includes(1, itemtags::MiscTags(27, 0xFF00000A, 0)), "existing lockpick rule retained");
+	check(itemtags::Includes(1, itemtags::MiscTags(27, 0x0C, 0)) && !itemtags::Includes(6, itemtags::MiscTags(27, 0x0C, 0)), "base repair hammer moves to Tools");
+	check(itemtags::Includes(6, itemtags::MiscTags(27, 0x191, 0)) && !itemtags::Includes(1, itemtags::MiscTags(27, 0x191, 0)), "other misc");
+	check(itemtags::Includes(1, itemtags::MiscTags(26, 0x2CF9F, 0)) && itemtags::Includes(6, itemtags::MiscTags(42, 0x41FD3, 0)), "torch Tools and sigil stone Other");
 	check(itemtags::MiscTags(19, 1, 0) == 0 && itemtags::MiscTags(25, 1, 0) == 0, "alchemy tools and ingredients do not become Misc");
 // All Items: category from form type, then the sub-choice inside it.
 	check(itemtags::Info(itemtags::Tab::AllItems).count == 5, "category count");
@@ -108,10 +109,10 @@ int main()
 	const std::uint32_t ring = itemtags::GearTags(0x40) | (2u << 28), bow = itemtags::WeaponTags(5) | (1u << 28), key = itemtags::MiscTags(39, 1, 0) | (4u << 28), ammo = itemtags::AmmoTags(34) | (itemtags::Category(34) << 28);
 	check(itemtags::IncludesAll(0, 0, ammo) && itemtags::IncludesAll(0, 9, bow), "no category keeps everything");
 	check(itemtags::IncludesAll(2, 0, ring) && !itemtags::IncludesAll(2, 0, bow), "whole gear category");
-	check(itemtags::IncludesAll(2, 1, ring) && !itemtags::IncludesAll(2, 2, ring), "ring inside gear");
-	check(itemtags::IncludesAll(1, 9, bow) && !itemtags::IncludesAll(1, 9, key), "bow only inside weapons");
-	check(itemtags::IncludesAll(4, 1, key) && !itemtags::IncludesAll(3, 1, key), "key only in misc");
-	check(itemtags::IncludesAll(1, 0, ammo) && itemtags::Includes(1, ring), "category bits do not disturb choice bits");
+	check(itemtags::IncludesAll(2, 8, ring) && !itemtags::IncludesAll(2, 7, ring), "ring inside gear");
+	check(itemtags::IncludesAll(1, 10, bow) && !itemtags::IncludesAll(1, 10, key), "bow only inside weapons");
+	check(itemtags::IncludesAll(4, 5, key) && !itemtags::IncludesAll(3, 5, key), "key only in misc");
+	check(itemtags::IncludesAll(1, 0, ammo) && itemtags::Includes(8, ring), "category bits do not disturb choice bits");
 	// Magic: school/power and effect tags.
 	check(itemtags::Info(itemtags::Tab::MagicSchool).count == 7 && itemtags::Info(itemtags::Tab::MagicEffect).count == magiceffects::kChoiceCount, "magic choice counts");
 	constexpr std::array<std::string_view, 7> schoolLabels{ "All", "Alte", "Conj", "Dest", "Illu", "Myst", "Rest" };

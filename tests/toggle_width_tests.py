@@ -44,11 +44,18 @@ namespace stolenfilter { bool Supports(int){return true;} }
 namespace mrconfig { struct PickerOn { bool inventory = true, magic = true, container = true, stolenFilter = true, enchantedFilter = true; }; struct Values { PickerOn picker; }; inline const Values& Get() { static Values v; return v; } }
 namespace itemtags { struct Data{const wchar_t* icons[1]={L"Category.png"};}; Data Info(int){return {};}}
 void PaintEnchanted(){} void PaintStolen(){}
+namespace itemsort { enum class Key { Name, Health, Damage, Armor, Weight, Value, Cost, EffectValue, Category, School, Magnitude, kCount }; const wchar_t* TexturePath(Key){return L"tex";} constexpr const wchar_t* kActiveBackground=L"back"; std::vector<Key> MagicKeys(){return {Key::Name,Key::Cost};} std::vector<Key> ActiveKeys(){return {Key::Name,Key::EffectValue,Key::Category,Key::School,Key::Magnitude};} }
+bool TextureBrush(Widget*,const wchar_t*){return true;}
+namespace ui { void Visible(Widget*,bool){} }
+reflect::Handle groupBack{},groupArrow{};
+void BrushHeader(const wchar_t*){}
+constexpr int kSorts=11; bool OwnSorts(){return true;}
+reflect::Handle sortHeaders[11]{},sortImages[11]{},sortFrames[11]{},sortArrows[11]{},sortBacks[11]{};
 bool Create(){
 std::wstring classPath=L"Class",suffix=L"1";
 Widget navigationWidget;auto* navigation=&navigationWidget;
 reflect::Handle enchantedHeader{},enchantedImage{},enchantedFrame{},stolenHeader{},stolenImage{},stolenFrame{},header{},headerImage{},headerFrame{};
-int kind=1,tab=0;Widget* box=nullptr;
+int kind=0,tab=0;Widget* box=nullptr;   // the Inventory picker: all six sorts
 constexpr float kClear[4]={};
 '''
 main=r'''
@@ -59,6 +66,11 @@ int checks=0,failed=0;
 auto check=[&](bool ok,const char* why){++checks;if(!ok){++failed;std::cout<<"FAIL "<<why<<"\n";}};
 check(Create(),"factory succeeds");
 auto find=[](const std::wstring& name){for(auto& r:records)if(r.name==name+L"1")return r.widget;return static_cast<Widget*>(nullptr);};
+{
+auto* back=find(L"SlPieceGroupBack");auto* arrow=find(L"SlPieceGroupArrow");
+check(back&&back->x==0&&back->w==49&&back->h==49&&groupBack==back,"category sort parchment fills the 49-wide filter");
+check(arrow&&arrow->x==35&&arrow->y==35&&arrow->w==12&&groupArrow==arrow,"category sort arrow in the corner like the sorts");
+}
 for(const auto* prefix:{L"SlEnchantedHeader",L"SlStolenHeader",L"SlPieceHeader"}){
 const bool toggle=std::wstring(prefix)!=L"SlPieceHeader";
 auto* size=find(std::wstring(prefix)+L"Size");auto* frame=find(std::wstring(prefix)+L"Frame");auto* image=find(std::wstring(prefix)+L"Icon");
@@ -73,6 +85,16 @@ if(toggle){
 check(image->x==0&&std::abs(image->w-size->w)<0.001f,"toggle artwork fills horizontal button width");
 check(std::abs(image->w-30.0f)<0.001f&&std::abs(image->h-40.0f*30.0f/39.0f)<0.001f,"visible toggle width is 30 with proportional height");
 }
+}
+for(int k=0;k<6;++k){
+const std::wstring prefix=L"SlSort"+std::to_wstring(k);
+auto* size=find(prefix+L"Size");auto* image=find(prefix+L"Icon");auto* back=find(prefix+L"Back");auto* arrow=find(prefix+L"Arrow");
+check(size&&image&&back&&arrow&&sortHeaders[k],"own sort button with icon, active background and arrow");
+if(size&&back&&arrow&&image){const float want=k==5?82.0f:49.0f;
+check(size->w==want&&back->w==want&&back->h==49,"sort buttons 49 wide; Value 82 = native Price 87 minus margins, background fills it (owner 2026-11-07)");
+check(image->w==39&&image->h==40&&std::abs(image->x+image->w/2-want/2)<0.001f,"icon keeps its size and is centred in its button (Value over the price column, owner 2026-11-07)");
+check(std::abs((arrow->x)-(image->x+30))<0.001f,"arrow stays at the icon's lower right corner");
+check(arrow->x+arrow->w<=size->w&&arrow->y+arrow->h<=49,"arrow inside the button");}
 }
 std::cout<<checks<<" checks, "<<failed<<" failures\n";return failed?1:0;
 }

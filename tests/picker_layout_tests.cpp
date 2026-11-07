@@ -43,7 +43,7 @@ int main()
 		}
 		check(itemtags::PopupLabel(tab, info.count).empty(), "invalid label bounded");
 	}
-	check(itemtags::PopupLabel(Tab::Potions, 3) == "Ingredients", "Ingredients is readable");
+	check(itemtags::PopupLabel(Tab::Potions, 4) == "Ingredients", "Ingredients is readable");
 	check(itemtags::PopupLabel(Tab::PoisonEffects, 2) == "Elemental", "Elemental is readable");
 	check(itemtags::PopupLabel(Tab::Misc, 2) == "Soul gems", "Soul gems is readable");
 	check(itemtags::PopupLabel(Tab::PotionEffects, 0) == "All potions", "All potions is readable");

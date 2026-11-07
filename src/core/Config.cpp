@@ -46,6 +46,7 @@ namespace mrconfig
 		g_values.picker.container = ReadInt(ini, L"Picker", L"bContainer", 1, 0, 1) != 0;
 		g_values.picker.stolenFilter = ReadInt(ini, L"Picker", L"bStolenFilter", 1, 0, 1) != 0;
 		g_values.picker.enchantedFilter = ReadInt(ini, L"Picker", L"bEnchantedFilter", 1, 0, 1) != 0;
+		g_values.picker.categorySort = ReadInt(ini, L"Picker", L"bCategorySort", 1, 0, 1) != 0;
 	}
 
 	const Values& Get() { return g_values; }

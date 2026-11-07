@@ -7,8 +7,8 @@ root = Path(__file__).resolve().parents[1]
 out = Path(sys.argv[1])
 out.mkdir(parents=True, exist_ok=True)
 source = (root / 'src/sorting/ItemRows.cpp').read_text()
-start = source.index('void ComputeMagicMasks(')
-end = source.index('{', start) + 1
+start = source.index('MagicLists ReadMagicLists()')
+end = source.index('{', source.index('void ComputeMagicMasks(')) + 1
 depth = 1
 while depth:
     depth += (source[end] == '{') - (source[end] == '}')
@@ -24,7 +24,9 @@ prefix = r'''
 #include <algorithm>
 namespace UE { struct UObject { unsigned char data[0x60]{}; int index; }; }
 using SpellRow = magicrows::Spell;
-struct ScrollRow { int index = -1; SpellRow magic; };
+struct MagicScroll { int index = -1; SpellRow magic; };
+using ScrollRow = MagicScroll;
+struct MagicLists { std::vector<SpellRow> spells; std::vector<MagicScroll> scrolls; };
 constexpr auto kPassAll = magicrows::kPassAll;
 struct FilterState { std::unordered_map<int, std::uint64_t> masks; };
 namespace logger { template<class... T> void warn(const char*, T...) {} }
@@ -91,7 +93,7 @@ subprocess.run([str(exe)],check=True)
 
 # Also exercise the real native reader with the observed node/payload layout.
 reader_start = source.index('static void* ScrollHead(')
-reader_end = source.index('void ComputeMagicMasks(', reader_start)
+reader_end = source.index('MagicLists ReadMagicLists(', reader_start)
 reader = source[reader_start:reader_end]
 native_mocks = r'''
 #define __try try

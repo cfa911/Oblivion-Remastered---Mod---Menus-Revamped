@@ -39,13 +39,35 @@ namespace sorting
 	void Picker::DetachForTransfer()
 	{
 		if (kind != 4 || !active.load() || transfer.Held()) return;
+		// RMI-048: with own sorts the native A-Z is always collapsed (ours replaces it), so the RMI-004 problem (an unplaced
+		// native A-Z) cannot occur and its test below would detach the bar on every Transfer action (F, held F, R3).
+		if (OwnSorts()) return;
 		auto* iconBox = container::FindWidget(reflect::Get(menu), "FilterIconBox");
 		if (!iconBox) iconBox = container::FindWidget(reflect::Get(menu), "inv_cont_filter");
 		auto* panel = iconBox ? container::FindWidget(iconBox, "ScrollBox") : nullptr;
 		if (!panel || !transferhold::ShouldDetach(NativeNameShown(panel))) return;
-		if (auto* own = reflect::Get(header)) { ui::Call remove(own, L"RemoveFromParent"); remove.Run(); }
-		{ std::scoped_lock lock(inputLock); headerPx = {}; }  // no clicks on where the header was
+		ClearOwnFromBar();   // header, toggles and sorts leave together and return together
+		ClearHitAreas();     // no clicks on where they were
 		transfer.Start(GetTickCount64());
+	}
+
+	void Picker::ClearOwnFromBar()
+	{
+		const auto remove = [](const reflect::Handle& a_handle) {
+			auto* widget = reflect::Get(a_handle);
+			if (!widget || !reflect::Usable(widget)) return;
+			ui::Call call(widget, L"RemoveFromParent");
+			call.RunGuarded();
+		};
+		remove(enchantedHeader); remove(stolenHeader); remove(header);
+		for (const auto& sort : sortHeaders) remove(sort);
+	}
+
+	void Picker::ClearHitAreas()
+	{
+		std::scoped_lock lock(inputLock);
+		headerPx = {}; stolenPx = {}; enchantedPx = {};
+		for (auto& r : sortPx) r = {};
 	}
 
 	// Whether the native A-Z (Name) button in this sort row has been given a size.
@@ -77,7 +99,7 @@ namespace sorting
 		ui::Call count(a_panel, L"GetChildrenCount");
 		if (!count || !count.RunGuarded()) return false;
 		const int n = count.Get<int>("ReturnValue");
-		if (n < 1 || n > 12) return false;
+		if (n < 1 || n > 40) return false;   // ours (up to 9) may still be in the bar: the native count is checked below
 		struct Child
 		{
 			UE::UObject* widget;
@@ -92,7 +114,8 @@ namespace sorting
 			ui::Call get(a_panel, L"GetChildAt"); get.Set("Index", i);
 			if (!get.RunGuarded()) return false;
 			auto* widget = get.Get<UE::UObject*>("ReturnValue");
-			if (!widget || widget == reflect::Get(header) || widget == reflect::Get(stolenHeader) || widget == reflect::Get(enchantedHeader)) continue;
+			if (!widget || widget == reflect::Get(header) || widget == reflect::Get(stolenHeader) || widget == reflect::Get(enchantedHeader) ||
+				OwnsSortHeader(widget)) continue;
 			if (!reflect::Usable(widget)) return false;  // never clear the bar when a native child could not be re-added
 			Child child{ widget };
 			auto** slot = reflect::At<UE::UObject*>(widget, reflect::Offset(widget->GetClass(), "Slot"));
@@ -110,9 +133,17 @@ namespace sorting
 			if (kind == 5 && pe::Utf8(widget->GetFName().ToString()) == "ItemCategory") { schoolAt = static_cast<int>(children.size()); nativeSchool = reflect::Hold(widget); }
 			children.push_back(child);
 		}
-		if (children.empty()) return false;
+		// The game's own children only: every picker's widgets (IsOwnedHeader) are left out - the Magic bar is shared by four.
+		const auto natives = std::count_if(children.begin(), children.end(), [](const Child& c) { return !IsOwnedHeader(c.widget); });
+		if (children.empty() || natives > 12) return false;
 		nativePeers.clear();
+		nativeSorts.clear();
 		++g_nativePeerRevision;
+		if (OwnSorts())
+			for (const auto& child : children)
+				if (const auto name = pe::Utf8(child.widget->GetFName().ToString());
+					kind == 1 ? itemsort::MagicNativeKey(name) >= 0 : kind == 6 ? itemsort::ActiveNativeKey(name) >= 0 : itemsort::IsNativeSortWrapper(name))
+						nativeSorts.push_back(reflect::Hold(child.widget));
 		for (const auto& child : children)
 			if (!IsOwnedHeader(child.widget)) nativePeers.push_back(reflect::Hold(child.widget));
 		auto* box = reflect::Get(header);
@@ -134,14 +165,19 @@ namespace sorting
 					if (complete) return;
 					for (const auto& handle : { picker.header, picker.stolenHeader, picker.enchantedHeader })
 						if (auto* widget = reflect::Get(handle)) { ui::Call remove(widget, L"RemoveFromParent"); remove.RunGuarded(); }
-					picker.header = {}; picker.carousel = {}; picker.headerImage = {}; picker.headerFrame = {};
+					for (int k = 0; k < kSorts; ++k) {
+						if (auto* widget = reflect::Get(picker.sortHeaders[k])) { ui::Call remove(widget, L"RemoveFromParent"); remove.RunGuarded(); }
+						picker.sortHeaders[k] = {}; picker.sortImages[k] = {}; picker.sortFrames[k] = {}; picker.sortArrows[k] = {}; picker.sortBacks[k] = {};
+					}
+					picker.header = {}; picker.carousel = {}; picker.headerImage = {}; picker.headerFrame = {}; picker.groupBack = {}; picker.groupArrow = {};
 					picker.stolenHeader = {}; picker.stolenImage = {}; picker.stolenFrame = {};
 					picker.enchantedHeader = {}; picker.enchantedImage = {}; picker.enchantedFrame = {};
 				}
 			} rollback{ *this };
 			// Native-height buttons; extra toggles use less horizontal space than category replacements.
 			const auto make = [&](const wchar_t* a_prefix, const wchar_t* a_icon, reflect::Handle& a_header,
-				reflect::Handle& a_image, reflect::Handle& a_frame, float a_width = 49.0f, bool a_tight = false) -> UE::UObject* {
+				reflect::Handle& a_image, reflect::Handle& a_frame, float a_width = 49.0f, bool a_tight = false,
+				UE::UObject** a_inner = nullptr, float a_extra = 0.0f) -> UE::UObject* {
 				auto* widget = ui::CreateWidget(classPath.c_str());
 				if (!widget) return nullptr;
 				a_header = reflect::Hold(widget); // establish ownership before registering/focusing
@@ -151,7 +187,7 @@ namespace sorting
 				auto* inner = ui::RootCanvas(widget, (name + L"Canvas" + suffix).c_str());
 				if (!inner) return nullptr;
 				const float scale = a_width / (a_tight ? 39.0f : 49.0f);
-				const float contentWidth = a_width;
+				const float contentWidth = a_width + a_extra;   // extra width right of the icon; the icon keeps its size
 				auto* sizeBox = CanvasChild(inner, L"/Script/UMG.SizeBox", (name + L"Size" + suffix).c_str(), 0, 0, contentWidth, 49);
 				if (!sizeBox) return nullptr;
 				ui::Float(sizeBox, L"SetWidthOverride", contentWidth);
@@ -159,9 +195,10 @@ namespace sorting
 				auto* frame = CanvasChild(inner, L"/Script/UMG.Image", (name + L"Frame" + suffix).c_str(), 0, 0, contentWidth, 49);
 				ui::RoundedBox(frame, false, kClear, kClear, 0);
 				auto* image = CanvasChild(inner, L"/Script/UMG.Image", (name + L"Icon" + suffix).c_str(),
-					a_tight ? 0 : 5 * scale, 4 + (40 - 40 * scale) * 0.5f, 39 * scale, 40 * scale, 1);
-				Brush(image, a_icon);
+					a_tight ? 0 : 5 * scale + a_extra * 0.5f, 4 + (40 - 40 * scale) * 0.5f, 39 * scale, 40 * scale, 1);   // centred in a wider button
+				if (a_icon) Brush(image, a_icon);
 				if (!frame || !image) return nullptr;
+				if (a_inner) *a_inner = inner;
 				a_image = reflect::Hold(image); a_frame = reflect::Hold(frame);
 				ui::Call registerChild(navigation, L"AddChild");
 				if (registerChild.Size("ChildToAdd") != 8 ||
@@ -177,8 +214,42 @@ namespace sorting
 				if (!make(L"SlStolenHeader", L"Stolen-Item.png", stolenHeader, stolenImage, stolenFrame, 30, true)) return false;
 				PaintStolen();
 			}
-			box = make(L"SlPieceHeader", itemtags::Info(tab).icons[0], header, headerImage, headerFrame);
+			UE::UObject* headerInner = nullptr;
+			box = make(L"SlPieceHeader", itemtags::Info(tab).icons[0], header, headerImage, headerFrame, 49.0f, false, &headerInner);
 			if (!box) return false;
+			if (kind != 6) {   // category sort shown like an active sort: the game's parchment under the icon and the arrow
+				auto* back = CanvasChild(headerInner, L"/Script/UMG.Image", (std::wstring(L"SlPieceGroupBack") + suffix).c_str(), 0, 0, 49, 49, 0);
+				auto* arrow = CanvasChild(headerInner, L"/Script/UMG.Image", (std::wstring(L"SlPieceGroupArrow") + suffix).c_str(), 35, 35, 12, 12, 2);
+				if (back) { TextureBrush(back, itemsort::kActiveBackground); ui::Visible(back, false); groupBack = reflect::Hold(back); }
+				if (arrow) { ui::Visible(arrow, false); groupArrow = reflect::Hold(arrow); }
+			}
+			BrushHeader(itemtags::Info(tab).icons[0]);   // Magic school/type "All": the game's own icon
+			// Own sort buttons after the category picker in the game's order (A-Z first); navigation order = screen order.
+			if (OwnSorts()) {
+				const auto used = kind == 1 ? itemsort::MagicKeys() : kind == 6 ? itemsort::ActiveKeys() :
+					std::vector<itemsort::Key>{ itemsort::Key::Name, itemsort::Key::Health, itemsort::Key::Damage, itemsort::Key::Armor, itemsort::Key::Weight, itemsort::Key::Value };
+				const auto widest = kind == 1 ? itemsort::Key::Cost : kind == 6 ? itemsort::Key::Magnitude : itemsort::Key::Value;   // the bar's last native button
+				for (int k = 0; k < kSorts; ++k) {
+					const auto key = static_cast<itemsort::Key>(k);
+					if (std::find(used.begin(), used.end(), key) == used.end()) continue;
+					UE::UObject* inner = nullptr;
+					const std::wstring prefix = L"SlSort" + std::to_wstring(k);
+					// The game's last sort button (Price) is 87 wide, not 54 (KB internals "Container sort bar children"): our Value
+					// button is as wide (82 + margins), so every icon before it sits over its row column and its background and
+					// highlight fill the whole button (owner 2026-11-07).
+					const float extra = key == widest ? 33.0f : 0.0f;
+					if (!make(prefix.c_str(), nullptr, sortHeaders[k], sortImages[k], sortFrames[k], 49.0f, false, &inner, extra)) return false;
+					TextureBrush(reflect::Get(sortImages[k]), itemsort::TexturePath(key));
+					// The game's active-sort parchment under the icon (shown by PaintSorts on the active sort only).
+					auto* back = CanvasChild(inner, L"/Script/UMG.Image", (prefix + L"Back" + suffix).c_str(), 0, 0, 49 + extra, 49, 0);
+					if (!back) return false;
+					TextureBrush(back, itemsort::kActiveBackground);   // a missing texture only leaves the active sort unmarked
+					sortBacks[k] = reflect::Hold(back);
+					auto* arrow = CanvasChild(inner, L"/Script/UMG.Image", (prefix + L"Arrow" + suffix).c_str(), 35 + extra * 0.5f, 35, 12, 12, 2);
+					if (!arrow) return false;
+					sortArrows[k] = reflect::Hold(arrow);
+				}
+			}
 			carousel = reflect::Hold(navigation);
 			rollback.complete = true;
 			PaintController();  // initial All opacity must be applied after the images exist
@@ -199,9 +270,15 @@ namespace sorting
 			if (auto* enchanted = reflect::Get(enchantedHeader); enchanted && !addHeader(enchanted)) return false;
 			if (auto* stolen = reflect::Get(stolenHeader); stolen && !addHeader(stolen)) return false;
 			if (!addHeader(box)) return false;
+			for (const auto& sort : sortHeaders)
+				if (auto* widget = reflect::Get(sort); widget && !addHeader(widget)) return false;
 		}
 		for (std::size_t i = 0; i < children.size(); ++i) {
 			if (static_cast<int>(i) == schoolAt) { if (!addHeader(box)) return false; }
+			// Magic: our A-Z / Cost take the places of the game's (collapsed) Name / Cost buttons.
+			if (kind == 1)
+				if (const int key = itemsort::MagicNativeKey(pe::Utf8(children[i].widget->GetFName().ToString())); key >= 0)
+					if (auto* own = reflect::Get(sortHeaders[key]); own && !addHeader(own)) return false;
 			ui::Call add(a_panel, L"AddChild");
 			if (!add.Set("Content", children[i].widget) || !add.RunGuarded()) return false;
 			auto* slot = add.Get<UE::UObject*>("ReturnValue");

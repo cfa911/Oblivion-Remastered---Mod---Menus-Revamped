@@ -58,10 +58,11 @@ namespace sorting
 			a_mode = Mode::None;
 		if (a_mode != Mode::Magic) g_pickers[4].Tick(-1, nullptr, nullptr, 1);
 		if (a_mode != Mode::Container) {
-			g_pickers[2].Tick(-1, nullptr, nullptr, 1);
+			if (a_mode != Mode::Magic) g_pickers[2].Tick(-1, nullptr, nullptr, 1);   // Magic: slot 2 hosts the Active Effects sorts
 			g_pickers[3].Tick(-1, nullptr, nullptr, 1);
 		}
 		if (a_mode == Mode::Magic) {
+			g_pickers[2].Tick(6, a_menu, a_canvas, a_viewportScale);   // Active Effects (page 4) only
 			g_pickers[1].Tick(2, a_menu, a_canvas, a_viewportScale);
 			g_pickers[4].Tick(5, a_menu, a_canvas, a_viewportScale);  // insert immediately before Effects
 			g_pickers[0].Tick(1, a_menu, a_canvas, a_viewportScale);

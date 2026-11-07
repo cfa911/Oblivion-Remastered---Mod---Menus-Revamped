@@ -33,10 +33,10 @@ check('container::SetTransferHandlers(&OnTransferStarted, &OnTransferSettled)' i
 
 detach = source_paths.function(gear, 'void Picker::DetachForTransfer()')
 check('kind != 4' in detach, 'detach is limited to the container side')
-check('RemoveFromParent' in detach and 'transfer.Start(' in detach, 'detach removes the header and starts the hold')
+check('ClearOwnFromBar()' in detach and 'transfer.Start(' in detach, 'detach removes our widgets (all together, own sorts R8) and starts the hold')
 check('transfer.Held()' in detach, 'a repeated action while held does nothing')
 gate_at = detach.find('transferhold::ShouldDetach(NativeNameShown(')
-check(gate_at >= 0 and gate_at < detach.find('RemoveFromParent'), 'only an unplaced native A-Z (quick loot) takes the header out')
+check(gate_at >= 0 and gate_at < detach.find('ClearOwnFromBar()'), 'only an unplaced native A-Z (quick loot) takes our widgets out')
 check('SideContent(3)' not in detach, 'the give side visibility is not the test (controller details view hides it)')
 
 layout = gear[gear.find("if (!attached && transfer.Held()"):]

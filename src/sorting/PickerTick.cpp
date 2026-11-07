@@ -47,7 +47,8 @@ namespace sorting::detail
 		widgetWarning = false;
 		transfer = {};
 		stolenFocus = false; enchantedFocus = false;
-		if (auto* image = reflect::Get(headerImage)) Brush(image, itemtags::Info(tab).icons[0]);
+		ClearHitAreas();
+		BrushHeader(itemtags::Info(tab).icons[0]);
 		if (auto* frame = reflect::Get(headerFrame)) ui::RoundedBox(frame, false, kClear, kClear, 0, 0);
 		PaintStolen();
 		PaintEnchanted();
@@ -65,6 +66,19 @@ namespace sorting::detail
 			if (auto* s = reflect::Get(stolenHeader)) ui::Visible(s, false);
 			if (auto* h = reflect::Get(header)) ui::Visible(h, false);
 			if (auto* p = reflect::Get(popup)) ui::Visible(p, false);
+			for (const auto& sort : sortHeaders) if (auto* w = reflect::Get(sort)) ui::Visible(w, false);
+			paintedSlot = -1;
+			// Magic spell pages -> Active Effects: the game's own per-page rule shows its buttons again (we collapsed A-Z/Cost).
+			auto* shown = reflect::Get(menu);
+			if ((kind == 1 || kind == 6) && !nativeSorts.empty() && reflect::Usable(shown) && ui::ShownOnScreen(shown)) {
+				auto** vm = reflect::At<UE::UObject*>(shown, reflect::Offset(shown->GetClass(), "VMagicMenuViewModel"));
+				ui::Call page(vm ? *vm : nullptr, L"GetCurrentPage");
+				if (page && page.Size("ReturnValue") == 1 && page.Run()) {
+					ui::Call restore(shown, L"UpdateFiltersToDisplay");
+					if (restore && restore.Size("Page") == 1 && restore.Set("Page", page.Get<std::uint8_t>("ReturnValue"))) restore.Run();
+					else logger::warn("Menus Revamped: Magic native sort buttons could not be restored for this page");
+				}
+			}
 		}
 		std::scoped_lock lock(inputLock); inputActive = false; inputOpen = false; command = -1;
 	}
@@ -90,8 +104,11 @@ namespace sorting::detail
 				// Visibility follows the native tab, never the filtered rows. Active effects is page 4.
 				auto** vm = reflect::At<UE::UObject*>(a_menu, reflect::Offset(a_menu->GetClass(), "VMagicMenuViewModel"));
 				ui::Call page(vm ? *vm : nullptr, L"GetCurrentPage");
-				show = page && page.Size("ReturnValue") == 1 && page.Run() && page.Get<std::uint8_t>("ReturnValue") < 4;
-				wanted = a_kind == 1 ? itemtags::Tab::MagicSchool : a_kind == 5 ? itemtags::Tab::MagicType : itemtags::Tab::MagicEffect;
+				const bool read = page && page.Size("ReturnValue") == 1 && page.Run();
+				const auto  now = read ? page.Get<std::uint8_t>("ReturnValue") : std::uint8_t{ 0xFF };
+				show = read && (a_kind == 6 ? now == 4 : now < 4);   // kind 6: Active Effects; the pickers: spell pages
+				if (show && now < 4) magicPage = now;   // the own Magic sorts are kept per spell page
+				wanted = a_kind == 1 || a_kind == 6 ? itemtags::Tab::MagicSchool : a_kind == 5 ? itemtags::Tab::MagicType : itemtags::Tab::MagicEffect;
 			}
 		}
 		if (!show) { Deactivate(); kind = -1; return; }
@@ -100,17 +117,27 @@ namespace sorting::detail
 			kind = a_kind;
 		}
 		active.store(true);  // page identity is independent of whether its new widgets have finished layout
+		SeedSorts();   // first time this kind is seen: every tab starts with the INI default (bCategorySort), before any paint
 		if (!tabSet || tab != wanted) {  // another tab: its own choices and filter
 			if (tabSet) { const auto hold = transfer; Reset(); transfer = hold; }  // the RMI-004 Transfer hold may span a page change
 			tab = wanted; view = wanted; styled = false;
+			ShowOwnWidgets(); PaintSorts();   // the new tab's sorts and its remembered choice, in the same frame
 		}
 		tabSet = true;
+		if (OwnSorts() && SortSlot() != paintedSlot) { ShowOwnWidgets(); PaintSorts(); }   // a Magic page change keeps the tab
 		// The game re-shows native School/ItemCategory wrappers when its filters update. Collapse them
 		// on every tick (not only the 150 ms layout pass) so its glyph never renders beside ours.
 		HideNativeReplacement();
+		HideNativeSorts();
+		ShowQuickLootHint();
 		if (reflect::Get(menu) != a_menu || reflect::Get(canvas) != a_canvas) {
 			enchantedOnly = false; stolenOnly = false; Reset();
 			for (const auto& handle : { popup, header, stolenHeader, enchantedHeader }) if (auto* old = reflect::Get(handle)) { ui::Call remove(old, L"RemoveFromParent"); remove.Run(); }
+			for (int k = 0; k < kSorts; ++k) {
+				if (auto* old = reflect::Get(sortHeaders[k])) { ui::Call remove(old, L"RemoveFromParent"); remove.Run(); }
+				sortHeaders[k] = {}; sortImages[k] = {}; sortFrames[k] = {}; sortArrows[k] = {}; sortBacks[k] = {};
+			}
+			nativeSorts.clear(); sortFocus = -1;
 			menu = reflect::Hold(a_menu); popup = {}; paperSlot = {}; header = {}; carousel = {}; nativeSchool = {}; nativePeers.clear();
 			stolenHeader = {}; stolenImage = {}; stolenFrame = {};
 			enchantedHeader = {}; enchantedImage = {}; enchantedFrame = {};
@@ -143,21 +170,37 @@ namespace sorting::detail
 			ui::Call parent(headerWidget, L"GetParent");
 			const bool attached = parent && parent.Run() && parent.Get<UE::UObject*>("ReturnValue") == panel;
 			if (!panel) {
+				ClearHitAreas();
 				if (kind >= 3 && kind <= 4 && !widgetWarning) {
 					logger::warn("Menus Revamped: container side {} has no supported native filter ScrollBox; picker not attached", kind);
 					widgetWarning = true;
 				}
 				return;
 			}
-			if (!attached && transfer.Held() && !transfer.MayReinsert(now, NativeNameShown(panel))) return;
+			if (!attached && transfer.Held() && !transfer.MayReinsert(now, NativeNameShown(panel))) { ClearHitAreas(); return; }
 			if (!attached && !InsertHeader(panel, iconBox)) {
+				ClearHitAreas();
 				if (!widgetWarning) { logger::warn("Menus Revamped: native-width picker header registration/layout unsupported"); widgetWarning = true; }
 				return;
 			}
-			ui::Visible(reflect::Get(header), true);
+			const bool justAttached = !attached;
+			if (justAttached) { HideNativeSorts(); PaintSorts(); }
+			ShowOwnWidgets();   // every custom widget of the bar in this one pass (owner 2026-11-07)
+			if (OwnSorts()) {
+				WatchRefills(*this);
+				if (justAttached) Republish(*this);   // the opening's first refill came before the hook: order it now
+				for (int k = 0; k < kSorts; ++k) {
+					Rect r;
+					auto* sort = reflect::Get(sortHeaders[k]);
+					if (sort && Offers(static_cast<itemsort::Key>(k)) && ui::Measure(sort, r.x, r.y, r.w, r.h) && r.w > 0 && r.h > 0) {
+						r.x *= a_viewportScale; r.y *= a_viewportScale; r.w *= a_viewportScale; r.h *= a_viewportScale;
+					} else r = {};
+					std::scoped_lock lock(inputLock);
+					sortPx[k] = r;
+				}
+			}
 			if (auto* native = reflect::Get(nativeSchool)) ui::Visible(native, false);  // the game may show it again when its filters update
 			if (auto* stolen = reflect::Get(stolenHeader)) {
-				ui::Visible(stolen, true);
 				double sx = 0, sy = 0, sw = 0, sh = 0;
 				if (ui::Measure(stolen, sx, sy, sw, sh) && sw > 0 && sh > 0) {
 					std::scoped_lock lock(inputLock);
@@ -165,7 +208,6 @@ namespace sorting::detail
 				}
 			}
 			if (auto* enchanted = reflect::Get(enchantedHeader)) {
-				ui::Visible(enchanted, true);
 				double sx = 0, sy = 0, sw = 0, sh = 0;
 				if (ui::Measure(enchanted, sx, sy, sw, sh) && sw > 0 && sh > 0) {
 					std::scoped_lock lock(inputLock);
@@ -184,10 +226,37 @@ namespace sorting::detail
 				headerPx = { x * a_viewportScale, y * a_viewportScale, w * a_viewportScale, h * a_viewportScale };
 			}
 		}
+		if (quickLootY && now >= quickLootY) {
+			quickLootY = 0;
+			if (SortCarouselFocused() != quickLootWant)
+				if (auto* side = container::SideContent(kind)) {
+					ui::Call focus(side, L"UpdateFilterFocus");
+					const bool sent = focus && focus.Size("InIsFilterFocused") == 1 && focus.Set("InIsFilterFocused", quickLootWant) && focus.Run();
+					logger::warn("TEMP-DIAG own-sort: quick loot Y kind {} -> sort row {} sent={}", kind, quickLootWant, sent);
+				}
+		}
 		int cmd = -1;
 		bool fromController = false;
 		{ std::scoped_lock lock(inputLock); cmd = command; fromController = commandFromController; command = -1; commandFromController = false; }
-		if (cmd == enchantedfilter::kToggleCommand) {
+		if (pendingRepublish && OwnSorts()) {   // the classification landed for rows the category sort could not place
+			pendingRepublish = false;
+			Republish(*this);
+		}
+		if (itemsort::IsGroupCommand(cmd)) {
+			if (auto* host = SortHost(); host && host->OwnSorts()) {
+				auto& state = host->SortAt(host->SortSlot());
+				state = itemsort::ApplyGroup(state, kind, itemsort::GroupCommandAction(cmd));
+				host->PaintSorts();   // the host's buttons go plain; every filter of the host repaints its category sort
+				Republish(*host);
+			}
+		}
+		else if (itemsort::IsSortCommand(cmd)) {
+			auto& state = SortAt(SortSlot());
+			state = itemsort::Apply(state, SortKeys(), itemsort::SortCommandKey(cmd), itemsort::SortCommandAction(cmd));
+			PaintSorts();
+			Republish(*this);
+		}
+		else if (cmd == enchantedfilter::kToggleCommand) {
 			enchantedOnly = !enchantedOnly; open = false;
 			PaintEnchanted();
 		}
@@ -226,7 +295,7 @@ namespace sorting::detail
 			paintedOpen = open;
 		}
 
-		if (cmd >= 0) Brush(reflect::Get(headerImage), HeaderIcon());
+		if (cmd >= 0) BrushHeader(HeaderIcon());
 		if (cmd != -1) PaintController();
 		Rect popupRect, cellRects[itemtags::kMaxChoices];
 		const bool measure = open && now >= nextHitMeasure;
@@ -240,10 +309,11 @@ namespace sorting::detail
 				rect.x *= a_viewportScale; rect.y *= a_viewportScale; rect.w *= a_viewportScale; rect.h *= a_viewportScale;
 			}
 		}
+		const bool groupSorts = GroupSorts();
 		// Never hold the window-message mutex across ProcessEvent / geometry calls.
 		{
 			std::scoped_lock lock(inputLock);
-			inputActive = true; inputOpen = open;
+			inputActive = true; inputOpen = open; groupInput = groupSorts;
 			if (measure) { popupPx = popupRect; std::copy(std::begin(cellRects), std::end(cellRects), cellsPx); }
 		}
 		active.store(true);

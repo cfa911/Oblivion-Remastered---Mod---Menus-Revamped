@@ -4,7 +4,8 @@
 
 namespace gearpieces
 {
-	enum class Piece : unsigned { All, Ring, Amulet, Head, Torso, Arms, Feet, Legwear, Shield };
+	// Choice order = popup and category-sort order: head to toe, then jewellery (owner 2026-11-07).
+	enum class Piece : unsigned { All, Head, Torso, Arms, Legwear, Feet, Shield, Amulet, Ring };
 	constexpr std::uint16_t Mask(Piece a_piece)
 	{
 		switch (a_piece) {

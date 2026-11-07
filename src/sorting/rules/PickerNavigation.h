@@ -21,8 +21,8 @@ namespace pickernav
 			out.view = static_cast<Tab>(command - 1);
 			return out;
 		}
-		if (view == Tab::Potions && (command == 1 || command == 2)) {
-			out.view = command == 1 ? Tab::PotionEffects : Tab::PoisonEffects;
+		if (view == Tab::Potions && (command == itemtags::Index(itemtags::Alchemy::Potions) || command == itemtags::Index(itemtags::Alchemy::Poisons))) {
+			out.view = command == itemtags::Index(itemtags::Alchemy::Potions) ? Tab::PotionEffects : Tab::PoisonEffects;
 			return out;
 		}
 		if (view == Tab::PotionEffects || view == Tab::PoisonEffects) {
@@ -40,7 +40,7 @@ namespace pickernav
 		Result out{ view, category, choice };
 		if (view == Tab::PotionEffects || view == Tab::PoisonEffects) {
 			out.view = Tab::Potions;
-			out.cursor = view == Tab::PotionEffects ? 1u : 2u;
+			out.cursor = itemtags::Index(view == Tab::PotionEffects ? itemtags::Alchemy::Potions : itemtags::Alchemy::Poisons);
 		} else if (root == Tab::AllItems && view != root) {
 			out.view = root;
 			out.cursor = static_cast<unsigned>(view) + 1;

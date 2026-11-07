@@ -174,4 +174,46 @@ namespace ui
 		CollectGuarded(a_userWidget, a_maxNodes, &out);
 		return out;
 	}
+
+	static UE::UObject* FindClassPrefix(UE::UObject* a_w, std::string_view a_prefix, int a_depth, int& a_budget)
+	{
+		static auto* userWidget = Class(L"/Script/UMG.UserWidget");
+		static auto* panelWidget = Class(L"/Script/UMG.PanelWidget");
+		static auto* treeClass = Class(L"/Script/UMG.WidgetTree");
+		static auto* panelSlot = Class(L"/Script/UMG.PanelSlot");
+		if (!a_w || a_depth > 24 || a_budget <= 0) return nullptr;
+		--a_budget;
+		if (a_depth > 0)
+			if (auto* c = a_w->GetClass(); c && pe::Utf8(c->GetFName().ToString()).starts_with(a_prefix)) return a_w;
+		if (IsA(a_w, userWidget)) {
+			auto* tree = PropObj(a_w, userWidget, "WidgetTree");
+			if (auto* root = tree ? PropObj(tree, treeClass, "RootWidget") : nullptr)
+				if (auto* found = FindClassPrefix(root, a_prefix, a_depth + 1, a_budget)) return found;
+		}
+		if (IsA(a_w, panelWidget)) {
+			const auto slotsOff = reflect::Ok() ? reflect::Offset(reinterpret_cast<UE::UStruct*>(panelWidget), "Slots") : -1;
+			if (slotsOff < 0) return nullptr;
+			struct RawArray { UE::UObject** data; std::int32_t num; std::int32_t max; };
+			const auto* arr = reinterpret_cast<const RawArray*>(reinterpret_cast<const std::uint8_t*>(a_w) + slotsOff);
+			for (std::int32_t i = 0; arr->data && i < arr->num && i < 256; ++i)
+				if (auto* content = PropObj(arr->data[i], panelSlot, "Content"))
+					if (auto* found = FindClassPrefix(content, a_prefix, a_depth + 1, a_budget)) return found;
+		}
+		return nullptr;
+	}
+
+	static UE::UObject* FindClassGuarded(UE::UObject* a_w, std::string_view a_prefix, int a_max)
+	{
+		__try {
+			int budget = a_max;
+			return FindClassPrefix(a_w, a_prefix, 0, budget);
+		} __except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
+			return nullptr;
+		}
+	}
+
+	UE::UObject* FindByClassPrefix(UE::UObject* a_userWidget, std::string_view a_prefix, int a_maxNodes)
+	{
+		return FindClassGuarded(a_userWidget, a_prefix, a_maxNodes);
+	}
 }
