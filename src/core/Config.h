@@ -1,4 +1,5 @@
 #pragma once
+#include "core/UiTheme.h"
 #include "search/SearchConfig.h"
 #include "keyboard/KeyboardConfig.h"
 #include "hover/HoverConfig.h"
@@ -7,6 +8,7 @@ namespace mrconfig
 {
 	struct Values
 	{
+		uistyle::Preset stylePreset = uistyle::Preset::Classic;
 		searchcfg::Values search;
 		smoothcfg::Values smooth;
 		kbcfg::Values keyboard;

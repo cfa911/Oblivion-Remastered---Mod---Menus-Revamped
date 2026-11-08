@@ -65,6 +65,8 @@ uLimit=1
 uDefaultSort=9
 uMarkerDiameter=40
 sMarkerColors=#112233,nope
+[Style]
+uPreset=9
 """, encoding="utf-16")
 
 main = r"""
@@ -78,6 +80,8 @@ int main() {
     mrconfig::Load();
     const auto& v=mrconfig::Get();
     check(v.search.logLevel==4,"log level clamps to 4");
+    check(v.stylePreset==uistyle::Preset::Dark,"style preset clamps to dark");
+    check(uistyle::Get(v.stylePreset).picker.paper[0]<0.1f,"dark preset supplies dark picker paper");
     check(v.search.inventory && !v.search.magic && !v.search.ime,"search switches read, absent ones default on");
     check(v.search.barFontSize==60,"font size clamps to 60");
     check(v.search.inventoryBar.x==300.5,"decimal place parses");
@@ -131,8 +135,10 @@ check(!v.search.worldMap,"world map search independently disabled");
 check(v.search.mapBar.x==339.25 && v.search.mapBar.w==560,"map placement reads independently");
 WritePrivateProfileStringW(L"Alchemy",L"bEnabled",L"0",ini.c_str());
 WritePrivateProfileStringW(L"Alchemy",L"uDefaultSort",L"2",ini.c_str());
+WritePrivateProfileStringW(L"Style",L"uPreset",L"1",ini.c_str());
 mrconfig::Load();
 check(!v.alchemy.enabled && v.alchemy.defaultSort==2,"alchemy switch and sort read");
+check(v.stylePreset==uistyle::Preset::Light && uistyle::Get(v.stylePreset).picker.paper[0]>0.8f,"light preset selected from INI");
 WritePrivateProfileStringW(L"Alchemy",L"sMarkerColors",L"#0072B2,#E69F00,#56B4E9,#F0E442,#009E73,#D55E00,#CC79A7,#FFFFFF",ini.c_str());
 WritePrivateProfileStringW(L"SearchKeyboard",L"uClearHoldMs",L"0",ini.c_str());
 mrconfig::Load();

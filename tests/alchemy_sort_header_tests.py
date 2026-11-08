@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import source_paths
 
 src = source_paths.read("alchemy")
+theme = (Path(__file__).resolve().parents[1] / "src/core/UiTheme.h").read_text()
 checks = failures = 0
 
 
@@ -55,7 +56,8 @@ check("OpenFilters(" not in src and "g_clearAllRequest" not in src and "g_openFi
 check("RemoveEveryFilter(" in src, "custom chip Clear all retains its existing removal path")
 # styling batch (owner 2026-11-04): header line between the title and the rows, white active background, centred numbers
 check("HeaderX(" in src and "SetPadding" in src, "icons on their own line over the columns; the list moves down for it")
-check("kActiveTint[4] = { 0.55f, 0.35f, 0.20f" in src, "active sort is brown; hover unchanged")
+check("style.activeSort.data()" in src and "style.focusTint.data()" in src and "0.55f, 0.35f, 0.20f" in theme,
+      "active sort stays brown; hover tint comes from the shared palette")
 check("ColumnDy(" in src, "column numbers are centred on the row's name")
 check("kGapTrimPx" in src and "kIconLiftPx" in src and "kLeftShiftPx" in src, "owner pixel adjustments 2026-11-04: gap -4, icon line +3 up, left icons +4 right")
 # second batch (owner 2026-11-04): 3 px more bottom margin, left icons 10 px more right, Inventory-style separators

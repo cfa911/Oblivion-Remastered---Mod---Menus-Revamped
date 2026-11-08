@@ -20,6 +20,7 @@ namespace mrconfig
 	void Load()
 	{
 		const auto ini = PluginFolder() / L"MenusRevamped.ini";
+		g_values.stylePreset = static_cast<uistyle::Preset>(ReadInt(ini, L"Style", L"uPreset", 0, 0, 2));
 		g_values.search = searchcfg::ReadIni(ini);
 		g_values.keyboard = kbcfg::ReadIni(ini);
 		g_values.smooth = smoothcfg::ReadIni(ini);

@@ -6,6 +6,10 @@ namespace pickerhighlight
 	// Owner reference #E6E4DF in sRGB, converted to linear Slate colour. Opaque, no outline.
 	inline constexpr std::array<float, 4> kFill{ 0.7912979403f, 0.7758222183f, 0.7379104088f, 1.0f };
 	inline constexpr float kOutlineWidth = 0.0f, kCornerRadius = 0.0f;
+	constexpr bool CellHighlighted(bool a_open, bool a_controllerPopup, unsigned a_cursor, int a_mouseHoverCell, unsigned a_index)
+	{
+		return a_open && ((a_controllerPopup && a_cursor == a_index) || a_mouseHoverCell == static_cast<int>(a_index));
+	}
 	constexpr bool Owns(bool headerFocused, bool popupOpen, bool popupController)
 	{
 		return headerFocused || (popupOpen && popupController);

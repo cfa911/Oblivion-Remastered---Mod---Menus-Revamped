@@ -19,16 +19,11 @@ namespace search::detail
 		// A bar in the menu's own root canvas, where the search mods put theirs, and the typing for it: while it is being typed into, the
 		// game window's keys are taken here (the menu's hotkeys never see them), Ctrl+F / Ctrl+K or a click on the bar starts typing, Enter or
 		// Esc ends it. The text lives in g_queries; the filter and the controller's keyboard read and write the same text.
-		constexpr float kBarFill[4] = { 0.16f, 0.09f, 0.04f, 1.0f }, kBarEdge[4] = { 0.06f, 0.035f, 0.018f, 1.0f }, kBarFocus[4] = { 0.78f, 0.62f, 0.28f, 1.0f };
-		constexpr float kBarInk[4] = { 0.93f, 0.90f, 0.82f, 1.0f }, kBarHint[4] = { 0.58f, 0.53f, 0.45f, 1.0f };
-
-		// Ingredients title #4c372f at 90% sRGB brightness, converted to linear.
-		constexpr float kAlchemyBarInk[4] = { 0.0585f, 0.0313f, 0.0235f, 1.0f };
-
 		const float* BarTextInk(menus::Menu a_menu, bool hint, bool sel)
 		{
-			if (a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) return kAlchemyBarInk;
-			return hint ? kBarHint : sel ? kBarFocus : kBarInk;
+			const auto& style = uistyle::Get(mrconfig::Get().stylePreset).search;
+			if (a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) return style.alchemyInk.data();
+			return hint ? style.hint.data() : sel ? style.selectedInk.data() : style.ink.data();
 		}
 
 		UE::UObject* OwnerWidget(UE::UObject* a_o)
@@ -156,13 +151,17 @@ namespace search::detail
 			const std::int32_t z = 1000;
 			ui::CallFirst(slot, L"SetZOrder", &z, sizeof(z));
 			bool textured = false;
-			if (auto* tex = BarTexture(a_menu)) {
-				ui::Call b(frame, L"SetBrushFromTexture");
-				b.Set("Texture", tex);
-				b.Set("bMatchSize", false);
-				textured = b.Run();
+			const auto preset = mrconfig::Get().stylePreset;
+			if (preset == uistyle::Preset::Classic) {
+				if (auto* tex = BarTexture(a_menu)) {
+					ui::Call b(frame, L"SetBrushFromTexture");
+					b.Set("Texture", tex);
+					b.Set("bMatchSize", false);
+					textured = b.Run();
+				}
 			}
-			if (!textured) ui::RoundedBox(frame, false, kBarFill, kBarEdge, 2.0f);
+			const auto& style = uistyle::Get(preset).search;
+			if (!textured) ui::RoundedBox(frame, false, style.fill.data(), style.edge.data(), 2.0f);
 			ui::Visible(frame, true);
 			UE::UObject* lslot = nullptr;
 			auto*        label = BarPart(a_canvas, L"/Script/UMG.TextBlock", L"IwmBarText" + n, &lslot);
@@ -234,7 +233,10 @@ namespace search::detail
 				B.shown = key;
 			}
 			if (typing != B.typing) {   // the bronze edge while it is being typed into
-				if (!B.textured) ui::RoundedBox(frame, false, kBarFill, typing ? kBarFocus : kBarEdge, 2.0f);
+				if (!B.textured) {
+					const auto& style = uistyle::Get(mrconfig::Get().stylePreset).search;
+					ui::RoundedBox(frame, false, style.fill.data(), (typing ? style.focus : style.edge).data(), 2.0f);
+				}
 				B.typing = typing;
 			}
 			if (a_now >= B.nextMeasure) {   // where it is in window pixels, for a click on it

@@ -434,10 +434,12 @@ namespace sorting::detail
 		for (auto& peer : g_pickers) if (peer.SortHost() == this) peer.PaintGroup();
 		for (int k = 0; k < kSorts; ++k) {
 			const bool on = state.group < 0 && state.key == static_cast<itemsort::Key>(k), focus = sortFocus == k;
-			ui::RoundedBox(reflect::Get(sortFrames[k]), false, focus ? pickerhighlight::kFill.data() : kClear, kClear,
+			const auto& focusFill = uistyle::Get(mrconfig::Get().stylePreset).picker.focusFill;
+			ui::RoundedBox(reflect::Get(sortFrames[k]), false, focus ? focusFill.data() : kClear, kClear,
 				pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 			if (auto* back = reflect::Get(sortBacks[k])) ui::Visible(back, on && !focus);
-			if (auto* image = reflect::Get(sortImages[k])) ui::Float(image, L"SetRenderOpacity", on ? 1.0f : 0.5f);
+			const float inactiveOpacity = uistyle::Get(mrconfig::Get().stylePreset).picker.inactiveSortOpacity;
+			if (auto* image = reflect::Get(sortImages[k])) ui::Float(image, L"SetRenderOpacity", on ? 1.0f : inactiveOpacity);
 			if (auto* arrow = reflect::Get(sortArrows[k])) {
 				if (on) TextureBrush(arrow, state.descending ? itemsort::kArrowDown : itemsort::kArrowUp);   // the Alchemy arrows
 				ui::Visible(arrow, on);

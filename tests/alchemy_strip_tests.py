@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import source_paths
 
 src = source_paths.read("alchemy")
+theme = (Path(__file__).resolve().parents[1] / "src/core/UiTheme.h").read_text()
 checks = failures = 0
 
 
@@ -37,29 +38,31 @@ check("CopyIngredientsFont(chipTitle, title)" in src, "title uses Ingredients fo
 check("line, 0.5f, 6.0f" in src, "button outlines reduced by one from 1.5")
 check("kStripAspect = 263.0 / 1090.0" in src and "kStripDy = -93.7" in src,
       "latest owner PSD mask keeps its 1090x263 size and y=0 placement")
-m = re.search(r"kChipText = (\d+)", src)
-check(m is not None and int(m.group(1)) < 17 and src.count("kChipInk, kChipText)") >= 2,
+m = re.search(r"19\.0,\s*13\.0,", theme)
+check(m is not None and "style.chipFontSize" in src,
       "the button texts are smaller than before (17)")
 check("kChipRows = 3" in src, "up to three rows of buttons")
 # owner 2026-11-04 (second look): smaller text and boxes, title 4 bigger (21), the block moved up into the strip's top
-m = re.search(r"kChipText = (\d+)", src)
-check(m is not None and int(m.group(1)) <= 13, "button text smaller again (13)")
+m = re.search(r"19\.0,\s*13\.0", theme)
+check(m is not None and "style.chipFontSize" in src, "button text smaller again (13)")
 check("kButtonPadX = 7, kButtonPadY = 2" in src, "smaller button boxes")
-check('L"MrAlchemyChipTitle", ink, 23.1)' in src, "title is 10 percent larger (21 -> 23.1)")
+check('L"MrAlchemyChipTitle", ink.data(), 23.1)' in src, "title is 10 percent larger (21 -> 23.1)")
 check(re.search(r"chipsY = st\.chipsY \+ kChipsDy", src) is not None and re.search(r"kChipsDy = -\d+", src) is not None,
       "the block moved up")
 # owner 2026-11-04: Clear all stays red; a filter button has a black rim and black text, its x mark red
 style = src[src.find("void StyleBack("):]
 style = style[:style.find("\n\t\t}\n")]
-check("kButtonLineDark" in style and "a_index == 0" in style, "filter buttons get a black rim, Clear all keeps the red one")
+check("style.buttonLineDark.data()" in style and "style.buttonLine.data()" in style and "a_index == 0" in style,
+      "filter buttons get a black rim, Clear all keeps the red one")
 check('"' + "\\" + 'xC3' + "\\" + 'x97 " + ChipLabel' not in src, "the x mark is not part of the black name text")
-check(re.search(r'MrAlchemyChipX[^;]*kChipInk', src) is not None, "the x mark is its own red label")
+check(re.search(r'MrAlchemyChipX[^;]*style\.chipInk\.data\(\)', src) is not None, "the x mark is its own red label")
 # owner 2026-11-04: the x marks stayed on screen after Clear all - every mark had the same object name, so creating one
 # replaced the last and the old ones could no longer be hidden. Each created widget needs its own name.
 check('L"MrAlchemyChipX",' not in src and re.search(r'L"MrAlchemyChipX" \+ std::to_wstring', src) is not None,
       "each x mark gets its own name")
-check(re.search(r"g_chips\.empty\(\) \? kChipInk : kSortInk", src) is not None, "Clear all text red, filter names dark")
-check('L"MrAlchemyChipTitle", ink, 23.1)' in src and "kTitleInk[0] * 0.8f, kTitleInk[1] * 0.8f, kTitleInk[2] * 0.8f, 1.0f" in src,
+check(re.search(r"g_chips\.empty\(\) \? style\.chipInk\.data\(\) : style\.sortInk\.data\(\)", src) is not None,
+      "Clear all text red, filter names dark")
+check('L"MrAlchemyChipTitle", ink.data(), 23.1)' in src and "titleInk[0] * 0.8f, titleInk[1] * 0.8f, titleInk[2] * 0.8f" in src,
       "title ink is 20 percent darker in linear color")
 print(f"{checks} checks, {failures} failures")
 sys.exit(1 if failures else 0)
