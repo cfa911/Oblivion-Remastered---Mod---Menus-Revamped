@@ -221,6 +221,7 @@ namespace search
 			s_in = true;
 			FilterQuick(menus::Menu::kContainerYours, event);
 			FilterQuick(menus::Menu::kContainerTheirs, event);
+			sorting::RefreshContainerHeaders(a_obj);
 			s_in = false;
 			return;
 		}
@@ -229,6 +230,7 @@ namespace search
 		s_in = true;
 		FilterQuick(menu, event);
 		if (menu == menus::Menu::kMagic) sorting::RefreshMagicHeaders(a_obj);
+		else sorting::RefreshInventoryHeaders(a_obj);
 		s_in = false;
 	}
 

@@ -155,8 +155,9 @@ namespace sorting
 			bool Passes(std::uint64_t a_mask) const;
 			void Reset();
 			void Deactivate();
-			void HideNativeReplacement();
+			bool HideNativeReplacement();   // true when a collapse was attempted (the game had re-shown it)
 			void Tick(int a_kind, UE::UObject* a_menu, UE::UObject* a_canvas, float a_viewportScale);
+			void ShowTab(itemtags::Tab a_tab);   // another tab: reset its choices, show and paint its own sorts
 
 			// PickerPopup.cpp: the popup grid and painting
 			bool BuildPopup(UE::UObject* a_canvas);
@@ -169,7 +170,7 @@ namespace sorting
 			void PaintEnchanted();
 			void PaintController();
 			void PaintSorts();
-			void HideNativeSorts();
+			bool HideNativeSorts();   // true when a collapse was attempted (the game had re-shown one)
 			void ShowOwnWidgets();
 			void ShowQuickLootHint();   // quick loot: the game hides the filter's Y glyph; on a controller we show it   // every custom widget of the bar in the same pass (owner 2026-11-07)
 

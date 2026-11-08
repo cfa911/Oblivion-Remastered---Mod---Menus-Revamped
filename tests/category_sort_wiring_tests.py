@@ -62,7 +62,10 @@ check(evaluate and 'TagsLanded(' in evaluate, 'classification landing can republ
 
 check('categorySort' in config and 'L"bCategorySort"' in config, 'INI [Picker] bCategorySort read')
 check('bCategorySort=1' in defaults, 'defaults INI: category sort on')
-check('object->As<RE::TESObjectBOOK>()' in gear and 'data.flags' in gear, 'Misc: book flags reach MiscTags (Scrolls)')
+book = gear[gear.find('object->As<RE::TESObjectBOOK>()'):]
+book = book[:book.find('MiscTags(')]
+check('object->As<RE::TESObjectBOOK>()' in gear and 'formEnchanting' in book, 'Misc: an enchanted book reaches MiscTags as a Scroll')
+check('data.flags' not in book, 'RMI-052: the BOOK scroll display flag (notes, letters, maps) does not make a Scroll')
 
 style = source_paths.function(picker, 'void Picker::StyleCells()')
 check(style and 'AllTexture(' in style, 'popup "All" cell: the game icon for the school/type pickers (owner R14 note)')

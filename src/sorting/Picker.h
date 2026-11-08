@@ -9,6 +9,10 @@ namespace sorting
 	bool Active(int a_side = 0);
 	// Re-hide native School/ItemCategory replacements immediately after a Magic menu update.
 	void RefreshMagicHeaders(UE::UObject* a_menu);
+	// RMI-047: follow a native Inventory tab change and re-hide the native sorts in the Inventory post-event.
+	void RefreshInventoryHeaders(UE::UObject* a_menu);
+	// RMI-047: the same for both container/barter sides, in the container menu's post-event.
+	void RefreshContainerHeaders(UE::UObject* a_menu);
 	const std::vector<UE::UObject*>& Evaluate(int side, const std::vector<UE::UObject*>& source, std::uint64_t generation);
 	bool PopupOpen();
 	bool Message(UINT a_message, WPARAM a_key, LPARAM a_position);

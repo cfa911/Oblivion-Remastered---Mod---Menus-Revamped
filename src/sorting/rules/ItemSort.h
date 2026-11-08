@@ -146,9 +146,11 @@ namespace itemsort
 
 	// The display order: a permutation of the row indices. Missing numbers last in both directions; ties by name
 	// ascending, then same-name rows by value highest first, then weight highest first (RMI-049), then the original order.
-	// A category sort (RMI-049, owner list): groups in order, inside a group value highest first, equal values A-Z, then
-	// weight highest first; descending is the exact reverse. Rows without a group or a value stay last both ways.
-	inline std::vector<int> Order(std::span<const Row> a_rows, State a_state)
+	// A category sort: groups in order; inside a group A-Z, same names by value highest first, then weight highest first
+	// (owner 2026-11-08, the default), or with a_valueFirst ([Picker] bCategorySortValueFirst=1, the RMI-049 order) value
+	// highest first, equal values A-Z, then weight. Descending is the exact reverse. Rows without a group stay last both
+	// ways; rows without a value stay after the priced ones they tie with.
+	inline std::vector<int> Order(std::span<const Row> a_rows, State a_state, bool a_valueFirst = false)
 	{
 		std::vector<int>         order(a_rows.size());
 		std::vector<std::string> names(a_rows.size());
@@ -176,10 +178,11 @@ namespace itemsort
 				const int x = a_rows[a].group, y = a_rows[b].group;
 				if ((x < 0) != (y < 0)) return y < 0;
 				if (x != y) return (x < y) != d;
+				if (!a_valueFirst && names[a] != names[b]) return (names[a] < names[b]) != d;
 				const float pa = a_rows[a].price, pb = a_rows[b].price;
 				if ((pa < 0) != (pb < 0)) return pb < 0;
 				if (const int c = higher(pa, pb)) return (c < 0) != d;
-				if (names[a] != names[b]) return (names[a] < names[b]) != d;
+				if (a_valueFirst && names[a] != names[b]) return (names[a] < names[b]) != d;
 				if (const int c = higher(a_rows[a].weight, a_rows[b].weight)) return (c < 0) != d;
 				return false;
 			}

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Inside a category group, items now run A-Z, items with the same name from the highest value, then by weight.
+  New INI option `[Picker] bCategorySortValueFirst` (default 0; 1 = the 1.5.0 order: highest value first, equal
+  values A-Z). The reversed order is the exact reverse either way.
+- The sort buttons no longer flash on a tab change in the Inventory, the Magic menu, containers and shops.
+- Misc filter: Scrolls now holds only enchanted scrolls; notes, letters, diaries and maps join the books under the
+  renamed choice Writings. Welkynd, Varla and Sigil stones are now Tools.
+
 ## 1.5.0 - 2026-11-07
 
 - Sorting: every native sort is replaced by the mod's own sort buttons in the Inventory, containers and shops (both

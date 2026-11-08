@@ -103,6 +103,6 @@ int main()
 	check(MiscTags(27, 0xC, 0) == (1u << 0), "actual base repair hammer is Misc Tools");
 	check(MiscTags(27, 0x0100000C, 0) == (1u << 5), "unrelated plugin-local ID0C is not a repair hammer");
 	check(MiscTags(26, 0x2CF9F, 0) == (1u << 0), "actual torch is Misc Tools");
-	check(MiscTags(42, 0x41FD3, 0) == (1u << 5), "sigil stone stays Other");
+	check(MiscTags(42, 0x41FD3, 0) == (1u << 0), "sigil stone is Misc Tools (owner 2026-11-08)");
 	std::printf("%d alchemy/navigation checks passed\n", checks);
 }

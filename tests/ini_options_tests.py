@@ -41,6 +41,13 @@ for key in ("bInventory", "bMagic", "bContainer", "bStolenFilter", "bEnchantedFi
 config = read("core/Config.h") + read("core/Config.cpp")
 for key in ("bInventory", "bMagic", "bContainer", "bStolenFilter", "bEnchantedFilter"):
     check(f'L"Picker", L"{key}"' in config, f"config reads [Picker] {key}")
+# Owner 2026-11-08: the order inside a category-sort group is an option, A-Z first by default.
+default("Picker", "bCategorySortValueFirst", "0")
+check('L"Picker", L"bCategorySortValueFirst"' in config and "categorySortValueFirst" in config,
+      "config reads [Picker] bCategorySortValueFirst")
+own = read("sorting/OwnSort.cpp")
+check(own.count("mrconfig::Get().picker.categorySortValueFirst") >= 2,
+      "Inventory/container and Magic refills pass bCategorySortValueFirst to the group order")
 picker = read("sorting/Picker.cpp")
 tick = picker[picker.find("void Tick(Mode a_mode"):]
 check("mrconfig::Get().picker" in tick, "sorting Tick turns a switched-off menu's pickers off")
