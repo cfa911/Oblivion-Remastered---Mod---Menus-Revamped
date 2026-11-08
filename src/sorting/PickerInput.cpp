@@ -53,6 +53,15 @@ namespace sorting
 			if (a_message == WM_RBUTTONUP && swallowRightUp) { swallowRightUp = false; return true; }
 			if (a_message == WM_KEYUP && a_key == VK_ESCAPE && swallowEscape) { swallowEscape = false; return true; }
 			if (!inputActive) return false;
+			if (a_message == WM_MOUSEMOVE) {
+				int hovered = -1;
+				if (inputOpen) {
+					const double x = static_cast<short>(LOWORD(a_position)), y = static_cast<short>(HIWORD(a_position));
+					for (int i = 0; i < itemtags::kMaxChoices; ++i) if (cellsPx[i].Hit(x, y)) { hovered = i; break; }
+				}
+				mouseHoverCell.store(hovered);
+				return false;
+			}
 			if (a_message == WM_LBUTTONDBLCLK && GetTickCount64() <= doubleClickUntil) { swallowUp = true; return true; }
 			if (a_message == WM_KEYDOWN && a_key == VK_ESCAPE && inputOpen) { command = -2; commandFromController = false; swallowEscape = true; return true; }
 			// Owner 2026-11-07: right click on a filter opens its popup (left click = its category sort).

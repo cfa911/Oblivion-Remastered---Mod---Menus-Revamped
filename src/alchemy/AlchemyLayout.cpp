@@ -46,9 +46,9 @@ namespace alchemy
 			if (count) {
 				const auto want = " (" + std::to_string(n) + ")";
 				if (uix::GetText(count) != want) uix::SetText(count, want);
-				ui::Float(count, L"SetRenderOpacity", n > 0 ? 1.0f : kZeroOpacity);
+				ui::Float(count, L"SetRenderOpacity", n > 0 ? 1.0f : UiPalette().alchemy.zeroOpacity);
 			}
-			ui::Float(label, L"SetRenderOpacity", n > 0 ? 1.0f : kZeroOpacity);
+			ui::Float(label, L"SetRenderOpacity", n > 0 ? 1.0f : UiPalette().alchemy.zeroOpacity);
 		}
 
 		void OnEntryEvent(UE::UObject* a_row, UE::UFunction* a_fn, void* a_params)
@@ -245,8 +245,9 @@ namespace alchemy
 			const int want = a_hovered ? 1 : 0;
 			if (!back || g_chipStyle[a_index] == want) return;
 			// Clear all keeps the red rim; a filter button gets a black one (owner 2026-11-04)
-			const float* line = a_index == 0 ? kButtonLine : kButtonLineDark;
-			if (ui::RoundedBox(back, false, a_hovered ? kButtonHover : kButtonFill, line, 0.5f, 6.0f)) g_chipStyle[a_index] = want;
+			const auto& style = UiPalette().alchemy;
+			const float* line = a_index == 0 ? style.buttonLine.data() : style.buttonLineDark.data();
+			if (ui::RoundedBox(back, false, a_hovered ? style.buttonHover.data() : style.buttonFill.data(), line, 0.5f, 6.0f)) g_chipStyle[a_index] = want;
 		}
 
 		double MarkWidth()
@@ -410,7 +411,8 @@ namespace alchemy
 				auto* label = reflect::Get(g_tabLabels[i]);
 				const auto suffix = std::to_wstring(i);
 				if (!label) {
-					label = MakeLabel(canvas, (L"MrAlchemyTabText" + suffix).c_str(), kTitleInk, 19);
+					const auto& style = UiPalette().alchemy;
+					label = MakeLabel(canvas, (L"MrAlchemyTabText" + suffix).c_str(), style.titleInk.data(), style.titleFontSize);
 					if (!label) continue;
 					g_tabLabels[i] = reflect::Hold(label);
 					uix::SetText(label, names[i]);
@@ -620,7 +622,8 @@ namespace alchemy
 				if (back) {
 					if (auto* slot = SlotOf(back)) ui::Vec2(slot, L"SetPosition", cx, cy);
 					const bool   lit = i == active || i == focus || i == hover;
-					const float* tint = i == active ? kActiveTint : kFocusTint;
+					const auto&  style = UiPalette().alchemy;
+					const float* tint = i == active ? style.activeSort.data() : style.focusTint.data();
 					if (lit) ui::Colour(back, tint[0], tint[1], tint[2], tint[3]);
 					ui::Visible(back, room && lit);
 				}
@@ -893,8 +896,9 @@ namespace alchemy
 			if (applied) ui::Visible(applied, names.empty());
 			while (g_chips.size() < texts.size()) {
 				auto* back = MakeBack(canvas, g_chips.size());
-				auto* chip = MakeLabel(canvas, (L"MrAlchemyChip" + std::to_wstring(g_chips.size())).c_str(), g_chips.empty() ? kChipInk : kSortInk, kChipText);
-				auto* mark = MakeLabel(canvas, (L"MrAlchemyChipX" + std::to_wstring(g_chips.size())).c_str(), kChipInk, kChipText);
+				const auto& style = UiPalette().alchemy;
+				auto* chip = MakeLabel(canvas, (L"MrAlchemyChip" + std::to_wstring(g_chips.size())).c_str(), g_chips.empty() ? style.chipInk.data() : style.sortInk.data(), style.chipFontSize);
+				auto* mark = MakeLabel(canvas, (L"MrAlchemyChipX" + std::to_wstring(g_chips.size())).c_str(), style.chipInk.data(), style.chipFontSize);
 				if (!chip || !back || !mark) break;
 				uix::SetText(mark, "\xC3\x97");
 				g_chipMarks.push_back(reflect::Hold(mark));
@@ -905,7 +909,8 @@ namespace alchemy
 			}
 			auto* more = reflect::Get(g_more);
 			if (!more) {
-				more = MakeLabel(canvas, L"MrAlchemyChipMore", kChipInk, kChipText);
+				const auto& style = UiPalette().alchemy;
+				more = MakeLabel(canvas, L"MrAlchemyChipMore", style.chipInk.data(), style.chipFontSize);
 				if (more) g_more = reflect::Hold(more);
 			}
 			std::vector<Rect> rects(texts.size());   // an empty rect is not clickable
@@ -997,8 +1002,9 @@ namespace alchemy
 			if (more) ui::Visible(more, moreShown);
 			auto* chipTitle = reflect::Get(g_chipTitle);
 			if (!chipTitle) {
-				constexpr float ink[] = { kTitleInk[0] * 0.8f, kTitleInk[1] * 0.8f, kTitleInk[2] * 0.8f, 1.0f };
-				chipTitle = MakeLabel(canvas, L"MrAlchemyChipTitle", ink, 23.1);
+				const auto& titleInk = UiPalette().alchemy.titleInk;
+				const std::array<float, 4> ink{ titleInk[0] * 0.8f, titleInk[1] * 0.8f, titleInk[2] * 0.8f, 1.0f };
+				chipTitle = MakeLabel(canvas, L"MrAlchemyChipTitle", ink.data(), 23.1);
 				if (chipTitle) {
 					uix::SetText(chipTitle, "Selected Filters");
 					CopyIngredientsFont(chipTitle, title);

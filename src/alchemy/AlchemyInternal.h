@@ -41,6 +41,7 @@ namespace alchemy
 	{
 		using namespace alchemyrules;
 		using Clock = std::chrono::steady_clock;
+		inline const uistyle::Palette& UiPalette() { return uistyle::Get(mrconfig::Get().stylePreset); }
 
 		constexpr const wchar_t* kMenuClass = L"/Game/UI/Modern/GameMenuLayer/Alchemy/WBP_ModernMenu_AlchemyMenu.WBP_ModernMenu_AlchemyMenu_C";
 		// Only custom Alchemy controls are intercepted; native X/Y actions remain the game's.
@@ -74,8 +75,6 @@ namespace alchemy
 		constexpr double         kHintSpacing = 22; // between our hints and their left neighbour (owner screenshot b2d70c38)
 		constexpr double         kSepWidth = 2;   // vertical dividers at icon height
 		constexpr double         kIconSize = 34, kIconBack = 46, kIconStep = 52, kArrowSize = 14;   // viewport units
-		constexpr float          kActiveTint[4] = { 0.55f, 0.35f, 0.20f, 1.0f };    // active sort: brown; hover/focus unchanged (owner 2026-11-05)
-		constexpr float          kFocusTint[4] = { 1.0f, 1.0f, 1.0f, 0.55f };    // hovered / controller focus: fainter
 		constexpr double         kSearchSpace = 44, kSearchHeight = 36;
 		constexpr double         kHeaderRuleDropPx = 3;
 		constexpr double         kHeaderGap = 40;   // the list moves down this much; the icon line sits in the gap
@@ -84,18 +83,8 @@ namespace alchemy
 		// line further from the rows, lightning and A-Z to the right
 		constexpr double         kGapTrimPx = 4, kIconLiftPx = 6, kLeftShiftPx = 17;   // batches 2 and 3: +3 lift, +10 / +3 right
 		constexpr double         kWeightCx = 120, kValueCx = 45;   // column centres from a row's right edge
-		constexpr float          kSortInk[4] = { 0.035f, 0.025f, 0.015f, 1.0f };   // dark ink (list text)
-		constexpr float          kChipInk[4] = { 0.30f, 0.012f, 0.008f, 1.0f };    // the Filters underline red
-		constexpr float          kZeroOpacity = 0.4f;
-		// active-filter buttons: parchment-dark fill, lighter while hovered, outline in the chip red
-		constexpr float          kButtonFill[4] = { 0.30f, 0.24f, 0.16f, 0.30f };
-		constexpr float          kButtonHover[4] = { 0.62f, 0.50f, 0.30f, 0.65f };
-		constexpr float          kButtonLine[4] = { 0.30f, 0.012f, 0.008f, 1.0f };
-		constexpr float          kTitleInk[4] = { 0.0723f, 0.0382f, 0.0284f, 1.0f };   // #4c372f (sRGB) as linear, owner 2026-11-04
-		constexpr float          kButtonLineDark[4] = { 0.0f, 0.0f, 0.0f, 1.0f };   // filter buttons: black rim (owner 2026-11-04)
 		constexpr double         kMarkGap = 4;   // between the red x mark and the filter name
 		constexpr double         kButtonPadX = 7, kButtonPadY = 2;
-		constexpr double         kChipText = 13;     // button text size (17 -> 15 -> 13, owner 2026-11-04)
 		constexpr double         kTitleAbove = 32;   // "Selected filters" sits this far above the first row
 		constexpr double         kChipsDy = -16;     // the title + rows block, up into the strip top (owner 2026-11-04)
 		constexpr int            kChipRows = 3;      // active-filter button rows (owner 2026-11-04)

@@ -9,11 +9,14 @@ out=Path(sys.argv[1]); out.mkdir(parents=True,exist_ok=True)
 body=source_paths.function((root/'src/sorting/PickerPopup.cpp').read_text(),'void Picker::PaintController(')
 body+='\n'+source_paths.function((root/'src/sorting/OwnSort.cpp').read_text(),'void Picker::PaintGroup()')
 code=r'''
+#include "core/UiTheme.h"
 #include "sorting/rules/ItemSort.h"
 #include "sorting/rules/PickerHighlight.h"
+#include <atomic>
 #include <cstdio>
 struct Widget { float opacity=1; };
 namespace reflect { using Handle=Widget*; Widget* Get(Handle p){return p;} }
+namespace mrconfig { struct Values { uistyle::Preset stylePreset=uistyle::Preset::Classic; }; const Values& Get(){static Values values;return values;} }
 namespace ui {
 template<class... T> void RoundedBox(T...) {}
 bool Float(Widget* p,const wchar_t*,float value){if(p)p->opacity=value;return true;}
@@ -24,6 +27,7 @@ constexpr float kClear[4]={};
 struct Picker {
     unsigned choice=0,category=0,cursor=0;
     bool controllerFocus=false,open=false,controllerPopup=false;
+    std::atomic<int> mouseHoverCell{-1};
     itemtags::Tab view=itemtags::Tab::MagicSchool;
     Widget image; reflect::Handle headerImage=&image,headerFrame=nullptr;
     reflect::Handle cells[itemtags::kMaxChoices]{};

@@ -18,6 +18,12 @@ int main()
 	Check(kFill[3] == 1.0f);
 	Check(kOutlineWidth == 0);
 	Check(kCornerRadius == 0);
+	Check(!CellHighlighted(false, false, 0, 1, 1));
+	Check(CellHighlighted(true, false, 0, 1, 1));
+	Check(!CellHighlighted(true, false, 0, -1, 1));
+	Check(CellHighlighted(true, true, 1, -1, 1));
+	Check(CellHighlighted(true, true, 1, 2, 1));
+	Check(CellHighlighted(true, true, 1, 2, 2));
 	NativeHandoff state;
 	Check(state.Update(false, false, false) == Transition::None);
 	Check(state.Update(true, false, false) == Transition::Enter);

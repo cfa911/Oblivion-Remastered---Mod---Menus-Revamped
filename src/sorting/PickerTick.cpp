@@ -1,5 +1,6 @@
 #include "sorting/PickerInternal.h"
 
+#include "core/Config.h"
 #include "core/Runtime.h"
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
@@ -41,6 +42,7 @@ namespace sorting::detail
 	{
 		ResetShared(kind >= 3 && kind <= 4 ? static_cast<unsigned>(kind - 2) : 0);
 		choice = 0; appliedChoice = 0; category = 0; appliedCategory = 0; view = tab; open = false;
+		mouseHoverCell.store(-1);
 		styled = false;  // the popup cells were built for the old view (stale Weapon type page, RMI-006)
 		controllerFocus = controllerPopup = false; cursor = 0;
 		returnToList.Cancel();
@@ -158,8 +160,9 @@ namespace sorting::detail
 		const auto now = GetTickCount64();
 		if (!fontsReady && now >= nextFontTry) {
 			nextFontTry = now + 1000;
-			fontsReady = PickerFont(reflect::Get(title), 18);
-			for (const auto& label : labels) fontsReady = PickerFont(reflect::Get(label), 14) && fontsReady;
+			const auto& style = uistyle::Get(mrconfig::Get().stylePreset).picker;
+			fontsReady = PickerFont(reflect::Get(title), style.titleFontSize);
+			for (const auto& label : labels) fontsReady = PickerFont(reflect::Get(label), style.labelFontSize) && fontsReady;
 			if (!fontsReady && !fontWarning) {
 				logger::warn("Menus Revamped: item/spell Kingthings font unavailable; retrying");
 				fontWarning = true;
@@ -294,7 +297,7 @@ namespace sorting::detail
 		// A nested view changed after the normal style pass. Update visible cells
 		// before measuring input regions, not a tick later with stale parent cells.
 		if (!styled) { StyleCells(); styled = true; }
-		if (!open) controllerPopup = false;
+		if (!open) { controllerPopup = false; mouseHoverCell.store(-1); }
 		const std::uint8_t popupVisibility = open ? 0 : 1;  // visible background blocks hover/click hit tests on rows below it
 		if (open != paintedOpen) {
 			ui::CallFirst(reflect::Get(popup), L"SetVisibility", &popupVisibility, sizeof(popupVisibility));
@@ -302,7 +305,11 @@ namespace sorting::detail
 		}
 
 		if (cmd >= 0) BrushHeader(HeaderIcon());
-		if (cmd != -1) PaintController();
+		const int hoveredCell = mouseHoverCell.load();
+		if (cmd != -1 || hoveredCell != paintedMouseHoverCell) {
+			PaintController();
+			paintedMouseHoverCell = hoveredCell;
+		}
 		Rect popupRect, cellRects[itemtags::kMaxChoices];
 		const bool measure = open && now >= nextHitMeasure;
 		if (measure) {

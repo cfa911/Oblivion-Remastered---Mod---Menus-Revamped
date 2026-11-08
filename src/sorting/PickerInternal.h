@@ -21,10 +21,7 @@ namespace sorting
 {
 	namespace detail
 	{
-		constexpr float kInk[4] = { 0.20f, 0.14f, 0.09f, 1 };
-		constexpr float kTitleInk[4] = { 0.06f, 0.035f, 0.016f, 1 };
-		// sRGB #D6D0C8 converted to linear Slate colour.
-		constexpr float kPaper[4] = { 0.672443f, 0.630757f, 0.577580f, 1.0f }, kClear[4] = { 0, 0, 0, 0 };
+		constexpr float kClear[4] = { 0, 0, 0, 0 };
 		// Focus colour/flat geometry are defined in PickerHighlight.h; applied-filter state is not a highlight.
 		// Item masks: low 32 bits = the first picker's tags, high 32 bits = the second picker's (Magic effect). A row that is
 		// not a spell (for example an active effect) carries kPassAll and is never hidden.
@@ -95,6 +92,8 @@ namespace sorting
 			bool commandFromController = false;
 			std::atomic<bool> active{ false };
 			bool open = false, paintedOpen = false, controllerFocus = false, controllerPopup = false;
+			std::atomic<int> mouseHoverCell{ -1 };
+			int paintedMouseHoverCell = -1;
 			unsigned cursor = 0;
 			pickerpad::ReturnToList returnToList;
 			reflect::Handle carousel;

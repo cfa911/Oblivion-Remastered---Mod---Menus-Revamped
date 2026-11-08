@@ -1,5 +1,6 @@
 #include "sorting/PickerInternal.h"
 
+#include "core/Config.h"
 #include "core/Runtime.h"
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
@@ -50,13 +51,14 @@ namespace sorting::detail
 		auto* background = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PiecePaper" + suffix).c_str(), 0, 0, width, height, 0, &backgroundSlot);
 		if (!background || !backgroundSlot) return false;
 		paperSlot = reflect::Hold(backgroundSlot);
-		ui::RoundedBox(background, false, kPaper, kInk, 1.5f);
+		const auto& style = uistyle::Get(mrconfig::Get().stylePreset).picker;
+		ui::RoundedBox(background, false, style.paper.data(), style.border.data(), 1.5f);
 		const std::uint8_t visible = 0;
 		ui::CallFirst(background, L"SetVisibility", &visible, sizeof(visible));
 		auto* titleWidget = CanvasChild(popupWidget, L"/Script/UMG.TextBlock", (L"PieceTitle" + suffix).c_str(), 12, 6, width - 24, 24, 1);
 		uix::SetText(titleWidget, itemtags::Info(view).title);
 		BoundLabel(titleWidget);
-		uix::Ink(titleWidget, kTitleInk);
+		uix::Ink(titleWidget, style.titleInk.data());
 		const std::uint8_t titleCenter = 1;
 		ui::CallFirst(titleWidget, L"SetJustification", &titleCenter, sizeof(titleCenter));
 		title = reflect::Hold(titleWidget);
@@ -72,7 +74,7 @@ namespace sorting::detail
 			labels[i] = reflect::Hold(label);
 			uix::SetText(label, "");
 			BoundLabel(label);
-			uix::Ink(label, kInk);
+			uix::Ink(label, style.ink.data());
 			const std::uint8_t center = 1;
 			ui::CallFirst(label, L"SetJustification", &center, sizeof(center));
 		}
@@ -154,31 +156,37 @@ namespace sorting::detail
 	// On: the icon at full strength on the owner's red background. Off: dimmed. Controller focus uses the shared picker fill.
 	void Picker::PaintStolen()
 	{
-		ui::RoundedBox(reflect::Get(stolenFrame), false, stolenFocus ? pickerhighlight::kFill.data() : stolenOnly ? stolenfilter::kStolenFill : kClear,
+		const auto& focusFill = uistyle::Get(mrconfig::Get().stylePreset).picker.focusFill;
+		ui::RoundedBox(reflect::Get(stolenFrame), false, stolenFocus ? focusFill.data() : stolenOnly ? stolenfilter::kStolenFill : kClear,
 			kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 		ui::Call fade(reflect::Get(stolenImage), L"SetRenderOpacity");
-		if (fade && fade.Size("InOpacity") == 4 && fade.Set("InOpacity", stolenOnly ? 1.0f : 0.45f)) fade.RunGuarded();
+		const float inactiveOpacity = uistyle::Get(mrconfig::Get().stylePreset).picker.inactiveIconOpacity;
+		if (fade && fade.Size("InOpacity") == 4 && fade.Set("InOpacity", stolenOnly ? 1.0f : inactiveOpacity)) fade.RunGuarded();
 	}
 
 	void Picker::PaintEnchanted()
 	{
-		ui::RoundedBox(reflect::Get(enchantedFrame), false, enchantedFocus ? pickerhighlight::kFill.data() : enchantedOnly ? enchantedfilter::kEnchantedFill : kClear,
+		const auto& focusFill = uistyle::Get(mrconfig::Get().stylePreset).picker.focusFill;
+		ui::RoundedBox(reflect::Get(enchantedFrame), false, enchantedFocus ? focusFill.data() : enchantedOnly ? enchantedfilter::kEnchantedFill : kClear,
 			kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 		ui::Call fade(reflect::Get(enchantedImage), L"SetRenderOpacity");
-		if (fade && fade.Size("InOpacity") == 4 && fade.Set("InOpacity", enchantedOnly ? 1.0f : 0.45f)) fade.RunGuarded();
+		const float inactiveOpacity = uistyle::Get(mrconfig::Get().stylePreset).picker.inactiveIconOpacity;
+		if (fade && fade.Size("InOpacity") == 4 && fade.Set("InOpacity", enchantedOnly ? 1.0f : inactiveOpacity)) fade.RunGuarded();
 	}
 
 	void Picker::PaintController()
 	{
 		PaintGroup();   // header opacity, and the category sort's parchment/arrow (hidden under the controller focus fill)
 		// Applied membership is not focus. Match the owner's native square, borderless #E6E4DF reference.
-		ui::RoundedBox(reflect::Get(headerFrame), false, controllerFocus ? pickerhighlight::kFill.data() : kClear,
+		const auto& focusFill = uistyle::Get(mrconfig::Get().stylePreset).picker.focusFill;
+		ui::RoundedBox(reflect::Get(headerFrame), false, controllerFocus ? focusFill.data() : kClear,
 			kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 		PaintStolen();
 		PaintEnchanted();
+		const int hoveredCell = mouseHoverCell.load();
 		for (unsigned i = 0; i < itemtags::Info(view).count; ++i) {
-			const bool focused = open && controllerPopup && i == cursor;
-			ui::RoundedBox(reflect::Get(cells[i]), false, focused ? pickerhighlight::kFill.data() : kClear,
+			const bool highlighted = pickerhighlight::CellHighlighted(open, controllerPopup, cursor, hoveredCell, i);
+			ui::RoundedBox(reflect::Get(cells[i]), false, highlighted ? focusFill.data() : kClear,
 				kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 		}
 	}

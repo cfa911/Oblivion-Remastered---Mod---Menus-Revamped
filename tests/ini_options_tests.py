@@ -36,6 +36,11 @@ def default(section, key, value):
 
 
 # 1-3: pickers and toggle icons
+default("Style", "uPreset", "0")
+check('L"Style", L"uPreset"' in read("core/Config.cpp"), "config reads the shared style preset")
+check("uistyle::Get(mrconfig::Get().stylePreset)" in read("search/SearchBar.cpp"), "search bars use the shared palette")
+check("uistyle::Get(mrconfig::Get().stylePreset)" in read("sorting/PickerPopup.cpp"), "category popups use the shared palette")
+check("UiPalette()" in read("alchemy/AlchemyLayout.cpp"), "Alchemy controls use the shared palette")
 for key in ("bInventory", "bMagic", "bContainer", "bStolenFilter", "bEnchantedFilter"):
     default("Picker", key, "1")
 config = read("core/Config.h") + read("core/Config.cpp")

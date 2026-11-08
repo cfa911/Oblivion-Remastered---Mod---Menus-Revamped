@@ -5,12 +5,14 @@ import source_paths
 out=Path(sys.argv[1]);out.mkdir(parents=True,exist_ok=True)
 body=source_paths.function(source_paths.read('picker'),'void Picker::PaintEnchanted()')
 code=r'''
+#include "core/UiTheme.h"
 #include "sorting/rules/StolenFilter.h"
 #include "sorting/rules/EnchantedFilter.h"
 #include "sorting/rules/PickerHighlight.h"
 #include <cstdio>
 struct Widget {};
 namespace reflect { using Handle=Widget*; Widget* Get(Handle p){return p;} }
+namespace mrconfig { struct Values { uistyle::Preset stylePreset=uistyle::Preset::Classic; }; const Values& Get(){static Values values;return values;} }
 float colour[4]{};
 namespace ui {
 void RoundedBox(Widget*,bool,const float* fill,const float*,float,float){for(int i=0;i<4;++i)colour[i]=fill[i];}
