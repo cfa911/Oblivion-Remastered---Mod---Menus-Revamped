@@ -43,6 +43,7 @@ namespace sorting::detail
 		ResetShared(kind >= 3 && kind <= 4 ? static_cast<unsigned>(kind - 2) : 0);
 		choice = 0; appliedChoice = 0; category = 0; appliedCategory = 0; view = tab; open = false;
 		mouseHoverCell.store(-1);
+		mouseInputActive.store(false);
 		{ std::scoped_lock lock(inputLock); mousePositionKnown = false; }
 		styled = false;  // the popup cells were built for the old view (stale Weapon type page, RMI-006)
 		controllerFocus = controllerPopup = false; cursor = 0;
@@ -333,9 +334,11 @@ namespace sorting::detail
 			}
 		}
 		const int hoveredCell = mouseHoverCell.load();
-		if (cmd != -1 || hoveredCell != paintedMouseHoverCell) {
+		const bool mouseInput = mouseInputActive.load();
+		if (cmd != -1 || hoveredCell != paintedMouseHoverCell || mouseInput != paintedMouseInputActive) {
 			PaintController();
 			paintedMouseHoverCell = hoveredCell;
+			paintedMouseInputActive = mouseInput;
 		}
 		active.store(true);
 	}

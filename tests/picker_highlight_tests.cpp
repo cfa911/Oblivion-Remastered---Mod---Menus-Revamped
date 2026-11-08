@@ -23,7 +23,7 @@ int main()
 	Check(!CellHighlighted(true, false, 0, -1, 1));
 	Check(CellHighlighted(true, true, 1, -1, 1));
 	Check(CellHighlighted(true, true, 1, 2, 1));
-	Check(CellHighlighted(true, true, 1, 2, 2));
+	Check(!CellHighlighted(true, true, 1, 2, 2)); // controller ownership suppresses a stale mouse target
 	NativeHandoff state;
 	Check(state.Update(false, false, false) == Transition::None);
 	Check(state.Update(true, false, false) == Transition::Enter);

@@ -184,8 +184,9 @@ namespace sorting::detail
 		PaintStolen();
 		PaintEnchanted();
 		const int hoveredCell = mouseHoverCell.load();
+		const bool controllerInput = controllerPopup && !mouseInputActive.load();
 		for (unsigned i = 0; i < itemtags::Info(view).count; ++i) {
-			const bool highlighted = pickerhighlight::CellHighlighted(open, controllerPopup, cursor, hoveredCell, i);
+			const bool highlighted = pickerhighlight::CellHighlighted(open, controllerInput, cursor, hoveredCell, i);
 			ui::RoundedBox(reflect::Get(cells[i]), false, highlighted ? focusFill.data() : kClear,
 				kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 		}

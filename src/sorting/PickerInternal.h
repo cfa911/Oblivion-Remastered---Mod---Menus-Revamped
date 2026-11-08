@@ -94,6 +94,8 @@ namespace sorting
 			bool open = false, paintedOpen = false, controllerFocus = false, controllerPopup = false;
 			std::atomic<int> mouseHoverCell{ -1 };
 			int paintedMouseHoverCell = -1;
+			std::atomic<bool> mouseInputActive{ false };
+			bool paintedMouseInputActive = false;
 			bool mousePositionKnown = false; // under inputLock; re-hit-test after popup layout changes
 			double mouseX = 0, mouseY = 0;
 			unsigned cursor = 0;
