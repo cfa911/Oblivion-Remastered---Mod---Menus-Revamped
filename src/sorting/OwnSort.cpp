@@ -149,7 +149,7 @@ namespace sorting::detail
 				rows[i].school = static_cast<float>(e[l.school]);
 				rows[i].effectValue = static_cast<float>(e[l.effectValue]);
 			}
-			Permute(items, stride, itemsort::Order(rows, state));
+			Permute(items, stride, itemsort::Order(rows, state, mrconfig::Get().picker.categorySortValueFirst));
 		}
 
 		Picker* ActivePicker(int a_kind)
@@ -212,7 +212,7 @@ namespace sorting::detail
 				std::memcpy(&row.armor, e + l.armor, 4);
 				std::memcpy(&row.health, e + l.health, 4);
 			}
-			Permute(items, stride, itemsort::Order(rows, state));
+			Permute(items, stride, itemsort::Order(rows, state, mrconfig::Get().picker.categorySortValueFirst));
 		}
 
 		bool SetNativeSort(UE::UObject* a_vm, const wchar_t* a_setter, std::uint8_t a_type)
@@ -356,9 +356,10 @@ namespace sorting::detail
 		return false;
 	}
 
-	void Picker::HideNativeSorts()
+	bool Picker::HideNativeSorts()
 	{
-		if (!active.load() || !OwnSorts()) return;
+		if (!active.load() || !OwnSorts()) return false;
+		bool collapsed = false;
 		for (const auto& handle : nativeSorts) {
 			auto* native = reflect::Get(handle);
 			if (!native) continue;
@@ -366,7 +367,9 @@ namespace sorting::detail
 			if (visible && visible.Size("ReturnValue") == 1 && visible.Run() && !visible.Get<bool>("ReturnValue")) continue;
 			ui::Call hide(native, L"SetVisibility");
 			if (hide && hide.Size("InVisibility") == 1 && hide.Set("InVisibility", static_cast<std::uint8_t>(1))) hide.Run();   // Collapsed
+			collapsed = true;
 		}
+		return collapsed;
 	}
 
 	void Picker::ShowQuickLootHint()

@@ -133,16 +133,16 @@ int main()
 			{ "Grand Soul Gem", 500 }, { "Common Soul Gem", 50 } };
 		std::vector<itemsort::Row> gems;
 		for (const auto& g : in) { itemsort::Row r; r.name = g.name; r.price = g.price; r.weight = 0.3f; r.group = 2; gems.push_back(r); }
-		const auto shown = [&](itemsort::State st) {
+		const auto shown = [&](itemsort::State st, bool valueFirst = false) {
 			std::vector<std::string> out;
-			for (int i : itemsort::Order(gems, st)) out.push_back(gems[i].name + " " + std::to_string(static_cast<int>(gems[i].price)));
+			for (int i : itemsort::Order(gems, st, valueFirst)) out.push_back(gems[i].name + " " + std::to_string(static_cast<int>(gems[i].price)));
 			return out;
 		};
 		const std::vector<std::string> green{ "Azura's Star 2500", "Black Soul Gem 500", "Black Soul Gem 500", "Grand Soul Gem 500",
 			"Grand Soul Gem 350", "Greater Soul Gem 350", "Grand Soul Gem 200", "Grand Soul Gem 150", "Common Soul Gem 80",
 			"Common Soul Gem 50", "Common Soul Gem 50", "Common Soul Gem 40", "Lesser Soul Gem 25", "Petty Soul Gem 10" };
-		check(shown({ Key::Name, false, 2 }) == green, "owner list: green = value highest first, equal values A-Z");
-		check(shown({ Key::Name, true, 2 }) == std::vector<std::string>(green.rbegin(), green.rend()), "owner list: red = exact reverse");
+		check(shown({ Key::Name, false, 2 }, true) == green, "bCategorySortValueFirst=1: green = value highest first, equal values A-Z");
+		check(shown({ Key::Name, true, 2 }, true) == std::vector<std::string>(green.rbegin(), green.rend()), "bCategorySortValueFirst=1: red = exact reverse");
 		std::vector<itemsort::Row> twins(3);
 		twins[0].name = "Common Soul Gem"; twins[0].price = 50; twins[0].weight = 0.3f;
 		twins[1].name = "Common Soul Gem"; twins[1].price = 80; twins[1].weight = 0.3f;
@@ -150,6 +150,20 @@ int main()
 		check(itemsort::Order(twins, { Key::Name, false }) == std::vector{ 1, 2, 0 }, "A-Z: same names by value then weight");
 		check(itemsort::Order(twins, { Key::Name, true }) == std::vector{ 1, 2, 0 }, "Z-A: same names still by value then weight");
 		check(itemsort::Order(twins, { Key::Weight, false }) == std::vector{ 1, 0, 2 }, "weight ties by name, then value");
+
+		// Owner 2026-11-08: [Picker] bCategorySortValueFirst=0 (the default) orders a group A-Z, same names by value
+		// highest first, then weight; red is the exact reverse.
+		const std::vector<std::string> named{ "Azura's Star 2500", "Black Soul Gem 500", "Black Soul Gem 500", "Common Soul Gem 80",
+			"Common Soul Gem 50", "Common Soul Gem 50", "Common Soul Gem 40", "Grand Soul Gem 500", "Grand Soul Gem 350",
+			"Grand Soul Gem 200", "Grand Soul Gem 150", "Greater Soul Gem 350", "Lesser Soul Gem 25", "Petty Soul Gem 10" };
+		check(shown({ Key::Name, false, 2 }) == named, "default group order: A-Z, same names by value highest first");
+		check(shown({ Key::Name, true, 2 }) == std::vector<std::string>(named.rbegin(), named.rend()), "default group order: red = exact reverse");
+		std::vector<itemsort::Row> unpriced(3);
+		unpriced[0].name = "Banana"; unpriced[0].price = 100; unpriced[0].group = 1;
+		unpriced[1].name = "Apple";  unpriced[1].price = -1;  unpriced[1].group = 1;
+		unpriced[2].name = "Apple";  unpriced[2].price = 5;   unpriced[2].group = 1;
+		check(itemsort::Order(unpriced, { Key::Name, false, 1 }) == std::vector{ 2, 1, 0 },
+			"default group order: name before value; a same-name row without value after the priced one");
 	}
 	{
 		std::vector<itemsort::Row> mixed(4);

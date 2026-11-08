@@ -72,7 +72,7 @@ namespace itemtags
 				{ L"Gear-All.png", L"Gear-Head.png", L"Gear-Torso.png", L"Gear-Arms.png", L"Gear-Legwear.png", L"Gear-Feet.png", L"Gear-Shield.png", L"Gear-Amulet.png", L"Gear-Ring.png" } },
 			{ "Alchemy", 5, { "All", "Tools", "Potions", "Poisons", "Ingredients" },
 				{ L"Alchemy-All.png", L"Alchemy-Tools.png", L"Alchemy-Potions.png", L"Alchemy-Poisons.png", L"Alchemy-Ingredients.png" } },
-			{ "Item type", 7, { "All", "Tools", "Soul gems", "Books", "Scrolls", "Keys", "Other" },
+			{ "Item type", 7, { "All", "Tools", "Soul gems", "Writings", "Scrolls", "Keys", "Other" },
 				{ L"Misc-All.png", L"Misc-Tools.png", L"Misc-SoulGems.png", L"Misc-Books.png", L"MagicType-Scrolls.png", L"Misc-Keys.png", L"Misc-Other.png" } },
 			// All Items: the four tab categories first; a category then opens its own choices.
 			{ "Item category", 5, { "All", "Weapons", "Gear", "Alchemy", "Misc" },
@@ -258,18 +258,23 @@ namespace itemtags
 		return magiceffects::Tags(a_codes, a_count);
 	}
 
-	// Misc: form type (RE::FormType) + base form id + book flags -> Tools, Soul gems, Books, Scrolls, Keys, Other
-	// (choices 1..6, owner order 2026-11-07). Installed master: Lockpick 0xA and RepairHammer 0xC. Inventory lights
-	// (including torches) are Tools. Book DATA flag 0x01 = scroll (GearData also passes it for an enchanted book).
+	// Misc: form type (RE::FormType) + base form id + book flags -> Tools, Soul gems, Writings, Scrolls, Keys, Other
+	// (choices 1..6, owner order 2026-11-07). Installed master: Lockpick 0xA and RepairHammer 0xC; Welkynd, Varla and
+	// Sigil stones are Tools too (owner 2026-11-08). Inventory lights
+	// (including torches) are Tools. a_bookFlags bit 0 = an enchanted book (Scrolls); every other book, including notes,
+	// letters, diaries and maps that carry the BOOK DATA scroll display flag, is Writings (RMI-052, owner 2026-11-08).
 	constexpr std::uint32_t MiscTags(unsigned a_formType, std::uint32_t a_formId, std::uint8_t a_bookFlags)
 	{
 		switch (a_formType) {
-		case 27: return ((a_formId & 0x00FFFFFFu) == 0x0Au || a_formId == 0x0Cu) ? (1u << 0) : (1u << 5);
+		// Tools: lockpick, repair hammer, and (owner 2026-11-08) Welkynd 0x191 / Varla 0x194 stones and the Shivering
+		// Isles Welkynd copy 0x12D15 (Oblivion.esm; the quest Great Welkynd Stone 0x345AF stays Other).
+		case 27: return ((a_formId & 0x00FFFFFFu) == 0x0Au || a_formId == 0x0Cu || a_formId == 0x191u || a_formId == 0x194u ||
+				a_formId == 0x12D15u) ? (1u << 0) : (1u << 5);
 		case 26: return 1u << 0;  // inventory light/torch
 		case 38: return 1u << 1;  // soul gem
-		case 21: return (a_bookFlags & 1u) ? (1u << 3) : (1u << 2);  // scroll or book
+		case 21: return (a_bookFlags & 1u) ? (1u << 3) : (1u << 2);  // enchanted scroll or Writings
 		case 39: return 1u << 4;  // key
-		case 42: return 1u << 5;  // sigil stone
+		case 42: return 1u << 0;  // sigil stone: Tools (owner 2026-11-08)
 		default: return 0;
 		}
 	}

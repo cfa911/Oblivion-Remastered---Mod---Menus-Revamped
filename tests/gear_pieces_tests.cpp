@@ -96,11 +96,11 @@ int main()
 	check(itemtags::Includes(5, itemtags::MiscTags(39, 0x123, 0)), "key");
 	check(itemtags::Includes(2, itemtags::MiscTags(38, 0x2CF9F, 0)), "soul gem");
 	check(itemtags::Includes(3, itemtags::MiscTags(21, 0x5, 0)), "book");
-	check(itemtags::Includes(4, itemtags::MiscTags(21, 0x5, 1)) && !itemtags::Includes(3, itemtags::MiscTags(21, 0x5, 1)), "scroll (book flag 0x01)");
+	check(itemtags::Includes(4, itemtags::MiscTags(21, 0x5, 1)) && !itemtags::Includes(3, itemtags::MiscTags(21, 0x5, 1)), "enchanted book = scroll (RMI-052)");
 	check(itemtags::Includes(1, itemtags::MiscTags(27, 0x0A, 0)) && itemtags::Includes(1, itemtags::MiscTags(27, 0xFF00000A, 0)), "existing lockpick rule retained");
 	check(itemtags::Includes(1, itemtags::MiscTags(27, 0x0C, 0)) && !itemtags::Includes(6, itemtags::MiscTags(27, 0x0C, 0)), "base repair hammer moves to Tools");
-	check(itemtags::Includes(6, itemtags::MiscTags(27, 0x191, 0)) && !itemtags::Includes(1, itemtags::MiscTags(27, 0x191, 0)), "other misc");
-	check(itemtags::Includes(1, itemtags::MiscTags(26, 0x2CF9F, 0)) && itemtags::Includes(6, itemtags::MiscTags(42, 0x41FD3, 0)), "torch Tools and sigil stone Other");
+	check(itemtags::Includes(6, itemtags::MiscTags(27, 0x5432, 0)) && !itemtags::Includes(1, itemtags::MiscTags(27, 0x5432, 0)), "other misc (0x191 is the Welkynd Stone)");
+	check(itemtags::Includes(1, itemtags::MiscTags(26, 0x2CF9F, 0)) && itemtags::Includes(1, itemtags::MiscTags(42, 0x41FD3, 0)), "torch and sigil stone Tools (owner 2026-11-08)");
 	check(itemtags::MiscTags(19, 1, 0) == 0 && itemtags::MiscTags(25, 1, 0) == 0, "alchemy tools and ingredients do not become Misc");
 // All Items: category from form type, then the sub-choice inside it.
 	check(itemtags::Info(itemtags::Tab::AllItems).count == 5, "category count");

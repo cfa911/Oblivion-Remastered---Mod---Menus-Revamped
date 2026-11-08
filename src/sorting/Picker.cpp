@@ -43,10 +43,56 @@ namespace sorting
 			UpdateNativeBackgroundMask();
 			return;
 		}
+		const auto shown = [&](Picker& a_picker) {
+			return (a_picker.kind == 1 || a_picker.kind == 5) && a_picker.active.load() &&
+				reflect::Get(a_picker.menu) == a_menu && reflect::Get(a_picker.header);
+		};
+		// RMI-047: the game re-shows its own controls when it refreshes Magic. Only then (not on every
+		// post-event) are our headers and sorts shown and painted again, before the frame renders.
+		bool reshown = false;
 		for (auto& picker : g_pickers)
-			if ((picker.kind == 1 || picker.kind == 5) && picker.active.load() &&
-				reflect::Get(picker.menu) == a_menu && reflect::Get(picker.header))
-				picker.HideNativeReplacement();
+			if (shown(picker)) {
+				reshown |= picker.HideNativeReplacement();
+				reshown |= picker.HideNativeSorts();
+			}
+		if (!reshown) return;
+		for (auto& picker : g_pickers)
+			if (shown(picker)) {
+				picker.ShowOwnWidgets();
+				picker.PaintSorts();   // the School host also paints the Type peer's group
+			}
+	}
+
+	// RMI-047: a native tab change re-shows the game's own sort buttons. Collapse them and show the new tab's own
+	// sorts in the menu's post-event, before this frame renders, not on the next Tick. Nothing changed: no widget work.
+	static void RefreshTab(detail::Picker& a_picker, itemtags::Tab a_wanted)
+	{
+		const bool reshown = a_picker.HideNativeSorts(), switched = a_picker.tab != a_wanted;
+		if (switched) a_picker.ShowTab(a_wanted);
+		else if (reshown) { a_picker.ShowOwnWidgets(); a_picker.PaintSorts(); }
+	}
+
+	void RefreshInventoryHeaders(UE::UObject* a_menu)
+	{
+		auto& picker = g_pickers[0];
+		if (!a_menu || picker.kind != 0 || !picker.active.load() || reflect::Get(picker.menu) != a_menu || !reflect::Get(picker.header)) return;
+		auto** vm = reflect::At<UE::UObject*>(a_menu, reflect::Offset(a_menu->GetClass(), "VInventoryMenuViewModel"));
+		auto* page = vm && *vm ? reflect::At<std::uint8_t>(*vm, reflect::Offset((*vm)->GetClass(), "CurrentPageInventory")) : nullptr;
+		auto wanted = picker.tab;
+		if (!page || !itemtags::TabFromPage(*page, wanted)) return;   // unreadable or not a picker tab: the per-frame Tick decides
+		RefreshTab(picker, wanted);
+	}
+
+	void RefreshContainerHeaders(UE::UObject* a_menu)
+	{
+		if (!a_menu || a_menu != container::Widget()) return;
+		for (auto& picker : g_pickers) {
+			if ((picker.kind != 3 && picker.kind != 4) || !picker.active.load() || !reflect::Get(picker.header) ||
+				reflect::Get(picker.menu) != container::SideContent(picker.kind)) continue;
+			auto wanted = picker.tab;
+			// Each side has its own page byte; unreadable or not a picker tab: the per-frame Tick decides.
+			if (itemtags::TabFromPage(ContainerPage(picker.kind), wanted)) RefreshTab(picker, wanted);
+		}
 	}
 
 	void Tick(Mode a_mode, UE::UObject* a_menu, UE::UObject* a_canvas, float a_viewportScale, UE::UObject* a_other)

@@ -32,7 +32,8 @@ int main()
 		"Warhammers", "Staves", "Bows", "Arrows", "Other weapons" }, "weapons order");
 	check(names(Tab::Gear) == V{ "All", "Head", "Torso", "Arms", "Legwear", "Feet", "Shield", "Amulet", "Ring" }, "gear order head to toe, then jewellery");
 	check(names(Tab::Potions) == V{ "All", "Tools", "Potions", "Poisons", "Ingredients" }, "alchemy order");
-	check(names(Tab::Misc) == V{ "All", "Tools", "Soul gems", "Books", "Scrolls", "Keys", "Other" }, "misc order with Scrolls");
+	// RMI-052 (owner 2026-11-08): every non-enchanted book (notes, letters, diaries, maps too) is "Writings".
+	check(names(Tab::Misc) == V{ "All", "Tools", "Soul gems", "Writings", "Scrolls", "Keys", "Other" }, "misc order with Writings and Scrolls");
 	check(std::wstring_view(itemtags::Info(Tab::Misc).icons[4]) == L"MagicType-Scrolls.png", "misc Scrolls icon");
 	check(names(Tab::AllItems) == V{ "All", "Weapons", "Gear", "Alchemy", "Misc" }, "all items categories");
 	check(names(Tab::MagicSchool) == V{ "All", "Alteration", "Conjuration", "Destruction", "Illusion", "Mysticism", "Restoration" }, "school unchanged");
@@ -68,7 +69,13 @@ int main()
 	check(itemtags::Includes(3, itemtags::MiscTags(21, 0x1234, 0)) && !itemtags::Includes(4, itemtags::MiscTags(21, 0x1234, 0)), "plain book = Books 3");
 	check(itemtags::Includes(4, itemtags::MiscTags(21, 0x1234, 1)) && !itemtags::Includes(3, itemtags::MiscTags(21, 0x1234, 1)), "scroll flag = Scrolls 4");
 	check(itemtags::Includes(5, itemtags::MiscTags(39, 0x1234, 0)), "key 5");
-	check(itemtags::Includes(6, itemtags::MiscTags(42, 0x1234, 0)) && itemtags::Includes(6, itemtags::MiscTags(27, 0x1234, 0)), "sigil stone / misc = Other 6");
+	check(itemtags::Includes(6, itemtags::MiscTags(27, 0x1234, 0)), "plain misc = Other 6");
+	// Owner 2026-11-08: Sigil (SGST), Welkynd (0x191, Shivering Isles copy 0x12D15) and Varla (0x194) stones are Tools;
+	// the main-quest Great Welkynd Stone (0x345AF) stays Other (KB docs/inventory/alchemy-misc-2026-10-25.md).
+	for (std::uint32_t id : { 0x191u, 0x194u, 0x12D15u }) check(itemtags::MiscTags(27, id, 0) == 1u, "Welkynd / Varla stone = Tools only");
+	check(itemtags::MiscTags(42, 0x1234, 0) == 1u, "sigil stone = Tools only");
+	check(itemtags::MiscTags(27, 0x345AF, 0) == (1u << 5), "Great Welkynd Stone stays Other");
+	check(itemtags::MiscTags(27, 0x01000191, 0) == (1u << 5), "another plugin's local 0x191 is not a Welkynd stone");
 	{
 		const std::uint32_t weak = magiceffects::Code("WKFI");
 		check(itemtags::Includes(7, itemtags::EffectTags(&weak, 1)), "weakness to fire = effect choice 7");

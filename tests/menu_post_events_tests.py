@@ -49,8 +49,10 @@ int names = 0;
 namespace pe { std::string FunctionName(UE::UFunction* f) { ++names; return f->name; } }
 int filtered[6]{};
 bool nativeSchoolVisible=true, nativeTypeVisible=true;
-int magicHeaderRefreshes=0;
+int magicHeaderRefreshes=0, inventoryHeaderRefreshes=0, containerHeaderRefreshes=0;
 namespace sorting {
+void RefreshContainerHeaders(UE::UObject*) { ++containerHeaderRefreshes; }
+void RefreshInventoryHeaders(UE::UObject*) { ++inventoryHeaderRefreshes; }
 void RefreshMagicHeaders(UE::UObject*) {
     ++magicHeaderRefreshes;
     nativeSchoolVisible=nativeTypeVisible=false;
@@ -84,6 +86,8 @@ int main() {
     check(filtered[3] == 1 && filtered[4] == 1, "a frame event still filters both sides right after it");
     search::OnMenuPost(&menu, &view, nullptr);
     check(filtered[3] == 2 && filtered[4] == 2, "a list rebuild filters both sides right after it");
+    check(containerHeaderRefreshes == 2,
+          "RMI-047: every non-input container/barter post-event refreshes both sides' sort headers in the same event");
     check(!search::g_filter[3].lifecycle.nativeDirty, "only UpdateItemList marks a new generation (unchanged)");
     search::OnMenuPost(&menu, &update, nullptr);
     check(search::g_filter[3].lifecycle.nativeDirty && search::g_filter[4].lifecycle.nativeDirty && filtered[3] == 3, "UpdateItemList marks and filters both sides");
@@ -105,6 +109,12 @@ int main() {
     check(magicHeaderRefreshes==beforeHeaders,"pure Magic input queries do not add header work");
     search::OnMenuPost(&inventory, &view, nullptr);
     check(magicHeaderRefreshes==beforeHeaders,"Inventory events do not change Magic headers");
+    check(inventoryHeaderRefreshes==2,
+          "RMI-047: every non-input Inventory post-event refreshes the Inventory sort headers in the same event");
+    search::OnMenuPost(&inventory, &move, nullptr);
+    search::OnMenuPost(&magic, &update, nullptr);
+    check(inventoryHeaderRefreshes==2,"input-only Inventory events and Magic events add no Inventory header work");
+    check(containerHeaderRefreshes==3,"input-only container events and other menus add no container header work");
     search::OnMenuPost(&page, &move, nullptr);
     check(noted == 1 && filtered[5] == 0, "the quests page is still noted on any event, input events do not filter");
     search::OnMenuPost(&page, &tick, nullptr);

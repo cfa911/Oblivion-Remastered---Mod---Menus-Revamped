@@ -32,8 +32,8 @@ check('ContainerPage(a_kind)' in container and 'itemtags::TabFromPage(' in conta
       'a container side takes its tab from its native page (Misc tab -> Misc choices)')
 check('Tab::AllItems' in container and container.find('Tab::AllItems') < container.find('TabFromPage('),
       'an unreadable page keeps the full All Items choices')
-change = tick[tick.find('if (!tabSet || tab != wanted)'):]
-change = change[:change.find('tabSet = true;')]
+check('if (!tabSet || tab != wanted) ShowTab(wanted);' in tick, 'a native tab change runs the shared tab switch (RMI-047)')
+change = source_paths.function(gear, 'void Picker::ShowTab(')
 check('const auto hold = transfer; Reset(); transfer = hold;' in change, 'a tab change resets the picker but keeps the RMI-004 Transfer hold')
 reset = source_paths.function(gear, 'void Picker::Reset()')
 check('view = tab' in reset and 'styled = false' in reset,

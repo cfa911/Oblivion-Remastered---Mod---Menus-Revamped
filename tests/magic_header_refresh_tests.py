@@ -1,5 +1,6 @@
 """Production immediate-header refresh and collapse bodies: ownership, page and no-op guards."""
 from pathlib import Path
+import re
 import subprocess
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -12,6 +13,7 @@ prefix=r'''
 #include <cstdint>
 #include <iostream>
 #include <string>
+#include <vector>
 namespace UE {
 struct UClass {};
 struct UObject { UClass* cls=nullptr; UObject* vm=nullptr; bool visible=true; int writes=0; UClass* GetClass(){return cls;} };
@@ -40,12 +42,26 @@ namespace detail {
 void UpdateNativeBackgroundMask(){backgroundMasked=false;}
 struct Picker {
     int kind=-1;std::atomic<bool> active{false};reflect::Handle menu=nullptr,header=nullptr,nativeSchool=nullptr;
-    void HideNativeReplacement();
+    @HIDE_RET@ HideNativeReplacement();
+    std::vector<reflect::Handle> nativeSorts;
+    int ownShows=0,sortPaints=0;
+    bool OwnSorts() const { return kind == 0 || kind == 1 || kind == 3 || kind == 4 || kind == 6; }
+    @SORTS_RET@ HideNativeSorts();
+    void ShowOwnWidgets(){++ownShows;}
+    void PaintSorts(){if(!OwnSorts())return;++sortPaints;}   // production guard: Type (kind 5) is painted by its School host
     bool open=true;
     void Deactivate(){active=false;open=false;if(header)header->visible=false;}
 } g_pickers[5];
 '''
-hide=source_paths.function(source,'\tvoid Picker::HideNativeReplacement(')
+own=source_paths.read('own-sort')
+def body(text,name):
+    """The production definition and its return type (the test follows a void/bool signature change)."""
+    ret=re.search(r'\t(\w+) Picker::'+name+r'\(',text).group(1)
+    return ret,ret+' '+source_paths.function(text,'Picker::'+name+'(')
+hideRet,hide=body(source,'HideNativeReplacement')
+sortsRet,sorts=body(own,'HideNativeSorts')
+prefix=prefix.replace('@HIDE_RET@',hideRet).replace('@SORTS_RET@',sortsRet)
+hide+='\n'+sorts
 refresh=source_paths.function(source,'\tvoid RefreshMagicHeaders(')
 tests=r'''
 }
@@ -53,15 +69,27 @@ int main(){
 using namespace sorting::detail;
 unsigned checks=0,failed=0;
 auto check=[&](bool ok,const char* why){++checks;if(!ok){++failed;std::cout<<"FAIL "<<why<<"\n";}};
-UE::UObject vm,menu,other,school,type,effect,header,typeHeader;menu.vm=&vm;
+UE::UObject vm,menu,other,school,type,effect,header,typeHeader,schoolSort,typeSort;menu.vm=&vm;
 auto& p=g_pickers[0];p.kind=1;p.active=true;p.menu=&menu;p.header=&header;p.nativeSchool=&school;
 auto& t=g_pickers[4];t.kind=5;t.active=true;t.menu=&menu;t.header=&typeHeader;t.nativeSchool=&type;
 auto& e=g_pickers[1];e.kind=2;e.active=true;e.menu=&menu;e.header=&header;e.nativeSchool=&effect;
+p.nativeSorts={&schoolSort};   // the School picker owns the Magic sorts; Type (kind 5) has none of its own
 sorting::RefreshMagicHeaders(&menu);
 check(!school.visible&&!type.visible,"both native replacements collapse immediately");
+check(!schoolSort.visible&&schoolSort.writes==1,"the native sort wrapper collapses in the same Magic post-event");
+check(p.ownShows==1&&t.ownShows==1&&p.sortPaints==1&&t.sortPaints==0,
+      "custom headers are shown and the School host paints the sorts in the same Magic post-event");
 check(effect.visible&&effect.writes==0,"unrelated native controls stay untouched");
-auto writes=school.writes+type.writes;sorting::RefreshMagicHeaders(&menu);
-check(school.writes+type.writes==writes,"already collapsed controls receive no setter calls");
+auto writes=school.writes+type.writes+schoolSort.writes;sorting::RefreshMagicHeaders(&menu);
+check(school.writes+type.writes+schoolSort.writes==writes,"already collapsed controls receive no setter calls");
+check(p.ownShows==1&&t.ownShows==1&&p.sortPaints==1,
+      "a Magic post-event that re-shows nothing native does not repaint the custom widgets");
+schoolSort.visible=true;sorting::RefreshMagicHeaders(&menu);
+check(!schoolSort.visible&&p.ownShows==2&&t.ownShows==2&&p.sortPaints==2,
+      "the game re-showing its sort wrapper repaints the custom widgets in the same post-event");
+type.visible=true;sorting::RefreshMagicHeaders(&menu);
+check(!type.visible&&p.ownShows==3&&t.ownShows==3&&p.sortPaints==3,
+      "the game re-showing a native replacement repaints the custom widgets in the same post-event");
 school.visible=type.visible=true;sorting::RefreshMagicHeaders(&other);
 check(school.visible&&type.visible,"a different Magic instance cannot change active headers");
 pageValue=4;sorting::RefreshMagicHeaders(&menu);

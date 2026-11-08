@@ -12,9 +12,9 @@
 
 namespace sorting::detail
 {
-	void Picker::HideNativeReplacement()
+	bool Picker::HideNativeReplacement()
 	{
-		if (!active.load()) return;
+		if (!active.load()) return false;
 		if (auto* native = reflect::Get(nativeSchool)) {
 			ui::Call visible(native, L"IsVisible");
 			if (!visible || visible.Size("ReturnValue") != 1 || !visible.Run() || visible.Get<bool>("ReturnValue")) {
@@ -22,8 +22,10 @@ namespace sorting::detail
 				const bool hidden = hide && hide.Size("InVisibility") == 1 &&
 					hide.Set("InVisibility", static_cast<std::uint8_t>(1)) && hide.Run();
 				if (!hidden) logger::warn("Menus Revamped RMI-018 R2: native Magic sort replacement could not collapse its wrapper");
+				return true;
 			}
 		}
+		return false;
 	}
 
 	// does an item with this mask pass this picker's choice?
@@ -83,6 +85,16 @@ namespace sorting::detail
 		std::scoped_lock lock(inputLock); inputActive = false; inputOpen = false; command = -1;
 	}
 
+	// Another tab: its own choices, then its own sorts shown and painted in the same frame (Tick, and the
+	// Inventory post-event refresh, RMI-047).
+	void Picker::ShowTab(itemtags::Tab a_tab)
+	{
+		if (tabSet) { const auto hold = transfer; Reset(); transfer = hold; }  // the RMI-004 Transfer hold may span a page change
+		tab = a_tab; view = a_tab; styled = false;
+		ShowOwnWidgets(); PaintSorts();   // the new tab's sorts and its remembered choice, in the same frame
+		tabSet = true;
+	}
+
 	// a_kind: 0 inventory, 1 school, 2 effect, 3/4 container sides, 5 Magic type, -1 hidden
 	void Picker::Tick(int a_kind, UE::UObject* a_menu, UE::UObject* a_canvas, float a_viewportScale)
 	{
@@ -118,12 +130,7 @@ namespace sorting::detail
 		}
 		active.store(true);  // page identity is independent of whether its new widgets have finished layout
 		SeedSorts();   // first time this kind is seen: every tab starts with the INI default (bCategorySort), before any paint
-		if (!tabSet || tab != wanted) {  // another tab: its own choices and filter
-			if (tabSet) { const auto hold = transfer; Reset(); transfer = hold; }  // the RMI-004 Transfer hold may span a page change
-			tab = wanted; view = wanted; styled = false;
-			ShowOwnWidgets(); PaintSorts();   // the new tab's sorts and its remembered choice, in the same frame
-		}
-		tabSet = true;
+		if (!tabSet || tab != wanted) ShowTab(wanted);   // another tab: its own choices and filter
 		if (OwnSorts() && SortSlot() != paintedSlot) { ShowOwnWidgets(); PaintSorts(); }   // a Magic page change keeps the tab
 		// The game re-shows native School/ItemCategory wrappers when its filters update. Collapse them
 		// on every tick (not only the 150 ms layout pass) so its glyph never renders beside ours.

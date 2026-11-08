@@ -12,7 +12,8 @@ filters; see `CHANGELOG.md`.
   controller, Up/Down on a focused sort chooses the direction.
 - Category sort: left click a category filter (controller: Up/Down on it) to group the list in the
   filter's order, click again to reverse; right click (controller: A) opens the filter as before.
-  Inside a group items run from the highest value, equal values A-Z. Alchemy groups follow the Potion
+  Inside a group items run A-Z, same names from the highest value (`[Picker] bCategorySortValueFirst=1`: highest
+  value first, equal values A-Z). Alchemy groups follow the Potion
   and Poison types; Magic nests Type then School, School then Type, and Type then Effect, names A-Z.
   `[Picker] bCategorySort=1` starts every tab grouped; 0 starts A-Z.
 - New Misc filter choice Scrolls; poisons such as Strong Poison of Silence are filed as poisons.
