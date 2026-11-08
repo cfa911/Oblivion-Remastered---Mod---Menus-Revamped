@@ -28,6 +28,7 @@ struct Picker {
     unsigned choice=0,category=0,cursor=0;
     bool controllerFocus=false,open=false,controllerPopup=false;
     std::atomic<int> mouseHoverCell{-1};
+std::atomic<bool> mouseInputActive{false};
     itemtags::Tab view=itemtags::Tab::MagicSchool;
     Widget image; reflect::Handle headerImage=&image,headerFrame=nullptr;
     reflect::Handle cells[itemtags::kMaxChoices]{};

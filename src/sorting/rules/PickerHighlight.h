@@ -8,7 +8,7 @@ namespace pickerhighlight
 	inline constexpr float kOutlineWidth = 0.0f, kCornerRadius = 0.0f;
 	constexpr bool CellHighlighted(bool a_open, bool a_controllerPopup, unsigned a_cursor, int a_mouseHoverCell, unsigned a_index)
 	{
-		return a_open && ((a_controllerPopup && a_cursor == a_index) || a_mouseHoverCell == static_cast<int>(a_index));
+		return a_open && (a_controllerPopup ? a_cursor == a_index : a_mouseHoverCell == static_cast<int>(a_index));
 	}
 	constexpr bool Owns(bool headerFocused, bool popupOpen, bool popupController)
 	{

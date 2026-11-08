@@ -53,9 +53,12 @@ namespace sorting
 			if (a_message == WM_RBUTTONUP && swallowRightUp) { swallowRightUp = false; return true; }
 			if (a_message == WM_KEYUP && a_key == VK_ESCAPE && swallowEscape) { swallowEscape = false; return true; }
 			if (!inputActive) return false;
+			if (a_message == WM_LBUTTONDOWN || a_message == WM_RBUTTONDOWN) mouseInputActive.store(true);
 			if (a_message == WM_MOUSEMOVE) {
-				mouseX = static_cast<short>(LOWORD(a_position));
-				mouseY = static_cast<short>(HIWORD(a_position));
+				const double x = static_cast<short>(LOWORD(a_position)), y = static_cast<short>(HIWORD(a_position));
+				// Unchanged/synthetic cursor messages must not steal focus back from the pad.
+				if (!mousePositionKnown || x != mouseX || y != mouseY) mouseInputActive.store(true);
+				mouseX = x; mouseY = y;
 				mousePositionKnown = true;
 				int hovered = -1;
 				if (inputOpen) {
@@ -143,6 +146,9 @@ namespace sorting
 		}
 		if (owner) {
 			auto& picker = *owner;
+			const bool hadMouseInput = picker.mouseInputActive.load();
+			const bool padInput = g_pad.pressed || g_pad.pulse != pickerpad::Direction::None;
+			if (padInput) picker.mouseInputActive.store(false);
 			if (picker.open) {
 				const bool newlyOwned = !picker.controllerPopup;
 				const auto previousCursor = picker.cursor;
@@ -152,7 +158,7 @@ namespace sorting
 				else if (g_pad.pressed & pickerpad::A) picker.Queue(static_cast<int>(picker.cursor));
 				else if (g_pad.pulse != pickerpad::Direction::None)
 					picker.cursor = pickerpad::Move(picker.cursor, itemtags::Info(picker.view).count, g_pad.pulse);
-				if (newlyOwned || picker.cursor != previousCursor) picker.PaintController();
+				if (newlyOwned || picker.cursor != previousCursor || (hadMouseInput && padInput)) picker.PaintController();
 			} else if (picker.sortFocus >= 0) {
 				g_pad.Consume(raw, pickerpad::A | pickerpad::Up | pickerpad::Down | pickerpad::Left | pickerpad::Right, true);
 				const auto key = static_cast<itemsort::Key>(picker.sortFocus);
