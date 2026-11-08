@@ -54,10 +54,12 @@ namespace sorting
 			if (a_message == WM_KEYUP && a_key == VK_ESCAPE && swallowEscape) { swallowEscape = false; return true; }
 			if (!inputActive) return false;
 			if (a_message == WM_MOUSEMOVE) {
+				mouseX = static_cast<short>(LOWORD(a_position));
+				mouseY = static_cast<short>(HIWORD(a_position));
+				mousePositionKnown = true;
 				int hovered = -1;
 				if (inputOpen) {
-					const double x = static_cast<short>(LOWORD(a_position)), y = static_cast<short>(HIWORD(a_position));
-					for (int i = 0; i < itemtags::kMaxChoices; ++i) if (cellsPx[i].Hit(x, y)) { hovered = i; break; }
+					for (int i = 0; i < itemtags::kMaxChoices; ++i) if (cellsPx[i].Hit(mouseX, mouseY)) { hovered = i; break; }
 				}
 				mouseHoverCell.store(hovered);
 				return false;

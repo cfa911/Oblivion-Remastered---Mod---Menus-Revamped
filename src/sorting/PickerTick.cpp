@@ -43,6 +43,7 @@ namespace sorting::detail
 		ResetShared(kind >= 3 && kind <= 4 ? static_cast<unsigned>(kind - 2) : 0);
 		choice = 0; appliedChoice = 0; category = 0; appliedCategory = 0; view = tab; open = false;
 		mouseHoverCell.store(-1);
+		{ std::scoped_lock lock(inputLock); mousePositionKnown = false; }
 		styled = false;  // the popup cells were built for the old view (stale Weapon type page, RMI-006)
 		controllerFocus = controllerPopup = false; cursor = 0;
 		returnToList.Cancel();
@@ -305,11 +306,6 @@ namespace sorting::detail
 		}
 
 		if (cmd >= 0) BrushHeader(HeaderIcon());
-		const int hoveredCell = mouseHoverCell.load();
-		if (cmd != -1 || hoveredCell != paintedMouseHoverCell) {
-			PaintController();
-			paintedMouseHoverCell = hoveredCell;
-		}
 		Rect popupRect, cellRects[itemtags::kMaxChoices];
 		const bool measure = open && now >= nextHitMeasure;
 		if (measure) {
@@ -328,6 +324,18 @@ namespace sorting::detail
 			std::scoped_lock lock(inputLock);
 			inputActive = true; inputOpen = open; groupInput = groupSorts;
 			if (measure) { popupPx = popupRect; std::copy(std::begin(cellRects), std::end(cellRects), cellsPx); }
+			// A stationary pointer may now cover a different cell (or none) after reflow.
+			if (measure) {
+				int hovered = -1;
+				if (mousePositionKnown)
+					for (int i = 0; i < itemtags::kMaxChoices; ++i) if (cellsPx[i].Hit(mouseX, mouseY)) { hovered = i; break; }
+				mouseHoverCell.store(hovered);
+			}
+		}
+		const int hoveredCell = mouseHoverCell.load();
+		if (cmd != -1 || hoveredCell != paintedMouseHoverCell) {
+			PaintController();
+			paintedMouseHoverCell = hoveredCell;
 		}
 		active.store(true);
 	}
