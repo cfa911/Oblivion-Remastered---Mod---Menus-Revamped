@@ -46,6 +46,46 @@ int main(){
  const auto& upper=p.guides[p.guides.size()-2];
  Check(upper.x==lower.x&&upper.w==lower.w&&upper.h==lower.h&&upper.y==140,
   "upper divider matches the lower divider across the Inventory header");
+ // RMI-069: vertical sort/filter separators use the same 2px gray rule as the horizontal header rules,
+ // span the header strip from the upper rule to the lower rule, and the full-height list guides stay
+ // subtle below the strip.
+ {
+  const auto p=Arrange(0,{100,140,800,600},190,columns,offered,3,{},700);
+  const auto& lower=p.guides.back();const auto& upper=p.guides[p.guides.size()-2];
+  const double listTop=140, stripBottom=listTop+kHeight+lower.h;
+  int headerSeparators=0,listGuides=0;bool separatorShape=true,listBelowStrip=true,listHasHeaderPart=true;
+  for(std::size_t i=0;i+2<p.guides.size();++i){
+   const auto& g=p.guides[i];
+   if(g.w<=0||g.h<=0)continue;
+   if(g.y<stripBottom){++headerSeparators;
+    if(!(g.w==upper.h&&g.y==listTop&&g.h==stripBottom-listTop))separatorShape=false;}
+   else{++listGuides;
+    bool match=false;
+    for(const auto& h:p.guides)if(h.y==listTop&&h.h==stripBottom-listTop&&std::abs(h.x-g.x)<0.01)match=true;
+    if(!match)listHasHeaderPart=false;}
+   if(g.y<listTop+kHeight&&g.h>stripBottom-listTop)listBelowStrip=false;
+  }
+  Check(headerSeparators>=4,"header strip has sort and filter separators");
+  Check(separatorShape,"vertical header separators are 2px rules spanning upper to lower rule");
+  Check(listGuides==2&&listBelowStrip,"extended list guides start below the lower rule");
+  Check(listHasHeaderPart,"each extended list guide continues as a rule inside the header strip");
+  bool styled=false,styleStable=true;
+  [&](const auto& P){
+  if constexpr(requires{P.rule;}){
+   const auto& p=P;
+   styled=true;
+   for(std::size_t i=0;i<p.guides.size();++i){
+    const auto& g=p.guides[i];if(g.w<=0||g.h<=0)continue;
+    if(p.rule[i]!=(g.y<stripBottom))styled=false;
+   }
+   auto fewer=offered;fewer[int(itemsort::Key::Health)]=false;fewer[int(itemsort::Key::Damage)]=false;
+   auto q=P;q=Arrange(0,{100,140,800,600},190,columns,fewer,3,{},700);
+   for(std::size_t i=0;i<q.guides.size();++i)
+    if(q.guides[i].w>0&&p.guides[i].w>0&&q.rule[i]!=p.rule[i])styleStable=false;
+  }}(p);
+  Check(styled,"header separators use rule ink and list guides use the subtle ink");
+  Check(styleStable,"each guide slot keeps one style across tabs");
+ }
  for(int kind:{1,2,3,4,5,6})Check(!Arrange(kind,{100,140,800,600},190,columns,offered,3).enabled,"other menus retain existing layout");
  offered[health]=false;offered[damage]=false;
  p=Arrange(0,{100,140,800,600},190,columns,offered,1);

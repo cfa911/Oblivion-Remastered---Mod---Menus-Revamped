@@ -1,6 +1,7 @@
 // Inventory visuals reuse the same registered carousel wrappers; their controller identities stay intact.
 #include "sorting/PickerInternal.h"
 #include "sorting/rules/InventoryHeaderLayout.h"
+#include "sorting/rules/DetailsSkin.h"
 #include "engine/Reflect.h"
 #include "engine/PEHook.h"
 #include "engine/Ui.h"
@@ -153,6 +154,133 @@ namespace sorting::detail
 				if (child && pe::Utf8(child->GetFName().ToString()) == name) return child;
 			}
 			return nullptr;
+		}
+
+		// RMI-071: the item details view in the dark Inventory skin. Runs when the details panel opens or its item changes.
+		reflect::Handle g_detailsView;
+
+		bool ReadColor(UE::UObject* widget, float* rgba)
+		{
+			const int offset = reflect::Offset(widget->GetClass(), "ColorAndOpacity");
+			const auto* at = offset >= 0 ? reflect::At<float>(widget, offset) : nullptr;
+			if (!at) return false;
+			std::copy_n(at, 4, rgba);
+			return true;
+		}
+
+		// the action button (Equip, Use...): its hover fill and arrows gray, its label light; alpha stays the game's (hover fades)
+		void StyleDetailsButton(UE::UObject* button)
+		{
+			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
+			static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
+			if (!imageClass || !textClass) return;
+			for (auto* widget : ui::TreeWidgets(button, 60)) {
+				if (!reflect::Usable(widget)) continue;
+				float rgba[4];
+				if (!ReadColor(widget, rgba)) continue;
+				if (widget->GetClass()->IsChildOf(imageClass)) ui::Colour(widget, 0.12f, 0.12f, 0.12f, rgba[3]);
+				else if (widget->GetClass()->IsChildOf(textClass)) {
+					float ink[4];
+					std::copy_n(detailsskin::kInk, 3, ink);
+					ink[3] = rgba[3];
+					uix::Ink(widget, ink);
+				}
+			}
+		}
+
+		void OnDetailsButtonEvent(UE::UObject* button, UE::UFunction*, void*)
+		{
+			auto* details = reflect::Get(g_detailsView);
+			if (details && reflect::Usable(button) && ui::IsWithin(button, details)) StyleDetailsButton(button);
+		}
+
+		void StyleInventoryDetails(UE::UObject* details)
+		{
+			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
+			static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
+			static auto* instanceClass = ui::Class(L"/Script/Engine.MaterialInstance");
+			if (!imageClass || !textClass || !reflect::Usable(details)) return;
+			static const int colorOffset = reflect::Offset(textClass, "ColorAndOpacity");
+			static const int parentOffset = instanceClass ? reflect::Offset(instanceClass, "Parent") : -1;
+			unsigned pages = 0, tints = 0, inks = 0, buttons = 0;
+			const auto tint = [&](UE::UObject* widget, const float* c) { ui::Colour(widget, c[0], c[1], c[2], c[3]); ++tints; };
+			for (auto* widget : ui::TreeWidgets(details, 800)) {
+				if (!reflect::Usable(widget)) continue;
+				auto* type = widget->GetClass();
+				if (pe::Utf8(type->GetFName().ToString()).starts_with("WBP_ModernPrefab_Button")) {
+					pe::WatchPost(type, &OnDetailsButtonEvent);
+					StyleDetailsButton(widget); ++buttons;
+					continue;
+				}
+				if (type->IsChildOf(imageClass)) {
+					auto* resource = ui::BrushResource(widget);
+					if (!resource || !reflect::Usable(resource)) continue;
+					std::string parent;
+					if (parentOffset >= 0 && resource->GetClass()->IsChildOf(instanceClass))
+						if (auto** at = reflect::At<UE::UObject*>(resource, parentOffset); at && *at && reflect::Usable(*at))
+							parent = pe::Utf8((*at)->GetFName().ToString());
+					switch (detailsskin::Classify(pe::Utf8(resource->GetFName().ToString()), parent)) {
+					case detailsskin::Role::Page: {
+						// a textured brush drawn as a rounded box keeps its texture, tinted (the mottled page on 0a0eedaa): drop it
+						ui::Call clear(widget, L"SetBrushResourceObject");
+						if (!clear.Set("ResourceObject", static_cast<UE::UObject*>(nullptr)) || !clear.RunGuarded()) break;
+						if (ui::RoundedBox(widget, false, detailsskin::kPageFill, detailsskin::kPageEdge, 1.5f, 4.0f)) ++pages;
+						break;
+					}
+					case detailsskin::Role::Ornament: tint(widget, detailsskin::kOrnament); break;
+					case detailsskin::Role::Pattern: tint(widget, detailsskin::kPatternTint); break;
+					case detailsskin::Role::Band: tint(widget, detailsskin::kBandTint); break;
+					case detailsskin::Role::ButtonBack: {
+						float rgba[4];
+						if (ReadColor(widget, rgba) && detailsskin::ScaleTint(rgba)) tint(widget, rgba);
+						break;
+					}
+					default: break;
+					}
+				} else if (colorOffset >= 0 && type->IsChildOf(textClass)) {
+					const auto* rgba = reflect::At<float>(widget, colorOffset);
+					if (!rgba || !detailsskin::IsDarkInk(rgba)) continue;
+					float ink[4];
+					std::copy_n(detailsskin::kInk, 3, ink);
+					ink[3] = rgba[3];
+					uix::Ink(widget, ink); ++inks;
+				}
+			}
+			static bool reported = false;
+			if (!reported && pages + tints + inks) {
+				reported = true;
+				logger::warn("TEMP-DIAG MR native skin: details view {} pages, {} tints, {} inks, {} buttons", pages, tints, inks, buttons);
+			}
+		}
+
+		void OnInventoryDetailsUpdated(UE::UObject* details, UE::UFunction* function, void*)
+		{
+			static constexpr std::string_view kEvents[]{ "Construct", "ToggleDetails", "ChangeVisibilityItemDetailsPanel",
+				"UpdateHoveredItemProperties", "ChangeSpecificDetailsForHoveredItem", "ChangeSpecificDetailsWithFormID",
+				"ChangeSpecificDetailsWithFormType", "SwitchSubTabs", "SwitchPreview", "UpdateDescription" };
+			const auto name = pe::FunctionName(function);
+			if (std::find(std::begin(kEvents), std::end(kEvents), name) != std::end(kEvents)) StyleInventoryDetails(details);
+		}
+
+		void WatchInventoryDetails(UE::UObject* menu, UE::UObject* list)
+		{
+			constexpr std::string_view kDetails = "WBP_OriginalMenu_InventoryItemDetails_C";
+			auto* details = ui::FindByClassPrefix(menu, kDetails, 3000);
+			UE::UObject* root = list;
+			for (auto* owner = list; owner && reflect::Usable(owner); owner = owner->GetOuter())
+				if (owner->GetClass()->IsChildOf(ui::Class(L"/Script/UMG.UserWidget"))) root = owner;
+			if (!details && root && root != menu) details = ui::FindByClassPrefix(root, kDetails, 3000);
+			static bool reported = false;
+			if (!reported) {
+				reported = true;
+				logger::warn("TEMP-DIAG MR native skin: details view {}", details ? "found" : "not found");
+			}
+			if (!details) return;
+			g_detailsView = reflect::Hold(details);
+			static UE::UClass* watched = nullptr;
+			if (watched != details->GetClass() && pe::WatchPost(details->GetClass(), &OnInventoryDetailsUpdated))
+				watched = details->GetClass();
+			StyleInventoryDetails(details);
 		}
 
 		constexpr float kProbeInk[]{ 0.86f, 0.86f, 0.86f, 1.0f };
@@ -437,6 +565,7 @@ namespace sorting::detail
 			}
 			inventoryStatusReady=true;
 			StyleInventoryScrollbar(list);
+			WatchInventoryDetails(a_menu, list);
 		}
 
 		inventoryheaders::Box canvasBounds;
@@ -454,7 +583,7 @@ namespace sorting::detail
 					guide=CanvasChild(a_canvas,L"/Script/UMG.Image",name.c_str(),0,0,1,1);
 					if (!guide) continue;
 					handle=reflect::Hold(guide);
-					const bool rule=i>=plan.guides.size()-2;
+					const bool rule=plan.rule[i];
 			constexpr float ink[]{0.55f,0.55f,0.55f,0.13f};
 			constexpr float ruleInk[]{0.65f,0.65f,0.65f,0.55f};
 					ui::RoundedBox(guide,false,rule?ruleInk:ink,kClear,0);

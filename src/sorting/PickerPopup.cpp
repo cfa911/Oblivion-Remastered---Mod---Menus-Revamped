@@ -1,3 +1,4 @@
+#include "sorting/rules/FilterTogglePaint.h"
 #include "sorting/PickerInternal.h"
 
 #include "core/Config.h"
@@ -153,25 +154,29 @@ namespace sorting::detail
 		PaintController();
 	}
 
-	// On: the icon at full strength on the owner's red background. Off: dimmed. Controller focus uses the shared picker fill.
+	// Other menus: on = the icon at full strength on the owner's red/blue background, off = dimmed. The Inventory dark skin
+	// inverts it: on = the icon in the row marker's colour without a fill (filtertoggle::Choose). Controller focus uses the
+	// shared picker fill in both.
+	static void PaintToggle(UE::UObject* frame, UE::UObject* image, bool inventory, bool on, bool focus, const float* onFill, const float* mark)
+	{
+		const auto& picker = uistyle::Get(mrconfig::Get().stylePreset).picker;
+		const auto paint = filtertoggle::Choose(inventory, on, focus, picker.focusFill.data(), onFill, mark, picker.inactiveIconOpacity);
+		ui::RoundedBox(frame, false, paint.fill, kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
+		if (image) ui::Colour(image, paint.icon[0], paint.icon[1], paint.icon[2], 1.0f);
+		ui::Call fade(image, L"SetRenderOpacity");
+		if (fade && fade.Size("InOpacity") == 4 && fade.Set("InOpacity", paint.opacity)) fade.RunGuarded();
+	}
+
 	void Picker::PaintStolen()
 	{
-		const auto& focusFill = uistyle::Get(mrconfig::Get().stylePreset).picker.focusFill;
-		ui::RoundedBox(reflect::Get(stolenFrame), false, stolenFocus ? focusFill.data() : stolenOnly ? stolenfilter::kStolenFill : kClear,
-			kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
-		ui::Call fade(reflect::Get(stolenImage), L"SetRenderOpacity");
-		const float inactiveOpacity = uistyle::Get(mrconfig::Get().stylePreset).picker.inactiveIconOpacity;
-		if (fade && fade.Size("InOpacity") == 4 && fade.Set("InOpacity", stolenOnly ? 1.0f : inactiveOpacity)) fade.RunGuarded();
+		constexpr float mark[4]{ stolenfilter::kStolenFill[0], stolenfilter::kStolenFill[1], stolenfilter::kStolenFill[2], 1.0f };
+		PaintToggle(reflect::Get(stolenFrame), reflect::Get(stolenImage), kind == 0, stolenOnly, stolenFocus, stolenfilter::kStolenFill, mark);
 	}
 
 	void Picker::PaintEnchanted()
 	{
-		const auto& focusFill = uistyle::Get(mrconfig::Get().stylePreset).picker.focusFill;
-		ui::RoundedBox(reflect::Get(enchantedFrame), false, enchantedFocus ? focusFill.data() : enchantedOnly ? enchantedfilter::kEnchantedFill : kClear,
-			kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
-		ui::Call fade(reflect::Get(enchantedImage), L"SetRenderOpacity");
-		const float inactiveOpacity = uistyle::Get(mrconfig::Get().stylePreset).picker.inactiveIconOpacity;
-		if (fade && fade.Size("InOpacity") == 4 && fade.Set("InOpacity", enchantedOnly ? 1.0f : inactiveOpacity)) fade.RunGuarded();
+		PaintToggle(reflect::Get(enchantedFrame), reflect::Get(enchantedImage), kind == 0, enchantedOnly, enchantedFocus,
+			enchantedfilter::kEnchantedFill, filtertoggle::kEnchantedMark);
 	}
 
 	void Picker::PaintController()

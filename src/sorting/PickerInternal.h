@@ -137,7 +137,7 @@ namespace sorting
 			struct InventoryClip { reflect::Handle widget; std::uint8_t clipping; };
 			std::vector<InventoryClip> inventoryClips;
 			std::array<std::array<double, 2>, kSorts + 3> inventoryTranslations{};
-			std::array<reflect::Handle, kSorts + 5> inventoryHeaderGuides{};
+			std::array<reflect::Handle, inventoryheaders::kGuides> inventoryHeaderGuides{};
 			inventoryheaders::Box inventoryMeasuredList, inventoryMeasuredStatus;
 			std::array<inventoryheaders::Box, kSorts> inventoryMeasuredColumns{};
 			double inventoryMeasuredNameX=0;
