@@ -51,7 +51,7 @@ namespace sorting::detail
 		auto* background = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PiecePaper" + suffix).c_str(), 0, 0, width, height, 0, &backgroundSlot);
 		if (!background || !backgroundSlot) return false;
 		paperSlot = reflect::Hold(backgroundSlot);
-		const auto& style = uistyle::Get(mrconfig::Get().stylePreset).picker;
+		const auto& style = kind == 0 ? uistyle::kInventorySkinPicker : uistyle::Get(mrconfig::Get().stylePreset).picker;
 		ui::RoundedBox(background, false, style.paper.data(), style.border.data(), 1.5f);
 		const std::uint8_t visible = 0;
 		ui::CallFirst(background, L"SetVisibility", &visible, sizeof(visible));
@@ -98,7 +98,7 @@ namespace sorting::detail
 		if (!image || !a_icon) return;
 		const bool all = std::wcscmp(a_icon, itemtags::Info(tab).icons[0]) == 0;
 		const wchar_t* game = all ? AllTexture(kind) : nullptr;
-		if (!game || !TextureBrush(image, game)) Brush(image, a_icon);   // a missing game texture falls back to the PNG
+		if (!game || !TextureBrush(image, game)) Brush(image, a_icon, kind == 0 && OwnSorts());
 	}
 
 	const wchar_t* Picker::HeaderIcon() const
@@ -138,7 +138,7 @@ namespace sorting::detail
 				LayoutChild(reflect::Get(labels[i]), x, y + 41, pickergrid::CellWidth, 21);
 				// The popup's "All" of the Magic school/type pickers: the game's icon too (owner, R14 test 2026-11-07).
 				const wchar_t* game = i == 0 && view == tab ? AllTexture(kind) : nullptr;
-				if (!game || !TextureBrush(reflect::Get(icons[i]), game)) Brush(reflect::Get(icons[i]), info.icons[i]);
+				if (!game || !TextureBrush(reflect::Get(icons[i]), game)) Brush(reflect::Get(icons[i]), info.icons[i], kind == 0);
 				const auto display = std::string(itemtags::PopupLabel(view, i));
 				uix::SetText(reflect::Get(labels[i]), display);
 				ui::Call tooltip(reflect::Get(labels[i]), L"SetToolTipText");
@@ -184,10 +184,11 @@ namespace sorting::detail
 		PaintStolen();
 		PaintEnchanted();
 		const int hoveredCell = mouseHoverCell.load();
+		const auto& cellFill = kind == 0 ? uistyle::kInventorySkinPicker.focusFill : focusFill;
 		const bool controllerInput = controllerPopup && !mouseInputActive.load();
 		for (unsigned i = 0; i < itemtags::Info(view).count; ++i) {
 			const bool highlighted = pickerhighlight::CellHighlighted(open, controllerInput, cursor, hoveredCell, i);
-			ui::RoundedBox(reflect::Get(cells[i]), false, highlighted ? focusFill.data() : kClear,
+			ui::RoundedBox(reflect::Get(cells[i]), false, highlighted ? cellFill.data() : kClear,
 				kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 		}
 	}

@@ -209,7 +209,7 @@ namespace sorting
 				ui::RoundedBox(frame, false, kClear, kClear, 0);
 				auto* image = CanvasChild(inner, L"/Script/UMG.Image", (name + L"Icon" + suffix).c_str(),
 					a_tight ? 0 : 5 * scale + a_extra * 0.5f, 4 + (40 - 40 * scale) * 0.5f, 39 * scale, 40 * scale, 1);   // centred in a wider button
-				if (a_icon) Brush(image, a_icon);
+				if (a_icon) Brush(image, a_icon, inventoryColumns);
 				if (!frame || !image) return nullptr;
 				if (a_inner) *a_inner = inner;
 				a_image = reflect::Hold(image); a_frame = reflect::Hold(frame);
@@ -231,7 +231,12 @@ namespace sorting
 			if (kind != 6) {   // category sort shown like an active sort: the game's parchment under the icon and the arrow
 				auto* back = CanvasChild(headerInner, L"/Script/UMG.Image", (std::wstring(L"SlPieceGroupBack") + suffix).c_str(), 0, 0, 49, 49, 0);
 				auto* arrow = CanvasChild(headerInner, L"/Script/UMG.Image", (std::wstring(L"SlPieceGroupArrow") + suffix).c_str(), 35, 35, 12, 12, 2);
-				if (back) { TextureBrush(back, itemsort::kActiveBackground); ui::Visible(back, false); groupBack = reflect::Hold(back); }
+				if (back) {
+					TextureBrush(back, itemsort::kActiveBackground);
+					if (inventoryColumns) ui::Colour(back, 0.24f, 0.24f, 0.24f, 1.0f);
+					ui::Visible(back, false);
+					groupBack = reflect::Hold(back);
+				}
 				if (arrow) { ui::Visible(arrow, false); groupArrow = reflect::Hold(arrow); }
 			}
 			BrushHeader(itemtags::Info(tab).icons[0]);   // Magic school/type "All": the game's own icon
@@ -255,6 +260,7 @@ namespace sorting
 					auto* back = CanvasChild(inner, L"/Script/UMG.Image", (prefix + L"Back" + suffix).c_str(), 0, 0, 49 + extra, 49, 0);
 					if (!back) return false;
 					TextureBrush(back, itemsort::kActiveBackground);   // a missing texture only leaves the active sort unmarked
+					if (inventoryColumns) ui::Colour(back, 0.24f, 0.24f, 0.24f, 1.0f);
 					sortBacks[k] = reflect::Hold(back);
 					auto* arrow = CanvasChild(inner, L"/Script/UMG.Image", (prefix + L"Arrow" + suffix).c_str(), 35 + extra * 0.5f, 35, 12, 12, 2);
 					if (!arrow) return false;

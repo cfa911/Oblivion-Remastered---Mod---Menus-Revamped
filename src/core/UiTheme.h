@@ -35,6 +35,15 @@ namespace uistyle
 		Alchemy alchemy;
 	};
 
+	inline constexpr Search kInventorySkinSearch{
+		{0.025f,0.025f,0.025f,1}, {0.23f,0.23f,0.23f,1}, {0.58f,0.58f,0.58f,1},
+		{0.88f,0.88f,0.88f,1}, {0.63f,0.63f,0.63f,1}, {1,1,1,1}, {1,1,1,1}
+	};
+	inline constexpr Picker kInventorySkinPicker{
+		{0.035f,0.035f,0.035f,1}, {0.25f,0.25f,0.25f,1}, {0.9f,0.9f,0.9f,1},
+		{0.96f,0.96f,0.96f,1}, {0.24f,0.24f,0.24f,0.85f}, 18.0, 14.0, 0.72f, 0.72f
+	};
+
 	inline constexpr Palette kClassic{
 		{
 			{ 0.16f, 0.09f, 0.04f, 1.0f }, { 0.06f, 0.035f, 0.018f, 1.0f }, { 0.78f, 0.62f, 0.28f, 1.0f },

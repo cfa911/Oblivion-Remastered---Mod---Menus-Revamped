@@ -51,7 +51,7 @@ namespace sorting
 		void ResetShared(unsigned slot);
 
 		// ---- widget helpers (PickerWidgets.cpp) ----
-		void Brush(UE::UObject* a_image, const wchar_t* a_icon);
+		void Brush(UE::UObject* a_image, const wchar_t* a_icon, bool a_inventoryDark = false);
 		bool TextureBrush(UE::UObject* a_image, const wchar_t* a_gamePath);   // a game texture, loaded at run time
 		UE::UObject* CanvasChild(UE::UObject* a_canvas, const wchar_t* a_class, const wchar_t* a_name, double x, double y, double w, double h, int z = 0, UE::UObject** a_slot = nullptr);
 		void LayoutChild(UE::UObject* widget, double x, double y, double width, double height);
@@ -137,7 +137,7 @@ namespace sorting
 			struct InventoryClip { reflect::Handle widget; std::uint8_t clipping; };
 			std::vector<InventoryClip> inventoryClips;
 			std::array<std::array<double, 2>, kSorts + 3> inventoryTranslations{};
-			std::array<reflect::Handle, kSorts + 4> inventoryHeaderGuides{};
+			std::array<reflect::Handle, kSorts + 5> inventoryHeaderGuides{};
 			inventoryheaders::Box inventoryMeasuredList, inventoryMeasuredStatus;
 			std::array<inventoryheaders::Box, kSorts> inventoryMeasuredColumns{};
 			double inventoryMeasuredNameX=0;

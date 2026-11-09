@@ -7,7 +7,7 @@ namespace inventoryheaders
 	struct Box { double x=0, y=0, w=0, h=0; };
 	inline constexpr int kCount = static_cast<int>(itemsort::Key::kCount);
 	inline constexpr double kInset=44, kHeight=40, kButton=44;
-	inline constexpr int kGuides = kCount + 4;
+	inline constexpr int kGuides = kCount + 5;
 	struct Plan {
 		bool enabled=false;
 		double inset=0;
@@ -55,6 +55,7 @@ namespace inventoryheaders
 		divider(statusRight-70,kHeight);
 		divider(statusRight-35,kHeight);
 		out.guides.back()={list.x,list.y+kHeight,tableRight-list.x,2};
+		out.guides[kGuides-2]={list.x,list.y,tableRight-list.x,2};
 		return out;
 	}
 }

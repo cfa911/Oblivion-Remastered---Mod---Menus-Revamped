@@ -42,6 +42,10 @@ int main(){
  for (const auto& guide:p.guides)
   if (guide.h>1 && guide.w==1 && (guide.x==100 || guide.x==878)) sideBorder=true;
  Check(!sideBorder,"header and rows have no outer vertical borders");
+ const auto& lower=p.guides.back();
+ const auto& upper=p.guides[p.guides.size()-2];
+ Check(upper.x==lower.x&&upper.w==lower.w&&upper.h==lower.h&&upper.y==140,
+  "upper divider matches the lower divider across the Inventory header");
  for(int kind:{1,2,3,4,5,6})Check(!Arrange(kind,{100,140,800,600},190,columns,offered,3).enabled,"other menus retain existing layout");
  offered[health]=false;offered[damage]=false;
  p=Arrange(0,{100,140,800,600},190,columns,offered,1);

@@ -19,9 +19,16 @@ namespace search::detail
 		// A bar in the menu's own root canvas, where the search mods put theirs, and the typing for it: while it is being typed into, the
 		// game window's keys are taken here (the menu's hotkeys never see them), Ctrl+F / Ctrl+K or a click on the bar starts typing, Enter or
 		// Esc ends it. The text lives in g_queries; the filter and the controller's keyboard read and write the same text.
+		const uistyle::Search& BarStyle(menus::Menu a_menu)
+		{
+			const auto preset = mrconfig::Get().stylePreset;
+			return a_menu == menus::Menu::kInventory && preset == uistyle::Preset::Dark
+				? uistyle::kInventorySkinSearch : uistyle::Get(preset).search;
+		}
+
 		const float* BarTextInk(menus::Menu a_menu, bool hint, bool sel)
 		{
-			const auto& style = uistyle::Get(mrconfig::Get().stylePreset).search;
+			const auto& style = BarStyle(a_menu);
 			if (a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) return style.alchemyInk.data();
 			return hint ? style.hint.data() : sel ? style.selectedInk.data() : style.ink.data();
 		}
@@ -160,7 +167,7 @@ namespace search::detail
 					textured = b.Run();
 				}
 			}
-			const auto& style = uistyle::Get(preset).search;
+			const auto& style = BarStyle(a_menu);
 			if (!textured) ui::RoundedBox(frame, false, style.fill.data(), style.edge.data(), 2.0f);
 			ui::Visible(frame, true);
 			UE::UObject* lslot = nullptr;
@@ -234,7 +241,7 @@ namespace search::detail
 			}
 			if (typing != B.typing) {   // the bronze edge while it is being typed into
 				if (!B.textured) {
-					const auto& style = uistyle::Get(mrconfig::Get().stylePreset).search;
+					const auto& style = BarStyle(a_menu);
 					ui::RoundedBox(frame, false, style.fill.data(), (typing ? style.focus : style.edge).data(), 2.0f);
 				}
 				B.typing = typing;

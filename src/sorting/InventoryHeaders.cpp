@@ -4,6 +4,7 @@
 #include "engine/Reflect.h"
 #include "engine/PEHook.h"
 #include "engine/Ui.h"
+#include "engine/UiText.h"
 namespace sorting::detail
 {
 	bool IsInventoryStatusItem(UE::UObject* item);
@@ -23,6 +24,65 @@ namespace sorting::detail
 		}
 		bool Bounds(UE::UObject* widget,inventoryheaders::Box& box)
 		{ return widget && ui::Measure(widget,box.x,box.y,box.w,box.h) && box.w>0 && box.h>0; }
+		void StyleInventoryScrollbar(UE::UObject* list)
+		{
+			static bool reported = false;
+			ui::Call get(list, L"GetListView");
+			auto* inner = get.Size("ReturnValue") == sizeof(UE::UObject*) && get.RunGuarded()
+				? get.Get<UE::UObject*>("ReturnValue") : list;
+			if (!reflect::Usable(inner)) return;
+			static auto* style = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.ScrollBarStyle");
+			static auto* brush = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateBrush");
+			static auto* dynamicType = ui::Class(L"/Script/Engine.MaterialInstanceDynamic");
+			static auto* materialType = ui::Class(L"/Script/Engine.MaterialInterface");
+			static auto* materialLibrary = ui::Class(L"/Script/Engine.KismetMaterialLibrary");
+			const int styleOffset = reflect::Offset(inner->GetClass(), "ScrollBarStyle");
+			const int styleSize = ui::SizeOf(inner->GetClass(), "ScrollBarStyle");
+			const int resourceOffset = brush ? reflect::Offset(brush, "ResourceObject") : -1;
+			unsigned count = 0;
+			const auto paint = [&](const char* field, bool track) {
+				if (!style || !dynamicType || styleOffset < 0 || resourceOffset < 0) return;
+				const int offset = reflect::Offset(style, field);
+				if (offset < 0 || offset + resourceOffset + int(sizeof(UE::UObject*)) > styleSize) return;
+				auto* resource = reflect::At<UE::UObject*>(inner, styleOffset + offset + resourceOffset);
+				if (!resource || !reflect::Usable(*resource)) return;
+				auto* material = *resource;
+				if (!material->GetClass()->IsChildOf(dynamicType)) {
+					if (track || !materialType || !materialLibrary || !material->GetClass()->IsChildOf(materialType)) return;
+					ui::Call create(materialLibrary->GetDefaultObject(false), L"CreateDynamicMaterialInstance");
+					if (create.Size("ReturnValue") != sizeof(UE::UObject*) ||
+						!create.Set("WorldContextObject", inner) || !create.Set("Parent", material) ||
+						!create.RunGuarded()) return;
+					auto* instance = create.Get<UE::UObject*>("ReturnValue");
+					if (!reflect::Usable(instance) || !instance->GetClass()->IsChildOf(dynamicType)) return;
+					material = instance;
+				}
+				const auto before = count;
+				const auto setColor = [&](const wchar_t* parameter, float gray) {
+					const std::array value{gray, gray, gray, 1.0f};
+					ui::Call set(material, L"SetVectorParameterValue");
+					if (set.Set("ParameterName", UE::FName(parameter, UE::EFindName::Add)) &&
+						set.Set("Value", value) && set.RunGuarded()) ++count;
+				};
+				if (track) {
+					setColor(L"DarkColor", 0.0052f);
+					setColor(L"LightColor", 0.0052f);
+				} else {
+					setColor(L"BorderColor - Dark", 0.0052f);
+					setColor(L"BorderColor - Light", 0.0052f);
+					setColor(L"InsideColor - Dark", 0.0222f);
+					setColor(L"InsideColor - Light", 0.0222f);
+				}
+				if (count > before && *resource != material) *resource = material;
+			};
+			paint("VerticalBackgroundImage", true);
+			for (const auto* field : {"NormalThumbImage", "HoveredThumbImage", "DraggedThumbImage"}) paint(field, false);
+			if (!reported) {
+				reported = true;
+				logger::warn("TEMP-DIAG MR native skin: scrollbar style size {} and {} color calls", styleSize, count);
+			}
+		}
+
 		UE::UObject* FirstRow(UE::UObject* list,const inventoryheaders::Box& viewport,
 			double& rowsBottom,std::vector<UE::UObject*>& displayed)
 		{
@@ -95,6 +155,43 @@ namespace sorting::detail
 			return nullptr;
 		}
 
+		constexpr float kProbeInk[]{ 0.86f, 0.86f, 0.86f, 1.0f };
+		std::array<reflect::Handle, 3> g_probeFooter;
+
+		void ProbeFooterInk(UE::UObject* footer)
+		{
+			auto* label = ui::FindInTree(footer, "text");
+			if (!label) label = ui::FindByClassPrefix(footer, "WBP_AltarTextBlock");
+			if (label) uix::Ink(label, kProbeInk);
+		}
+
+		void OnProbeFooterUpdated(UE::UObject* footer, UE::UFunction* function, void*)
+		{
+			const auto name = pe::FunctionName(function);
+			if (name != "UpdateText" && name != "UpdateTextApperance") return;
+			if (std::any_of(g_probeFooter.begin(), g_probeFooter.end(),
+				[footer](const auto& handle) { return reflect::Get(handle) == footer; })) {
+				ProbeFooterInk(footer);
+			}
+		}
+
+		void ProbeInventoryRowInk(UE::UObject* row)
+		{
+			auto* name = Column(row, "inv_entry_name");
+			if (!name) return;
+			uix::Ink(name, kProbeInk);
+			for (const auto* field : { "inv_entry_health", "inv_entry_weapon_damage",
+				"inv_entry_armor_rating", "inv_entry_weight", "inv_entry_value" }) {
+				auto* cell = Column(row, field);
+				if (auto* label = ui::FindInTree(cell, "inv_entry_value")) uix::Ink(label, kProbeInk);
+			}
+			static bool reported = false;
+			if (!reported) {
+				reported = true;
+				logger::warn("TEMP-DIAG MR native skin: Inventory row and footer contrast test");
+			}
+		}
+
 		void PlaceRowStatus(Picker& picker,UE::UObject* row,
 			const std::array<inventoryheaders::Box,3>* initialTargets=nullptr)
 		{
@@ -125,6 +222,12 @@ namespace sorting::detail
 				}
 				ui::Vec2(icon,L"SetRenderTranslation",translation,0);
 				if (!known) {
+					// The enchanted marker now comes from the native texture override.
+					if (i == 1) {
+						const auto* color = stolenfilter::kStolenFill;
+						Brush(icon, L"Stolen-Item.png", true);
+						ui::Colour(icon, color[0], color[1], color[2], 1.0f);
+					}
 					std::erase_if(moved,[](const auto& handle){return !reflect::Get(handle);});
 					moved.push_back(reflect::Hold(icon));
 				}
@@ -136,6 +239,7 @@ namespace sorting::detail
 			auto& picker=g_pickers[0];
 			if (picker.kind!=0 || !picker.active.load() || !picker.inventoryStatusReady ||
 				!params || pe::FunctionName(function)!="OnListItemObjectSet") return;
+			ProbeInventoryRowInk(row);
 			const int offset=reflect::Offset(function,"ListItemObject");
 			if (offset<0 || offset+int(sizeof(UE::UObject*))>function->parmsSize ||
 				ui::SizeOf(function,"ListItemObject")!=sizeof(UE::UObject*)) return;
@@ -205,6 +309,10 @@ namespace sorting::detail
 	bool Picker::LayoutInventoryHeaders(UE::UObject* a_menu,UE::UObject* a_canvas,bool measureColumns)
 	{
 		if (kind!=0 || !OwnSorts()) return false;
+		if (measureColumns) {
+			if (auto* title = ui::FindInTree(a_menu, "inv_cont_title")) uix::Ink(title, kProbeInk);
+			ui::Visible(ui::FindInTree(a_menu, "HeaderList_Separator"), false);
+		}
 		static bool announced=false;
 		if (!announced) { announced=true; logger::info("Menus Revamped MR-INVENTORY-SINGLE-HEADER-R9"); }
 		const double frameTime=ui::RealTimeSeconds();
@@ -302,8 +410,33 @@ namespace sorting::detail
 
 		if (!inventoryStatusReady && measureColumns && row &&
 			pe::WatchPost(row->GetClass(),&OnInventoryRowBound)) {
-			for (auto* entry : displayed) PlaceRowStatus(*this,entry,&plan.filters);
+			for (auto* entry : displayed) {
+				ProbeInventoryRowInk(entry);
+				PlaceRowStatus(*this,entry,&plan.filters);
+			}
+			auto* mainPart = a_menu;
+			for (auto* owner = list; owner && reflect::Usable(owner); owner = owner->GetOuter()) {
+				if (pe::Utf8(owner->GetClass()->GetFName().ToString()).starts_with("WBP_OriginalMenu_InventoryMainPart")) {
+					mainPart = owner;
+					break;
+				}
+			}
+			constexpr std::array fields{ "inv_armor", "inv_money", "inv_weight" };
+			for (std::size_t i = 0; i < fields.size(); ++i) {
+				auto* footer = ui::FindInTree(mainPart, fields[i]);
+				if (!footer && mainPart != a_menu) footer = ui::FindInTree(a_menu, fields[i]);
+				g_probeFooter[i] = reflect::Hold(footer);
+				if (!footer) continue;
+				pe::WatchPost(footer->GetClass(), &OnProbeFooterUpdated);
+				ProbeFooterInk(footer);
+			}
+			static bool reported = false;
+			if (!reported) {
+				reported = true;
+				logger::warn("TEMP-DIAG MR native skin: bulk Inventory contrast");
+			}
 			inventoryStatusReady=true;
+			StyleInventoryScrollbar(list);
 		}
 
 		inventoryheaders::Box canvasBounds;
@@ -321,9 +454,9 @@ namespace sorting::detail
 					guide=CanvasChild(a_canvas,L"/Script/UMG.Image",name.c_str(),0,0,1,1);
 					if (!guide) continue;
 					handle=reflect::Hold(guide);
-					const bool rule=i==plan.guides.size()-1;
-					constexpr float ink[]{0.20f,0.14f,0.09f,0.20f};
-					constexpr float ruleInk[]{0.20f,0.14f,0.09f,0.70f};
+					const bool rule=i>=plan.guides.size()-2;
+			constexpr float ink[]{0.55f,0.55f,0.55f,0.13f};
+			constexpr float ruleInk[]{0.65f,0.65f,0.65f,0.55f};
 					ui::RoundedBox(guide,false,rule?ruleInk:ink,kClear,0);
 				}
 				LayoutChild(guide,rect.x-canvasBounds.x,rect.y-canvasBounds.y,rect.w,rect.h);
