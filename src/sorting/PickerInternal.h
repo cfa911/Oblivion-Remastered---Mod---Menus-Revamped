@@ -143,6 +143,12 @@ namespace sorting
 			std::array<inventoryheaders::Box, kSorts> inventoryMeasuredColumns{};
 			double inventoryMeasuredNameX=0;
 			bool inventoryHeaderMeasured=false;
+			inventoryheaders::TabMeasures<10> inventoryTabMeasures;   // per itemtags::Tab (RMI-077)
+			double inventoryRowsBottom=0;
+			std::array<double, inventoryheaders::kPanelChildren> inventorySlotWidths{-1,-1,-1,-1,-1,-1,-1,-1,-1};   // RMI-077
+			void CompensateInventorySlots();
+			reflect::Handle inventoryHint;                       // the native controller Y glyph (RMI-078)
+			std::array<double, 2> inventoryHintTranslation{};
 			std::vector<reflect::Handle> inventoryStatusImages;
 			std::array<std::array<double, 2>, 4> inventoryStatusOffsets{{
 				{0,0}, {-9,0}, {0,-45}, {-9,-29}

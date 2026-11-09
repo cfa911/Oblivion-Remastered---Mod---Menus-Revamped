@@ -96,7 +96,8 @@ namespace sorting::detail
 	void Picker::ShowTab(itemtags::Tab a_tab)
 	{
 		inventoryHeaderMeasured = false;
-		if (kind == 0) {
+		// RMI-077: a tab measured before is placed with its final layout in this same frame, so its fills stay shown.
+		if (kind == 0 && !inventoryTabMeasures.Exact(static_cast<std::size_t>(a_tab))) {
 			inventoryFillPending = true;
 			SetInventoryFillOpacity(0.0f);
 		}
@@ -216,7 +217,7 @@ namespace sorting::detail
 			if (justAttached) { HideNativeSorts(); PaintSorts(); }
 			ShowOwnWidgets();   // every custom widget of the bar in this one pass (owner 2026-11-07)
 			if (OwnSorts()) {
-				if (kind == 0) LayoutInventoryHeaders(a_menu, a_canvas);
+				if (kind == 0) { LayoutInventoryHeaders(a_menu, a_canvas); CompensateInventorySlots(); }
 				if (kind == 0 && inventoryFillPending) nextLayout=now+16;
 				WatchRefills(*this);
 				if (justAttached) Republish(*this);   // the opening's first refill came before the hook: order it now

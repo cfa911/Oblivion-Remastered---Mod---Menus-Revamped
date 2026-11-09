@@ -58,6 +58,7 @@ struct Picker {
     bool OwnSorts() const { return kind == 0 || kind == 1 || kind == 3 || kind == 4 || kind == 6; }
     @SORTS_RET@ HideNativeSorts();
     void ShowOwnWidgets(){++ownShows;}
+    void CompensateInventorySlots(){}   // RMI-077 slot compensation: not part of this check
     void PaintSorts(){if(!OwnSorts())return;++sortPaints;}
     void ShowTab(itemtags::Tab a_tab){++tabShows;tab=a_tab;ShowOwnWidgets();PaintSorts();}   // production: Reset + show + paint
 } g_pickers[5];

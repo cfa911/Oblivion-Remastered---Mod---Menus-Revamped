@@ -26,13 +26,15 @@ namespace sorting::detail
 		bool Bounds(UE::UObject* widget,inventoryheaders::Box& box)
 		{ return widget && ui::Measure(widget,box.x,box.y,box.w,box.h) && box.w>0 && box.h>0; }
 		UE::UObject* FirstRow(UE::UObject* list,const inventoryheaders::Box& viewport,
-			double& rowsBottom,std::vector<UE::UObject*>& displayed)
+			double& rowsBottom,std::vector<UE::UObject*>& displayed,int& items)
 		{
 			for (const wchar_t* getter:{L"GetListView",L"GetItemListView"}) {
 				ui::Call get(list,getter);
 				if (get && get.Size("ReturnValue")==8 && get.RunGuarded())
 					if (auto* inner=get.Get<UE::UObject*>("ReturnValue")) { list=inner; break; }
 			}
+			ui::Call number(list,L"GetNumItems");
+			if (number && number.Size("ReturnValue")==4 && number.RunGuarded()) items=number.Get<int>("ReturnValue");
 			ui::Call entries(list,L"GetDisplayedEntryWidgets");
 			if (!entries || entries.Size("ReturnValue")!=16 || !entries.RunGuarded()) return nullptr;
 			struct Array { UE::UObject** data; std::int32_t count,capacity; };
@@ -200,6 +202,47 @@ namespace sorting::detail
 			return true;
 		}
 	}
+	// RMI-077: the game resizes the A-Z wrapper per tab in a post-event, and the next paint moves every later FilterScrollbox
+	// slot by the difference (probe 2026-11-09). Move those controls' render translations back by the same amount first.
+	void Picker::CompensateInventorySlots()
+	{
+		if (kind!=0 || !inventoryHeaderReady) return;
+		ui::Call parent(reflect::Get(header),L"GetParent");
+		auto* panel=parent && parent.RunGuarded()?parent.Get<UE::UObject*>("ReturnValue"):nullptr;
+		ui::Call count(panel,L"GetChildrenCount");
+		if (!count || !count.RunGuarded()) return;
+		const int n=std::min(count.Get<int>("ReturnValue"),inventoryheaders::kPanelChildren);
+		std::array<UE::UObject*,inventoryheaders::kPanelChildren> children{};
+		std::array<double,inventoryheaders::kPanelChildren> painted{},desired{};
+		painted.fill(-1); desired.fill(-1);
+		bool resized=false;
+		for (int i=0;i<n;++i) {
+			ui::Call get(panel,L"GetChildAt");
+			if (!get.Set("Index",i) || !get.RunGuarded()) return;
+			children[i]=get.Get<UE::UObject*>("ReturnValue");
+			ui::Call size(children[i],L"GetDesiredSize");
+			if (size && size.Size("ReturnValue")==16 && size.RunGuarded()) desired[i]=size.Get<std::array<double,2>>("ReturnValue")[0];
+			resized=resized || std::abs(desired[i]-inventorySlotWidths[i])>=0.5;
+		}
+		if (!resized) return;   // the common case: one desired-width read per child, nothing else
+		for (int i=0;i<n;++i) {
+			double x=0,y=0,w=0,h=0;
+			if (children[i] && ui::Measure(children[i],x,y,w,h)) painted[i]=w;
+		}
+		const auto shift=inventoryheaders::SlotShifts(inventorySlotWidths,painted,desired,n);
+		const std::array filters{enchantedHeader,stolenHeader,header};
+		for (int i=0;i<n;++i) {
+			if (!children[i] || std::abs(shift[i])<0.5) continue;
+			int slot=-1;
+			for (int k=0;k<kSorts;++k) if (reflect::Get(sortHeaders[k])==children[i]) slot=k;
+			for (int f=0;f<3;++f) if (reflect::Get(filters[f])==children[i]) slot=kSorts+f;
+			if (slot<0) continue;
+			auto& translation=inventoryTranslations[slot];
+			translation[0]-=shift[i];
+			ui::Vec2(children[i],L"SetRenderTranslation",translation[0],translation[1]);
+		}
+	}
+
 	void Picker::SetInventoryHeaderOpacity(float opacity)
 	{
 		for (const auto& handle : sortHeaders)
@@ -232,6 +275,8 @@ namespace sorting::detail
 			if (auto* widget=reflect::Get(image)) ui::Vec2(widget,L"SetRenderTranslation",0,0);
 		inventoryStatusImages.clear();
 		inventoryStatusReady=false;
+		inventoryRowsBottom=0;
+		inventorySlotWidths.fill(-1);
 		for (const auto& guide : inventoryHeaderGuides)
 			if (auto* widget=reflect::Get(guide)) ui::Visible(widget,false);
 		for (const auto& clip : inventoryClips) if (auto* widget=reflect::Get(clip.widget)) ui::CallFirstGuarded(widget,L"SetClipping",&clip.clipping,1);
@@ -244,6 +289,10 @@ namespace sorting::detail
 		for (const auto& h : sortHeaders) if (auto* widget=reflect::Get(h)) ui::Vec2(widget,L"SetRenderTranslation",0,0);
 		for (const auto& h : {enchantedHeader,stolenHeader,header}) if (auto* widget=reflect::Get(h)) ui::Vec2(widget,L"SetRenderTranslation",0,0);
 		inventoryTranslations={};
+		inventoryTabMeasures.Clear();
+		if (auto* hint=reflect::Get(inventoryHint)) ui::Vec2(hint,L"SetRenderTranslation",0,0);   // the glyph's native place (RMI-078)
+		inventoryHint={};
+		inventoryHintTranslation={};
 		inventoryListSlot={};
 		inventoryHeaderMeasured=false;
 		inventoryHeaderFrame=-1;
@@ -291,7 +340,21 @@ namespace sorting::detail
 		inventoryheaders::Box status;
 		std::array<inventoryheaders::Box,inventoryheaders::kCount> columns{};
 		std::vector<UE::UObject*> displayed;
-		auto* row=FirstRow(list,viewport,rowsBottom,displayed);
+		int items=-1;   // unreadable: treated as rows still coming
+		auto* row=FirstRow(list,viewport,rowsBottom,displayed,items);
+		// RMI-077: the list guides keep their height while the new tab's rows are not laid out yet.
+		rowsBottom=inventoryRowsBottom=inventoryheaders::RowsBottom(rowsBottom,inventoryRowsBottom,items);
+		// RMI-077: this tab's own earlier measurement is final at once; another tab's is the starting estimate.
+		const auto tabIndex=static_cast<std::size_t>(tab);
+		bool exact=false;
+		const auto stored=inventoryTabMeasures.For(tabIndex,bounds,&exact);
+		if (!inventoryHeaderMeasured && stored && exact) {
+			inventoryMeasuredList=stored->list;
+			inventoryMeasuredNameX=stored->nameX;
+			inventoryMeasuredStatus=stored->status;
+			inventoryMeasuredColumns=stored->columns;
+			inventoryHeaderMeasured=true;
+		}
 		const bool measured=inventoryHeaderMeasured &&
 			std::abs(inventoryMeasuredList.x-bounds.x)<0.5 &&
 			std::abs(inventoryMeasuredList.w-bounds.w)<0.5;
@@ -299,7 +362,9 @@ namespace sorting::detail
 			nameX=inventoryMeasuredNameX;
 			status=inventoryMeasuredStatus;
 			columns=inventoryMeasuredColumns;
-		} else if (row && measureColumns) {
+		} else {
+			if (stored) { nameX=stored->nameX; status=stored->status; columns=stored->columns; }
+			if (row && measureColumns) {
 			inventoryheaders::Box name;
 			const bool measuredName=Bounds(Column(row,"inv_entry_name"),name) ||
 				Bounds(ui::FindInTree(row,"inv_entry_name"),name);
@@ -315,12 +380,9 @@ namespace sorting::detail
 				inventoryMeasuredStatus=status;
 				inventoryMeasuredColumns=columns;
 				inventoryHeaderMeasured=true;
+				inventoryTabMeasures.Store(tabIndex,{bounds,status,columns,nameX});
 			}
-		}
-		if (!measureColumns && std::abs(inventoryMeasuredList.x-bounds.x)<0.5 &&
-			std::abs(inventoryMeasuredList.w-bounds.w)<0.5) {
-			nameX=inventoryMeasuredNameX;
-			columns[int(itemsort::Key::Value)]=inventoryMeasuredColumns[int(itemsort::Key::Value)];
+			}
 		}
 		std::array<bool,inventoryheaders::kCount> offered{};
 		for (auto key:SortKeys()) offered[int(key)]=true;
@@ -369,6 +431,22 @@ namespace sorting::detail
 		placeFill(groupBack,plan.filters[2]); LayoutChild(reflect::Get(groupArrow),32,27,10,10);
 		placeFill(enchantedFrame,plan.filters[0]);
 		placeFill(stolenFrame,plan.filters[1]);
+		// RMI-078: the native controller Y glyph stays in the native filter row, behind the tab title; it goes to the row's end.
+		auto* hint=reflect::Get(inventoryHint);
+		if (!hint) {
+			auto* filter=ui::FindInTree(a_menu,"inv_cont_filter");
+			hint=filter?ui::FindByClassPrefix(filter,"WBP_ModernPrefab_ControllerInputHint"):nullptr;
+			if (hint) inventoryHint=reflect::Hold(hint);
+			else {
+				static bool s_warned=false;
+				if (!s_warned) { s_warned=true; logger::warn("Menus Revamped: Inventory filter Y glyph (WBP_ModernPrefab_ControllerInputHint) not found"); }
+			}
+		}
+		inventoryheaders::Box hintBounds;
+		if (hint && Bounds(hint,hintBounds)) {   // hidden without a pad: nothing to place
+			allowOverflow(hint);
+			Place(nullptr,hint,inventoryheaders::HintBox(plan,hintBounds),inventoryHintTranslation[0],inventoryHintTranslation[1]);
+		}
 
 		if (!inventoryStatusReady && measureColumns && row &&
 			pe::WatchPost(row->GetClass(),&OnInventoryRowBound)) {

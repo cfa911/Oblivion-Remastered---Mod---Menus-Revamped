@@ -9,9 +9,19 @@ sort = (root / 'OwnSort.cpp').read_text()
 header = (root / 'PickerHeader.cpp').read_text()
 tab = source_paths.function(tick, 'void Picker::ShowTab(')
 layout_fn = source_paths.function(layout, 'bool Picker::LayoutInventoryHeaders(')
+picker_src = (root / 'Picker.cpp').read_text()
 checks = {
     'tab switch hides old fills before changing selection or layout':
         'SetInventoryFillOpacity(0.0f)' in tab.split('Reset()')[0],
+    'RMI-077 a measured tab keeps its fills through the switch':
+        'inventoryTabMeasures.Exact(' in tab.split('SetInventoryFillOpacity(0.0f)')[0],
+    'RMI-077 the header layout starts from the stored tab measurement':
+        'inventoryTabMeasures.For(' in layout_fn and
+        layout_fn.index('inventoryTabMeasures.For(') < layout_fn.index('inventoryheaders::Arrange('),
+    'RMI-077 each settled measurement is stored for its tab': 'inventoryTabMeasures.Store(' in layout_fn,
+    'RMI-077 list guides hold their height while rows rebind': 'inventoryheaders::RowsBottom(' in layout_fn,
+    'RMI-077 a rebuilt menu forgets tab measurements': 'inventoryTabMeasures.Clear()' in
+        source_paths.function(layout, 'void Picker::ClearInventoryHeaderLayout('),
     'full-cell fills reveal after placement on the settled measured pass':
         'CanRevealControlFills(measureColumns, settled)' in layout_fn and
         layout_fn.index('placeFill(stolenFrame') < layout_fn.index('CanRevealControlFills('),
@@ -21,6 +31,15 @@ checks = {
     'scroll refresh does not reposition icons based on cached viewport geometry': 'visibleOrbs' not in layout,
     'tab change places the header during the existing refresh': 'LayoutInventoryHeaders(' in tab,
     'Inventory reserves the native widths of unavailable sort controls': 'hiddenSortVisibility' in sort,
+    'RMI-077 later slots follow the game resizing the A-Z wrapper':
+        'inventoryheaders::SlotShifts(' in layout and 'void Picker::CompensateInventorySlots(' in layout,
+    'RMI-077 the Inventory post-event compensates before the paint':
+        'CompensateInventorySlots()' in source_paths.function(picker_src, 'void RefreshInventoryHeaders('),
+    'RMI-078 the controller Y glyph is placed at the header row end': 'inventoryheaders::HintBox(' in layout_fn,
+    'RMI-078 a cleared header gives the Y glyph back its native place':
+        'inventoryHint' in source_paths.function(layout, 'void Picker::ClearInventoryHeaderLayout('),
+    'RMI-077 a rebuilt header forgets the assumed slot widths':
+        'inventorySlotWidths.fill(' in source_paths.function(layout, 'void Picker::HideInventoryHeaderLayout('),
     'Inventory uses the native sort background instead of drawing an underline': '6,37,32,2' not in layout,
     'row placement uses the two verified native widget names': all(
         name in layout for name in ('inv_status_enchanted', 'inv_status_stolen')),
