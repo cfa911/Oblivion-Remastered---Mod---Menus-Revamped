@@ -66,6 +66,7 @@ namespace sorting::detail
 		if (active.exchange(false)) {
 			Reset();
 			tabSet = false;
+			if (kind == 0) HideInventoryHeaderLayout();
 			stolenOnly = false; PaintStolen();
 			enchantedOnly = false; PaintEnchanted();
 			if (auto* e = reflect::Get(enchantedHeader)) ui::Visible(e, false);  // the menu closed: the next one starts unfiltered
@@ -93,9 +94,14 @@ namespace sorting::detail
 	// Inventory post-event refresh, RMI-047).
 	void Picker::ShowTab(itemtags::Tab a_tab)
 	{
+		inventoryHeaderMeasured = false;
 		if (tabSet) { const auto hold = transfer; Reset(); transfer = hold; }  // the RMI-004 Transfer hold may span a page change
 		tab = a_tab; view = a_tab; styled = false;
-		ShowOwnWidgets(); PaintSorts();   // the new tab's sorts and its remembered choice, in the same frame
+		ShowOwnWidgets();
+		if (kind == 0 && reflect::Get(header) &&
+			LayoutInventoryHeaders(reflect::Get(menu),reflect::Get(canvas),false))
+			nextLayout=GetTickCount64()+16;
+		PaintSorts();   // the new tab's sorts and its remembered choice, in the same frame
 		tabSet = true;
 	}
 
@@ -131,6 +137,7 @@ namespace sorting::detail
 		if (kind != a_kind) {  // another menu: forget everything and rebuild
 			if (kind >= 0) { enchantedOnly = false; stolenOnly = false; Reset(); tabSet = false; }
 			kind = a_kind;
+			if (kind != 0) ClearInventoryHeaderLayout();
 		}
 		active.store(true);  // page identity is independent of whether its new widgets have finished layout
 		SeedSorts();   // first time this kind is seen: every tab starts with the INI default (bCategorySort), before any paint
@@ -142,6 +149,7 @@ namespace sorting::detail
 		HideNativeSorts();
 		ShowQuickLootHint();
 		if (reflect::Get(menu) != a_menu || reflect::Get(canvas) != a_canvas) {
+			ClearInventoryHeaderLayout();
 			enchantedOnly = false; stolenOnly = false; Reset();
 			for (const auto& handle : { popup, header, stolenHeader, enchantedHeader }) if (auto* old = reflect::Get(handle)) { ui::Call remove(old, L"RemoveFromParent"); remove.Run(); }
 			for (int k = 0; k < kSorts; ++k) {
@@ -199,8 +207,14 @@ namespace sorting::detail
 			if (justAttached) { HideNativeSorts(); PaintSorts(); }
 			ShowOwnWidgets();   // every custom widget of the bar in this one pass (owner 2026-11-07)
 			if (OwnSorts()) {
+				if (kind == 0) LayoutInventoryHeaders(a_menu, a_canvas);
 				WatchRefills(*this);
 				if (justAttached) Republish(*this);   // the opening's first refill came before the hook: order it now
+				if (kind == 0 && !inventoryHeaderReady) {
+					nextLayout=now+16;
+					ClearHitAreas();
+					return;
+				}
 				for (int k = 0; k < kSorts; ++k) {
 					Rect r;
 					auto* sort = reflect::Get(sortHeaders[k]);

@@ -6,6 +6,7 @@
 #include "sorting/Picker.h"
 #include "sorting/rules/ControllerPolicy.h"
 #include "sorting/rules/ItemSort.h"
+#include "sorting/rules/InventoryHeaderLayout.h"
 #include "sorting/rules/ItemTags.h"
 #include "sorting/rules/MagicRows.h"
 #include "sorting/rules/PickerHighlight.h"
@@ -132,6 +133,29 @@ namespace sorting
 			unsigned seededKinds = 0;   // kinds whose slots got the INI default (bCategorySort) once
 			bool pendingRepublish = false;   // the classification landed for rows the category sort could not place
 			reflect::Handle groupBack, groupArrow;   // the category sort shown on the filter like an active sort
+			reflect::Handle inventoryListSlot;
+			struct InventoryClip { reflect::Handle widget; std::uint8_t clipping; };
+			std::vector<InventoryClip> inventoryClips;
+			std::array<std::array<double, 2>, kSorts + 3> inventoryTranslations{};
+			std::array<reflect::Handle, kSorts + 4> inventoryHeaderGuides{};
+			inventoryheaders::Box inventoryMeasuredList, inventoryMeasuredStatus;
+			std::array<inventoryheaders::Box, kSorts> inventoryMeasuredColumns{};
+			double inventoryMeasuredNameX=0;
+			bool inventoryHeaderMeasured=false;
+			std::vector<reflect::Handle> inventoryStatusImages;
+			std::array<std::array<double, 2>, 4> inventoryStatusOffsets{{
+				{0,0}, {-9,0}, {0,-45}, {-9,-29}
+			}};
+			bool inventoryStatusReady=false;
+			std::array<float, 4> inventoryListBase{};
+			bool inventoryListPadding = false, inventoryListReserved = false;
+			double inventoryHeaderY = 0;
+			double inventoryHeaderFrame = -1;
+			bool inventoryHeaderReady = false;
+			void SetInventoryHeaderOpacity(float opacity);
+			bool LayoutInventoryHeaders(UE::UObject* a_menu, UE::UObject* a_canvas, bool measureColumns=true);
+			void HideInventoryHeaderLayout();
+			void ClearInventoryHeaderLayout();
 			int magicPage = 0, paintedSlot = -1;
 			// Quick loot has no native sort row: a Y the game ignored opens/closes ours (deadline, wanted focus).
 			std::uint64_t quickLootY = 0;
