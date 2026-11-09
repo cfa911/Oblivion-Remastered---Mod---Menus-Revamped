@@ -1,9 +1,11 @@
 // Inventory visuals reuse the same registered carousel wrappers; their controller identities stay intact.
 #include "sorting/PickerInternal.h"
 #include "sorting/rules/InventoryHeaderLayout.h"
+#include "sorting/MenuSkin.h"
 #include "engine/Reflect.h"
 #include "engine/PEHook.h"
 #include "engine/Ui.h"
+#include "engine/UiText.h"
 namespace sorting::detail
 {
 	bool IsInventoryStatusItem(UE::UObject* item);
@@ -125,6 +127,12 @@ namespace sorting::detail
 				}
 				ui::Vec2(icon,L"SetRenderTranslation",translation,0);
 				if (!known) {
+					// The enchanted marker now comes from the native texture override.
+					if (i == 1 && menuskin::Current().recolor) {
+						const auto* color = stolenfilter::kStolenFill;
+						Brush(icon, L"Stolen-Item.png", true);
+						ui::Colour(icon, color[0], color[1], color[2], 1.0f);
+					}
 					std::erase_if(moved,[](const auto& handle){return !reflect::Get(handle);});
 					moved.push_back(reflect::Hold(icon));
 				}
@@ -136,6 +144,7 @@ namespace sorting::detail
 			auto& picker=g_pickers[0];
 			if (picker.kind!=0 || !picker.active.load() || !picker.inventoryStatusReady ||
 				!params || pe::FunctionName(function)!="OnListItemObjectSet") return;
+			menuskin::StyleRow(row, menuskin::kInventory);
 			const int offset=reflect::Offset(function,"ListItemObject");
 			if (offset<0 || offset+int(sizeof(UE::UObject*))>function->parmsSize ||
 				ui::SizeOf(function,"ListItemObject")!=sizeof(UE::UObject*)) return;
@@ -143,6 +152,40 @@ namespace sorting::detail
 			std::memcpy(&item,static_cast<const std::uint8_t*>(params)+offset,sizeof(item));
 			if (reflect::Usable(item) && IsInventoryStatusItem(item)) PlaceRowStatus(picker,row);
 		}
+		// RMI-073: the native tab title cuts "Miscellaneous" at 156-158 units whatever width is set on it. Our own text sits on
+		// it with the native font and text; the native text is hidden by render opacity (its layout and animations stay).
+		void PlaceTitleLabel(Picker& picker,UE::UObject* menu,UE::UObject* canvas,const inventoryheaders::Box& canvasBounds)
+		{
+			auto* title=ui::FindInTree(menu,"inv_cont_title");
+			auto* text=title?ui::FindInTree(title,"text_block"):nullptr;
+			inventoryheaders::Box native;
+			if (!text || !Bounds(text,native)) return;
+			auto* label=reflect::Get(picker.titleLabel);
+			const bool created=!label;
+			if (!label) {
+				label=CanvasChild(canvas,L"/Script/UMG.TextBlock",L"MrInventoryTitleLabel",0,0,1,1,3);
+				if (!label) return;
+				picker.titleLabel=reflect::Hold(label);
+				menuskin::SetTitleLabel(label);
+			}
+			picker.titleNative=reflect::Hold(title);
+			const auto box=inventoryheaders::TitleLabel(native);
+			LayoutChild(label,box.x-canvasBounds.x,box.y-canvasBounds.y,box.w,box.h);
+			if (created) {
+				for (const char* prop : {"Font","ColorAndOpacity"}) {   // the native text's own look
+					const auto off=reflect::Offset(text->GetClass(),prop);
+					const auto size=ui::SizeOf(text->GetClass(),prop);
+					if (off>=0 && size>0 && size<=512)
+						ui::CallFirst(label,prop==std::string_view("Font")?L"SetFont":L"SetColorAndOpacity",
+							reinterpret_cast<const std::uint8_t*>(text)+off,static_cast<std::size_t>(size));
+				}
+				menuskin::InkText(label);
+				const auto want=uix::GetText(text);
+				if (uix::GetText(label)!=want) uix::SetText(label,want);
+			}
+			if (ui::RenderOpacity(title)>0) ui::Float(title,L"SetRenderOpacity",0.0f);
+		}
+
 		bool Place(UE::UObject*,UE::UObject* widget,const inventoryheaders::Box& box,double& tx,double& ty,bool* settled=nullptr)
 		{
 			if (!widget || box.w<=0) return false;
@@ -165,10 +208,21 @@ namespace sorting::detail
 			if (auto* widget=reflect::Get(handle)) ui::Float(widget,L"SetRenderOpacity",opacity);
 	}
 
+	void Picker::SetInventoryFillOpacity(float opacity)
+	{
+		const auto apply = [&](const reflect::Handle& handle) {
+			if (auto* widget = reflect::Get(handle)) ui::Float(widget, L"SetRenderOpacity", opacity);
+		};
+		for (const auto& frame : sortFrames) apply(frame);
+		for (const auto& back : sortBacks) apply(back);
+		for (const auto& fill : {headerFrame, groupBack, stolenFrame, enchantedFrame}) apply(fill);
+	}
+
 	void Picker::HideInventoryHeaderLayout()
 	{
 		if (kind==0 || inventoryListReserved || inventoryHeaderReady) SetInventoryHeaderOpacity(0.0f);
 		inventoryHeaderReady=false;
+		inventoryFillPending=true;
 		inventoryHeaderFrame=-1;
 		if (inventoryListReserved) {
 			if (auto* slot=reflect::Get(inventoryListSlot)) ui::CallFirstGuarded(slot,inventoryListPadding?L"SetPadding":L"SetOffsets",inventoryListBase.data(),16);
@@ -193,6 +247,14 @@ namespace sorting::detail
 		inventoryListSlot={};
 		inventoryHeaderMeasured=false;
 		inventoryHeaderFrame=-1;
+		if (auto* label=reflect::Get(titleLabel)) {   // our title label goes; the native title shows again
+			ui::Call remove(label,L"RemoveFromParent");
+			remove.RunGuarded();
+		}
+		titleLabel={};
+		menuskin::SetTitleLabel(nullptr);
+		if (auto* text=reflect::Get(titleNative)) ui::Float(text,L"SetRenderOpacity",1.0f);
+		titleNative={};
 		for (auto& guide : inventoryHeaderGuides) {
 			if (auto* widget=reflect::Get(guide)) {
 				ui::Call remove(widget,L"RemoveFromParent");
@@ -205,6 +267,10 @@ namespace sorting::detail
 	bool Picker::LayoutInventoryHeaders(UE::UObject* a_menu,UE::UObject* a_canvas,bool measureColumns)
 	{
 		if (kind!=0 || !OwnSorts()) return false;
+		if (measureColumns) {
+			menuskin::StyleTitle(ui::FindInTree(a_menu, "inv_cont_title"));
+			ui::Visible(ui::FindInTree(a_menu, "HeaderList_Separator"), false);
+		}
 		static bool announced=false;
 		if (!announced) { announced=true; logger::info("Menus Revamped MR-INVENTORY-SINGLE-HEADER-R9"); }
 		const double frameTime=ui::RealTimeSeconds();
@@ -278,14 +344,18 @@ namespace sorting::detail
 				widget=parent && parent.RunGuarded()?parent.Get<UE::UObject*>("ReturnValue"):nullptr;
 			}
 		};
+		const auto placeFill = [&](const reflect::Handle& frame, inventoryheaders::Box control) {
+			const auto fill = inventoryheaders::ControlFill(plan, control);
+			LayoutChild(reflect::Get(frame), fill.x, fill.y, fill.w, fill.h);
+		};
 		for (int k=0;k<kSorts;++k) {
 			if (!offered[k]) continue;
 			auto* widget=reflect::Get(sortHeaders[k]);
 			allowOverflow(widget);
 			auto& translation=inventoryTranslations[k];
 			if (!Place(nullptr,widget,plan.sorts[k],translation[0],translation[1],&settled)) return false;
-			LayoutChild(reflect::Get(sortImages[k]),6,3,32,32); LayoutChild(reflect::Get(sortFrames[k]),0,0,44,40);
-			LayoutChild(reflect::Get(sortBacks[k]),0,0,44,40);
+			{ const auto& i=inventoryheaders::kSortIcon; LayoutChild(reflect::Get(sortImages[k]),i.x,i.y,i.w,i.h); } placeFill(sortFrames[k],plan.sorts[k]);
+			placeFill(sortBacks[k],plan.sorts[k]);
 			LayoutChild(reflect::Get(sortArrows[k]),34,25,9,9);
 		}
 		for (std::size_t i=0;i<filters.size();++i) {
@@ -295,15 +365,28 @@ namespace sorting::detail
 			auto& translation=inventoryTranslations[kSorts+i];
 			if (!Place(nullptr,widget,plan.filters[i],translation[0],translation[1],&settled)) return false;
 		}
-		LayoutChild(reflect::Get(headerImage),4,1,36,36); LayoutChild(reflect::Get(headerFrame),0,0,44,40);
-		LayoutChild(reflect::Get(groupBack),0,0,44,40); LayoutChild(reflect::Get(groupArrow),32,27,10,10);
-		for (const auto& frame : {stolenFrame,enchantedFrame})
-			LayoutChild(reflect::Get(frame),0,0,30,40);
+		{ const auto& i=inventoryheaders::kCategoryIcon; LayoutChild(reflect::Get(headerImage),i.x,i.y,i.w,i.h); } placeFill(headerFrame,plan.filters[2]);
+		placeFill(groupBack,plan.filters[2]); LayoutChild(reflect::Get(groupArrow),32,27,10,10);
+		placeFill(enchantedFrame,plan.filters[0]);
+		placeFill(stolenFrame,plan.filters[1]);
 
 		if (!inventoryStatusReady && measureColumns && row &&
 			pe::WatchPost(row->GetClass(),&OnInventoryRowBound)) {
-			for (auto* entry : displayed) PlaceRowStatus(*this,entry,&plan.filters);
+			for (auto* entry : displayed) {
+				menuskin::StyleRow(entry, menuskin::kInventory);
+				PlaceRowStatus(*this,entry,&plan.filters);
+			}
+			auto* mainPart = a_menu;
+			for (auto* owner = list; owner && reflect::Usable(owner); owner = owner->GetOuter()) {
+				if (pe::Utf8(owner->GetClass()->GetFName().ToString()).starts_with("WBP_OriginalMenu_InventoryMainPart")) {
+					mainPart = owner;
+					break;
+				}
+			}
+			menuskin::WatchFooters(mainPart, a_menu, menuskin::kInventory);
 			inventoryStatusReady=true;
+			menuskin::StyleListScrollbar(list);
+			menuskin::WatchDetails(a_menu, list, menuskin::kInventory);
 		}
 
 		inventoryheaders::Box canvasBounds;
@@ -321,14 +404,19 @@ namespace sorting::detail
 					guide=CanvasChild(a_canvas,L"/Script/UMG.Image",name.c_str(),0,0,1,1);
 					if (!guide) continue;
 					handle=reflect::Hold(guide);
-					const bool rule=i==plan.guides.size()-1;
-					constexpr float ink[]{0.20f,0.14f,0.09f,0.20f};
-					constexpr float ruleInk[]{0.20f,0.14f,0.09f,0.70f};
-					ui::RoundedBox(guide,false,rule?ruleInk:ink,kClear,0);
+					const bool rule=plan.rule[i];
+					const auto& skin=menuskin::Current();
+					ui::RoundedBox(guide,false,rule?skin.rule.data():skin.guide.data(),kClear,0);
 				}
 				LayoutChild(guide,rect.x-canvasBounds.x,rect.y-canvasBounds.y,rect.w,rect.h);
 				ui::Visible(guide,settled || inventoryHeaderReady);
 			}
+			PlaceTitleLabel(*this,a_menu,a_canvas,canvasBounds);
+		}
+		if (inventoryFillPending) {
+			const bool reveal = inventoryheaders::CanRevealControlFills(measureColumns, settled);
+			SetInventoryFillOpacity(reveal ? 1.0f : 0.0f);
+			inventoryFillPending = !reveal;
 		}
 		if (settled && !inventoryHeaderReady) {
 			SetInventoryHeaderOpacity(1.0f);

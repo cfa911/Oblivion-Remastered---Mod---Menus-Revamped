@@ -1,3 +1,4 @@
+#include "sorting/rules/FilterTogglePaint.h"
 #include "sorting/PickerInternal.h"
 
 #include "core/Config.h"
@@ -51,7 +52,8 @@ namespace sorting::detail
 		auto* background = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PiecePaper" + suffix).c_str(), 0, 0, width, height, 0, &backgroundSlot);
 		if (!background || !backgroundSlot) return false;
 		paperSlot = reflect::Hold(backgroundSlot);
-		const auto& style = uistyle::Get(mrconfig::Get().stylePreset).picker;
+		const bool skinned = kind == 0 && uistyle::SkinFor(mrconfig::Get().stylePreset).recolor;
+		const auto& style = skinned ? uistyle::kInventorySkinPicker : uistyle::Get(mrconfig::Get().stylePreset).picker;
 		ui::RoundedBox(background, false, style.paper.data(), style.border.data(), 1.5f);
 		const std::uint8_t visible = 0;
 		ui::CallFirst(background, L"SetVisibility", &visible, sizeof(visible));
@@ -98,7 +100,7 @@ namespace sorting::detail
 		if (!image || !a_icon) return;
 		const bool all = std::wcscmp(a_icon, itemtags::Info(tab).icons[0]) == 0;
 		const wchar_t* game = all ? AllTexture(kind) : nullptr;
-		if (!game || !TextureBrush(image, game)) Brush(image, a_icon);   // a missing game texture falls back to the PNG
+		if (!game || !TextureBrush(image, game)) Brush(image, a_icon, kind == 0 && OwnSorts());
 	}
 
 	const wchar_t* Picker::HeaderIcon() const
@@ -138,7 +140,7 @@ namespace sorting::detail
 				LayoutChild(reflect::Get(labels[i]), x, y + 41, pickergrid::CellWidth, 21);
 				// The popup's "All" of the Magic school/type pickers: the game's icon too (owner, R14 test 2026-11-07).
 				const wchar_t* game = i == 0 && view == tab ? AllTexture(kind) : nullptr;
-				if (!game || !TextureBrush(reflect::Get(icons[i]), game)) Brush(reflect::Get(icons[i]), info.icons[i]);
+				if (!game || !TextureBrush(reflect::Get(icons[i]), game)) Brush(reflect::Get(icons[i]), info.icons[i], kind == 0);
 				const auto display = std::string(itemtags::PopupLabel(view, i));
 				uix::SetText(reflect::Get(labels[i]), display);
 				ui::Call tooltip(reflect::Get(labels[i]), L"SetToolTipText");
@@ -153,25 +155,29 @@ namespace sorting::detail
 		PaintController();
 	}
 
-	// On: the icon at full strength on the owner's red background. Off: dimmed. Controller focus uses the shared picker fill.
+	// Other menus: on = the icon at full strength on the owner's red/blue background, off = dimmed. The Inventory dark skin
+	// inverts it: on = the icon in the row marker's colour without a fill (filtertoggle::Choose). Controller focus uses the
+	// shared picker fill in both.
+	static void PaintToggle(UE::UObject* frame, UE::UObject* image, bool inventory, bool on, bool focus, const float* onFill, const float* mark)
+	{
+		const auto& picker = uistyle::Get(mrconfig::Get().stylePreset).picker;
+		const auto paint = filtertoggle::Choose(inventory, on, focus, picker.focusFill.data(), onFill, mark, picker.inactiveIconOpacity);
+		ui::RoundedBox(frame, false, paint.fill, kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
+		if (image) ui::Colour(image, paint.icon[0], paint.icon[1], paint.icon[2], 1.0f);
+		ui::Call fade(image, L"SetRenderOpacity");
+		if (fade && fade.Size("InOpacity") == 4 && fade.Set("InOpacity", paint.opacity)) fade.RunGuarded();
+	}
+
 	void Picker::PaintStolen()
 	{
-		const auto& focusFill = uistyle::Get(mrconfig::Get().stylePreset).picker.focusFill;
-		ui::RoundedBox(reflect::Get(stolenFrame), false, stolenFocus ? focusFill.data() : stolenOnly ? stolenfilter::kStolenFill : kClear,
-			kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
-		ui::Call fade(reflect::Get(stolenImage), L"SetRenderOpacity");
-		const float inactiveOpacity = uistyle::Get(mrconfig::Get().stylePreset).picker.inactiveIconOpacity;
-		if (fade && fade.Size("InOpacity") == 4 && fade.Set("InOpacity", stolenOnly ? 1.0f : inactiveOpacity)) fade.RunGuarded();
+		constexpr float mark[4]{ stolenfilter::kStolenFill[0], stolenfilter::kStolenFill[1], stolenfilter::kStolenFill[2], 1.0f };
+		PaintToggle(reflect::Get(stolenFrame), reflect::Get(stolenImage), kind == 0 && uistyle::SkinFor(mrconfig::Get().stylePreset).invertToggles, stolenOnly, stolenFocus, stolenfilter::kStolenFill, mark);
 	}
 
 	void Picker::PaintEnchanted()
 	{
-		const auto& focusFill = uistyle::Get(mrconfig::Get().stylePreset).picker.focusFill;
-		ui::RoundedBox(reflect::Get(enchantedFrame), false, enchantedFocus ? focusFill.data() : enchantedOnly ? enchantedfilter::kEnchantedFill : kClear,
-			kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
-		ui::Call fade(reflect::Get(enchantedImage), L"SetRenderOpacity");
-		const float inactiveOpacity = uistyle::Get(mrconfig::Get().stylePreset).picker.inactiveIconOpacity;
-		if (fade && fade.Size("InOpacity") == 4 && fade.Set("InOpacity", enchantedOnly ? 1.0f : inactiveOpacity)) fade.RunGuarded();
+		PaintToggle(reflect::Get(enchantedFrame), reflect::Get(enchantedImage), kind == 0 && uistyle::SkinFor(mrconfig::Get().stylePreset).invertToggles, enchantedOnly, enchantedFocus,
+			enchantedfilter::kEnchantedFill, filtertoggle::kEnchantedMark);
 	}
 
 	void Picker::PaintController()
@@ -184,10 +190,12 @@ namespace sorting::detail
 		PaintStolen();
 		PaintEnchanted();
 		const int hoveredCell = mouseHoverCell.load();
+		const auto& cellFill = kind == 0 && uistyle::SkinFor(mrconfig::Get().stylePreset).recolor
+			? uistyle::kInventorySkinPicker.focusFill : focusFill;
 		const bool controllerInput = controllerPopup && !mouseInputActive.load();
 		for (unsigned i = 0; i < itemtags::Info(view).count; ++i) {
 			const bool highlighted = pickerhighlight::CellHighlighted(open, controllerInput, cursor, hoveredCell, i);
-			ui::RoundedBox(reflect::Get(cells[i]), false, highlighted ? focusFill.data() : kClear,
+			ui::RoundedBox(reflect::Get(cells[i]), false, highlighted ? cellFill.data() : kClear,
 				kClear, pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 		}
 	}

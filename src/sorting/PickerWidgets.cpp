@@ -1,5 +1,6 @@
 #include "sorting/PickerInternal.h"
 
+#include "core/Config.h"
 #include "core/Runtime.h"
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
@@ -14,9 +15,12 @@ namespace sorting
 {
 	namespace detail
 	{
-		void Brush(UE::UObject* a_image, const wchar_t* a_icon)
+		void Brush(UE::UObject* a_image, const wchar_t* a_icon, bool a_inventory)
 		{
-			if (auto* texture = icons::Texture(a_icon)) {
+			const auto paint = uistyle::InventoryControls(a_inventory, mrconfig::Get().stylePreset);
+			auto* texture = paint.darkArt ? icons::Texture((std::wstring(L"DarkInventory/") + a_icon).c_str()) : nullptr;
+			if (!texture) texture = icons::Texture(a_icon);
+			if (texture) {
 				ui::Call set(a_image, L"SetBrushFromTexture");
 				set.Set("Texture", texture);
 				set.Set("bMatchSize", false);

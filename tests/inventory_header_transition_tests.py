@@ -8,7 +8,15 @@ tick = (root / 'PickerTick.cpp').read_text()
 sort = (root / 'OwnSort.cpp').read_text()
 header = (root / 'PickerHeader.cpp').read_text()
 tab = source_paths.function(tick, 'void Picker::ShowTab(')
+layout_fn = source_paths.function(layout, 'bool Picker::LayoutInventoryHeaders(')
 checks = {
+    'tab switch hides old fills before changing selection or layout':
+        'SetInventoryFillOpacity(0.0f)' in tab.split('Reset()')[0],
+    'full-cell fills reveal after placement on the settled measured pass':
+        'CanRevealControlFills(measureColumns, settled)' in layout_fn and
+        layout_fn.index('placeFill(stolenFrame') < layout_fn.index('CanRevealControlFills('),
+    'pending fill layout retries without disabling ready header input':
+        'if (kind == 0 && inventoryFillPending) nextLayout=now+16;' in tick,
     'row binding applies status icon positions': 'OnListItemObjectSet' in layout and 'pe::WatchPost' in layout,
     'scroll refresh does not reposition icons based on cached viewport geometry': 'visibleOrbs' not in layout,
     'tab change places the header during the existing refresh': 'LayoutInventoryHeaders(' in tab,

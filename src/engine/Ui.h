@@ -94,11 +94,18 @@ namespace ui
 	std::vector<UE::UClass*> TreeClasses(UE::UObject* a_userWidget, int a_maxNodes);
 	// the first widget under a user widget whose class name starts with a_prefix (bounded, fault-guarded walk)
 	UE::UObject* FindByClassPrefix(UE::UObject* a_userWidget, std::string_view a_prefix, int a_maxNodes = 400);
+	// every widget under a user widget (the same bounded, fault-guarded walk), the user widget itself excluded
+	std::vector<UE::UObject*> TreeWidgets(UE::UObject* a_userWidget, int a_maxNodes = 400);
 
 	// the widget and every widget above it visible and not faded out (a parent collapsing hides it too)
 	bool         ShownOnScreen(UE::UObject* a_widget);
 	// a_obj inside a_ancestor (its outer chain)
 	bool         IsWithin(UE::UObject* a_obj, UE::UObject* a_ancestor);
+
+	// Clears an FSlateBrush's cached resource handle after its ResourceObject was written in place, so Slate resolves the
+	// new resource at the next paint (RMI-068). a_brush points at the brush, a_brushSize is its reflected size. The old
+	// handle's reference is dropped, not released (one small handle object leaks per swap; swaps happen once per brush).
+	bool ResetBrushHandle(void* a_brush, int a_brushSize);
 
 	// the brush drawn as a rounded box (a_circle: half-height radius) with a fill and an outline colour
 	bool RoundedBox(UE::UObject* a_image, bool a_circle, const float a_fill[4], const float a_outline[4], float a_width, float a_radius = 6.0f);

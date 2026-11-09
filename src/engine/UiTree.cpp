@@ -216,4 +216,45 @@ namespace ui
 	{
 		return FindClassGuarded(a_userWidget, a_prefix, a_maxNodes);
 	}
+
+	static void CollectWidgets(UE::UObject* a_w, int a_depth, int& a_budget, std::vector<UE::UObject*>* a_out)
+	{
+		static auto* userWidget = Class(L"/Script/UMG.UserWidget");
+		static auto* panelWidget = Class(L"/Script/UMG.PanelWidget");
+		static auto* treeClass = Class(L"/Script/UMG.WidgetTree");
+		static auto* panelSlot = Class(L"/Script/UMG.PanelSlot");
+		if (!a_w || a_depth > 24 || a_budget <= 0) return;
+		--a_budget;
+		if (a_depth > 0) a_out->push_back(a_w);
+		if (IsA(a_w, userWidget)) {
+			auto* tree = PropObj(a_w, userWidget, "WidgetTree");
+			if (auto* root = tree ? PropObj(tree, treeClass, "RootWidget") : nullptr) CollectWidgets(root, a_depth + 1, a_budget, a_out);
+		}
+		if (IsA(a_w, panelWidget)) {
+			const auto slotsOff = reflect::Ok() ? reflect::Offset(reinterpret_cast<UE::UStruct*>(panelWidget), "Slots") : -1;
+			if (slotsOff < 0) return;
+			struct RawArray { UE::UObject** data; std::int32_t num; std::int32_t max; };
+			const auto* arr = reinterpret_cast<const RawArray*>(reinterpret_cast<const std::uint8_t*>(a_w) + slotsOff);
+			for (std::int32_t i = 0; arr->data && i < arr->num && i < 256; ++i)
+				if (auto* content = PropObj(arr->data[i], panelSlot, "Content")) CollectWidgets(content, a_depth + 1, a_budget, a_out);
+		}
+	}
+
+	static bool CollectWidgetsGuarded(UE::UObject* a_w, int a_max, std::vector<UE::UObject*>* a_out)
+	{
+		__try {
+			int budget = a_max;
+			CollectWidgets(a_w, 0, budget, a_out);
+			return true;
+		} __except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
+			return false;
+		}
+	}
+
+	std::vector<UE::UObject*> TreeWidgets(UE::UObject* a_userWidget, int a_maxNodes)
+	{
+		std::vector<UE::UObject*> out;
+		if (!CollectWidgetsGuarded(a_userWidget, a_maxNodes, &out)) out.clear();   // a torn tree: style nothing this pass
+		return out;
+	}
 }

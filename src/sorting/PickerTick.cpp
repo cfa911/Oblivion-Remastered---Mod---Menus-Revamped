@@ -10,6 +10,7 @@
 #include "engine/UiText.h"
 #include "sorting/GearData.h"
 #include "sorting/Icons.h"
+#include "sorting/MenuSkin.h"
 
 namespace sorting::detail
 {
@@ -95,6 +96,10 @@ namespace sorting::detail
 	void Picker::ShowTab(itemtags::Tab a_tab)
 	{
 		inventoryHeaderMeasured = false;
+		if (kind == 0) {
+			inventoryFillPending = true;
+			SetInventoryFillOpacity(0.0f);
+		}
 		if (tabSet) { const auto hold = transfer; Reset(); transfer = hold; }  // the RMI-004 Transfer hold may span a page change
 		tab = a_tab; view = a_tab; styled = false;
 		ShowOwnWidgets();
@@ -178,6 +183,10 @@ namespace sorting::detail
 				fontWarning = true;
 			}
 		}
+		if (kind == 0) {
+			menuskin::RefreshInventoryTitle();
+			menuskin::RefreshButtonRules();
+		}
 		if (now >= nextLayout) {
 			nextLayout = now + 150;
 			auto find = [&](UE::UObject* owner, std::string_view name) {
@@ -208,6 +217,7 @@ namespace sorting::detail
 			ShowOwnWidgets();   // every custom widget of the bar in this one pass (owner 2026-11-07)
 			if (OwnSorts()) {
 				if (kind == 0) LayoutInventoryHeaders(a_menu, a_canvas);
+				if (kind == 0 && inventoryFillPending) nextLayout=now+16;
 				WatchRefills(*this);
 				if (justAttached) Republish(*this);   // the opening's first refill came before the hook: order it now
 				if (kind == 0 && !inventoryHeaderReady) {
