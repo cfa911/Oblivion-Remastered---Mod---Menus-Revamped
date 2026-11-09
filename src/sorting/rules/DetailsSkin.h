@@ -56,4 +56,10 @@ namespace detailsskin
 		return hi > 0.0f && hi < 0.6f && a_rgba[0] >= a_rgba[1] && a_rgba[1] >= a_rgba[2] &&
 		       a_rgba[0] - a_rgba[2] > 0.03f && (hi - lo) / hi < 0.9f;
 	}
+
+	// Brush tints (census on a593c0f7): a colour-only image draws Brush.TintColor x ColorAndOpacity. The action button's
+	// rule middles carry the stock brown 0.070/0.038/0.028 (the fill a white one); the ornament lines a gold 0.25/0.18/0.11.
+#define DETAILSSKIN_BRUSH_TINT 1
+	inline bool IsBrushRule(const float* a_brush) { return a_brush[3] > 0.0f && IsDarkInk(a_brush) && a_brush[0] > a_brush[2]; }
+	inline void NeutralBrush(float* a_brush, float a_level) { a_brush[0] = a_brush[1] = a_brush[2] = a_level; }
 }

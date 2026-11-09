@@ -22,6 +22,39 @@ namespace menuskin
 			return true;
 		}
 
+		// TEMP-DIAG: a brush's own tint (FSlateBrush::TintColor.SpecifiedColor). A colour-only image draws this colour times
+		// ColorAndOpacity; every census so far read only ColorAndOpacity (white), so a brown brush tint stayed invisible.
+		bool ReadBrushTint(UE::UObject* widget, float* rgba)
+		{
+			static auto* brushStruct = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateBrush");
+			static auto* colorStruct = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateColor");
+			if (!widget || !brushStruct || !colorStruct) return false;
+			static const int tint = reflect::Offset(brushStruct, "TintColor");
+			static const int spec = reflect::Offset(colorStruct, "SpecifiedColor");
+			const int brush = reflect::Offset(widget->GetClass(), "Brush");
+			if (brush < 0 || tint < 0 || spec < 0) return false;
+			const auto* at = reflect::At<float>(widget, brush + tint + spec);
+			if (!at) return false;
+			std::copy_n(at, 4, rgba);
+			return true;
+		}
+
+		// writes the brush's own tint (UImage hands Slate a pointer to its Brush, so the write is live)
+		bool WriteBrushTint(UE::UObject* widget, const float* rgba)
+		{
+			static auto* brushStruct = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateBrush");
+			static auto* colorStruct = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateColor");
+			if (!widget || !brushStruct || !colorStruct) return false;
+			static const int tint = reflect::Offset(brushStruct, "TintColor");
+			static const int spec = reflect::Offset(colorStruct, "SpecifiedColor");
+			const int brush = reflect::Offset(widget->GetClass(), "Brush");
+			if (brush < 0 || tint < 0 || spec < 0) return false;
+			auto* at = reflect::At<float>(widget, brush + tint + spec);
+			if (!at) return false;
+			std::copy_n(rgba, 4, at);
+			return true;
+		}
+
 		std::array<float, 4> WithAlpha(const uistyle::Color& c, float alpha) { return { c[0], c[1], c[2], alpha }; }
 
 		std::string NameOf(UE::UObject* object) { return object ? pe::Utf8(object->GetFName().ToString()) : std::string("-"); }
@@ -47,9 +80,11 @@ namespace menuskin
 				if (!image && !text && typeName.find("Button") == std::string::npos) continue;
 				float rgba[4]{ -1, -1, -1, -1 };
 				ReadColor(widget, rgba);
-				logger::warn("TEMP-DIAG MR census {}: {} {} res {} rgba {:.3f} {:.3f} {:.3f} {:.2f} op {:.2f} shown {}", tag, typeName,
+				float tint[4]{ -1, -1, -1, -1 };
+				if (image) ReadBrushTint(widget, tint);
+				logger::warn("TEMP-DIAG MR census {}: {} {} res {} rgba {:.3f} {:.3f} {:.3f} {:.2f} brush {:.3f} {:.3f} {:.3f} {:.2f} op {:.2f} shown {}", tag, typeName,
 					NameOf(widget), image ? NameOf(ui::BrushResource(widget)) : std::string("-"), rgba[0], rgba[1], rgba[2], rgba[3],
-					ui::RenderOpacity(widget), ui::ShownOnScreen(widget));
+					tint[0], tint[1], tint[2], tint[3], ui::RenderOpacity(widget), ui::ShownOnScreen(widget));
 				++lines;
 			}
 		}
@@ -72,8 +107,11 @@ namespace menuskin
 				ui::Measure(widget, x, y, w, h);
 				float rgba[4]{ -1, -1, -1, -1 };
 				ReadColor(widget, rgba);
-				logger::warn("TEMP-DIAG MR shown {}: {} {} at {:.0f},{:.0f} {:.0f}x{:.0f} rgba {:.3f} {:.3f} {:.3f} {:.2f}", tag, NameOf(widget),
-					image ? NameOf(ui::BrushResource(widget)) : std::string("text"), x, y, w, h, rgba[0], rgba[1], rgba[2], rgba[3]);
+				float tint[4]{ -1, -1, -1, -1 };
+				if (image) ReadBrushTint(widget, tint);
+				logger::warn("TEMP-DIAG MR shown {}: {} {} at {:.0f},{:.0f} {:.0f}x{:.0f} rgba {:.3f} {:.3f} {:.3f} {:.2f} brush {:.3f} {:.3f} {:.3f} {:.2f}", tag,
+					NameOf(widget), image ? NameOf(ui::BrushResource(widget)) : std::string("text"), x, y, w, h, rgba[0], rgba[1], rgba[2], rgba[3],
+					tint[0], tint[1], tint[2], tint[3]);
 				++lines;
 			}
 			if (lines) done.insert(tag);   // logged once something was on screen
@@ -275,6 +313,14 @@ namespace menuskin
 				if (!ReadColor(widget, rgba)) continue;
 				if (widget->GetClass()->IsChildOf(imageClass)) {
 					if (SwapArt(widget, skin)) continue;   // arrows and rules
+					// the rules' middle stretch: colour-only, the stock brown in its brush (census on a593c0f7)
+					float brush[4];
+					if (skin.buttonRule[3] > 0 && !ui::BrushResource(widget) && ReadBrushTint(widget, brush) && detailsskin::IsBrushRule(brush)) {
+						const float line[4]{ skin.buttonRule[0], skin.buttonRule[1], skin.buttonRule[2], brush[3] };
+						WriteBrushTint(widget, line);
+						ui::Colour(widget, 1, 1, 1, rgba[3]);
+						continue;
+					}
 					const auto fill = WithAlpha(skin.buttonFill, rgba[3]);
 					ui::Colour(widget, fill[0], fill[1], fill[2], fill[3]);
 				} else if (widget->GetClass()->IsChildOf(textClass)) {
@@ -284,16 +330,24 @@ namespace menuskin
 			}
 		}
 
+		// TEMP-DIAG: the events that change the button's look (the rules' middle is red-brown only while unhovered)
+		bool IsHoverEvent(const std::string& name)
+		{
+			return name == "OnMouseEnter" || name == "OnMouseLeave" || name == "BP_OnHovered" || name == "BP_OnUnhovered" ||
+				name == "OnAddedToFocusPath" || name == "OnRemovedFromFocusPath";
+		}
+
 		void OnDetailsButtonEvent(UE::UObject* button, UE::UFunction* function, void*)
 		{
 			auto* details = reflect::Get(g_details);
 			if (!details || !reflect::Usable(button) || !ui::IsWithin(button, details)) return;
-			// TEMP-DIAG: the colours the button's own code leaves (rules stayed brown on 76e583e0), per event, a few times
-			static int measured = 0;
-			if (measured < 4 && ui::ShownOnScreen(button)) {
-				++measured;
-				Census("button after " + std::string(pe::FunctionName(function)), button, 40);
-				CensusShown("details", details, 140);   // the whole panel as it is on screen (ornaments, button rules)
+			// TEMP-DIAG: the colours the button's own code leaves (rules stayed brown on 76e583e0), once per hover event. Own tags:
+			// on 156e581f the details pass used up the shared "details" tag and OnButtonTextUpdated all four slots.
+			const std::string name(pe::FunctionName(function));
+			static std::set<std::string> measured;
+			if (IsHoverEvent(name) && measured.size() < 6 && ui::ShownOnScreen(button) && measured.insert(name).second) {
+				Census("button after " + name, button, 60);
+				CensusShown("details " + name, details, 220);   // the whole panel as it is on screen (ornaments, button rules)
 			}
 			StyleDetailsButton(button);
 		}
@@ -549,6 +603,10 @@ namespace menuskin
 							logger::warn("TEMP-DIAG MR native skin: ornament before tint {} {} rgba {:.3f} {:.3f} {:.3f} {:.2f}", NameOf(widget),
 								NameOf(resource), rgba[0], rgba[1], rgba[2], rgba[3]);
 						}
+						if (float brush[4]; ReadBrushTint(widget, brush)) {   // the art is white; its brush carries a gold 0.25/0.18/0.11
+							detailsskin::NeutralBrush(brush, 1.0f);
+							WriteBrushTint(widget, brush);
+						}
 						tint(widget, skin.ornament.data());
 						break;
 					}
@@ -615,13 +673,31 @@ namespace menuskin
 	namespace
 	{
 		reflect::Handle g_title;
+		unsigned g_titleGeneration = 0;
+		reflect::Handle g_titleLabel;
+
+		// RMI-073: inside the prefab's own SetText (same frame): our label takes the new name and the native text stays hidden.
+		// The header layout runs on its own timer, so waiting for it showed the old name or both texts (owner on a593c0f7).
+		void KeepTitleLabel(UE::UObject* title)
+		{
+			auto* label = reflect::Get(g_titleLabel);
+			auto* text = label ? ui::FindInTree(title, "text_block") : nullptr;
+			if (!text) return;
+			const auto want = uix::GetText(text);
+			if (uix::GetText(label) != want) uix::SetText(label, want);
+			if (ui::RenderOpacity(text) > 0) ui::Float(text, L"SetRenderOpacity", 0.0f);
+		}
 
 		// the prefab re-applies its variables on its own updates (SetText when the tab changes): keep the title whole after
 		void OnTitleEvent(UE::UObject* widget, UE::UFunction* function, void*)
 		{
 			if (widget != reflect::Get(g_title)) return;
 			const auto name = pe::FunctionName(function);
-			if (name == "SetText" || name == "PreConstruct" || name == "Construct" || name == "ToggleScrollingText") UnclipTitle(widget);
+			if (name == "SetText") ++g_titleGeneration;   // our own title label copies the new text (RMI-073)
+			if (name == "SetText" || name == "PreConstruct" || name == "Construct" || name == "ToggleScrollingText") {
+				UnclipTitle(widget);
+				KeepTitleLabel(widget);
+			}
 		}
 	}
 
@@ -634,6 +710,16 @@ namespace menuskin
 		const auto& skin = Current();
 		if (skin.recolor) uix::Ink(title, skin.ink.data());
 		UnclipTitle(title);
+	}
+
+	unsigned TitleTextGeneration() { return g_titleGeneration; }
+
+	void SetTitleLabel(UE::UObject* label) { g_titleLabel = label ? reflect::Hold(label) : reflect::Handle{}; }
+
+	void InkText(UE::UObject* label)
+	{
+		const auto& skin = Current();
+		if (skin.recolor && reflect::Usable(label)) uix::Ink(label, skin.ink.data());
 	}
 
 	void StyleRow(UE::UObject* row, const Target& target)

@@ -1,5 +1,6 @@
 #pragma once
 #include "sorting/rules/ItemSort.h"
+#include <algorithm>
 #include <array>
 #include <cmath>
 namespace inventoryheaders
@@ -75,4 +76,10 @@ namespace inventoryheaders
 		out.guides[kGuides-2]={list.x,list.y,tableRight-list.x,kRule};
 		return out;
 	}
+	// RMI-073: the native tab title cuts "Miscellaneous" at a fixed 156-158 units whatever width is set on it (min width,
+	// no scrolling, RetainerBox off; logs on 89d7ca0d and d7b00224). Our own label sits on the native text, wide enough
+	// for the longest tab name.
+#define INVENTORYHEADERS_TITLE_LABEL 1
+	inline constexpr double kTitleLabelWidth=300;
+	inline Box TitleLabel(Box text) { return { text.x, text.y, std::max(text.w, kTitleLabelWidth), text.h }; }
 }

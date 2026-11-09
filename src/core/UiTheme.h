@@ -128,6 +128,7 @@ namespace uistyle
 		Color          ornament, pattern, band, buttonFill;
 		float          scrollTrack, scrollBorder, scrollInside;
 		Color          emphasisInk;       // brown rich-text emphasis rows (perk descriptions); alpha 0 = the table's own
+		Color          buttonRule;        // the action button's colour-only rule middles (brush tint); alpha 0 = stock
 	};
 
 	inline constexpr ArtSwap kDarkArt[]{
@@ -152,6 +153,7 @@ namespace uistyle
 		nullptr, 0, { 1, 1, 1, 1 }, 1.0f,
 		{ 1, 1, 1, 1 }, { 1, 1, 1, 1 }, { 1, 1, 1, 1 }, { 1, 1, 1, 1 },
 		0, 0, 0,
+		{ 0, 0, 0, 0 },
 		{ 0, 0, 0, 0 }
 	};
 	inline constexpr Skin kDarkSkin{
@@ -164,7 +166,8 @@ namespace uistyle
 		{ 0.41f, 0.65f, 1.0f, 1 },       // per-channel inverse of T_inv_details_effects_title_BG's baked brown
 		{ 0.12f, 0.12f, 0.12f, 1 },      // action button fill and arrows
 		0.0052f, 0.0052f, 0.0222f,       // scrollbar track, thumb border, thumb inside (linear gray)
-		{ 0.125f, 0.120f, 0.125f, 1 }    // owner swatch: the highlighted sub-tab disc gray (sRGB 99 97 99)
+		{ 0.125f, 0.120f, 0.125f, 1 },   // owner swatch: the highlighted sub-tab disc gray (sRGB 99 97 99)
+		{ 0.83f, 0.83f, 0.83f, 1 }       // rule middles match the end pieces (ButtonLine.png, sRGB 235)
 	};
 
 	inline constexpr const Skin& SkinFor(Preset a_preset) { return a_preset == Preset::Dark ? kDarkSkin : kStockSkin; }

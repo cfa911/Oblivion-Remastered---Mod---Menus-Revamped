@@ -4,6 +4,10 @@
 #include <cstdio>
 #include <string_view>
 #include "../src/sorting/rules/DetailsSkin.h"
+// Round 16 pre-fix: brush tints were never read or changed (rule middles and ornaments kept their warm brush colour).
+#ifndef DETAILSSKIN_BRUSH_TINT
+namespace detailsskin { inline bool IsBrushRule(const float*){ return false; } inline void NeutralBrush(float*,float){} }
+#endif
 unsigned checks=0,failures=0;
 void Check(bool ok,const char* why){++checks;if(!ok){++failures;std::printf("FAIL %s\n",why);}}
 int main(){
@@ -53,5 +57,17 @@ int main(){
  Check(IsWarmInk(perk)&&IsWarmInk(locked),"brown perk text is recognised");
  Check(!IsWarmInk(light)&&!IsWarmInk(dim),"gray inks are not recolored again");
  Check(!IsWarmInk(red)&&!IsWarmInk(green)&&!IsWarmInk(white),"modifier colours and light text keep their colour");
+ {
+  // census on a593c0f7: rule middles are colour-only images with the stock brown brush tint; the fill has a white one
+  const float rule[4]{0.070f,0.038f,0.028f,0.62f}, fill[4]{1,1,1,0.67f}, hidden[4]{1,1,1,0};
+  Check(IsBrushRule(rule),"a colour-only image with the stock brown brush tint is a button rule");
+  Check(!IsBrushRule(fill)&&!IsBrushRule(hidden),"the white fill brushes of the button are not rules");
+  float ornament[4]{0.250f,0.184f,0.112f,1};
+  NeutralBrush(ornament,1);
+  Check(ornament[0]==1&&ornament[1]==1&&ornament[2]==1&&ornament[3]==1,"the ornament brush tint becomes white (our gray decides)");
+  float r[4]{0.070f,0.038f,0.028f,0.62f};
+  NeutralBrush(r,0.83f);
+  Check(r[0]==0.83f&&r[1]==0.83f&&r[2]==0.83f&&r[3]==0.62f,"a neutral brush keeps the brush alpha");
+ }
  std::printf("%u checks, %u failures\n",checks,failures);return failures?1:0;
 }

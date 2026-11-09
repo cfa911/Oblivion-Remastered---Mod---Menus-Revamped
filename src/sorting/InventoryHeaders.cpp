@@ -152,6 +152,45 @@ namespace sorting::detail
 			std::memcpy(&item,static_cast<const std::uint8_t*>(params)+offset,sizeof(item));
 			if (reflect::Usable(item) && IsInventoryStatusItem(item)) PlaceRowStatus(picker,row);
 		}
+		// RMI-073: the native tab title cuts "Miscellaneous" at 156-158 units whatever width is set on it. Our own text sits on
+		// it with the native font and text; the native text is hidden by render opacity (its layout and animations stay).
+		void PlaceTitleLabel(Picker& picker,UE::UObject* menu,UE::UObject* canvas,const inventoryheaders::Box& canvasBounds)
+		{
+			auto* title=ui::FindInTree(menu,"inv_cont_title");
+			auto* text=title?ui::FindInTree(title,"text_block"):nullptr;
+			inventoryheaders::Box native;
+			if (!text || !Bounds(text,native)) return;
+			auto* label=reflect::Get(picker.titleLabel);
+			const bool created=!label;
+			if (!label) {
+				label=CanvasChild(canvas,L"/Script/UMG.TextBlock",L"MrInventoryTitleLabel",0,0,1,1,3);
+				if (!label) return;
+				picker.titleLabel=reflect::Hold(label);
+				menuskin::SetTitleLabel(label);
+			}
+			picker.titleNative=reflect::Hold(text);
+			const auto box=inventoryheaders::TitleLabel(native);
+			LayoutChild(label,box.x-canvasBounds.x,box.y-canvasBounds.y,box.w,box.h);
+			// the text follows the prefab's SetText; a slow re-read covers a missed event
+			const auto generation=menuskin::TitleTextGeneration();
+			const double now=ui::RealTimeSeconds();
+			if (created || generation!=picker.titleLabelGeneration || now<0 || now-picker.titleLabelSync>0.25) {
+				picker.titleLabelGeneration=generation;
+				picker.titleLabelSync=now;
+				if (created) for (const char* prop : {"Font","ColorAndOpacity"}) {   // the native text's own look
+					const auto off=reflect::Offset(text->GetClass(),prop);
+					const auto size=ui::SizeOf(text->GetClass(),prop);
+					if (off>=0 && size>0 && size<=512)
+						ui::CallFirst(label,prop==std::string_view("Font")?L"SetFont":L"SetColorAndOpacity",
+							reinterpret_cast<const std::uint8_t*>(text)+off,static_cast<std::size_t>(size));
+				}
+				if (created) menuskin::InkText(label);
+				const auto want=uix::GetText(text);
+				if (uix::GetText(label)!=want) uix::SetText(label,want);
+			}
+			if (ui::RenderOpacity(text)>0) ui::Float(text,L"SetRenderOpacity",0.0f);
+		}
+
 		bool Place(UE::UObject*,UE::UObject* widget,const inventoryheaders::Box& box,double& tx,double& ty,bool* settled=nullptr)
 		{
 			if (!widget || box.w<=0) return false;
@@ -202,6 +241,14 @@ namespace sorting::detail
 		inventoryListSlot={};
 		inventoryHeaderMeasured=false;
 		inventoryHeaderFrame=-1;
+		if (auto* label=reflect::Get(titleLabel)) {   // our title label goes; the native title shows again
+			ui::Call remove(label,L"RemoveFromParent");
+			remove.RunGuarded();
+		}
+		titleLabel={};
+		menuskin::SetTitleLabel(nullptr);
+		if (auto* text=reflect::Get(titleNative)) ui::Float(text,L"SetRenderOpacity",1.0f);
+		titleNative={};
 		for (auto& guide : inventoryHeaderGuides) {
 			if (auto* widget=reflect::Get(guide)) {
 				ui::Call remove(widget,L"RemoveFromParent");
@@ -354,6 +401,7 @@ namespace sorting::detail
 				LayoutChild(guide,rect.x-canvasBounds.x,rect.y-canvasBounds.y,rect.w,rect.h);
 				ui::Visible(guide,settled || inventoryHeaderReady);
 			}
+			PlaceTitleLabel(*this,a_menu,a_canvas,canvasBounds);
 		}
 		if (settled && !inventoryHeaderReady) {
 			SetInventoryHeaderOpacity(1.0f);

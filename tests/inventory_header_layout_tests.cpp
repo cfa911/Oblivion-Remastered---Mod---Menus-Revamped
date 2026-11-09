@@ -22,6 +22,10 @@ inline Plan Arrange(int kind,Box list,double,const std::array<Box,kCount>& colum
 #ifndef INVENTORYHEADERS_ICON_CENTER
 namespace inventoryheaders { inline constexpr Box kSortIcon{6,3,32,32}, kCategoryIcon{4,1,36,36}; inline constexpr double kFilterLift=0; }
 #endif
+// RMI-073 pre-fix: the tab title is the native text in its own box (156 wide: "Miscellaneous" cut).
+#ifndef INVENTORYHEADERS_TITLE_LABEL
+namespace inventoryheaders { inline Box TitleLabel(Box text){ return text; } }
+#endif
 unsigned checks=0,failures=0;
 void Check(bool ok,const char* why){++checks;if(!ok){++failures;std::printf("FAIL %s\n",why);}}
 int main(){
@@ -105,6 +109,14 @@ int main(){
   auto q=Arrange(0,{100,140,800,600},190,columns,offered,3);
   Check(kFilterLift>=2&&kFilterLift<=4&&std::abs(q.filters[0].y-(140-kFilterLift))<0.01&&std::abs(q.filters[1].y-(140-kFilterLift))<0.01,
    "stolen and enchanted toggles are lifted to the strip centre (measured 2.5 to 3.5 units low)");
+ }
+ {
+  // RMI-073: our own title label starts where the native text starts and is wide enough for "Miscellaneous" (~230).
+  const Box native{180,262,156,40};
+  const auto label=TitleLabel(native);
+  Check(label.x==native.x&&label.y==native.y&&label.h==native.h,"the title label sits on the native title text");
+  Check(label.w>=260,"the title label is wide enough for the longest tab name (native text box stays 156 wide)");
+  Check(TitleLabel({180,262,400,40}).w>=400,"a wider native title box is never narrowed");
  }
  std::printf("%u checks, %u failures\n",checks,failures);return failures?1:0;
 }

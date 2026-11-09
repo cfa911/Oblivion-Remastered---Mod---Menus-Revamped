@@ -31,6 +31,8 @@ ini = configparser.ConfigParser(inline_comment_prefixes=(";",), strict=False)
 ini.read(source_paths.ROOT / "config/MenusRevamped.defaults.ini", encoding="utf-8")
 x, y, w = (float(ini["Inventory"][k]) for k in ("uX", "uY", "uWidth"))
 check(250 <= y <= 300 and x >= 390 and x + w <= 930, "the Inventory search bar sits in the title row, right of the title")
+check(x >= 430 and 910 <= x + w <= 920,
+      "the search bar starts after the whole title and keeps its right edge (owner screenshot on a593c0f7: it covered the last s)")
 check("DisableTextColor" in src and "EnableTextColor" in src, "perk level entries get Inventory-only text colours")
 headers = (source_paths.ROOT / "src/sorting/InventoryHeaders.cpp").read_text(encoding="utf-8-sig")
 check(not any(s in headers for s in ("kProbeInk", "detailsskin::k", "ruleInk", "0.65f,0.65f")),
@@ -110,7 +112,38 @@ check("CensusShown(" in source_paths.function(src, "void OnDetailsButtonEvent(")
 census_shown = source_paths.function(src, "void CensusShown(")
 check("ShownOnScreen(root)" not in census_shown and "ShownOnScreen(widget)" in census_shown,
       "the on-screen census filters per image (the details root never reports shown; no MR shown lines on d7b00224)")
+# Round 15: what draws the red-brown middle of the button rules and the gold ornament lines (never measured).
+brush_tint = source_paths.function(src, "bool ReadBrushTint(")
+check(bool(brush_tint) and "TintColor" in brush_tint and "SpecifiedColor" in brush_tint,
+      "the brush's own tint can be read (colour-only images draw their brush tint; ColorAndOpacity stayed white)")
+check("ReadBrushTint(" in source_paths.function(src, "void Census(") and "ReadBrushTint(" in census_shown,
+      "both censuses log each image's brush tint")
+button_event = source_paths.function(src, "void OnDetailsButtonEvent(")
+check('CensusShown("details " +' in button_event or "CensusShown(\"details \" +" in button_event,
+      "the on-screen census from a button event has its own tag (the details pass used up the shared tag on 156e581f)")
+check("IsHoverEvent(" in button_event,
+      "the button census runs on hover and unhover events (OnButtonTextUpdated used up all four slots on 156e581f)")
+layout_fn = source_paths.function(src, "bool Picker::LayoutInventoryHeaders(")
+place_title = source_paths.function(src, "void PlaceTitleLabel(")
+check("PlaceTitleLabel(" in layout_fn, "the Inventory layout places our own tab title label (RMI-073)")
+check(all(s in place_title for s in ("TitleLabel(", "/Script/UMG.TextBlock", "SetFont", "uix::SetText", "SetRenderOpacity")),
+      "the title label copies the native font and text and hides the clipped native text (RMI-073)")
+clear_fn = source_paths.function(src, "void Picker::ClearInventoryHeaderLayout(")
+check("titleLabel" in clear_fn and "RemoveFromParent" in clear_fn,
+      "leaving the layout removes our title label and shows the native title again")
+button_style = source_paths.function(src, "void StyleDetailsButton(")
+check("IsBrushRule(" in button_style and "buttonRule" in button_style and "WriteBrushTint(" in button_style,
+      "the button rule middles (colour-only, brown brush tint) take the preset's light rule colour in their brush")
+check("NeutralBrush(" in details_body and "WriteBrushTint(" in details_body,
+      "the ornament lines' gold brush tint is neutralised before the gray tint")
+theme = (source_paths.ROOT / "src/core/UiTheme.h").read_text(encoding="utf-8-sig")
+check("buttonRule" in theme, "the rule colour of the action button is per preset")
+title_event = source_paths.function(src, "void OnTitleEvent(")
+keep = source_paths.function(src, "void KeepTitleLabel(")
+check("KeepTitleLabel(" in title_event and "uix::SetText" in keep and "SetRenderOpacity" in keep,
+      "the title label takes the new name and the native text stays hidden inside the prefab's own SetText (double text or flash on a593c0f7)")
+check("menuskin::SetTitleLabel(" in place_title, "the layout hands our title label to the skin")
 for why in fails:
     print("FAIL", why)
-print(f"46 checks, {len(fails)} failures")
+print(f"60 checks, {len(fails)} failures")
 sys.exit(1 if fails else 0)
