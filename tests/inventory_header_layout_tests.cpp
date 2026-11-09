@@ -46,6 +46,38 @@ namespace inventoryheaders {
 inline bool CanRevealControlFills(bool, bool settled) { return settled; }
 }
 #endif
+#ifndef INVENTORYHEADERS_TAB_MEASURES
+// RMI-077 pre-fix: a tab change kept only the name position and the Value column of the last measurement, never
+// reused a tab's own measurement, and lost the list guides while the new rows were not laid out yet.
+namespace inventoryheaders {
+struct Measure { Box list, status; std::array<Box,kCount> columns{}; double nameX=0; };
+template<std::size_t N> struct TabMeasures {
+ Measure last; bool any=false;
+ void Store(std::size_t,const Measure& m){last=m;any=true;}
+ bool Exact(std::size_t) const {return false;}
+ std::optional<Measure> For(std::size_t,Box list,bool* exact=nullptr) const {
+  if(exact)*exact=false;
+  if(!any||std::abs(last.list.x-list.x)>=0.5||std::abs(last.list.w-list.w)>=0.5)return std::nullopt;
+  Measure out;out.list=last.list;out.nameX=last.nameX;
+  out.columns[int(itemsort::Key::Value)]=last.columns[int(itemsort::Key::Value)];return out;
+ }
+ void Clear(){any=false;}
+};
+inline double RowsBottom(double measured,double,int){return measured;}
+}
+#endif
+#ifndef INVENTORYHEADERS_SLOT_SHIFT
+// RMI-077 round 2 pre-fix: nothing follows the game's per-tab resize of the A-Z wrapper before the next paint.
+namespace inventoryheaders {
+inline constexpr int kPanelChildren=9;
+inline std::array<double,kPanelChildren> SlotShifts(std::array<double,kPanelChildren>&,const std::array<double,kPanelChildren>&,
+ const std::array<double,kPanelChildren>&,int){return {};}
+}
+#endif
+#ifndef INVENTORYHEADERS_HINT_BOX
+// RMI-078 pre-fix: the native controller Y glyph keeps its native place (behind the tab title).
+namespace inventoryheaders { inline Box HintBox(const Plan&, Box hint) { return hint; } }
+#endif
 unsigned checks=0,failures=0;
 void Check(bool ok,const char* why){++checks;if(!ok){++failures;std::printf("FAIL %s\n",why);}}
 int main(){
@@ -168,5 +200,77 @@ int main(){
  Check(!CanRevealControlFills(false,true),"tab-change estimates never reveal a full-cell highlight");
  Check(!CanRevealControlFills(true,false)&&CanRevealControlFills(true,true),
   "only the settled measured-layout pass reveals the highlight");
+ {
+  // RMI-077: a tab change places the header with that tab's own earlier measurement, so its first frame is final.
+  const Box list{100,140,800,600};
+  const int weight=int(itemsort::Key::Weight);
+  Measure gear;gear.list=list;gear.nameX=190;gear.status={530,150,70,28};gear.columns=columns;
+  Measure alchemy;alchemy.list=list;alchemy.nameX=190;alchemy.status={638,150,70,28};
+  alchemy.columns[weight]=columns[weight];alchemy.columns[value]=columns[value];
+  const std::size_t gearTab=std::size_t(itemtags::Tab::Gear),alchemyTab=std::size_t(itemtags::Tab::Potions),miscTab=std::size_t(itemtags::Tab::Misc);
+  TabMeasures<10> measures;
+  measures.Store(gearTab,gear);measures.Store(alchemyTab,alchemy);
+  bool exact=false;
+  const auto back=measures.For(gearTab,list,&exact);
+  Check(measures.Exact(gearTab)&&exact&&back&&back->status.x==530&&back->columns[damage].x==654,
+   "returning to a measured tab reuses its own status and numeric columns");
+  const auto same=[](const Plan& a,const Plan& b){
+   for(int i=0;i<kCount;++i)if(a.sorts[i].x!=b.sorts[i].x||a.sorts[i].w!=b.sorts[i].w)return false;
+   for(int i=0;i<3;++i)if(a.filters[i].x!=b.filters[i].x)return false;
+   for(int i=0;i<kGuides;++i)if(a.guides[i].x!=b.guides[i].x||a.guides[i].w!=b.guides[i].w)return false;
+   return true;
+  };
+  const auto final_=Arrange(0,list,gear.nameX,gear.columns,offered,3,gear.status,500);
+  Check(back&&same(Arrange(0,list,back->nameX,back->columns,offered,3,back->status,500),final_),
+   "the tab-change frame of a measured tab already has the final control, fill and divider positions");
+  exact=true;
+  const auto guess=measures.For(miscTab,list,&exact);
+  Check(!measures.Exact(miscTab)&&!exact&&guess&&guess->status.x==638&&guess->columns[weight].x==708,
+   "a tab not measured yet starts from the whole last measurement, marked as an estimate");
+  Check(!measures.For(gearTab,{100,140,900,600}),"a measurement never applies to another list geometry");
+  Measure wide=alchemy;wide.list={100,140,900,600};
+  measures.Store(alchemyTab,wide);
+  Check(!measures.Exact(gearTab)&&measures.Exact(alchemyTab),"a new list geometry drops the other tabs' measurements");
+  measures.Clear();
+  Check(!measures.Exact(alchemyTab)&&!measures.For(alchemyTab,wide.list),"a rebuilt menu starts without measurements");
+  Check(RowsBottom(0,500,12)==500,"list guides keep their height while a tab's new rows are not laid out yet");
+  Check(RowsBottom(0,500,0)==0&&RowsBottom(420,500,12)==420,"an empty tab drops the list guides and laid-out rows set their height");
+ }
+ {
+  // RMI-077 round 2 (probe 2026-11-09): the game resizes the A-Z wrapper (panel child 1) per tab before the paint;
+  // every later child's slot moves by the difference at that paint, so its translation must move back first.
+  std::array<double,kPanelChildren> assumed; assumed.fill(-1);
+  std::array<double,kPanelChildren> gear{96,297,33,34,55,55,55,55,104};
+  auto shift=SlotShifts(assumed,gear,gear,9);
+  bool none=true; for(double s:shift) none=none&&s==0;
+  Check(none&&assumed[1]==297,"the first pass only adopts the widths the translations were placed with");
+  auto alchemy=gear; alchemy[1]=405;
+  shift=SlotShifts(assumed,gear,alchemy,9);
+  Check(shift[0]==0&&shift[1]==0&&shift[2]==108&&shift[8]==108,
+   "A-Z growing 297 to 405 before the paint moves every later control back by 108, never category or A-Z");
+  shift=SlotShifts(assumed,gear,alchemy,9);
+  none=true; for(double s:shift) none=none&&s==0;
+  Check(none,"a second post-event before the same paint does not shift again");
+  shift=SlotShifts(assumed,alchemy,alchemy,9);
+  none=true; for(double s:shift) none=none&&s==0;
+  Check(none,"after the paint has arranged the new width nothing shifts");
+  auto all=alchemy; all[1]=297;
+  std::array<double,kPanelChildren> late=alchemy; late[1]=297;
+  shift=SlotShifts(assumed,late,all,9);
+  none=true; for(double s:shift) none=none&&s==0;
+  Check(none&&assumed[1]==297,"a resize the paint already arranged is left to the measured placement (no double move)");
+  auto narrow=all; narrow[1]=243;
+  shift=SlotShifts(assumed,all,narrow,9);
+  Check(shift[2]==-54&&shift[8]==-54&&shift[1]==0,"All Items' second narrowing moves later controls forward by 54");
+ }
+ {
+  // RMI-078 (owner screenshot 2026-11-09): the controller Y glyph sits right of the header row, centred on the strip.
+  const auto row=Arrange(0,{100,140,800,600},190,columns,offered,3);
+  const auto& top=row.guides[kGuides-2];
+  const Box glyph=HintBox(row,{120,96,36,36});
+  Check(glyph.x>=top.x+top.w&&glyph.x<=top.x+top.w+16,"the Y glyph starts just right of the header row's end");
+  Check(std::abs(glyph.y+glyph.h/2-(top.y+(kHeight+kRule)/2))<0.01,"the Y glyph is centred on the header strip");
+  Check(glyph.w==36&&glyph.h==36,"the Y glyph keeps its native size");
+ }
 std::printf("%u checks, %u failures\n",checks,failures);return failures?1:0;
 }

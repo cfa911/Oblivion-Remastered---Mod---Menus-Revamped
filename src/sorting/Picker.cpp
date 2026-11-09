@@ -81,6 +81,7 @@ namespace sorting
 		auto wanted = picker.tab;
 		if (!page || !itemtags::TabFromPage(*page, wanted)) return;   // unreadable or not a picker tab: the per-frame Tick decides
 		RefreshTab(picker, wanted);
+		picker.CompensateInventorySlots();   // RMI-077: before this frame's paint arranges the game's A-Z resize
 	}
 
 	void RefreshContainerHeaders(UE::UObject* a_menu)

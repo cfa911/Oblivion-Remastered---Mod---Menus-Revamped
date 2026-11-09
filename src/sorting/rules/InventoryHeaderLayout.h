@@ -84,6 +84,70 @@ namespace inventoryheaders
 		return measureColumns && settled;
 	}
 
+	// RMI-077: what one tab's rows measured. A tab change places the header with that tab's own earlier measurement
+	// (exact: its first frame is the final layout); a tab not measured yet starts from the last measured tab's.
+#define INVENTORYHEADERS_TAB_MEASURES 1
+	struct Measure { Box list, status; std::array<Box,kCount> columns{}; double nameX=0; };
+	inline bool SameList(const Box& a, const Box& b) { return std::abs(a.x-b.x)<0.5 && std::abs(a.w-b.w)<0.5; }
+	template<std::size_t N>
+	struct TabMeasures {
+		std::array<Measure,N> tabs{};
+		std::array<bool,N> known{};
+		int last=-1;
+		void Clear() { known={}; last=-1; }
+		void Store(std::size_t tab, const Measure& measure)
+		{
+			if (tab>=N) return;
+			if (last>=0 && !SameList(tabs[last].list,measure.list)) known={};   // another list geometry: all stale
+			tabs[tab]=measure; known[tab]=true; last=int(tab);
+		}
+		bool Exact(std::size_t tab) const { return tab<N && known[tab]; }
+		std::optional<Measure> For(std::size_t tab, Box list, bool* exact=nullptr) const
+		{
+			const bool own=Exact(tab) && SameList(tabs[tab].list,list);
+			if (exact) *exact=own;
+			if (own) return tabs[tab];
+			if (last>=0 && known[last] && SameList(tabs[last].list,list)) return tabs[last];
+			return std::nullopt;
+		}
+	};
+	// Bottom of the list guides: the laid-out rows; while a tab's new rows are not laid out yet, the height they had.
+	inline double RowsBottom(double measured, double held, int items)
+	{
+		return measured>0 ? measured : items!=0 ? held : 0;
+	}
+
+	// RMI-077 round 2: the game resizes the A-Z wrapper per tab in a post-event, and the next paint moves every later
+	// FilterScrollbox slot by the difference (probe 2026-11-09). assumed: the widths the current render translations were
+	// placed with; painted: last arranged widths; desired: what the next paint arranges. Returns each child's slot move
+	// still to come, and adopts the desired widths. A resize the paint already arranged is left to the measured placement.
+#define INVENTORYHEADERS_SLOT_SHIFT 1
+	inline constexpr int kPanelChildren = 9;
+	inline std::array<double,kPanelChildren> SlotShifts(std::array<double,kPanelChildren>& assumed,
+		const std::array<double,kPanelChildren>& painted, const std::array<double,kPanelChildren>& desired, int count)
+	{
+		std::array<double,kPanelChildren> shift{};
+		double run = 0;
+		for (int i = 0; i < count && i < kPanelChildren; ++i) {
+			shift[i] = run;
+			if (desired[i] < 0) continue;
+			const bool arranged = painted[i] >= 0 && std::abs(painted[i] - desired[i]) < 0.5;
+			if (assumed[i] >= 0 && !arranged) run += desired[i] - assumed[i];
+			assumed[i] = desired[i];
+		}
+		return shift;
+	}
+
+	// RMI-078 (owner screenshot 2026-11-09): the native controller Y glyph stays in the native filter row, behind the tab
+	// title. It goes just right of the header row's end, centred on the strip.
+#define INVENTORYHEADERS_HINT_BOX 1
+	inline constexpr double kHintGap = 8;
+	inline Box HintBox(const Plan& plan, Box hint)
+	{
+		const auto& top = plan.guides[kGuides - 2];
+		return { top.x + top.w + kHintGap, top.y + (kHeight + kRule - hint.h) / 2, hint.w, hint.h };
+	}
+
 #define INVENTORYHEADERS_CELL_FILL 1
 	inline Box ControlFill(const Plan& plan, Box control)
 	{
