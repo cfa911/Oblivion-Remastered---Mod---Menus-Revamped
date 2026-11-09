@@ -28,8 +28,8 @@ namespace menuskin
 
 	// The tab title: kept whole in every preset (layout), inked by the skin.
 	void StyleTitle(UE::UObject* title);
-	// Bumps whenever the native title's text changes (our own title label copies it; RMI-073).
-	unsigned TitleTextGeneration();
+	void RefreshInventoryTitle();
+	void RefreshButtonRules();
 	// A label of ours takes the preset's ink when the preset recolours (else it keeps what it was given).
 	void InkText(UE::UObject* label);
 	// Our own title label: the skin keeps it in step with the native title inside the prefab's own SetText.

@@ -172,6 +172,19 @@ namespace uistyle
 
 	inline constexpr const Skin& SkinFor(Preset a_preset) { return a_preset == Preset::Dark ? kDarkSkin : kStockSkin; }
 
+#define UISTYLE_INVENTORY_CONTROL_PAINT 1
+	struct InventoryControlStyle
+	{
+		bool darkArt;
+		float selectedSortTint;
+	};
+
+	inline constexpr InventoryControlStyle InventoryControls(bool inventory, Preset preset)
+	{
+		const bool dark = inventory && SkinFor(preset).recolor;
+		return { dark, dark ? 0.24f : 1.0f };
+	}
+
 	inline constexpr const Palette& Get(Preset a_preset)
 	{
 		switch (a_preset) {

@@ -1,6 +1,7 @@
 // The native menu skin passes (see MenuSkin.h). Logic only: every colour and art file comes from uistyle::Skin.
 #include "sorting/MenuSkin.h"
 #include "sorting/rules/DetailsSkin.h"
+#include "sorting/rules/InventoryHeaderLayout.h"
 #include "core/Config.h"
 #include "engine/Reflect.h"
 #include "engine/PEHook.h"
@@ -22,7 +23,7 @@ namespace menuskin
 			return true;
 		}
 
-		// TEMP-DIAG: a brush's own tint (FSlateBrush::TintColor.SpecifiedColor). A colour-only image draws this colour times
+		// A brush's own tint (FSlateBrush::TintColor.SpecifiedColor). A colour-only image draws this colour times
 		// ColorAndOpacity; every census so far read only ColorAndOpacity (white), so a brown brush tint stayed invisible.
 		bool ReadBrushTint(UE::UObject* widget, float* rgba)
 		{
@@ -42,6 +43,14 @@ namespace menuskin
 		// writes the brush's own tint (UImage hands Slate a pointer to its Brush, so the write is live)
 		bool WriteBrushTint(UE::UObject* widget, const float* rgba)
 		{
+			struct SlateColor
+			{
+				float rgba[4];
+				std::uint8_t rule;
+				std::uint8_t padding[7];
+			} tintColor{ { rgba[0], rgba[1], rgba[2], rgba[3] }, 0, {} };
+			ui::Call set(widget, L"SetBrushTintColor");
+			if (set.Size("TintColor") == sizeof(tintColor) && set.Set("TintColor", tintColor) && set.RunGuarded()) return true;
 			static auto* brushStruct = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateBrush");
 			static auto* colorStruct = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateColor");
 			if (!widget || !brushStruct || !colorStruct) return false;
@@ -58,64 +67,6 @@ namespace menuskin
 		std::array<float, 4> WithAlpha(const uistyle::Color& c, float alpha) { return { c[0], c[1], c[2], alpha }; }
 
 		std::string NameOf(UE::UObject* object) { return object ? pe::Utf8(object->GetFName().ToString()) : std::string("-"); }
-
-		// TEMP-DIAG: one log of every image and text under a widget (name, brush resource, colour, render opacity), once per
-		// tag. Measures the parts still drawn in stock colours before restyling them (rows, buttons, bands, ring, effects).
-		void Census(const std::string& tag, UE::UObject* root, int maxLines)
-		{
-			static std::set<std::string> done;
-			if (!reflect::Usable(root) || !done.insert(tag).second) return;
-			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
-			static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
-			static auto* richClass = ui::Class(L"/Script/UMG.RichTextBlock");
-			int lines = 0;
-			logger::warn("TEMP-DIAG MR census {}: root {} ({})", tag, NameOf(root), NameOf(root->GetClass()));
-			for (auto* widget : ui::TreeWidgets(root, 3000)) {
-				if (lines >= maxLines) break;
-				if (!reflect::Usable(widget)) continue;
-				auto* type = widget->GetClass();
-				const bool image = imageClass && type->IsChildOf(imageClass);
-				const bool text = (textClass && type->IsChildOf(textClass)) || (richClass && type->IsChildOf(richClass));
-				const auto typeName = NameOf(type);
-				if (!image && !text && typeName.find("Button") == std::string::npos) continue;
-				float rgba[4]{ -1, -1, -1, -1 };
-				ReadColor(widget, rgba);
-				float tint[4]{ -1, -1, -1, -1 };
-				if (image) ReadBrushTint(widget, tint);
-				logger::warn("TEMP-DIAG MR census {}: {} {} res {} rgba {:.3f} {:.3f} {:.3f} {:.2f} brush {:.3f} {:.3f} {:.3f} {:.2f} op {:.2f} shown {}", tag, typeName,
-					NameOf(widget), image ? NameOf(ui::BrushResource(widget)) : std::string("-"), rgba[0], rgba[1], rgba[2], rgba[3],
-					tint[0], tint[1], tint[2], tint[3], ui::RenderOpacity(widget), ui::ShownOnScreen(widget));
-				++lines;
-			}
-		}
-
-		// TEMP-DIAG: the images and texts actually on screen under a widget, with their viewport positions, once per tag.
-		// Matches what the owner points at (gold ornament lines, brown button rules) to a widget and its resource.
-		void CensusShown(const std::string& tag, UE::UObject* root, int maxLines)
-		{
-			static std::set<std::string> done;
-			if (!reflect::Usable(root) || done.contains(tag)) return;   // the details root never reports shown: filter per image
-			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
-			static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
-			int lines = 0;
-			for (auto* widget : ui::TreeWidgets(root, 3000)) {
-				if (lines >= maxLines) break;
-				if (!reflect::Usable(widget) || !ui::ShownOnScreen(widget)) continue;
-				const bool image = imageClass && widget->GetClass()->IsChildOf(imageClass);
-				if (!image && !(textClass && widget->GetClass()->IsChildOf(textClass))) continue;
-				double x = 0, y = 0, w = 0, h = 0;
-				ui::Measure(widget, x, y, w, h);
-				float rgba[4]{ -1, -1, -1, -1 };
-				ReadColor(widget, rgba);
-				float tint[4]{ -1, -1, -1, -1 };
-				if (image) ReadBrushTint(widget, tint);
-				logger::warn("TEMP-DIAG MR shown {}: {} {} at {:.0f},{:.0f} {:.0f}x{:.0f} rgba {:.3f} {:.3f} {:.3f} {:.2f} brush {:.3f} {:.3f} {:.3f} {:.2f}", tag,
-					NameOf(widget), image ? NameOf(ui::BrushResource(widget)) : std::string("text"), x, y, w, h, rgba[0], rgba[1], rgba[2], rgba[3],
-					tint[0], tint[1], tint[2], tint[3]);
-				++lines;
-			}
-			if (lines) done.insert(tag);   // logged once something was on screen
-		}
 
 		UE::UObject* SkinArt(const wchar_t* file)
 		{
@@ -261,35 +212,25 @@ namespace menuskin
 			if (!label) label = ui::FindInTree(title, "text");
 			if (!label) return;
 			const bool off = false;
-			const bool scrolled = ui::CallFirst(label, L"SetScrollingEnabled", &off, sizeof(off));
+			ui::CallFirst(label, L"SetScrollingEnabled", &off, sizeof(off));
 			const bool widened = bool(ui::Call(label, L"SetMinDesiredWidth"));
 			if (widened) ui::Float(label, L"SetMinDesiredWidth", kTitleWidth);
 			// The title sits in a RetainerBox (inv_cont_AnimationRetainerforText) that draws it through an effect material for
 			// its reveal animation; that mask cut the text at a fixed width whatever the text's own width (owner screenshots on
 			// 7c938a78 and 76e583e0). Drawn directly, the whole name shows.
 			static auto* retainerClass = ui::Class(L"/Script/UMG.RetainerBox");
-			std::string chain;
 			UE::UObject* parent = title;
 			for (int depth = 0; depth < 4 && parent && reflect::Usable(parent); ++depth) {
-				double x = 0, y = 0, w = 0, h = 0;
-				ui::Measure(parent, x, y, w, h);
-				std::string effect;
 				if (retainerClass && parent->GetClass()->IsChildOf(retainerClass)) {
-					if (const int at = reflect::Offset(parent->GetClass(), "EffectMaterial"); at >= 0)
-						if (auto** material = reflect::At<UE::UObject*>(parent, at)) effect = NameOf(*material);
 					const bool retain = false;
 					ui::CallFirst(parent, L"SetRetainRendering", &retain, sizeof(retain));
 				}
-				chain += std::format(" | {} w {:.0f}{}", NameOf(parent), w, effect.empty() ? "" : " effect " + effect);
 				ui::Call up(parent, L"GetParent");
 				parent = up && up.Run() ? up.Get<UE::UObject*>("ReturnValue") : nullptr;
 			}
-			static int reported = 0;
-			if (reported < 3) {
-				++reported;
-				double x = 0, y = 0, w = 0, h = 0;
-				ui::Measure(label, x, y, w, h);
-				logger::warn("TEMP-DIAG MR native skin: title text {} w {:.0f} scrolling off {} widened {}{}", NameOf(label), w, scrolled, widened, chain);
+			static int prepasses = 0;
+			if (prepasses < 3) {
+				++prepasses;
 			}
 			for (auto* widget : { label, title })
 				if (ui::Call prepass(widget, L"ForceLayoutPrepass"); widget && prepass) prepass.Run();
@@ -297,6 +238,7 @@ namespace menuskin
 
 		// ---- item details ----
 		reflect::Handle g_details;
+		std::vector<reflect::Handle> g_unhoveredRules;
 		const Target* g_detailsTarget = &kInventory;
 
 		// the action button (Equip, Use...): its fill and arrows gray, its label light; alpha stays the game's (hover fades)
@@ -306,8 +248,7 @@ namespace menuskin
 			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
 			static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
 			if (!skin.recolor || !imageClass || !textClass) return;
-			Census("button", button, 40);
-			for (auto* widget : ui::TreeWidgets(button, 60)) {
+			for (auto* widget : ui::TreeWidgets(button, 3000)) {
 				if (!reflect::Usable(widget)) continue;
 				float rgba[4];
 				if (!ReadColor(widget, rgba)) continue;
@@ -315,7 +256,11 @@ namespace menuskin
 					if (SwapArt(widget, skin)) continue;   // arrows and rules
 					// the rules' middle stretch: colour-only, the stock brown in its brush (census on a593c0f7)
 					float brush[4];
-					if (skin.buttonRule[3] > 0 && !ui::BrushResource(widget) && ReadBrushTint(widget, brush) && detailsskin::IsBrushRule(brush)) {
+					if (skin.buttonRule[3] > 0 && !ui::BrushResource(widget) && ReadBrushTint(widget, brush) && detailsskin::IsButtonRule(brush, skin.buttonRule.data())) {
+						if (brush[3] > 0.60f && brush[3] < 0.65f &&
+							std::none_of(g_unhoveredRules.begin(), g_unhoveredRules.end(),
+								[&](const auto& rule) { return reflect::Get(rule) == widget; }))
+							g_unhoveredRules.push_back(reflect::Hold(widget));
 						const float line[4]{ skin.buttonRule[0], skin.buttonRule[1], skin.buttonRule[2], brush[3] };
 						WriteBrushTint(widget, line);
 						ui::Colour(widget, 1, 1, 1, rgba[3]);
@@ -330,25 +275,10 @@ namespace menuskin
 			}
 		}
 
-		// TEMP-DIAG: the events that change the button's look (the rules' middle is red-brown only while unhovered)
-		bool IsHoverEvent(const std::string& name)
-		{
-			return name == "OnMouseEnter" || name == "OnMouseLeave" || name == "BP_OnHovered" || name == "BP_OnUnhovered" ||
-				name == "OnAddedToFocusPath" || name == "OnRemovedFromFocusPath";
-		}
-
-		void OnDetailsButtonEvent(UE::UObject* button, UE::UFunction* function, void*)
+		void OnDetailsButtonEvent(UE::UObject* button, UE::UFunction*, void*)
 		{
 			auto* details = reflect::Get(g_details);
 			if (!details || !reflect::Usable(button) || !ui::IsWithin(button, details)) return;
-			// TEMP-DIAG: the colours the button's own code leaves (rules stayed brown on 76e583e0), once per hover event. Own tags:
-			// on 156e581f the details pass used up the shared "details" tag and OnButtonTextUpdated all four slots.
-			const std::string name(pe::FunctionName(function));
-			static std::set<std::string> measured;
-			if (IsHoverEvent(name) && measured.size() < 6 && ui::ShownOnScreen(button) && measured.insert(name).second) {
-				Census("button after " + name, button, 60);
-				CensusShown("details " + name, details, 220);   // the whole panel as it is on screen (ornaments, button rules)
-			}
 			StyleDetailsButton(button);
 		}
 
@@ -360,7 +290,6 @@ namespace menuskin
 			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
 			static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
 			if (!skin.recolor || !imageClass || !textClass) return;
-			Census("effect entry " + NameOf(entry->GetClass()), entry, 30);
 			for (auto* widget : ui::TreeWidgets(entry, 120)) {
 				if (!reflect::Usable(widget)) continue;
 				if (widget->GetClass()->IsChildOf(imageClass)) {
@@ -463,11 +392,6 @@ namespace menuskin
 				// bold rows are the highlighted words (emphasis colour); the other brown rows are normal text (perk ink)
 				const auto rowName = pe::Utf8(name.ToString());
 				const bool bold = detailsskin::IsEmphasisRow(rowName);
-				static int rowsLogged = 0;   // TEMP-DIAG: which rows are brown (bold rows were not recognised on 0d025571)
-				if (rowsLogged < 8) {
-					++rowsLogged;
-					logger::warn("TEMP-DIAG MR native skin: perk row {} rgba {:.3f} {:.3f} {:.3f} bold {}", rowName, color[0], color[1], color[2], bold);
-				}
 				saved.push_back({ color, { color[0], color[1], color[2], color[3] } });
 				std::copy_n((bold ? skin.emphasisInk : skin.perkInk).data(), 3, color);
 			});
@@ -476,11 +400,6 @@ namespace menuskin
 			ui::CallFirst(rich, L"SetTextStyleSet", &none, sizeof(none));
 			ui::CallFirst(rich, L"SetTextStyleSet", &table, sizeof(table));
 			for (auto& [color, original] : saved) std::copy_n(original.data(), 4, color);
-			static bool reported = false;
-			if (!reported) {
-				reported = true;
-				logger::warn("TEMP-DIAG MR native skin: perk emphasis {} rows recoloured in {} for the Inventory only", saved.size(), NameOf(table));
-			}
 			return true;
 		}
 
@@ -543,18 +462,17 @@ namespace menuskin
 			if (!skin.recolor || !imageClass || !textClass || !reflect::Usable(details)) return;
 			static const int colorOffset = reflect::Offset(textClass, "ColorAndOpacity");
 			static const int parentOffset = instanceClass ? reflect::Offset(instanceClass, "Parent") : -1;
-			unsigned pages = 0, tints = 0, inks = 0, buttons = 0, levels = 0, perkInks = 0, barCalls = 0, barResets = 0;
-			const auto tint = [&](UE::UObject* widget, const float* c) { ui::Colour(widget, c[0], c[1], c[2], c[3]); ++tints; };
-			Census("details", details, 120);
-			if (ui::ShownOnScreen(details)) Census("details shown", details, 160);   // colours after the game set them
-			CensusShown("details", details, 120);
+			unsigned barCalls = 0;
+			const auto tint = [&](UE::UObject* widget, const float* c) { ui::Colour(widget, c[0], c[1], c[2], c[3]); };
+			UE::UObject* sigil = nullptr;
 			for (auto* widget : ui::TreeWidgets(details, 3000)) {
 				if (!reflect::Usable(widget)) continue;
 				auto* type = widget->GetClass();
 				const auto typeName = NameOf(type);
+				if (typeName == "WBP_OriginalMenu_InventoryItemSpecificContentSigilStone_C") sigil = widget;
 				if (typeName.find("Button") != std::string::npos && typeName.starts_with("WBP_ModernPrefab")) {
 					pe::WatchPost(type, &OnDetailsButtonEvent);
-					StyleDetailsButton(widget); ++buttons;
+					StyleDetailsButton(widget);
 					continue;
 				}
 				if (typeName.find("Entry") != std::string::npos && typeName.ends_with("_C")) {   // effect lines and other entries
@@ -563,46 +481,51 @@ namespace menuskin
 					continue;
 				}
 				if (typeName.starts_with("WBP_ModernMenu_Stats_LevelDescription")) {
-					perkInks += StyleLevelDescription(widget); ++levels;
+					StyleLevelDescription(widget);
 					continue;
 				}
-				if (typeName.starts_with("WBP_OriginalMenu_InventoryItemSpecificContent") ||
-					typeName.starts_with("WBP_ModernMenu_StatsPage3_Details"))
-					Census(typeName, widget, 80);
 				if (listViewClass && type->IsChildOf(listViewClass)) {   // effect lines and other generated entries
 					StyleListEntries(widget);
 					continue;
 				}
 				if (scrollBoxClass && type->IsChildOf(scrollBoxClass)) {   // the skill sub-tab's perk list
-					barResets += PaintScrollbarStyle(widget, "WidgetBarStyle", barCalls);
+					PaintScrollbarStyle(widget, "WidgetBarStyle", barCalls);
 					continue;
 				}
 				if (type->IsChildOf(imageClass)) {
-					if (SwapArt(widget, skin)) { ++tints; continue; }
+					if (SwapArt(widget, skin)) continue;
 					auto* resource = ui::BrushResource(widget);
 					if (!resource || !reflect::Usable(resource)) continue;
 					std::string parent;
 					if (parentOffset >= 0 && resource->GetClass()->IsChildOf(instanceClass))
 						if (auto** at = reflect::At<UE::UObject*>(resource, parentOffset); at && *at && reflect::Usable(*at))
 							parent = NameOf(*at);
-					switch (detailsskin::Classify(NameOf(resource), parent)) {
+					const auto resourceName = NameOf(resource);
+					if (detailsskin::IsDescriptionRule(resourceName) ||
+						(resourceName == "T_Line_02" && sigil && ui::IsWithin(widget, sigil))) {
+						if (auto* art = SkinArt(L"RowSeparator.png")) {
+							ui::Call set(widget, L"SetBrushResourceObject");
+							if (set.Set("ResourceObject", art) && set.RunGuarded()) {
+								float rgba[4];
+								if (ReadColor(widget, rgba)) tint(widget, WithAlpha(skin.ornament, rgba[3]).data());
+								if (float brush[4]; ReadBrushTint(widget, brush)) {
+									detailsskin::NeutralBrush(brush, 1.0f);
+									WriteBrushTint(widget, brush);
+								}
+							}
+						}
+						continue;
+					}
+					switch (detailsskin::Classify(resourceName, parent)) {
 					case detailsskin::Role::Page: {
 						// keeps M_MaskedPage (its shape leaves the 3D preview open); the preset's gray hides the parchment
 						float rgba[4];
 						if (!ReadColor(widget, rgba)) break;
 						detailsskin::PageTint(rgba, skin.pageGray);
-						tint(widget, rgba); ++pages;
+						tint(widget, rgba);
 						break;
 					}
 					case detailsskin::Role::Ornament: {
-						static int logged = 0;   // TEMP-DIAG: what the game tinted the white ornament art (brown-gold on screen)
-						if (logged < 2 && ui::ShownOnScreen(widget)) {
-							++logged;
-							float rgba[4]{};
-							ReadColor(widget, rgba);
-							logger::warn("TEMP-DIAG MR native skin: ornament before tint {} {} rgba {:.3f} {:.3f} {:.3f} {:.2f}", NameOf(widget),
-								NameOf(resource), rgba[0], rgba[1], rgba[2], rgba[3]);
-						}
 						if (float brush[4]; ReadBrushTint(widget, brush)) {   // the art is white; its brush carries a gold 0.25/0.18/0.11
 							detailsskin::NeutralBrush(brush, 1.0f);
 							WriteBrushTint(widget, brush);
@@ -614,29 +537,18 @@ namespace menuskin
 					case detailsskin::Role::Band: tint(widget, skin.band.data()); break;
 					case detailsskin::Role::Ring: {   // the level ring: a dynamic instance of M_UI_CircularProgess
 						ui::Call set(resource, L"SetVectorParameterValue");
-						if (set.Set("ParameterName", UE::FName(L"Color", UE::EFindName::Add)) && set.Set("Value", skin.ring) && set.RunGuarded())
-							++tints;
+						if (set.Set("ParameterName", UE::FName(L"Color", UE::EFindName::Add)) && set.Set("Value", skin.ring))
+							set.RunGuarded();
 						break;
 					}
 					default: break;
 					}
 				} else if (colorOffset >= 0 && type->IsChildOf(textClass)) {
 					const auto* rgba = reflect::At<float>(widget, colorOffset);
-					if (!rgba || !detailsskin::IsDarkInk(rgba)) continue;
+					if (!rgba || (!detailsskin::IsDarkInk(rgba) && !detailsskin::IsDescriptionHeading(rgba))) continue;
 					const auto ink = WithAlpha(skin.ink, rgba[3]);
-					uix::Ink(widget, ink.data()); ++inks;
+					uix::Ink(widget, ink.data());
 				}
-			}
-			static bool reported = false;
-			if (!reported && pages + tints + inks) {
-				reported = true;
-				logger::warn("TEMP-DIAG MR native skin: details view {} pages, {} tints, {} inks, {} buttons", pages, tints, inks, buttons);
-			}
-			static bool skillReported = false;
-			if (!skillReported && levels + barCalls) {
-				skillReported = true;
-				logger::warn("TEMP-DIAG MR native skin: skill sub-tab {} perk lines, {} perk inks, {} bar color calls, {} handle resets",
-					levels, perkInks, barCalls, barResets);
 			}
 		}
 
@@ -673,30 +585,45 @@ namespace menuskin
 	namespace
 	{
 		reflect::Handle g_title;
-		unsigned g_titleGeneration = 0;
+
 		reflect::Handle g_titleLabel;
 
 		// RMI-073: inside the prefab's own SetText (same frame): our label takes the new name and the native text stays hidden.
 		// The header layout runs on its own timer, so waiting for it showed the old name or both texts (owner on a593c0f7).
-		void KeepTitleLabel(UE::UObject* title)
+		void KeepTitleLabel(UE::UObject* title, UE::UFunction* function, void* params)
 		{
 			auto* label = reflect::Get(g_titleLabel);
 			auto* text = label ? ui::FindInTree(title, "text_block") : nullptr;
 			if (!text) return;
-			const auto want = uix::GetText(text);
-			if (uix::GetText(label) != want) uix::SetText(label, want);
-			if (ui::RenderOpacity(text) > 0) ui::Float(text, L"SetRenderOpacity", 0.0f);
+			if (params) {
+				std::optional<std::string> requested;
+				auto* signature = reinterpret_cast<UE::UStruct*>(function);
+				const auto fields = reflect::Fields(signature);
+				if (!fields.empty()) {
+					const auto& [name, offset] = fields.front();
+					if (offset >= 0 && ui::SizeOf(signature, name) == sizeof(UE::FText) &&
+						offset + static_cast<int>(sizeof(UE::FText)) <= signature->propertiesSize) {
+						const auto* value = reinterpret_cast<const UE::FText*>(static_cast<const std::uint8_t*>(params) + offset);
+						requested = reflect::Text(*value);
+					}
+				}
+				const auto native = uix::GetText(text);
+				const auto want = inventoryheaders::TitleText(requested ? std::optional<std::string_view>(*requested) : std::nullopt, native);
+				if (uix::GetText(label) != want) uix::SetText(label, std::string(want));
+			}
+
+			if (ui::RenderOpacity(title) > 0) ui::Float(title, L"SetRenderOpacity", 0.0f);
 		}
 
 		// the prefab re-applies its variables on its own updates (SetText when the tab changes): keep the title whole after
-		void OnTitleEvent(UE::UObject* widget, UE::UFunction* function, void*)
+		void OnTitleEvent(UE::UObject* widget, UE::UFunction* function, void* params)
 		{
 			if (widget != reflect::Get(g_title)) return;
 			const auto name = pe::FunctionName(function);
-			if (name == "SetText") ++g_titleGeneration;   // our own title label copies the new text (RMI-073)
+
 			if (name == "SetText" || name == "PreConstruct" || name == "Construct" || name == "ToggleScrollingText") {
 				UnclipTitle(widget);
-				KeepTitleLabel(widget);
+				KeepTitleLabel(widget, function, name == "SetText" ? params : nullptr);
 			}
 		}
 	}
@@ -712,9 +639,33 @@ namespace menuskin
 		UnclipTitle(title);
 	}
 
-	unsigned TitleTextGeneration() { return g_titleGeneration; }
 
 	void SetTitleLabel(UE::UObject* label) { g_titleLabel = label ? reflect::Hold(label) : reflect::Handle{}; }
+
+	void RefreshInventoryTitle()
+	{
+		auto* label = reflect::Get(g_titleLabel);
+		auto* title = reflect::Get(g_title);
+		auto* text = label && title ? ui::FindInTree(title, "text_block") : nullptr;
+		if (!text) return;
+		const auto current = uix::GetText(text);
+		if (!current.empty() && uix::GetText(label) != current) uix::SetText(label, current);
+		if (ui::RenderOpacity(title) > 0) ui::Float(title, L"SetRenderOpacity", 0.0f);
+	}
+
+	void RefreshButtonRules()
+	{
+		const auto& skin = Current();
+		if (skin.buttonRule[3] <= 0 || !reflect::Get(g_details)) return;
+		std::erase_if(g_unhoveredRules, [](const auto& rule) { return !reflect::Get(rule); });
+		for (const auto& rule : g_unhoveredRules) {
+			auto* widget = reflect::Get(rule);
+			float brush[4];
+			if (!ReadBrushTint(widget, brush) || !detailsskin::IsBrushRule(brush)) continue;
+			const float line[4]{ skin.buttonRule[0], skin.buttonRule[1], skin.buttonRule[2], brush[3] };
+			WriteBrushTint(widget, line);
+		}
+	}
 
 	void InkText(UE::UObject* label)
 	{
@@ -726,10 +677,6 @@ namespace menuskin
 	{
 		const auto& skin = Current();
 		if (!reflect::Usable(row)) return;
-		const int equipped = reflect::Offset(row->GetClass(), "bIsEquiped");
-		const auto* isEquipped = equipped >= 0 ? reflect::At<bool>(row, equipped) : nullptr;
-		Census("row", row, 40);
-		if (isEquipped && *isEquipped) Census("equipped row", row, 40);
 		if (!skin.recolor) return;
 		if (auto* name = RowColumn(row, target.rowName)) uix::Ink(name, skin.ink.data());
 		for (int i = 0; i < target.rowValueCount; ++i)
@@ -761,18 +708,12 @@ namespace menuskin
 	{
 		const auto& skin = Current();
 		if (!skin.recolor) return;
-		static bool reported = false;
 		ui::Call get(list, L"GetListView");
 		auto* inner = get.Size("ReturnValue") == sizeof(UE::UObject*) && get.RunGuarded()
 			? get.Get<UE::UObject*>("ReturnValue") : list;
 		if (!reflect::Usable(inner)) return;
 		unsigned count = 0;
-		const unsigned resets = PaintScrollbarStyle(inner, "ScrollBarStyle", count);
-		if (!reported) {
-			reported = true;
-			logger::warn("TEMP-DIAG MR native skin: scrollbar style size {} and {} color calls, {} handle resets",
-				ui::SizeOf(inner->GetClass(), "ScrollBarStyle"), count, resets);
-		}
+		PaintScrollbarStyle(inner, "ScrollBarStyle", count);
 	}
 
 	void WatchDetails(UE::UObject* menu, UE::UObject* list, const Target& target)
@@ -784,6 +725,7 @@ namespace menuskin
 			if (owner->GetClass()->IsChildOf(ui::Class(L"/Script/UMG.UserWidget"))) root = owner;
 		if (!details && root && root != menu) details = ui::FindByClassPrefix(root, kDetails, 3000);
 		if (!details) return;
+		if (details != reflect::Get(g_details)) g_unhoveredRules.clear();
 		g_details = reflect::Hold(details);
 		g_detailsTarget = &target;
 		static UE::UClass* effectLines = nullptr;

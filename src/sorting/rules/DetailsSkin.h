@@ -62,4 +62,19 @@ namespace detailsskin
 #define DETAILSSKIN_BRUSH_TINT 1
 	inline bool IsBrushRule(const float* a_brush) { return a_brush[3] > 0.0f && IsDarkInk(a_brush) && a_brush[0] > a_brush[2]; }
 	inline void NeutralBrush(float* a_brush, float a_level) { a_brush[0] = a_brush[1] = a_brush[2] = a_level; }
+#define DETAILSSKIN_ROUND17 1
+	inline bool IsButtonRule(const float* a_brush, const float* a_paint)
+	{
+		return IsBrushRule(a_brush) || (a_brush[3] > 0.0f && std::equal(a_brush, a_brush + 3, a_paint));
+	}
+
+	inline bool IsDescriptionRule(std::string_view a_resource) { return a_resource == "T_Line_Brown"; }
+
+	inline bool IsDescriptionHeading(const float* a_rgba)
+	{
+		return a_rgba[0] > 0.677f && a_rgba[0] < 0.687f &&
+		       a_rgba[1] > 0.583f && a_rgba[1] < 0.593f &&
+		       a_rgba[2] > 0.473f && a_rgba[2] < 0.483f;
+	}
+
 }

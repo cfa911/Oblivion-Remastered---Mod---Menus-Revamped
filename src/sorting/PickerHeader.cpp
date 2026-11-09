@@ -147,6 +147,7 @@ namespace sorting
 		for (const auto& child : children)
 			if (!IsOwnedHeader(child.widget)) nativePeers.push_back(reflect::Hold(child.widget));
 		const bool inventoryColumns = kind == 0 && OwnSorts();
+		const auto inventoryPaint = uistyle::InventoryControls(inventoryColumns, mrconfig::Get().stylePreset);
 		const auto inventoryOrder = [&] {
 			using itemsort::Key;
 			return std::array{header, sortHeaders[int(Key::Name)], stolenHeader, enchantedHeader,
@@ -233,7 +234,7 @@ namespace sorting
 				auto* arrow = CanvasChild(headerInner, L"/Script/UMG.Image", (std::wstring(L"SlPieceGroupArrow") + suffix).c_str(), 35, 35, 12, 12, 2);
 				if (back) {
 					TextureBrush(back, itemsort::kActiveBackground);
-					if (inventoryColumns) ui::Colour(back, 0.24f, 0.24f, 0.24f, 1.0f);
+					if (inventoryPaint.darkArt) ui::Colour(back, inventoryPaint.selectedSortTint, inventoryPaint.selectedSortTint, inventoryPaint.selectedSortTint, 1.0f);
 					ui::Visible(back, false);
 					groupBack = reflect::Hold(back);
 				}
@@ -260,7 +261,7 @@ namespace sorting
 					auto* back = CanvasChild(inner, L"/Script/UMG.Image", (prefix + L"Back" + suffix).c_str(), 0, 0, 49 + extra, 49, 0);
 					if (!back) return false;
 					TextureBrush(back, itemsort::kActiveBackground);   // a missing texture only leaves the active sort unmarked
-					if (inventoryColumns) ui::Colour(back, 0.24f, 0.24f, 0.24f, 1.0f);
+					if (inventoryPaint.darkArt) ui::Colour(back, inventoryPaint.selectedSortTint, inventoryPaint.selectedSortTint, inventoryPaint.selectedSortTint, 1.0f);
 					sortBacks[k] = reflect::Hold(back);
 					auto* arrow = CanvasChild(inner, L"/Script/UMG.Image", (prefix + L"Arrow" + suffix).c_str(), 35 + extra * 0.5f, 35, 12, 12, 2);
 					if (!arrow) return false;

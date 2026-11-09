@@ -1,3 +1,5 @@
+#include <optional>
+#include <string_view>
 // Geometry acceptance: native baseline has one right-aligned row; the new Inventory row is separate.
 #include <array>
 #include <cmath>
@@ -25,6 +27,24 @@ namespace inventoryheaders { inline constexpr Box kSortIcon{6,3,32,32}, kCategor
 // RMI-073 pre-fix: the tab title is the native text in its own box (156 wide: "Miscellaneous" cut).
 #ifndef INVENTORYHEADERS_TITLE_LABEL
 namespace inventoryheaders { inline Box TitleLabel(Box text){ return text; } }
+#endif
+#ifndef INVENTORYHEADERS_IMMEDIATE_TITLE
+namespace inventoryheaders {
+inline std::string_view TitleText(std::optional<std::string_view>, std::string_view native) { return native; }
+}
+#endif
+#ifndef INVENTORYHEADERS_FILTER_FILL
+namespace inventoryheaders { inline constexpr Box kFilterFill{0,0,30,40}; }
+#endif
+#ifndef INVENTORYHEADERS_CELL_FILL
+namespace inventoryheaders {
+inline Box ControlFill(const Plan&, Box control) { return control.w==30 ? kFilterFill : Box{0,0,control.w,control.h}; }
+}
+#endif
+#ifndef INVENTORYHEADERS_FILL_REVEAL
+namespace inventoryheaders {
+inline bool CanRevealControlFills(bool, bool settled) { return settled; }
+}
 #endif
 unsigned checks=0,failures=0;
 void Check(bool ok,const char* why){++checks;if(!ok){++failures;std::printf("FAIL %s\n",why);}}
@@ -109,6 +129,12 @@ int main(){
   auto q=Arrange(0,{100,140,800,600},190,columns,offered,3);
   Check(kFilterLift>=2&&kFilterLift<=4&&std::abs(q.filters[0].y-(140-kFilterLift))<0.01&&std::abs(q.filters[1].y-(140-kFilterLift))<0.01,
    "stolen and enchanted toggles are lifted to the strip centre (measured 2.5 to 3.5 units low)");
+  for (const auto& toggle : {q.filters[0], q.filters[1]}) {
+   const auto strip = q.sorts[int(itemsort::Key::Name)];
+   const auto fill=ControlFill(q,toggle);
+   Check(toggle.y+fill.y==strip.y+kRule && toggle.y+fill.y+fill.h==strip.y+strip.h,
+    "the toggle fill stays between the header rules while its icon is lifted");
+  }
  }
  {
   // RMI-073: our own title label starts where the native text starts and is wide enough for "Miscellaneous" (~230).
@@ -118,5 +144,29 @@ int main(){
   Check(label.w>=260,"the title label is wide enough for the longest tab name (native text box stays 156 wide)");
   Check(TitleLabel({180,262,400,40}).w>=400,"a wider native title box is never narrowed");
  }
- std::printf("%u checks, %u failures\n",checks,failures);return failures?1:0;
+ Check(TitleText("Weapons", "Miscellaneous")=="Weapons"&&TitleText("Miscellaneous", "Weapons")=="Miscellaneous",
+  "each tab request wins immediately over the previous text during the native reveal");
+ Check(TitleText(std::nullopt, "Weapons")=="Weapons"&&TitleText("", "Weapons").empty(),
+  "missing input falls back to native text, and an explicit empty title clears the old text");
+  {
+  auto weaponsSorts=offered;
+  weaponsSorts[health]=weaponsSorts[damage]=true;
+  const auto weapons=Arrange(0,{100,140,800,600},190,columns,weaponsSorts,3);
+  const auto covers=[&](Box control,double left,double right) {
+   const auto fill=ControlFill(weapons,control);
+   return control.x+fill.x==left && control.x+fill.x+fill.w==right &&
+    control.y+fill.y==142 && control.y+fill.y+fill.h==180;
+  };
+  Check(covers(weapons.filters[2],100,187)&&covers(weapons.sorts[name],189,530),
+   "category and name backgrounds fill their cells between dividers");
+  Check(covers(weapons.filters[1],532,565)&&covers(weapons.filters[0],567,600),
+   "stolen and enchanted backgrounds fill only their own cells");
+  Check(covers(weapons.sorts[health],602,654)&&covers(weapons.sorts[damage],656,708)&&
+    covers(weapons.sorts[int(itemsort::Key::Weight)],710,762)&&covers(weapons.sorts[value],764,849),
+   "numeric sort backgrounds fill their measured cells up to the end of the strip");
+ }
+ Check(!CanRevealControlFills(false,true),"tab-change estimates never reveal a full-cell highlight");
+ Check(!CanRevealControlFills(true,false)&&CanRevealControlFills(true,true),
+  "only the settled measured-layout pass reveals the highlight");
+std::printf("%u checks, %u failures\n",checks,failures);return failures?1:0;
 }

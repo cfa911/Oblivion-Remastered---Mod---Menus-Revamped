@@ -128,7 +128,7 @@ namespace sorting::detail
 				ui::Vec2(icon,L"SetRenderTranslation",translation,0);
 				if (!known) {
 					// The enchanted marker now comes from the native texture override.
-					if (i == 1) {
+					if (i == 1 && menuskin::Current().recolor) {
 						const auto* color = stolenfilter::kStolenFill;
 						Brush(icon, L"Stolen-Item.png", true);
 						ui::Colour(icon, color[0], color[1], color[2], 1.0f);
@@ -168,27 +168,22 @@ namespace sorting::detail
 				picker.titleLabel=reflect::Hold(label);
 				menuskin::SetTitleLabel(label);
 			}
-			picker.titleNative=reflect::Hold(text);
+			picker.titleNative=reflect::Hold(title);
 			const auto box=inventoryheaders::TitleLabel(native);
 			LayoutChild(label,box.x-canvasBounds.x,box.y-canvasBounds.y,box.w,box.h);
-			// the text follows the prefab's SetText; a slow re-read covers a missed event
-			const auto generation=menuskin::TitleTextGeneration();
-			const double now=ui::RealTimeSeconds();
-			if (created || generation!=picker.titleLabelGeneration || now<0 || now-picker.titleLabelSync>0.25) {
-				picker.titleLabelGeneration=generation;
-				picker.titleLabelSync=now;
-				if (created) for (const char* prop : {"Font","ColorAndOpacity"}) {   // the native text's own look
+			if (created) {
+				for (const char* prop : {"Font","ColorAndOpacity"}) {   // the native text's own look
 					const auto off=reflect::Offset(text->GetClass(),prop);
 					const auto size=ui::SizeOf(text->GetClass(),prop);
 					if (off>=0 && size>0 && size<=512)
 						ui::CallFirst(label,prop==std::string_view("Font")?L"SetFont":L"SetColorAndOpacity",
 							reinterpret_cast<const std::uint8_t*>(text)+off,static_cast<std::size_t>(size));
 				}
-				if (created) menuskin::InkText(label);
+				menuskin::InkText(label);
 				const auto want=uix::GetText(text);
 				if (uix::GetText(label)!=want) uix::SetText(label,want);
 			}
-			if (ui::RenderOpacity(text)>0) ui::Float(text,L"SetRenderOpacity",0.0f);
+			if (ui::RenderOpacity(title)>0) ui::Float(title,L"SetRenderOpacity",0.0f);
 		}
 
 		bool Place(UE::UObject*,UE::UObject* widget,const inventoryheaders::Box& box,double& tx,double& ty,bool* settled=nullptr)
@@ -213,10 +208,21 @@ namespace sorting::detail
 			if (auto* widget=reflect::Get(handle)) ui::Float(widget,L"SetRenderOpacity",opacity);
 	}
 
+	void Picker::SetInventoryFillOpacity(float opacity)
+	{
+		const auto apply = [&](const reflect::Handle& handle) {
+			if (auto* widget = reflect::Get(handle)) ui::Float(widget, L"SetRenderOpacity", opacity);
+		};
+		for (const auto& frame : sortFrames) apply(frame);
+		for (const auto& back : sortBacks) apply(back);
+		for (const auto& fill : {headerFrame, groupBack, stolenFrame, enchantedFrame}) apply(fill);
+	}
+
 	void Picker::HideInventoryHeaderLayout()
 	{
 		if (kind==0 || inventoryListReserved || inventoryHeaderReady) SetInventoryHeaderOpacity(0.0f);
 		inventoryHeaderReady=false;
+		inventoryFillPending=true;
 		inventoryHeaderFrame=-1;
 		if (inventoryListReserved) {
 			if (auto* slot=reflect::Get(inventoryListSlot)) ui::CallFirstGuarded(slot,inventoryListPadding?L"SetPadding":L"SetOffsets",inventoryListBase.data(),16);
@@ -338,14 +344,18 @@ namespace sorting::detail
 				widget=parent && parent.RunGuarded()?parent.Get<UE::UObject*>("ReturnValue"):nullptr;
 			}
 		};
+		const auto placeFill = [&](const reflect::Handle& frame, inventoryheaders::Box control) {
+			const auto fill = inventoryheaders::ControlFill(plan, control);
+			LayoutChild(reflect::Get(frame), fill.x, fill.y, fill.w, fill.h);
+		};
 		for (int k=0;k<kSorts;++k) {
 			if (!offered[k]) continue;
 			auto* widget=reflect::Get(sortHeaders[k]);
 			allowOverflow(widget);
 			auto& translation=inventoryTranslations[k];
 			if (!Place(nullptr,widget,plan.sorts[k],translation[0],translation[1],&settled)) return false;
-			{ const auto& i=inventoryheaders::kSortIcon; LayoutChild(reflect::Get(sortImages[k]),i.x,i.y,i.w,i.h); } LayoutChild(reflect::Get(sortFrames[k]),0,0,44,40);
-			LayoutChild(reflect::Get(sortBacks[k]),0,0,44,40);
+			{ const auto& i=inventoryheaders::kSortIcon; LayoutChild(reflect::Get(sortImages[k]),i.x,i.y,i.w,i.h); } placeFill(sortFrames[k],plan.sorts[k]);
+			placeFill(sortBacks[k],plan.sorts[k]);
 			LayoutChild(reflect::Get(sortArrows[k]),34,25,9,9);
 		}
 		for (std::size_t i=0;i<filters.size();++i) {
@@ -355,10 +365,10 @@ namespace sorting::detail
 			auto& translation=inventoryTranslations[kSorts+i];
 			if (!Place(nullptr,widget,plan.filters[i],translation[0],translation[1],&settled)) return false;
 		}
-		{ const auto& i=inventoryheaders::kCategoryIcon; LayoutChild(reflect::Get(headerImage),i.x,i.y,i.w,i.h); } LayoutChild(reflect::Get(headerFrame),0,0,44,40);
-		LayoutChild(reflect::Get(groupBack),0,0,44,40); LayoutChild(reflect::Get(groupArrow),32,27,10,10);
-		for (const auto& frame : {stolenFrame,enchantedFrame})
-			LayoutChild(reflect::Get(frame),0,0,30,40);
+		{ const auto& i=inventoryheaders::kCategoryIcon; LayoutChild(reflect::Get(headerImage),i.x,i.y,i.w,i.h); } placeFill(headerFrame,plan.filters[2]);
+		placeFill(groupBack,plan.filters[2]); LayoutChild(reflect::Get(groupArrow),32,27,10,10);
+		placeFill(enchantedFrame,plan.filters[0]);
+		placeFill(stolenFrame,plan.filters[1]);
 
 		if (!inventoryStatusReady && measureColumns && row &&
 			pe::WatchPost(row->GetClass(),&OnInventoryRowBound)) {
@@ -402,6 +412,11 @@ namespace sorting::detail
 				ui::Visible(guide,settled || inventoryHeaderReady);
 			}
 			PlaceTitleLabel(*this,a_menu,a_canvas,canvasBounds);
+		}
+		if (inventoryFillPending) {
+			const bool reveal = inventoryheaders::CanRevealControlFills(measureColumns, settled);
+			SetInventoryFillOpacity(reveal ? 1.0f : 0.0f);
+			inventoryFillPending = !reveal;
 		}
 		if (settled && !inventoryHeaderReady) {
 			SetInventoryHeaderOpacity(1.0f);

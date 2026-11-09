@@ -11,6 +11,12 @@ inline constexpr Skin kAlways{ true, true, true, {0.86f,0.86f,0.86f,1}, {0.32f,0
 inline constexpr const Skin& SkinFor(Preset) { return kAlways; }
 }
 #endif
+#ifndef UISTYLE_INVENTORY_CONTROL_PAINT
+namespace uistyle {
+struct InventoryControlStyle { bool darkArt; float selectedSortTint; };
+inline constexpr InventoryControlStyle InventoryControls(bool inventory, Preset) { return { inventory, inventory ? 0.24f : 1.0f }; }
+}
+#endif
 unsigned checks=0,failures=0;
 void Check(bool ok,const char* why){++checks;if(!ok){++failures;std::printf("FAIL %s\n",why);}}
 int main(){
@@ -51,5 +57,14 @@ int main(){
  Check(dark.pattern[0]==1&&dark.pattern[1]==1&&dark.pattern[2]==1,"laurel pattern shows its packaged gray unchanged");
  Check(dark.scrollInside>dark.scrollBorder&&dark.scrollTrack<0.01f,"dark scrollbar: near-black track and border, charcoal thumb");
 #endif
- std::printf("%u checks, %u failures\n",checks,failures);return failures?1:0;
+ const auto classicControls = InventoryControls(true, Preset::Classic);
+const auto lightControls = InventoryControls(true, Preset::Light);
+const auto darkControls = InventoryControls(true, Preset::Dark);
+Check(!classicControls.darkArt && classicControls.selectedSortTint == 1.0f,
+ "Classic keeps the original status and filter art and the full stock selected-sort background");
+Check(!lightControls.darkArt && lightControls.selectedSortTint == 1.0f,
+ "Light uses the same original Inventory art");
+Check(darkControls.darkArt && darkControls.selectedSortTint == 0.24f && !InventoryControls(false, Preset::Dark).darkArt,
+ "only Dark Inventory selects the dark artwork and dimmed sort background");
+std::printf("%u checks, %u failures\n",checks,failures);return failures?1:0;
 }

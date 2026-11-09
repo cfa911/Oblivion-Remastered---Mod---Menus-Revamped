@@ -8,6 +8,13 @@
 #ifndef DETAILSSKIN_BRUSH_TINT
 namespace detailsskin { inline bool IsBrushRule(const float*){ return false; } inline void NeutralBrush(float*,float){} }
 #endif
+#ifndef DETAILSSKIN_ROUND17
+namespace detailsskin {
+inline bool IsButtonRule(const float* brush, const float*) { return IsBrushRule(brush); }
+inline bool IsDescriptionRule(std::string_view) { return false; }
+inline bool IsDescriptionHeading(const float*) { return false; }
+}
+#endif
 unsigned checks=0,failures=0;
 void Check(bool ok,const char* why){++checks;if(!ok){++failures;std::printf("FAIL %s\n",why);}}
 int main(){
@@ -68,6 +75,20 @@ int main(){
   float r[4]{0.070f,0.038f,0.028f,0.62f};
   NeutralBrush(r,0.83f);
   Check(r[0]==0.83f&&r[1]==0.83f&&r[2]==0.83f&&r[3]==0.62f,"a neutral brush keeps the brush alpha");
+ }
+ {
+  const float paint[4]{0.83f,0.83f,0.83f,1.0f};
+  const float warm[4]{0.070f,0.038f,0.028f,0.62f};
+  const float white[4]{1.0f,1.0f,1.0f,0.67f};
+  const float painted[4]{0.83f,0.83f,0.83f,0.62f};
+  Check(IsButtonRule(warm,paint)&&IsButtonRule(painted,paint)&&!IsButtonRule(white,paint),
+   "repainting an Unequip rule keeps it on the rule path instead of applying the hover fill tint");
+  const float heading[4]{0.682f,0.588f,0.478f,1.0f};
+  const float effect[4]{1.0f,0.939f,0.847f,1.0f};
+  Check(IsDescriptionRule("T_Line_Brown")&&!IsDescriptionRule("T_frost_damage"),
+   "the enchantment description separator is selected without changing the elemental icon");
+  Check(IsDescriptionHeading(heading)&&!IsDescriptionHeading(effect),
+   "the warm enchantment heading is selected without changing the effect body");
  }
  std::printf("%u checks, %u failures\n",checks,failures);return failures?1:0;
 }

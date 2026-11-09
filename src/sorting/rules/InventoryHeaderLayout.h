@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <optional>
+#include <string_view>
 namespace inventoryheaders
 {
 	struct Box { double x=0, y=0, w=0, h=0; };
@@ -76,10 +78,38 @@ namespace inventoryheaders
 		out.guides[kGuides-2]={list.x,list.y,tableRight-list.x,kRule};
 		return out;
 	}
+#define INVENTORYHEADERS_FILL_REVEAL 1
+	inline constexpr bool CanRevealControlFills(bool measureColumns, bool settled)
+	{
+		return measureColumns && settled;
+	}
+
+#define INVENTORYHEADERS_CELL_FILL 1
+	inline Box ControlFill(const Plan& plan, Box control)
+	{
+		const auto& top = plan.guides[kGuides - 2];
+		const auto& bottom = plan.guides.back();
+		const double center = control.x + control.w / 2;
+		double left = top.x, right = top.x + top.w;
+		for (int i = 0; i < kListGuide; ++i) {
+			const auto& divider = plan.guides[i];
+			if (!plan.rule[i]) continue;
+			if (divider.x + divider.w <= center) left = std::max(left, divider.x + divider.w);
+			if (divider.x >= center) right = std::min(right, divider.x);
+		}
+		return {left - control.x, top.y + top.h - control.y,
+			std::max(0.0, right - left), std::max(0.0, bottom.y - top.y - top.h)};
+	}
+
 	// RMI-073: the native tab title cuts "Miscellaneous" at a fixed 156-158 units whatever width is set on it (min width,
 	// no scrolling, RetainerBox off; logs on 89d7ca0d and d7b00224). Our own label sits on the native text, wide enough
 	// for the longest tab name.
 #define INVENTORYHEADERS_TITLE_LABEL 1
 	inline constexpr double kTitleLabelWidth=300;
 	inline Box TitleLabel(Box text) { return { text.x, text.y, std::max(text.w, kTitleLabelWidth), text.h }; }
+#define INVENTORYHEADERS_IMMEDIATE_TITLE 1
+	inline std::string_view TitleText(std::optional<std::string_view> requested, std::string_view native)
+	{
+		return requested.value_or(native);
+	}
 }
