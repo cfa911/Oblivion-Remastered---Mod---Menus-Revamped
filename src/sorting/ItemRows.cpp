@@ -62,6 +62,24 @@ namespace sorting
 			return key.empty() ? 0 : std::hash<std::string>{}(key) | 1;
 		}
 
+		bool IsInventoryStatusItem(UE::UObject* item)
+		{
+			auto* properties=ItemProperties();
+			if (!properties) return false;
+			const auto container=reflect::Offset(properties,"bIsInContainerMenu");
+			const auto inventory=reflect::Offset(properties,"bIsInventoryItem");
+			const auto name=reflect::Offset(properties,"Name");
+			ui::Call get(item,L"GetProperties");
+			auto* data=static_cast<const std::uint8_t*>(get.At("ReturnValue"));
+			if (!data || container<0 || inventory<0 || name<0 ||
+				ui::SizeOf(properties,"bIsInContainerMenu")!=1 ||
+				ui::SizeOf(properties,"bIsInventoryItem")!=1 ||
+				get.Size("ReturnValue")!=properties->propertiesSize || !get.RunGuarded()) return false;
+			const bool allowed=data[inventory] && !data[container];
+			reinterpret_cast<const UE::FText*>(data+name)->~FText();
+			return allowed;
+		}
+
 		std::uint32_t ContainerForm(UE::UObject* item, std::uint64_t* a_key)
 		{
 			auto* properties = ItemProperties();

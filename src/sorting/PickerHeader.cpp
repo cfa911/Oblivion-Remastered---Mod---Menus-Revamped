@@ -146,6 +146,18 @@ namespace sorting
 						nativeSorts.push_back(reflect::Hold(child.widget));
 		for (const auto& child : children)
 			if (!IsOwnedHeader(child.widget)) nativePeers.push_back(reflect::Hold(child.widget));
+		const bool inventoryColumns = kind == 0 && OwnSorts();
+		const auto inventoryOrder = [&] {
+			using itemsort::Key;
+			return std::array{header, sortHeaders[int(Key::Name)], stolenHeader, enchantedHeader,
+				sortHeaders[int(Key::Health)], sortHeaders[int(Key::Damage)], sortHeaders[int(Key::Armor)],
+				sortHeaders[int(Key::Weight)], sortHeaders[int(Key::Value)]};
+		};
+		const auto registerHeader = [&](UE::UObject* widget) {
+			ui::Call registerChild(navigation, L"AddChild");
+			return registerChild.Size("ChildToAdd") == 8 &&
+				registerChild.Set("ChildToAdd", widget) && registerChild.RunGuarded();
+		};
 		auto* box = reflect::Get(header);
 		if (!box) {
 			static unsigned serial = 0;
@@ -180,6 +192,7 @@ namespace sorting
 				UE::UObject** a_inner = nullptr, float a_extra = 0.0f) -> UE::UObject* {
 				auto* widget = ui::CreateWidget(classPath.c_str());
 				if (!widget) return nullptr;
+				if (inventoryColumns) ui::Float(widget, L"SetRenderOpacity", 0.0f);
 				a_header = reflect::Hold(widget); // establish ownership before registering/focusing
 				std::erase_if(g_ownedHeaders, [](const auto& h) { return !reflect::Get(h); });
 				g_ownedHeaders.push_back(a_header); // retain identity until GC, including detached/retired widgets
@@ -200,9 +213,7 @@ namespace sorting
 				if (!frame || !image) return nullptr;
 				if (a_inner) *a_inner = inner;
 				a_image = reflect::Hold(image); a_frame = reflect::Hold(frame);
-				ui::Call registerChild(navigation, L"AddChild");
-				if (registerChild.Size("ChildToAdd") != 8 ||
-					!registerChild.Set("ChildToAdd", widget) || !registerChild.RunGuarded()) return nullptr;
+				if (!inventoryColumns && !registerHeader(widget)) return nullptr;
 				return widget;
 			};
 			// Register custom headers in their on-screen order: enchanted, stolen, category picker.
@@ -250,6 +261,9 @@ namespace sorting
 					sortArrows[k] = reflect::Hold(arrow);
 				}
 			}
+			if (inventoryColumns)
+				for (const auto& handle : inventoryOrder())
+					if (auto* widget = reflect::Get(handle); widget && !registerHeader(widget)) return false;
 			carousel = reflect::Hold(navigation);
 			rollback.complete = true;
 			PaintController();  // initial All opacity must be applied after the images exist
@@ -266,7 +280,10 @@ namespace sorting
 		// InsertChildAt/ShiftChild are not reflected: reattach the same native widgets preserving slot layout and existing
 		// bindings, with our icon first, before A-Z (and before the other picker's icon when both are attached).
 		ui::Call clear(a_panel, L"ClearChildren"); if (!clear.RunGuarded()) return false;
-		if (schoolAt < 0) {  // no native school button: the stolen-only icon leftmost (owner), then our picker
+		if (inventoryColumns) {
+			for (const auto& handle : inventoryOrder())
+				if (auto* widget = reflect::Get(handle); widget && !addHeader(widget)) return false;
+		} else if (schoolAt < 0) {  // no native school button: the stolen-only icon leftmost (owner), then our picker
 			if (auto* enchanted = reflect::Get(enchantedHeader); enchanted && !addHeader(enchanted)) return false;
 			if (auto* stolen = reflect::Get(stolenHeader); stolen && !addHeader(stolen)) return false;
 			if (!addHeader(box)) return false;

@@ -422,8 +422,18 @@ namespace sorting::detail
 		if (kind == 6) {   // the Active Effects host has sorts only: its category header stays hidden
 			if (auto* h = reflect::Get(header)) ui::Visible(h, false);
 		}
-		for (int k = 0; k < kSorts; ++k)
-			if (auto* w = reflect::Get(sortHeaders[k])) ui::Visible(w, OwnSorts() && Offers(static_cast<itemsort::Key>(k)));
+		for (int k = 0; k < kSorts; ++k) {
+			auto* widget = reflect::Get(sortHeaders[k]);
+			if (!widget) continue;
+			const bool offered = OwnSorts() && Offers(static_cast<itemsort::Key>(k));
+			if (kind == 0 && OwnSorts() && !offered) {
+				// Hidden preserves the ScrollBox slot width across Inventory tab changes.
+				constexpr std::uint8_t hiddenSortVisibility = 2;
+				ui::CallFirstGuarded(widget,L"SetVisibility",&hiddenSortVisibility,1);
+			} else {
+				ui::Visible(widget,offered);
+			}
+		}
 	}
 
 	void Picker::PaintSorts()
