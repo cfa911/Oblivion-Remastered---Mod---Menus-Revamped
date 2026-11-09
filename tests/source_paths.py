@@ -11,7 +11,7 @@ UNITS = {
     "picker": ["src/sorting/PickerInternal.h", "src/sorting/Picker.cpp", "src/sorting/PickerWidgets.cpp",
                "src/sorting/ItemRows.cpp", "src/sorting/PickerHeader.cpp", "src/sorting/PickerPopup.cpp",
                "src/sorting/PickerTick.cpp", "src/sorting/CategoryEvaluator.cpp", "src/sorting/PickerInput.cpp",
-               "src/sorting/NativeBackground.cpp", "src/sorting/InventoryHeaders.cpp"],
+               "src/sorting/NativeBackground.cpp", "src/sorting/InventoryHeaders.cpp", "src/sorting/MenuSkin.cpp"],
     "container": ["src/engine/ContainerMenu.cpp"],
     "gear-data": ["src/sorting/GearData.cpp"],
     "hover": ["src/hover/HoverFix.cpp"],

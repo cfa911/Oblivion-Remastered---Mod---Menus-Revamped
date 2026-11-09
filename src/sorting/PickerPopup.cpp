@@ -52,7 +52,8 @@ namespace sorting::detail
 		auto* background = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PiecePaper" + suffix).c_str(), 0, 0, width, height, 0, &backgroundSlot);
 		if (!background || !backgroundSlot) return false;
 		paperSlot = reflect::Hold(backgroundSlot);
-		const auto& style = kind == 0 ? uistyle::kInventorySkinPicker : uistyle::Get(mrconfig::Get().stylePreset).picker;
+		const bool skinned = kind == 0 && uistyle::SkinFor(mrconfig::Get().stylePreset).recolor;
+		const auto& style = skinned ? uistyle::kInventorySkinPicker : uistyle::Get(mrconfig::Get().stylePreset).picker;
 		ui::RoundedBox(background, false, style.paper.data(), style.border.data(), 1.5f);
 		const std::uint8_t visible = 0;
 		ui::CallFirst(background, L"SetVisibility", &visible, sizeof(visible));
@@ -170,12 +171,12 @@ namespace sorting::detail
 	void Picker::PaintStolen()
 	{
 		constexpr float mark[4]{ stolenfilter::kStolenFill[0], stolenfilter::kStolenFill[1], stolenfilter::kStolenFill[2], 1.0f };
-		PaintToggle(reflect::Get(stolenFrame), reflect::Get(stolenImage), kind == 0, stolenOnly, stolenFocus, stolenfilter::kStolenFill, mark);
+		PaintToggle(reflect::Get(stolenFrame), reflect::Get(stolenImage), kind == 0 && uistyle::SkinFor(mrconfig::Get().stylePreset).invertToggles, stolenOnly, stolenFocus, stolenfilter::kStolenFill, mark);
 	}
 
 	void Picker::PaintEnchanted()
 	{
-		PaintToggle(reflect::Get(enchantedFrame), reflect::Get(enchantedImage), kind == 0, enchantedOnly, enchantedFocus,
+		PaintToggle(reflect::Get(enchantedFrame), reflect::Get(enchantedImage), kind == 0 && uistyle::SkinFor(mrconfig::Get().stylePreset).invertToggles, enchantedOnly, enchantedFocus,
 			enchantedfilter::kEnchantedFill, filtertoggle::kEnchantedMark);
 	}
 
@@ -189,7 +190,8 @@ namespace sorting::detail
 		PaintStolen();
 		PaintEnchanted();
 		const int hoveredCell = mouseHoverCell.load();
-		const auto& cellFill = kind == 0 ? uistyle::kInventorySkinPicker.focusFill : focusFill;
+		const auto& cellFill = kind == 0 && uistyle::SkinFor(mrconfig::Get().stylePreset).recolor
+			? uistyle::kInventorySkinPicker.focusFill : focusFill;
 		const bool controllerInput = controllerPopup && !mouseInputActive.load();
 		for (unsigned i = 0; i < itemtags::Info(view).count; ++i) {
 			const bool highlighted = pickerhighlight::CellHighlighted(open, controllerInput, cursor, hoveredCell, i);

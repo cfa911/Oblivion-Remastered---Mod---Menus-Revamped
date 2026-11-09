@@ -18,6 +18,10 @@ inline Plan Arrange(int kind,Box list,double,const std::array<Box,kCount>& colum
 }
 }
 #endif
+// Icon centring (owner screenshot 2026-11-09): pre-fix offsets inside the 40-unit buttons.
+#ifndef INVENTORYHEADERS_ICON_CENTER
+namespace inventoryheaders { inline constexpr Box kSortIcon{6,3,32,32}, kCategoryIcon{4,1,36,36}; inline constexpr double kFilterLift=0; }
+#endif
 unsigned checks=0,failures=0;
 void Check(bool ok,const char* why){++checks;if(!ok){++failures;std::printf("FAIL %s\n",why);}}
 int main(){
@@ -31,7 +35,7 @@ int main(){
  Check(p.enabled,"Inventory layout enabled");
  Check(p.inset>=40&&p.inset<=49,"dedicated header strip reserved without moving the list bottom");
  Check(p.sorts[name].x==190,"A-Z aligns with the item name rather than the numeric sorts");
- Check(p.sorts[name].y==p.filters[2].y&&p.sorts[name].y==p.filters[0].y&&p.sorts[name].y==p.filters[1].y,"filters and sorts share one header row");
+ Check(p.sorts[name].y==p.filters[2].y&&p.sorts[name].y-kFilterLift==p.filters[0].y&&p.sorts[name].y-kFilterLift==p.filters[1].y,"filters and sorts share one header row (toggles lifted to centre their icons)");
  Check(std::abs(p.sorts[health].x+p.sorts[health].w/2-(600+27))<0.01,"condition icon centered on measured condition column");
  Check(std::abs(p.sorts[value].x+p.sorts[value].w/2-(762+43.5))<0.01,"value icon centered on measured value column");
  Check(p.sorts[health].h<=40,"compact icon row");
@@ -93,5 +97,14 @@ int main(){
  p=Arrange(0,{100,140,800,600},190,{},offered,3);
  Check(p.enabled&&p.sorts[value].w>0,"empty list has usable fallback sort buttons");
  Check(!Arrange(0,{100,140,0,0},190,columns,offered,3).enabled,"invalid geometry leaves native layout intact");
+ {
+  // The space between the upper and lower rules is centred at kRule+(kHeight-kRule)/2 = 21 below the strip top.
+  const double centre=kRule+(kHeight-kRule)/2;
+  Check(std::abs(kSortIcon.y+kSortIcon.h/2-centre)<0.01,"sort icons are centred between the rules");
+  Check(std::abs(kCategoryIcon.y+kCategoryIcon.h/2-centre)<0.01,"category icon is centred between the rules");
+  auto q=Arrange(0,{100,140,800,600},190,columns,offered,3);
+  Check(kFilterLift>=2&&kFilterLift<=4&&std::abs(q.filters[0].y-(140-kFilterLift))<0.01&&std::abs(q.filters[1].y-(140-kFilterLift))<0.01,
+   "stolen and enchanted toggles are lifted to the strip centre (measured 2.5 to 3.5 units low)");
+ }
  std::printf("%u checks, %u failures\n",checks,failures);return failures?1:0;
 }

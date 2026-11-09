@@ -2,6 +2,7 @@
 
 #include "engine/PEHook.h"
 #include "engine/Reflect.h"
+#include "engine/BrushHandle.h"
 
 // Creating, styling and measuring widgets; material parameters.
 namespace ui
@@ -244,5 +245,20 @@ namespace ui
 		if (!c) return nullptr;
 		c.Set("ParameterName", UE::FName(a_name, UE::EFindName::Add));
 		return c.Run() ? c.Get<UE::UObject*>("ReturnValue") : nullptr;
+	}
+}
+
+namespace ui
+{
+	bool ResetBrushHandle(void* a_brush, int a_brushSize)
+	{
+		static auto* brush = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateBrush");
+		static const int offset = brush ? brushhandle::HandleOffset(reflect::Offset(brush, "ImageType")) : -1;
+		if (!a_brush || !brushhandle::Fits(offset, a_brushSize)) return false;
+		auto** handle = reinterpret_cast<void**>(static_cast<std::uint8_t*>(a_brush) + offset);
+		if (!brushhandle::Plausible(handle[0], handle[1])) return false;
+		handle[0] = nullptr;
+		handle[1] = nullptr;
+		return true;
 	}
 }

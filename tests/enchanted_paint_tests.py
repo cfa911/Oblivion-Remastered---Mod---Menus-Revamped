@@ -16,7 +16,7 @@ code=r'''
 struct Widget {};
 namespace UE { using UObject=Widget; }
 namespace reflect { using Handle=Widget*; Widget* Get(Handle p){return p;} }
-namespace mrconfig { struct Values { uistyle::Preset stylePreset=uistyle::Preset::Classic; }; const Values& Get(){static Values values;return values;} }
+namespace mrconfig { struct Values { uistyle::Preset stylePreset=uistyle::Preset::Dark; }; const Values& Get(){static Values values;return values;} }
 float colour[4]{};
 namespace ui {
 void RoundedBox(Widget*,bool,const float* fill,const float*,float,float){for(int i=0;i<4;++i)colour[i]=fill[i];}

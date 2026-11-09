@@ -102,6 +102,11 @@ namespace ui
 	// a_obj inside a_ancestor (its outer chain)
 	bool         IsWithin(UE::UObject* a_obj, UE::UObject* a_ancestor);
 
+	// Clears an FSlateBrush's cached resource handle after its ResourceObject was written in place, so Slate resolves the
+	// new resource at the next paint (RMI-068). a_brush points at the brush, a_brushSize is its reflected size. The old
+	// handle's reference is dropped, not released (one small handle object leaks per swap; swaps happen once per brush).
+	bool ResetBrushHandle(void* a_brush, int a_brushSize);
+
 	// the brush drawn as a rounded box (a_circle: half-height radius) with a fill and an outline colour
 	bool RoundedBox(UE::UObject* a_image, bool a_circle, const float a_fill[4], const float a_outline[4], float a_width, float a_radius = 6.0f);
 }

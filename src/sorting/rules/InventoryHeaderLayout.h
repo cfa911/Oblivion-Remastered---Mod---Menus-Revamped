@@ -8,6 +8,11 @@ namespace inventoryheaders
 	inline constexpr int kCount = static_cast<int>(itemsort::Key::kCount);
 	inline constexpr double kInset=44, kHeight=40, kButton=44;
 	inline constexpr double kRule=2;
+	// Icons centred between the upper and lower rules (kRule+(kHeight-kRule)/2 = 21 below the strip top; owner screenshot
+	// 2026-11-09: sort icons sat 2 units high, the stolen and enchanted toggles 2.5 to 3.5 units low).
+#define INVENTORYHEADERS_ICON_CENTER 1
+	inline constexpr Box kSortIcon{6,5,32,32}, kCategoryIcon{4,3,36,36};
+	inline constexpr double kFilterLift=3;
 	// Slots: header-strip separators first, then the two list guides (kListGuide, +1), then the upper and lower rules.
 	inline constexpr int kGuides = kCount + 7;
 	inline constexpr int kListGuide = kGuides - 4;
@@ -51,8 +56,8 @@ namespace inventoryheaders
 		if (offered[int(itemsort::Key::Name)]) out.sorts[int(itemsort::Key::Name)]={nameX,list.y,kButton,kHeight};
 		const double statusRight=status.w>=60 && status.x+status.w<=statsLeft+2
 			? std::min(status.x+status.w,statsLeft) : statsLeft;
-		out.filters[0]={statusRight-32,list.y,30,kHeight};
-		out.filters[1]={statusRight-68,list.y,30,kHeight};
+		out.filters[0]={statusRight-32,list.y-kFilterLift,30,kHeight};
+		out.filters[1]={statusRight-68,list.y-kFilterLift,30,kHeight};
 		const double categoryX=std::max(list.x,(list.x+nameX-kButton)/2);
 		out.filters[2]={categoryX,list.y,kButton,kHeight};
 		divider(nameX-3);

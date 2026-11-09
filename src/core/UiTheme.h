@@ -104,6 +104,71 @@ namespace uistyle
 		}
 	};
 
+	// The native menu skin (Inventory now; container and barter reuse it). Colours and art only: the passes that apply it
+	// (sorting/MenuSkin.cpp) and every layout change run the same in all presets. recolor=false keeps the game's colours.
+#define UISTYLE_SKIN 1
+#define UISTYLE_SKIN_ART 1
+#define UISTYLE_SKIN_EMPHASIS 1
+	// a stock texture drawn instead from a PNG in MenusRevamped/Skin (per widget, inside the skinned menu only; the stock
+	// texture itself stays untouched for every other menu). Brown baked into art cannot be fixed by a tint.
+	struct ArtSwap
+	{
+		const char*    stock;
+		const wchar_t* file;
+	};
+
+	struct Skin
+	{
+		bool           recolor, invertToggles, hideEquippedScribble;
+		Color          ink, perkInk, rule, guide;
+		const ArtSwap* artSwaps;          // made by tools/make_dark_skin_art.py from the stock textures (stock alpha kept)
+		int            artSwapCount;
+		Color          ring;              // the skill level ring (M_UI_CircularProgess "Color")
+		float          pageGray;          // the details page tint (M_MaskedPage keeps its shape)
+		Color          ornament, pattern, band, buttonFill;
+		float          scrollTrack, scrollBorder, scrollInside;
+		Color          emphasisInk;       // brown rich-text emphasis rows (perk descriptions); alpha 0 = the table's own
+	};
+
+	inline constexpr ArtSwap kDarkArt[]{
+		{ "T_List_Default", L"RowSeparator.png" },        // row separator line: white
+		{ "T_List_equip_V2", L"RowEquipped.png" },        // equipped row: gold band (RMI-072; owner: stronger, gold)
+		{ "T_Property_1_magnitude", L"StatMagnitude.png" },
+		{ "T_Property_1_Range", L"StatRange.png" },
+		{ "T_Property_1_time", L"StatTime.png" },
+		{ "T_Property_1_cost", L"StatCost.png" },
+		{ "T_inv_details_effects_title_BG", L"TitleBand.png" },
+		{ "T_SigilStone_SubNameBG", L"SigilBand.png" },
+		{ "T_Category_Armor", L"SigilArmor.png" },
+		{ "T_Category_Weapons", L"SigilWeapons.png" },
+		{ "T_CircularProgress_bg", L"RingCentre.png" },
+		{ "T_Arrow_Empty", L"ButtonArrow.png" },
+		{ "T_Button_State_Hovered_LeftLineFade", L"ButtonLine.png" },
+	};
+
+	inline constexpr Skin kStockSkin{
+		false, false, false,
+		{ 0, 0, 0, 1 }, { 0, 0, 0, 1 }, { 0.20f, 0.14f, 0.09f, 0.55f }, { 0.20f, 0.14f, 0.09f, 0.13f },
+		nullptr, 0, { 1, 1, 1, 1 }, 1.0f,
+		{ 1, 1, 1, 1 }, { 1, 1, 1, 1 }, { 1, 1, 1, 1 }, { 1, 1, 1, 1 },
+		0, 0, 0,
+		{ 0, 0, 0, 0 }
+	};
+	inline constexpr Skin kDarkSkin{
+		true, true, true,
+		{ 0.86f, 0.86f, 0.86f, 1 }, { 0.86f, 0.86f, 0.86f, 1 }, { 0.65f, 0.65f, 0.65f, 0.55f }, { 0.55f, 0.55f, 0.55f, 0.13f },
+		kDarkArt, int(sizeof(kDarkArt) / sizeof(kDarkArt[0])), { 0.55f, 0.55f, 0.55f, 1 },
+		0.010f,                          // sRGB about 25 (the list is 41); black hides the parchment completely
+		{ 0.45f, 0.45f, 0.45f, 1 },      // T_StatsMenu_Line_R (white art)
+		{ 1, 1, 1, 1 },                  // T_Inventory_pattern ships gray in the texture package
+		{ 0.41f, 0.65f, 1.0f, 1 },       // per-channel inverse of T_inv_details_effects_title_BG's baked brown
+		{ 0.12f, 0.12f, 0.12f, 1 },      // action button fill and arrows
+		0.0052f, 0.0052f, 0.0222f,       // scrollbar track, thumb border, thumb inside (linear gray)
+		{ 0.125f, 0.120f, 0.125f, 1 }    // owner swatch: the highlighted sub-tab disc gray (sRGB 99 97 99)
+	};
+
+	inline constexpr const Skin& SkinFor(Preset a_preset) { return a_preset == Preset::Dark ? kDarkSkin : kStockSkin; }
+
 	inline constexpr const Palette& Get(Preset a_preset)
 	{
 		switch (a_preset) {

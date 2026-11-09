@@ -1,7 +1,7 @@
 // Inventory visuals reuse the same registered carousel wrappers; their controller identities stay intact.
 #include "sorting/PickerInternal.h"
 #include "sorting/rules/InventoryHeaderLayout.h"
-#include "sorting/rules/DetailsSkin.h"
+#include "sorting/MenuSkin.h"
 #include "engine/Reflect.h"
 #include "engine/PEHook.h"
 #include "engine/Ui.h"
@@ -25,65 +25,6 @@ namespace sorting::detail
 		}
 		bool Bounds(UE::UObject* widget,inventoryheaders::Box& box)
 		{ return widget && ui::Measure(widget,box.x,box.y,box.w,box.h) && box.w>0 && box.h>0; }
-		void StyleInventoryScrollbar(UE::UObject* list)
-		{
-			static bool reported = false;
-			ui::Call get(list, L"GetListView");
-			auto* inner = get.Size("ReturnValue") == sizeof(UE::UObject*) && get.RunGuarded()
-				? get.Get<UE::UObject*>("ReturnValue") : list;
-			if (!reflect::Usable(inner)) return;
-			static auto* style = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.ScrollBarStyle");
-			static auto* brush = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateBrush");
-			static auto* dynamicType = ui::Class(L"/Script/Engine.MaterialInstanceDynamic");
-			static auto* materialType = ui::Class(L"/Script/Engine.MaterialInterface");
-			static auto* materialLibrary = ui::Class(L"/Script/Engine.KismetMaterialLibrary");
-			const int styleOffset = reflect::Offset(inner->GetClass(), "ScrollBarStyle");
-			const int styleSize = ui::SizeOf(inner->GetClass(), "ScrollBarStyle");
-			const int resourceOffset = brush ? reflect::Offset(brush, "ResourceObject") : -1;
-			unsigned count = 0;
-			const auto paint = [&](const char* field, bool track) {
-				if (!style || !dynamicType || styleOffset < 0 || resourceOffset < 0) return;
-				const int offset = reflect::Offset(style, field);
-				if (offset < 0 || offset + resourceOffset + int(sizeof(UE::UObject*)) > styleSize) return;
-				auto* resource = reflect::At<UE::UObject*>(inner, styleOffset + offset + resourceOffset);
-				if (!resource || !reflect::Usable(*resource)) return;
-				auto* material = *resource;
-				if (!material->GetClass()->IsChildOf(dynamicType)) {
-					if (track || !materialType || !materialLibrary || !material->GetClass()->IsChildOf(materialType)) return;
-					ui::Call create(materialLibrary->GetDefaultObject(false), L"CreateDynamicMaterialInstance");
-					if (create.Size("ReturnValue") != sizeof(UE::UObject*) ||
-						!create.Set("WorldContextObject", inner) || !create.Set("Parent", material) ||
-						!create.RunGuarded()) return;
-					auto* instance = create.Get<UE::UObject*>("ReturnValue");
-					if (!reflect::Usable(instance) || !instance->GetClass()->IsChildOf(dynamicType)) return;
-					material = instance;
-				}
-				const auto before = count;
-				const auto setColor = [&](const wchar_t* parameter, float gray) {
-					const std::array value{gray, gray, gray, 1.0f};
-					ui::Call set(material, L"SetVectorParameterValue");
-					if (set.Set("ParameterName", UE::FName(parameter, UE::EFindName::Add)) &&
-						set.Set("Value", value) && set.RunGuarded()) ++count;
-				};
-				if (track) {
-					setColor(L"DarkColor", 0.0052f);
-					setColor(L"LightColor", 0.0052f);
-				} else {
-					setColor(L"BorderColor - Dark", 0.0052f);
-					setColor(L"BorderColor - Light", 0.0052f);
-					setColor(L"InsideColor - Dark", 0.0222f);
-					setColor(L"InsideColor - Light", 0.0222f);
-				}
-				if (count > before && *resource != material) *resource = material;
-			};
-			paint("VerticalBackgroundImage", true);
-			for (const auto* field : {"NormalThumbImage", "HoveredThumbImage", "DraggedThumbImage"}) paint(field, false);
-			if (!reported) {
-				reported = true;
-				logger::warn("TEMP-DIAG MR native skin: scrollbar style size {} and {} color calls", styleSize, count);
-			}
-		}
-
 		UE::UObject* FirstRow(UE::UObject* list,const inventoryheaders::Box& viewport,
 			double& rowsBottom,std::vector<UE::UObject*>& displayed)
 		{
@@ -156,170 +97,6 @@ namespace sorting::detail
 			return nullptr;
 		}
 
-		// RMI-071: the item details view in the dark Inventory skin. Runs when the details panel opens or its item changes.
-		reflect::Handle g_detailsView;
-
-		bool ReadColor(UE::UObject* widget, float* rgba)
-		{
-			const int offset = reflect::Offset(widget->GetClass(), "ColorAndOpacity");
-			const auto* at = offset >= 0 ? reflect::At<float>(widget, offset) : nullptr;
-			if (!at) return false;
-			std::copy_n(at, 4, rgba);
-			return true;
-		}
-
-		// the action button (Equip, Use...): its hover fill and arrows gray, its label light; alpha stays the game's (hover fades)
-		void StyleDetailsButton(UE::UObject* button)
-		{
-			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
-			static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
-			if (!imageClass || !textClass) return;
-			for (auto* widget : ui::TreeWidgets(button, 60)) {
-				if (!reflect::Usable(widget)) continue;
-				float rgba[4];
-				if (!ReadColor(widget, rgba)) continue;
-				if (widget->GetClass()->IsChildOf(imageClass)) ui::Colour(widget, 0.12f, 0.12f, 0.12f, rgba[3]);
-				else if (widget->GetClass()->IsChildOf(textClass)) {
-					float ink[4];
-					std::copy_n(detailsskin::kInk, 3, ink);
-					ink[3] = rgba[3];
-					uix::Ink(widget, ink);
-				}
-			}
-		}
-
-		void OnDetailsButtonEvent(UE::UObject* button, UE::UFunction*, void*)
-		{
-			auto* details = reflect::Get(g_detailsView);
-			if (details && reflect::Usable(button) && ui::IsWithin(button, details)) StyleDetailsButton(button);
-		}
-
-		void StyleInventoryDetails(UE::UObject* details)
-		{
-			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
-			static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
-			static auto* instanceClass = ui::Class(L"/Script/Engine.MaterialInstance");
-			if (!imageClass || !textClass || !reflect::Usable(details)) return;
-			static const int colorOffset = reflect::Offset(textClass, "ColorAndOpacity");
-			static const int parentOffset = instanceClass ? reflect::Offset(instanceClass, "Parent") : -1;
-			unsigned pages = 0, tints = 0, inks = 0, buttons = 0;
-			const auto tint = [&](UE::UObject* widget, const float* c) { ui::Colour(widget, c[0], c[1], c[2], c[3]); ++tints; };
-			for (auto* widget : ui::TreeWidgets(details, 800)) {
-				if (!reflect::Usable(widget)) continue;
-				auto* type = widget->GetClass();
-				if (pe::Utf8(type->GetFName().ToString()).starts_with("WBP_ModernPrefab_Button")) {
-					pe::WatchPost(type, &OnDetailsButtonEvent);
-					StyleDetailsButton(widget); ++buttons;
-					continue;
-				}
-				if (type->IsChildOf(imageClass)) {
-					auto* resource = ui::BrushResource(widget);
-					if (!resource || !reflect::Usable(resource)) continue;
-					std::string parent;
-					if (parentOffset >= 0 && resource->GetClass()->IsChildOf(instanceClass))
-						if (auto** at = reflect::At<UE::UObject*>(resource, parentOffset); at && *at && reflect::Usable(*at))
-							parent = pe::Utf8((*at)->GetFName().ToString());
-					switch (detailsskin::Classify(pe::Utf8(resource->GetFName().ToString()), parent)) {
-					case detailsskin::Role::Page: {
-						// a textured brush drawn as a rounded box keeps its texture, tinted (the mottled page on 0a0eedaa): drop it
-						ui::Call clear(widget, L"SetBrushResourceObject");
-						if (!clear.Set("ResourceObject", static_cast<UE::UObject*>(nullptr)) || !clear.RunGuarded()) break;
-						if (ui::RoundedBox(widget, false, detailsskin::kPageFill, detailsskin::kPageEdge, 1.5f, 4.0f)) ++pages;
-						break;
-					}
-					case detailsskin::Role::Ornament: tint(widget, detailsskin::kOrnament); break;
-					case detailsskin::Role::Pattern: tint(widget, detailsskin::kPatternTint); break;
-					case detailsskin::Role::Band: tint(widget, detailsskin::kBandTint); break;
-					case detailsskin::Role::ButtonBack: {
-						float rgba[4];
-						if (ReadColor(widget, rgba) && detailsskin::ScaleTint(rgba)) tint(widget, rgba);
-						break;
-					}
-					default: break;
-					}
-				} else if (colorOffset >= 0 && type->IsChildOf(textClass)) {
-					const auto* rgba = reflect::At<float>(widget, colorOffset);
-					if (!rgba || !detailsskin::IsDarkInk(rgba)) continue;
-					float ink[4];
-					std::copy_n(detailsskin::kInk, 3, ink);
-					ink[3] = rgba[3];
-					uix::Ink(widget, ink); ++inks;
-				}
-			}
-			static bool reported = false;
-			if (!reported && pages + tints + inks) {
-				reported = true;
-				logger::warn("TEMP-DIAG MR native skin: details view {} pages, {} tints, {} inks, {} buttons", pages, tints, inks, buttons);
-			}
-		}
-
-		void OnInventoryDetailsUpdated(UE::UObject* details, UE::UFunction* function, void*)
-		{
-			static constexpr std::string_view kEvents[]{ "Construct", "ToggleDetails", "ChangeVisibilityItemDetailsPanel",
-				"UpdateHoveredItemProperties", "ChangeSpecificDetailsForHoveredItem", "ChangeSpecificDetailsWithFormID",
-				"ChangeSpecificDetailsWithFormType", "SwitchSubTabs", "SwitchPreview", "UpdateDescription" };
-			const auto name = pe::FunctionName(function);
-			if (std::find(std::begin(kEvents), std::end(kEvents), name) != std::end(kEvents)) StyleInventoryDetails(details);
-		}
-
-		void WatchInventoryDetails(UE::UObject* menu, UE::UObject* list)
-		{
-			constexpr std::string_view kDetails = "WBP_OriginalMenu_InventoryItemDetails_C";
-			auto* details = ui::FindByClassPrefix(menu, kDetails, 3000);
-			UE::UObject* root = list;
-			for (auto* owner = list; owner && reflect::Usable(owner); owner = owner->GetOuter())
-				if (owner->GetClass()->IsChildOf(ui::Class(L"/Script/UMG.UserWidget"))) root = owner;
-			if (!details && root && root != menu) details = ui::FindByClassPrefix(root, kDetails, 3000);
-			static bool reported = false;
-			if (!reported) {
-				reported = true;
-				logger::warn("TEMP-DIAG MR native skin: details view {}", details ? "found" : "not found");
-			}
-			if (!details) return;
-			g_detailsView = reflect::Hold(details);
-			static UE::UClass* watched = nullptr;
-			if (watched != details->GetClass() && pe::WatchPost(details->GetClass(), &OnInventoryDetailsUpdated))
-				watched = details->GetClass();
-			StyleInventoryDetails(details);
-		}
-
-		constexpr float kProbeInk[]{ 0.86f, 0.86f, 0.86f, 1.0f };
-		std::array<reflect::Handle, 3> g_probeFooter;
-
-		void ProbeFooterInk(UE::UObject* footer)
-		{
-			auto* label = ui::FindInTree(footer, "text");
-			if (!label) label = ui::FindByClassPrefix(footer, "WBP_AltarTextBlock");
-			if (label) uix::Ink(label, kProbeInk);
-		}
-
-		void OnProbeFooterUpdated(UE::UObject* footer, UE::UFunction* function, void*)
-		{
-			const auto name = pe::FunctionName(function);
-			if (name != "UpdateText" && name != "UpdateTextApperance") return;
-			if (std::any_of(g_probeFooter.begin(), g_probeFooter.end(),
-				[footer](const auto& handle) { return reflect::Get(handle) == footer; })) {
-				ProbeFooterInk(footer);
-			}
-		}
-
-		void ProbeInventoryRowInk(UE::UObject* row)
-		{
-			auto* name = Column(row, "inv_entry_name");
-			if (!name) return;
-			uix::Ink(name, kProbeInk);
-			for (const auto* field : { "inv_entry_health", "inv_entry_weapon_damage",
-				"inv_entry_armor_rating", "inv_entry_weight", "inv_entry_value" }) {
-				auto* cell = Column(row, field);
-				if (auto* label = ui::FindInTree(cell, "inv_entry_value")) uix::Ink(label, kProbeInk);
-			}
-			static bool reported = false;
-			if (!reported) {
-				reported = true;
-				logger::warn("TEMP-DIAG MR native skin: Inventory row and footer contrast test");
-			}
-		}
-
 		void PlaceRowStatus(Picker& picker,UE::UObject* row,
 			const std::array<inventoryheaders::Box,3>* initialTargets=nullptr)
 		{
@@ -367,7 +144,7 @@ namespace sorting::detail
 			auto& picker=g_pickers[0];
 			if (picker.kind!=0 || !picker.active.load() || !picker.inventoryStatusReady ||
 				!params || pe::FunctionName(function)!="OnListItemObjectSet") return;
-			ProbeInventoryRowInk(row);
+			menuskin::StyleRow(row, menuskin::kInventory);
 			const int offset=reflect::Offset(function,"ListItemObject");
 			if (offset<0 || offset+int(sizeof(UE::UObject*))>function->parmsSize ||
 				ui::SizeOf(function,"ListItemObject")!=sizeof(UE::UObject*)) return;
@@ -438,7 +215,7 @@ namespace sorting::detail
 	{
 		if (kind!=0 || !OwnSorts()) return false;
 		if (measureColumns) {
-			if (auto* title = ui::FindInTree(a_menu, "inv_cont_title")) uix::Ink(title, kProbeInk);
+			menuskin::StyleTitle(ui::FindInTree(a_menu, "inv_cont_title"));
 			ui::Visible(ui::FindInTree(a_menu, "HeaderList_Separator"), false);
 		}
 		static bool announced=false;
@@ -520,7 +297,7 @@ namespace sorting::detail
 			allowOverflow(widget);
 			auto& translation=inventoryTranslations[k];
 			if (!Place(nullptr,widget,plan.sorts[k],translation[0],translation[1],&settled)) return false;
-			LayoutChild(reflect::Get(sortImages[k]),6,3,32,32); LayoutChild(reflect::Get(sortFrames[k]),0,0,44,40);
+			{ const auto& i=inventoryheaders::kSortIcon; LayoutChild(reflect::Get(sortImages[k]),i.x,i.y,i.w,i.h); } LayoutChild(reflect::Get(sortFrames[k]),0,0,44,40);
 			LayoutChild(reflect::Get(sortBacks[k]),0,0,44,40);
 			LayoutChild(reflect::Get(sortArrows[k]),34,25,9,9);
 		}
@@ -531,7 +308,7 @@ namespace sorting::detail
 			auto& translation=inventoryTranslations[kSorts+i];
 			if (!Place(nullptr,widget,plan.filters[i],translation[0],translation[1],&settled)) return false;
 		}
-		LayoutChild(reflect::Get(headerImage),4,1,36,36); LayoutChild(reflect::Get(headerFrame),0,0,44,40);
+		{ const auto& i=inventoryheaders::kCategoryIcon; LayoutChild(reflect::Get(headerImage),i.x,i.y,i.w,i.h); } LayoutChild(reflect::Get(headerFrame),0,0,44,40);
 		LayoutChild(reflect::Get(groupBack),0,0,44,40); LayoutChild(reflect::Get(groupArrow),32,27,10,10);
 		for (const auto& frame : {stolenFrame,enchantedFrame})
 			LayoutChild(reflect::Get(frame),0,0,30,40);
@@ -539,7 +316,7 @@ namespace sorting::detail
 		if (!inventoryStatusReady && measureColumns && row &&
 			pe::WatchPost(row->GetClass(),&OnInventoryRowBound)) {
 			for (auto* entry : displayed) {
-				ProbeInventoryRowInk(entry);
+				menuskin::StyleRow(entry, menuskin::kInventory);
 				PlaceRowStatus(*this,entry,&plan.filters);
 			}
 			auto* mainPart = a_menu;
@@ -549,23 +326,10 @@ namespace sorting::detail
 					break;
 				}
 			}
-			constexpr std::array fields{ "inv_armor", "inv_money", "inv_weight" };
-			for (std::size_t i = 0; i < fields.size(); ++i) {
-				auto* footer = ui::FindInTree(mainPart, fields[i]);
-				if (!footer && mainPart != a_menu) footer = ui::FindInTree(a_menu, fields[i]);
-				g_probeFooter[i] = reflect::Hold(footer);
-				if (!footer) continue;
-				pe::WatchPost(footer->GetClass(), &OnProbeFooterUpdated);
-				ProbeFooterInk(footer);
-			}
-			static bool reported = false;
-			if (!reported) {
-				reported = true;
-				logger::warn("TEMP-DIAG MR native skin: bulk Inventory contrast");
-			}
+			menuskin::WatchFooters(mainPart, a_menu, menuskin::kInventory);
 			inventoryStatusReady=true;
-			StyleInventoryScrollbar(list);
-			WatchInventoryDetails(a_menu, list);
+			menuskin::StyleListScrollbar(list);
+			menuskin::WatchDetails(a_menu, list, menuskin::kInventory);
 		}
 
 		inventoryheaders::Box canvasBounds;
@@ -584,9 +348,8 @@ namespace sorting::detail
 					if (!guide) continue;
 					handle=reflect::Hold(guide);
 					const bool rule=plan.rule[i];
-			constexpr float ink[]{0.55f,0.55f,0.55f,0.13f};
-			constexpr float ruleInk[]{0.65f,0.65f,0.65f,0.55f};
-					ui::RoundedBox(guide,false,rule?ruleInk:ink,kClear,0);
+					const auto& skin=menuskin::Current();
+					ui::RoundedBox(guide,false,rule?skin.rule.data():skin.guide.data(),kClear,0);
 				}
 				LayoutChild(guide,rect.x-canvasBounds.x,rect.y-canvasBounds.y,rect.w,rect.h);
 				ui::Visible(guide,settled || inventoryHeaderReady);
