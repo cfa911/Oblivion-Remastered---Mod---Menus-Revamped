@@ -193,7 +193,8 @@ namespace sorting
 				UE::UObject** a_inner = nullptr, float a_extra = 0.0f) -> UE::UObject* {
 				auto* widget = ui::CreateWidget(classPath.c_str());
 				if (!widget) return nullptr;
-				if (inventoryColumns) ui::Float(widget, L"SetRenderOpacity", 0.0f);
+				// Header-row menus (and the Magic Effect/Type peers the School host places): invisible until the row settles.
+				if (inventoryColumns || HeaderLayout() || kind == 2 || kind == 5) ui::Float(widget, L"SetRenderOpacity", 0.0f);
 				a_header = reflect::Hold(widget); // establish ownership before registering/focusing
 				std::erase_if(g_ownedHeaders, [](const auto& h) { return !reflect::Get(h); });
 				g_ownedHeaders.push_back(a_header); // retain identity until GC, including detached/retired widgets

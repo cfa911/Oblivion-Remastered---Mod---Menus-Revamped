@@ -174,6 +174,12 @@ namespace sorting
 			std::vector<reflect::Handle> quickLootShown;   // the glyph and the parents we made visible (hidden again on mouse)
 			// kind 6: Magic Active Effects sort host (a free container slot, page 4 only, no category picker)
 			bool OwnSorts() const { return kind == 0 || kind == 1 || kind == 3 || kind == 4 || kind == 6; }
+		// The single header row (strip under the title, sorts over their columns): Inventory, and since the Magic revamp the
+		// Magic spell pages (the School host, which also places the Effect and Type pickers) and Active Effects. The
+		// inventory* layout fields below are this row's state for all three.
+		bool HeaderLayout() const { return kind == 0 || kind == 1 || kind == 6; }
+		reflect::Handle magicTitleText;   // RMI-079: the Magic page title's drawn text (VAltarTextBlock) our label copies
+		void SyncMagicTitle();            // RMI-079: our Magic title label takes a new page name in the same tick
 			std::vector<itemsort::Key> SortKeys() const { return kind == 1 ? itemsort::MagicKeys() : kind == 6 ? itemsort::ActiveKeys() : itemsort::Keys(tab); }
 			bool Offers(itemsort::Key a_key) const { const auto keys = SortKeys(); return std::find(keys.begin(), keys.end(), a_key) != keys.end(); }
 			int SortSlot() const { return kind == 1 ? kMagicSorts + magicPage : kind == 6 ? 5 : static_cast<int>(tab); }

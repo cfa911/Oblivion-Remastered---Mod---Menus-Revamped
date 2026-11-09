@@ -67,7 +67,7 @@ namespace sorting::detail
 		if (active.exchange(false)) {
 			Reset();
 			tabSet = false;
-			if (kind == 0) HideInventoryHeaderLayout();
+			if (HeaderLayout()) HideInventoryHeaderLayout();
 			stolenOnly = false; PaintStolen();
 			enchantedOnly = false; PaintEnchanted();
 			if (auto* e = reflect::Get(enchantedHeader)) ui::Visible(e, false);  // the menu closed: the next one starts unfiltered
@@ -97,14 +97,14 @@ namespace sorting::detail
 	{
 		inventoryHeaderMeasured = false;
 		// RMI-077: a tab measured before is placed with its final layout in this same frame, so its fills stay shown.
-		if (kind == 0 && !inventoryTabMeasures.Exact(static_cast<std::size_t>(a_tab))) {
+		if (HeaderLayout() && !inventoryTabMeasures.Exact(static_cast<std::size_t>(a_tab))) {
 			inventoryFillPending = true;
 			SetInventoryFillOpacity(0.0f);
 		}
 		if (tabSet) { const auto hold = transfer; Reset(); transfer = hold; }  // the RMI-004 Transfer hold may span a page change
 		tab = a_tab; view = a_tab; styled = false;
 		ShowOwnWidgets();
-		if (kind == 0 && reflect::Get(header) &&
+		if (HeaderLayout() && reflect::Get(header) &&
 			LayoutInventoryHeaders(reflect::Get(menu),reflect::Get(canvas),false))
 			nextLayout=GetTickCount64()+16;
 		PaintSorts();   // the new tab's sorts and its remembered choice, in the same frame
@@ -187,7 +187,7 @@ namespace sorting::detail
 		if (kind == 0) {
 			menuskin::RefreshInventoryTitle();
 			menuskin::RefreshButtonRules();
-		}
+		} else if (kind == 1 || kind == 6) SyncMagicTitle();
 		if (now >= nextLayout) {
 			nextLayout = now + 150;
 			auto find = [&](UE::UObject* owner, std::string_view name) {
@@ -217,11 +217,11 @@ namespace sorting::detail
 			if (justAttached) { HideNativeSorts(); PaintSorts(); }
 			ShowOwnWidgets();   // every custom widget of the bar in this one pass (owner 2026-11-07)
 			if (OwnSorts()) {
-				if (kind == 0) { LayoutInventoryHeaders(a_menu, a_canvas); CompensateInventorySlots(); }
-				if (kind == 0 && inventoryFillPending) nextLayout=now+16;
+				if (HeaderLayout()) { LayoutInventoryHeaders(a_menu, a_canvas); CompensateInventorySlots(); }
+				if (HeaderLayout() && inventoryFillPending) nextLayout=now+16;
 				WatchRefills(*this);
 				if (justAttached) Republish(*this);   // the opening's first refill came before the hook: order it now
-				if (kind == 0 && !inventoryHeaderReady) {
+				if (HeaderLayout() && !inventoryHeaderReady) {
 					nextLayout=now+16;
 					ClearHitAreas();
 					return;

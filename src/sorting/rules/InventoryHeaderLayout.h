@@ -27,10 +27,70 @@ namespace inventoryheaders
 		std::array<Box,kGuides> guides{};
 		std::array<bool,kGuides> rule{};
 	};
+	// Magic revamp (owner 2026-11-09): the Magic spell pages (picker kind 1, the School host) and Active Effects (kind 6)
+	// get the same strip. Left to right in the controller carousel order (probe 2026-11-09): spell pages Effect (left of
+	// the names, like the Inventory category), A-Z, Type and School cells, Cost over its column; Active Effects A-Z,
+	// Effect value / Category / School cells, Magnitude over its column. filters: 0 Effect, 1 Type, 2 School.
+#define INVENTORYHEADERS_MAGIC 1
+	inline Plan ArrangeMagic(int kind, Box list, double nameLeft, const std::array<Box,kCount>& columns,
+		const std::array<bool,kCount>& offered, int count, double rowsBottom)
+	{
+		Plan out;
+		out.enabled=true; out.inset=kInset;
+		const auto last=kind==1 ? itemsort::Key::Cost : itemsort::Key::Magnitude;
+		const auto& column=columns[int(last)];
+		const bool measured=column.w>0 && std::isfinite(column.x+column.w);
+		const double right=measured ? column.x+column.w : list.x+list.w-22;
+		const double lastLeft=measured ? column.x : right-87;
+		const double tableRight=right;
+		const double fullHeight=std::clamp(rowsBottom-list.y,kHeight,list.h);
+		std::size_t guide=0;
+		const auto divider=[&](double x) { out.rule[guide]=true; out.guides[guide++]={x,list.y,kRule,kHeight+kRule}; };
+		const auto cellButton=[&](double cellLeft) { return Box{cellLeft+27-kButton/2,list.y,kButton,kHeight}; };
+		// RMI-080: a measured row column (spell type, school, effect value...) places its control over it, divider on its
+		// left edge; an unmeasured one takes the next 54-unit cell to the left.
+		const auto place=[&](const Box& col, double& cellLeft) {
+			if (col.w>0 && std::isfinite(col.x+col.w) && col.x+col.w<=cellLeft+0.5) {
+				cellLeft=col.x; divider(col.x);
+				return Box{col.x+col.w/2-kButton/2,list.y,kButton,kHeight};
+			}
+			cellLeft-=54; divider(cellLeft);
+			return cellButton(cellLeft);
+		};
+		if (offered[int(last)]) out.sorts[int(last)]={lastLeft+(right-lastLeft)/2-kButton/2,list.y,kButton,kHeight};
+		const double nameX=std::isfinite(nameLeft)&&nameLeft>=list.x?nameLeft:list.x+60;
+		if (offered[int(itemsort::Key::Name)]) out.sorts[int(itemsort::Key::Name)]={nameX,list.y,kButton,kHeight};
+		divider(nameX-3);
+		divider(lastLeft);
+		double cellLeft=lastLeft;
+		if (kind==1) {
+			// Spell pages: the row's spell-type column is measured into columns[Category], its school column into columns[School].
+			const std::array<itemsort::Key,3> rowColumn{itemsort::Key::kCount,itemsort::Key::Category,itemsort::Key::School};
+			for (int f=2; f>=1 && f<count; --f) out.filters[f]=place(columns[int(rowColumn[f])],cellLeft);
+			if (count>=1) out.filters[0]={std::max(list.x,(list.x+nameX-kButton)/2),list.y,kButton,kHeight};
+		} else {
+			for (auto key : { itemsort::Key::School, itemsort::Key::Category, itemsort::Key::EffectValue }) {
+				if (!offered[int(key)]) continue;
+				out.sorts[int(key)]=place(columns[int(key)],cellLeft);
+			}
+		}
+		const double rowsTop=list.y+kHeight+kRule;
+		if (fullHeight>kHeight+kRule) {
+			out.guides[kListGuide]={nameX-3,rowsTop,1,fullHeight-kHeight-kRule};
+			out.guides[kListGuide+1]={lastLeft,rowsTop,1,fullHeight-kHeight-kRule};
+		}
+		out.rule[kGuides-2]=out.rule[kGuides-1]=true;
+		out.guides.back()={list.x,list.y+kHeight,tableRight-list.x,kRule};
+		out.guides[kGuides-2]={list.x,list.y,tableRight-list.x,kRule};
+		return out;
+	}
+
 	inline Plan Arrange(int kind, Box list, double nameLeft, const std::array<Box,kCount>& columns,
 		const std::array<bool,kCount>& offered, int count, Box status = {}, double rowsBottom = 0)
 	{
 		Plan out;
+		if ((kind==1 || kind==6) && std::isfinite(list.x+list.y+list.w+list.h) && list.w>=200 && list.h>=80 && count>=0 && count<=3)
+			return ArrangeMagic(kind,list,nameLeft,columns,offered,count,rowsBottom);
 		if (kind!=0 || !std::isfinite(list.x+list.y+list.w+list.h) || list.w<200 || list.h<80 || count<1 || count>3) return out;
 		out.enabled=true; out.inset=kInset;
 		const auto& value=columns[int(itemsort::Key::Value)];
