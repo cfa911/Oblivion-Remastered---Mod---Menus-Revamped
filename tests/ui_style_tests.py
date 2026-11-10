@@ -30,6 +30,6 @@ for preset in ("Light", "Dark"):
     check(f"k{preset}" in theme and f"Preset::{preset}" in theme, f"{preset.lower()} palette exists")
 for rel in ("search/SearchBar.cpp", "sorting/PickerPopup.cpp", "sorting/OwnSort.cpp", "alchemy/AlchemyLayout.cpp"):
     source = (root / "src" / rel).read_text(encoding="utf-8-sig")
-    check("uistyle::Get" in source or "UiPalette()" in source, f"{rel} consumes shared style tokens")
+    check(any(t in source for t in ("uistyle::Get", "UiPalette()", "uistyle::SearchFor(", "uistyle::PickerFor(")), f"{rel} consumes shared style tokens")
 print(f"{checks} checks, {failures} failures")
 sys.exit(1 if failures else 0)

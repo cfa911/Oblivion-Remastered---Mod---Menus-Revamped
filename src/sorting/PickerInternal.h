@@ -3,6 +3,7 @@
 // Shared between the category picker's files (Picker, PickerWidgets, PickerPopup, PickerHeader, PickerTick,
 // PickerInput, NativeBackground, ItemRows, CategoryEvaluator); not for other features.
 
+#include "core/DarkStyle.h"
 #include "sorting/Picker.h"
 #include "sorting/rules/ControllerPolicy.h"
 #include "sorting/rules/ItemSort.h"
@@ -53,6 +54,8 @@ namespace sorting
 		// ---- widget helpers (PickerWidgets.cpp) ----
 		void Brush(UE::UObject* a_image, const wchar_t* a_icon, bool a_inventoryDark = false);
 		bool TextureBrush(UE::UObject* a_image, const wchar_t* a_gamePath);   // a game texture, loaded at run time
+		// one of our PNGs (MenusRevamped/Sorting/<file>), drawn in a_tint (a white shape, DarkStyle.h); false if missing
+		bool PngBrush(UE::UObject* a_image, const wchar_t* a_file, const darkstyle::Rgb* a_tint = nullptr);
 		UE::UObject* CanvasChild(UE::UObject* a_canvas, const wchar_t* a_class, const wchar_t* a_name, double x, double y, double w, double h, int z = 0, UE::UObject** a_slot = nullptr);
 		void LayoutChild(UE::UObject* widget, double x, double y, double width, double height);
 		bool PickerFont(UE::UObject* label, double size);

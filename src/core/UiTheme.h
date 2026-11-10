@@ -1,6 +1,8 @@
 #pragma once
 
 #include <array>
+#include <string_view>
+#include "core/DarkStyle.h"
 
 namespace uistyle
 {
@@ -113,8 +115,9 @@ namespace uistyle
 	// texture itself stays untouched for every other menu). Brown baked into art cannot be fixed by a tint.
 	struct ArtSwap
 	{
-		const char*    stock;
-		const wchar_t* file;
+		const char*      stock;
+		const wchar_t*   file;
+		darkstyle::Value tint = nullptr;   // a white-shape PNG drawn in this DarkStyle.h colour; nullptr = the art's own colours
 	};
 
 	struct Skin
@@ -145,6 +148,43 @@ namespace uistyle
 		{ "T_CircularProgress_bg", L"RingCentre.png" },
 		{ "T_Arrow_Empty", L"ButtonArrow.png" },
 		{ "T_Button_State_Hovered_LeftLineFade", L"ButtonLine.png" },
+		{ "T_Line_V", L"ColumnLine.png", &darkstyle::Style::columnLine },        // row column lines (was the local pak)
+		// Magic row school and spell-type icons (brown art): white shapes drawn in rowIcon (tools/make_dark_row_icons.py)
+		{ "T_MagicSchoolSimple_Alteration", L"MagicRow-T_MagicSchoolSimple_Alteration.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicSchoolSimple_Conjuration", L"MagicRow-T_MagicSchoolSimple_Conjuration.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicSchoolSimple_Destruction", L"MagicRow-T_MagicSchoolSimple_Destruction.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicSchoolSimple_Illusion", L"MagicRow-T_MagicSchoolSimple_Illusion.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicSchoolSimple_Mysticism", L"MagicRow-T_MagicSchoolSimple_Mysticism.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicSchoolSimple_Restoration", L"MagicRow-T_MagicSchoolSimple_Restoration.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Ability_ListSmall", L"MagicRow-T_MagicMenuIcon_Ability_ListSmall.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Disease_ListSmall", L"MagicRow-T_MagicMenuIcon_Disease_ListSmall.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Enchantment_ListSmall", L"MagicRow-T_MagicMenuIcon_Enchantment_ListSmall.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_GreaterPower_ListSmall", L"MagicRow-T_MagicMenuIcon_GreaterPower_ListSmall.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_LesserPower_ListSmall", L"MagicRow-T_MagicMenuIcon_LesserPower_ListSmall.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Poison_ListSmall", L"MagicRow-T_MagicMenuIcon_Poison_ListSmall.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Potion_ListSmall", L"MagicRow-T_MagicMenuIcon_Potion_ListSmall.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Scroll_ListSmall", L"MagicRow-T_MagicMenuIcon_Scroll_ListSmall.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_SpellCustom_ListSmall", L"MagicRow-T_MagicMenuIcon_SpellCustom_ListSmall.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Spell_ListSmall", L"MagicRow-T_MagicMenuIcon_Spell_ListSmall.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_WortCraft_ListSmall", L"MagicRow-T_MagicMenuIcon_WortCraft_ListSmall.png", &darkstyle::Style::rowIcon },
+		// Magic details stat icons (brown line art, shape in the alpha): white shapes drawn in rowIcon (tools/make_dark_row_icons.py)
+		{ "T_MagicMenuIcon_Cost", L"MagicIcon-T_MagicMenuIcon_Cost.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Custom_Spell", L"MagicIcon-T_MagicMenuIcon_Custom_Spell.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Duration", L"MagicIcon-T_MagicMenuIcon_Duration.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Greater_Power", L"MagicIcon-T_MagicMenuIcon_Greater_Power.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Lesser_Power", L"MagicIcon-T_MagicMenuIcon_Lesser_Power.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Magnitude", L"MagicIcon-T_MagicMenuIcon_Magnitude.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Range", L"MagicIcon-T_MagicMenuIcon_Range.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Scroll", L"MagicIcon-T_MagicMenuIcon_Scroll.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Spell", L"MagicIcon-T_MagicMenuIcon_Spell.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicMenuIcon_Weight", L"MagicIcon-T_MagicMenuIcon_Weight.png", &darkstyle::Style::rowIcon },
+		{ "T_MagicBackground", L"MagicPage.png" },   // Magic page: the Inventory panel art's curve, baked (DarkStyle.h panel/frame)
+		// Magic tabs (Magic-only atlases): the Inventory tab process, greys from DarkStyle.h tab (tools/make_dark_tab_art.py)
+		{ "T_Magic_Tabs_Self", L"MagicTab-Self.png" },
+		{ "T_Magic_Tabs_Touch", L"MagicTab-Touch.png" },
+		{ "T_Magic_Tabs_Target", L"MagicTab-Target.png" },
+		{ "T_Magic_Tabs_All", L"MagicTab-All.png" },
+		{ "T_Magic_Tabs_ActiveEffect", L"MagicTab-ActiveEffect.png" },
 	};
 
 	inline constexpr Skin kStockSkin{
@@ -158,9 +198,10 @@ namespace uistyle
 	};
 	inline constexpr Skin kDarkSkin{
 		true, true, true,
-		{ 0.86f, 0.86f, 0.86f, 1 }, { 0.86f, 0.86f, 0.86f, 1 }, { 0.65f, 0.65f, 0.65f, 0.55f }, { 0.55f, 0.55f, 0.55f, 0.13f },
+		darkstyle::Arr(darkstyle::kDefaults.rowText), darkstyle::Arr(darkstyle::kDefaults.rowText),   // row and perk ink
+		{ 0.65f, 0.65f, 0.65f, 0.55f }, { 0.55f, 0.55f, 0.55f, 0.13f },
 		kDarkArt, int(sizeof(kDarkArt) / sizeof(kDarkArt[0])), { 0.55f, 0.55f, 0.55f, 1 },
-		0.010f,                          // sRGB about 25 (the list is 41); black hides the parchment completely
+		darkstyle::kDefaults.detailsPage,   // the details page tint (Inventory and Magic)
 		{ 0.45f, 0.45f, 0.45f, 1 },      // T_StatsMenu_Line_R (white art)
 		{ 1, 1, 1, 1 },                  // T_Inventory_pattern ships gray in the texture package
 		{ 0.41f, 0.65f, 1.0f, 1 },       // per-channel inverse of T_inv_details_effects_title_BG's baked brown
@@ -193,4 +234,24 @@ namespace uistyle
 		default: return kClassic;
 		}
 	}
+
+	// Phase 2 (owner 2026-11-10): the Magic menu takes the Inventory's Dark look. Picker kinds the menu skin covers: 0 Inventory;
+	// 1/2/5 the Magic School, Effect and Type pickers; 6 Magic Active Effects. Container sides (3/4) keep the preset palette.
+#define UISTYLE_MAGIC_SKIN 1
+	inline constexpr bool SkinnedKind(int kind) { return kind == 0 || kind == 1 || kind == 2 || kind == 5 || kind == 6; }
+	inline constexpr const Search& SearchFor(bool skinnedMenu, Preset p)
+	{
+		return skinnedMenu && SkinFor(p).recolor ? kInventorySkinSearch : Get(p).search;
+	}
+	inline constexpr const Picker& PickerFor(bool skinnedMenu, Preset p)
+	{
+		return skinnedMenu && SkinFor(p).recolor ? kInventorySkinPicker : Get(p).picker;
+	}
+	// The Magic page (T_MagicBackground, shared with Quest/Help/Stats, so never replaced in a texture package) is swapped per
+	// widget inside Magic only for MagicPage.png, its own shape in white, drawn in DarkStyle.h panel (the Inventory recipe).
+	inline constexpr bool IsMagicPage(std::string_view resource) { return resource == "T_MagicBackground"; }
+	// Round 2 (owner screenshot 2026-11-10): in Dark the Magic header icons (Effect, Type, Cost...) are full white like the
+	// A-Z and School icons, not dimmed while inactive; the active one keeps its gray background and arrow.
+#define UISTYLE_MAGIC_SKIN_R2 1
+	inline constexpr float MagicHeaderOpacity(Preset p, float stock) { return SkinFor(p).recolor ? 1.0f : stock; }
 }

@@ -147,7 +147,9 @@ namespace sorting
 		for (const auto& child : children)
 			if (!IsOwnedHeader(child.widget)) nativePeers.push_back(reflect::Hold(child.widget));
 		const bool inventoryColumns = kind == 0 && OwnSorts();
-		const auto inventoryPaint = uistyle::InventoryControls(inventoryColumns, mrconfig::Get().stylePreset);
+		// paint only (icons, active-sort background): Inventory and the Magic pickers; layout still follows inventoryColumns
+		const bool skinnedPaint = uistyle::SkinnedKind(kind) && (kind != 0 || inventoryColumns);
+		const auto inventoryPaint = uistyle::InventoryControls(skinnedPaint, mrconfig::Get().stylePreset);
 		const auto inventoryOrder = [&] {
 			using itemsort::Key;
 			return std::array{header, sortHeaders[int(Key::Name)], stolenHeader, enchantedHeader,
@@ -211,7 +213,7 @@ namespace sorting
 				ui::RoundedBox(frame, false, kClear, kClear, 0);
 				auto* image = CanvasChild(inner, L"/Script/UMG.Image", (name + L"Icon" + suffix).c_str(),
 					a_tight ? 0 : 5 * scale + a_extra * 0.5f, 4 + (40 - 40 * scale) * 0.5f, 39 * scale, 40 * scale, 1);   // centred in a wider button
-				if (a_icon) Brush(image, a_icon, inventoryColumns);
+				if (a_icon) Brush(image, a_icon, skinnedPaint);
 				if (!frame || !image) return nullptr;
 				if (a_inner) *a_inner = inner;
 				a_image = reflect::Hold(image); a_frame = reflect::Hold(frame);
@@ -257,7 +259,9 @@ namespace sorting
 					// highlight fill the whole button (owner 2026-11-07).
 					const float extra = key == widest ? 33.0f : 0.0f;
 					if (!make(prefix.c_str(), nullptr, sortHeaders[k], sortImages[k], sortFrames[k], 49.0f, false, &inner, extra)) return false;
-					TextureBrush(reflect::Get(sortImages[k]), itemsort::TexturePath(key));
+					// Dark (Inventory and Magic): the shipped white PNG; else, or if it is missing, the game's own texture
+					if (!inventoryPaint.darkArt || !PngBrush(reflect::Get(sortImages[k]), itemsort::DarkTextureFile(key), &darkstyle::Get().headerIcon))
+						TextureBrush(reflect::Get(sortImages[k]), itemsort::TexturePath(key));
 					// The game's active-sort parchment under the icon (shown by PaintSorts on the active sort only).
 					auto* back = CanvasChild(inner, L"/Script/UMG.Image", (prefix + L"Back" + suffix).c_str(), 0, 0, 49 + extra, 49, 0);
 					if (!back) return false;

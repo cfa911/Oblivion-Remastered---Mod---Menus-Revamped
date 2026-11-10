@@ -68,7 +68,11 @@ namespace detailsskin
 		return IsBrushRule(a_brush) || (a_brush[3] > 0.0f && std::equal(a_brush, a_brush + 3, a_paint));
 	}
 
-	inline bool IsDescriptionRule(std::string_view a_resource) { return a_resource == "T_Line_Brown"; }
+	// T_Line_Brown (Inventory description); Magic details: T_Diamond_Brown_Separator (Magic-only) and T_Character_Line_Long
+	inline bool IsDescriptionRule(std::string_view a_resource)
+	{
+		return a_resource == "T_Line_Brown" || a_resource == "T_Diamond_Brown_Separator" || a_resource == "T_Character_Line_Long";
+	}
 
 	inline bool IsDescriptionHeading(const float* a_rgba)
 	{
