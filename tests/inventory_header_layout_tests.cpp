@@ -146,7 +146,8 @@ int main(){
   Check(styled,"header separators use rule ink and list guides use the subtle ink");
   Check(styleStable,"each guide slot keeps one style across tabs");
  }
- for(int kind:{1,2,3,4,5,6})Check(!Arrange(kind,{100,140,800,600},190,columns,offered,3).enabled,"other menus retain existing layout");
+ // Magic spell pages (1) and Active Effects (6) get the row too since the Magic revamp (magic_header_layout_tests).
+for(int kind:{2,3,4,5})Check(!Arrange(kind,{100,140,800,600},190,columns,offered,3).enabled,"other menus retain existing layout");
  offered[health]=false;offered[damage]=false;
  p=Arrange(0,{100,140,800,600},190,columns,offered,1);
  Check(p.sorts[health].w==0&&p.sorts[damage].w==0,"hidden tab columns leave no header hit area");

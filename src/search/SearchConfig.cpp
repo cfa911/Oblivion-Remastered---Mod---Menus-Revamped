@@ -40,12 +40,15 @@ namespace searchcfg
 					return p;
 				};
 				v.inventoryBar = place(L"Inventory", { v.barX + 2, v.barY + v.barYInventory, v.barW - 2, v.barH }, false);   // 2 off the left edge
-				v.magicBar = place(L"Magic", { v.barX + 3, v.barY + v.barYMagic, v.barW - 3, v.barH }, false);   // 3 off the left edge
+				// Magic revamp: the bar sits in the title row, right of the page title (probe 2026-11-09: title row 248.2-304.4,
+				// list right edge 904.3), like the Inventory bar.
+				v.magicBar = place(L"Magic", { 440, 258, 460, 36 }, false);
 				v.yoursBar = place(L"ContainerYours", v.yoursBar, true);
 				v.theirsBar = place(L"ContainerTheirs", v.theirsBar, true);
 				v.mapBar = place(L"Map", v.mapBar, false);
 				v.takeBar = place(L"ContainerTake", v.takeBar, true);
-				v.questBar = place(L"Quest", v.magicBar, false);   // the Magic menu's place (as it is set above) unless [Quest] says otherwise
+				// The quests tab keeps the Magic bar's earlier place (above the tabs) unless [Quest] says otherwise.
+				v.questBar = place(L"Quest", { v.barX + 3, v.barY + v.barYMagic, v.barW - 3, v.barH }, false);
 			}
 			v.ownFilter = ReadInt(ini, L"Filter", L"bEnabled", v.ownFilter ? 1 : 0, 0, 1) != 0;
 			logger::info("config: {} read", ini.string());

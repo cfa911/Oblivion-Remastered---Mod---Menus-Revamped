@@ -26,7 +26,7 @@ checks = {
         'CanRevealControlFills(measureColumns, settled)' in layout_fn and
         layout_fn.index('placeFill(stolenFrame') < layout_fn.index('CanRevealControlFills('),
     'pending fill layout retries without disabling ready header input':
-        'if (kind == 0 && inventoryFillPending) nextLayout=now+16;' in tick,
+        'if (HeaderLayout() && inventoryFillPending) nextLayout=now+16;' in tick,
     'row binding applies status icon positions': 'OnListItemObjectSet' in layout and 'pe::WatchPost' in layout,
     'scroll refresh does not reposition icons based on cached viewport geometry': 'visibleOrbs' not in layout,
     'tab change places the header during the existing refresh': 'LayoutInventoryHeaders(' in tab,
@@ -44,7 +44,7 @@ checks = {
     'row placement uses the two verified native widget names': all(
         name in layout for name in ('inv_status_enchanted', 'inv_status_stolen')),
     'tab event and tick share a layout update per frame': 'inventoryHeaderFrame' in layout,
-    'new Inventory controls begin transparent': 'inventoryColumns) ui::Float(widget, L"SetRenderOpacity", 0.0f)' in header,
+    'new Inventory controls begin transparent': 'if (inventoryColumns || HeaderLayout() || kind == 2 || kind == 5) ui::Float(widget, L"SetRenderOpacity", 0.0f)' in header,
     'first reveal waits for settled coordinates': 'if (settled && !inventoryHeaderReady)' in layout,
     'first open reserves the header before sampling row columns': 'if (!inventoryListReserved)' in
         source_paths.function(layout, 'bool Picker::LayoutInventoryHeaders(').split('FirstRow(list,')[0],
