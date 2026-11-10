@@ -1,5 +1,4 @@
 // The native menu skin passes (see MenuSkin.h). Logic only: every colour and art file comes from uistyle::Skin.
-#include "core/DarkPack.h"
 #include "sorting/MenuSkin.h"
 #include "sorting/rules/DetailsSkin.h"
 #include "sorting/rules/InventoryHeaderLayout.h"
@@ -677,8 +676,7 @@ namespace menuskin
 						// keeps M_MaskedPage (its shape leaves the 3D preview open); the preset's gray hides the parchment
 						float rgba[4];
 						if (!ReadColor(widget, rgba)) break;
-						// the Dark pack bakes the parchment to this colour already: white then (no double darkening)
-						detailsskin::PageTint(rgba, darkpack::Active() ? 1.0f : skin.pageGray);
+						detailsskin::PageTint(rgba, skin.pageGray);
 						tint(widget, rgba);
 						break;
 					}
@@ -1171,7 +1169,6 @@ namespace menuskin
 				else if (name == "Infos_BG_and_School_Illustration") tiles.push_back(widget);
 			}
 			for (auto* paper : papers) {
-				if (darkpack::Active()) break;   // the Dark pack bakes the parchment: the game's own material draws the page
 				UE::UObject* tile = nullptr;
 				for (auto* candidate : tiles) if (ui::IsWithin(candidate, paper)) tile = candidate;
 				PlaceMagicPage(paper, tile, skin);
