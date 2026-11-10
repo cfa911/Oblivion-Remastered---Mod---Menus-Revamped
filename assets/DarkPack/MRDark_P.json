@@ -3,7 +3,73 @@
   "game_build": "1.512.105.0",
   "built_by": "tools/make_dark_pack.py",
   "style": {
-    "detailsPage": 0.01
+    "detailsPage": 0.01,
+    "frame": [
+      16.0,
+      16.0,
+      16.0
+    ],
+    "panel": [
+      41.0,
+      41.0,
+      41.0
+    ],
+    "columnLine": [
+      99.0,
+      99.0,
+      99.0
+    ],
+    "listHighlight": [
+      91.0,
+      91.0,
+      91.0
+    ],
+    "enchantedDot": [
+      66.0,
+      99.0,
+      153.0
+    ],
+    "headerIcon": [
+      247.0,
+      247.0,
+      247.0
+    ],
+    "selected": 41.0,
+    "unselected": 33.0,
+    "gap": 24.0,
+    "outline": 134.0,
+    "glyph": 242.0,
+    "glyphDim": 162.0,
+    "pattern": [
+      150.0,
+      150.0,
+      150.0
+    ],
+    "previewFrameLight": [
+      150.0,
+      150.0,
+      150.0
+    ],
+    "previewFrameDark": [
+      30.0,
+      30.0,
+      30.0
+    ],
+    "subTabDisc": [
+      96.0,
+      96.0,
+      96.0
+    ],
+    "subTabCircle": [
+      72.0,
+      72.0,
+      72.0
+    ],
+    "subTabIcon": [
+      228.0,
+      228.0,
+      228.0
+    ]
   },
   "textures": {
     "Art/UI/Modern/GameMenuLayer/SpellPurchase/T_SpellPurchase_LeftPageBG": {
@@ -11,12 +77,246 @@
       "style": [
         "detailsPage"
       ],
-      "stock_uexp_sha256": "f0cd2388dacfcf7d5e3f8ffb564715b3d798e414775af208bef082849515a4f2"
+      "stock_uexp_sha256": "f0cd2388dacfcf7d5e3f8ffb564715b3d798e414775af208bef082849515a4f2",
+      "baked_uexp_sha256": "5d86539ab2bd7ecdd5cddbed7225f08fdefe3f0b25182536f36bdb92b0ff7330"
+    },
+    "Art/UI/Common/Backgrounds/T_UI_PlayerMenu_Background": {
+      "recipe": "panel",
+      "style": [
+        "frame",
+        "panel"
+      ],
+      "stock_uexp_sha256": "a7e81a346b03ca46464e7e82826c41d6a8854f87bb921c16ef477ebaba7383bc",
+      "baked_uexp_sha256": "d497bb96eae5b5ba9529cf20c0bfc64a90812bf9d84ae882eeee3aa46c4f75be"
+    },
+    "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertBtm_D": {
+      "recipe": "flat:frame",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "d29bc04f7cd2ec9f5be67fc8ddb335190bd8d67aab12a92879e76449aa3f2ae6",
+      "baked_uexp_sha256": "ec21447c04cfa273f1a3cacc8659deae4f6ed029df73de44f04c36f47d09dbd6"
+    },
+    "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertMiddleNew_D": {
+      "recipe": "flat:frame",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "a427737b7ab5690b4d0b319501d5f5b495a3712e99e040a8f12a2e5dde0e0d68",
+      "baked_uexp_sha256": "170db650048051bf4af824f47e1affe6f72f6f9fe0ae374b53cc50dc3f597747"
+    },
+    "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertTop_D": {
+      "recipe": "flat:frame",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "4c067aa9216bf46570b7a8b92c81597cc2928ee7f1a3cf82f035e2d0324bc7e2",
+      "baked_uexp_sha256": "cfcb5910b8b041c16bab4df599c907042eb544e4e5def97ec742f68c8301d89b"
+    },
+    "Art/UI/Common/T_Line_V": {
+      "recipe": "flat:columnLine",
+      "style": [
+        "columnLine"
+      ],
+      "stock_uexp_sha256": "82d2565156daeee2ff32d3b28b00e3f00ed15caf4398d32e486161ac3ca29890",
+      "baked_uexp_sha256": "11cb2a113e679cd8c180ad7aedb928f7025e1a923392f99386fa416c898880e6"
+    },
+    "Art/UI/Common/T_List_highlight_V3": {
+      "recipe": "flat:listHighlight",
+      "style": [
+        "listHighlight"
+      ],
+      "stock_uexp_sha256": "bf47bce85e5705500886c6ab3f5d0df532031fa87a0b0831cc83a9187d71501a",
+      "baked_uexp_sha256": "030effda040ee107ee8c2c65a27b45ed5920af6005585aaa790e065b9b8b4b1c"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/T_Icon_enchanted": {
+      "recipe": "enchanted_dot",
+      "style": [
+        "enchantedDot"
+      ],
+      "stock_uexp_sha256": "8e414fbd9009bd18a71c32ab3ea575a9a2212ada00cce1082cb07a3bf5afb078",
+      "baked_uexp_sha256": "48ee8a95db4c68b574a550b9bfe028aaebe3c55df04849eb39c0abd5b9836b9f"
+    },
+    "Art/UI/Icons/Icon_Stats/T_Property_1_Attack": {
+      "recipe": "flat:headerIcon",
+      "style": [
+        "headerIcon"
+      ],
+      "stock_uexp_sha256": "066999165f6ab3f49d4ac2fdd17a2cd0e1e05c520cce8a9571a717fc82b3b5f0",
+      "baked_uexp_sha256": "f64dc49ea54fb1b81b5b92383f382b9413c3513ccc517c327b3bf7ea33cda698"
+    },
+    "Art/UI/Icons/Icon_Stats/T_Property_1_defense": {
+      "recipe": "flat:headerIcon",
+      "style": [
+        "headerIcon"
+      ],
+      "stock_uexp_sha256": "26dc46976f1f690a71fad141dea415a78025d1c9a735f24b6613b29ac45ecf65",
+      "baked_uexp_sha256": "c7636c71cd5154eb31fe67b783ab7c732e85e07ab4df7acf725dee37588cb146"
+    },
+    "Art/UI/Icons/Icon_Stats/T_Property_1_Health": {
+      "recipe": "flat:headerIcon",
+      "style": [
+        "headerIcon"
+      ],
+      "stock_uexp_sha256": "8c1c1e8eb04e4056d372d8e98c7ac154fd31786e0afa80b015e26518ed0a8029",
+      "baked_uexp_sha256": "9e0e5a626b6e9a7f2aa293f06a57ab4889a7ce48579ad32e6b8e57b28a3d45e1"
+    },
+    "Art/UI/Icons/Icon_Stats/T_Property_1_MoneyV2": {
+      "recipe": "flat:headerIcon",
+      "style": [
+        "headerIcon"
+      ],
+      "stock_uexp_sha256": "58bfaaaad5498d204af1b661a70ce026dd7a4e8569f5883ddd9597d90b59a572",
+      "baked_uexp_sha256": "d28f5d7b041422e78d1a4944fe7c03a47ea91bd127fe48ceaa5215c9324ad46f"
+    },
+    "Art/UI/Icons/Icon_Stats/T_Property_1_sorting": {
+      "recipe": "flat:headerIcon",
+      "style": [
+        "headerIcon"
+      ],
+      "stock_uexp_sha256": "38142d571ed896e19928e945ba38746f4ce9bebc420b503207f859f8fa4ff819",
+      "baked_uexp_sha256": "9a893289e76ae2f15fe0d77e09a423d7863abd24b515c53d31b890753060545d"
+    },
+    "Art/UI/Icons/Icon_Stats/T_Property_1_Weight": {
+      "recipe": "flat:headerIcon",
+      "style": [
+        "headerIcon"
+      ],
+      "stock_uexp_sha256": "ca2caf8b776ed8b029e58abd4a42c8e87a07f8a446bde97f34d3b85d7eb8e363",
+      "baked_uexp_sha256": "2bd2bb44a11d56c0b31b41efe9955b1de1c3ad09d44c6c1dacb9f0970f2030ef"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_weapons": {
+      "recipe": "tab:0",
+      "style": [
+        "gap",
+        "glyph",
+        "glyphDim",
+        "outline",
+        "selected",
+        "unselected"
+      ],
+      "stock_uexp_sha256": "c519c67f16301db9383d027985ccf48149bafff6574898dd0b4a91b014fa2c0a",
+      "baked_uexp_sha256": "1f470ef24ff677b0001be35ee36513d9c683d1ea06006be290e8bffcd0bc66ea"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_armor": {
+      "recipe": "tab:1",
+      "style": [
+        "gap",
+        "glyph",
+        "glyphDim",
+        "outline",
+        "selected",
+        "unselected"
+      ],
+      "stock_uexp_sha256": "e755851045304f7c449e27041aaa6bd250033d96be1cad4f008f73ec7b5b398b",
+      "baked_uexp_sha256": "59e200c4441a8a9fd7cc6a2b110cd4cee25c084f4d7d4cc45246dc7f1d0eb744"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_alchemy": {
+      "recipe": "tab:2",
+      "style": [
+        "gap",
+        "glyph",
+        "glyphDim",
+        "outline",
+        "selected",
+        "unselected"
+      ],
+      "stock_uexp_sha256": "cedc30a0da4bd87e452cbce103eb3e76e60f5ed471adeaa7046799d596976d74",
+      "baked_uexp_sha256": "50b65e8343f1053fc7067c1c8a24fad6975adfaba30aa67e36c78c9f5e8a5c92"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_misc": {
+      "recipe": "tab:3",
+      "style": [
+        "gap",
+        "glyph",
+        "glyphDim",
+        "outline",
+        "selected",
+        "unselected"
+      ],
+      "stock_uexp_sha256": "80718c7ee443a80b96a4c27c80668b4e8f4f0ca15767dee77ff8533d84638189",
+      "baked_uexp_sha256": "eaae896c1ec8ec93d2705ed5361c14ef09fe6ace1f169f304a01cfd51ab4835d"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_all": {
+      "recipe": "tab:4",
+      "style": [
+        "gap",
+        "glyph",
+        "glyphDim",
+        "outline",
+        "selected",
+        "unselected"
+      ],
+      "stock_uexp_sha256": "5b4f131e69c3b13a32c1dd3117a49469558e63ee1888cf7b0e2950e215e02bb2",
+      "baked_uexp_sha256": "53089b0502f6cd2273bf7cc26349c76af8af9a84869d2b77dacf3a11a1c993e6"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/T_InventoryPreview_Background_D": {
+      "recipe": "gray",
+      "style": [],
+      "stock_uexp_sha256": "616fc87cf063df1cf5cff85f05a72082e9d3e970d7cf1b560d588fdf39828255",
+      "baked_uexp_sha256": "566772cfd465a7e5a7424c4aa8e8f4723f9c117d47fd108e0053b7ff11b415a1"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/T_Inventory_pattern": {
+      "recipe": "flat:pattern",
+      "style": [
+        "pattern"
+      ],
+      "stock_uexp_sha256": "62be812455818cd56e241058bd2093659a3e5d94e3eab616f35998f485cb89ef",
+      "baked_uexp_sha256": "6e68520e2404658786556df33deaf59844907f4c7e0b31ef95ff3690236e4484"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_details_preview_frame_D": {
+      "recipe": "preview_frame",
+      "style": [
+        "previewFrameDark",
+        "previewFrameLight"
+      ],
+      "stock_uexp_sha256": "790e7e79acbc3905fb5fe8aea535a887db96e8e300550cdb49c08f30932caebb",
+      "baked_uexp_sha256": "91b1c9a7ee60ad07cb34baf962eb4a028e9f1f2d3010deab73f7e04516a9313f"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_BG": {
+      "recipe": "flat:subTabDisc",
+      "style": [
+        "subTabDisc"
+      ],
+      "stock_uexp_sha256": "3e7f7e963c3181da7bcf2980db77cfdb9df500540e0555dfc2df8347d59260b1",
+      "baked_uexp_sha256": "fb4b568f86344e43c6ddca988fbbf1dd93b7c9e58415f6de86c0e8791b3cc1ab"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_BG2": {
+      "recipe": "flat:subTabCircle",
+      "style": [
+        "subTabCircle"
+      ],
+      "stock_uexp_sha256": "8132043e0ea6cd091d3cdf5fbc3feec18084498fa66320fc4b0ab0fc05f1dc50",
+      "baked_uexp_sha256": "f97e4e34801c4b44a94868a8b7824b9cfb2f7a15ee6169c2512a942a026e5d38"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_enchantment_icon": {
+      "recipe": "flat:subTabIcon",
+      "style": [
+        "subTabIcon"
+      ],
+      "stock_uexp_sha256": "0345f2b8de1dccdb4dbb2ea241ee23452ef703980a39811e335279c5d4b278ce",
+      "baked_uexp_sha256": "862c709b6bd75cf080b7e5bd2171079f48f2188864d1ece1f997a74655c74eb3"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_overview_icon": {
+      "recipe": "flat:subTabIcon",
+      "style": [
+        "subTabIcon"
+      ],
+      "stock_uexp_sha256": "3304e05d6afdd4fff4d41abd0f0fe2783766f3e10bb5c3e76628ba7400776585",
+      "baked_uexp_sha256": "e8cb33a11ab43243f40a44043e2a5949637c1d4a73d2a489d9d5f52e8175875d"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_skill_icon": {
+      "recipe": "flat:subTabIcon",
+      "style": [
+        "subTabIcon"
+      ],
+      "stock_uexp_sha256": "415f248c0245e592719d2e764f9109d51262a2911af1d997ac3965546aa5a6c6",
+      "baked_uexp_sha256": "67a86753e657dc61cbd9c9b20359cf9866b5f18d8229ec49a5fd8f84c67942f4"
     }
   },
   "files": {
     "MRDark_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRDark_P.utoc": "376df990a8bdad8cc0828849b6f395fb935e43722a91464b458c7e918e14e79b",
-    "MRDark_P.ucas": "197e52a05201e4486251f410ed797a7cdefbed6e4d541a3fa688aeb9ee1c6e79"
+    "MRDark_P.utoc": "803b3d7b0fcee52590d95c90c32f793d0e8d5914211ad2697723cc8be7d32c95",
+    "MRDark_P.ucas": "d0f163a4df8dc81baccf026ad1b20132e4d422979a9015fea8264b4737014704"
   }
 }

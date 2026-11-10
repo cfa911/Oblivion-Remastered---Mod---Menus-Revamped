@@ -13,12 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from make_dark_skin_art import load  # noqa: E402
 
 ICONS = {
-    "T_Property_1_sorting": "Sort-Name.png",
-    "T_Property_1_Health": "Sort-Health.png",
-    "T_Property_1_Attack": "Sort-Damage.png",
-    "T_Property_1_defense": "Sort-Armor.png",
-    "T_Property_1_Weight": "Sort-Weight.png",
-    "T_Property_1_MoneyV2": "Sort-Value.png",
+    # the Inventory six (sorting, Health, Attack, defense, Weight, MoneyV2) are baked into MRDark_P (make_dark_pack.py)
     "T_Property_1_cost": "Sort-Cost.png",
     "T_Property_1_school": "Sort-School.png",
     "T_Property_1_LesserPower": "Sort-Type.png",
