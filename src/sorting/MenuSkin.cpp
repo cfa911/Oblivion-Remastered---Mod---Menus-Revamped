@@ -1,4 +1,5 @@
 // The native menu skin passes (see MenuSkin.h). Logic only: every colour and art file comes from uistyle::Skin.
+#include "core/DarkPack.h"
 #include "sorting/MenuSkin.h"
 #include "sorting/rules/DetailsSkin.h"
 #include "sorting/rules/InventoryHeaderLayout.h"
@@ -7,6 +8,7 @@
 #include "engine/PEHook.h"
 #include "engine/UiText.h"
 #include "engine/DataTableRows.h"
+#include <format>
 #include <set>
 namespace menuskin
 {
@@ -87,24 +89,93 @@ namespace menuskin
 
 		// The preset's art for an image whose brush draws a listed stock texture: swapped on this widget only, and the
 		// widget tint reset to white (alpha kept) so the neutral art shows as made. True when the image is now the skin's.
+		// The colour an art swap is drawn with: its DarkStyle.h value for a white-shape PNG, else white (the art's own colours).
+		void PaintSwap(UE::UObject* image, const uistyle::ArtSwap& swap, bool always)
+		{
+			float rgba[4];
+			if (!ReadColor(image, rgba)) return;
+			const auto want = !swap.tint ? std::array<float, 4>{ 1, 1, 1, rgba[3] } : darkstyle::Arr(darkstyle::Get().*swap.tint, rgba[3]);
+			if (always || std::abs(rgba[0] - want[0]) > 0.001f || std::abs(rgba[1] - want[1]) > 0.001f || std::abs(rgba[2] - want[2]) > 0.001f)
+				ui::Colour(image, want[0], want[1], want[2], want[3]);
+		}
+
+		// The preset's art for an image whose brush draws a listed stock texture: swapped on this widget only, and drawn in
+		// the swap's colour (white-shape PNGs: their DarkStyle.h value; other art: white, alpha kept). True when the image is
+		// now the skin's. A later pass re-applies the colour if the game reset it.
 		bool SwapArt(UE::UObject* image, const uistyle::Skin& skin)
 		{
 			if (!skin.artSwapCount || !reflect::Usable(image)) return false;
-			const auto resource = NameOf(ui::BrushResource(image));
+			auto* current = ui::BrushResource(image);
+			const auto resource = NameOf(current);
 			for (int i = 0; i < skin.artSwapCount; ++i) {
 				if (resource != skin.artSwaps[i].stock) continue;
 				auto* art = SkinArt(skin.artSwaps[i].file);
 				if (!art) return false;
 				ui::Call set(image, L"SetBrushResourceObject");
 				if (!set.Set("ResourceObject", art) || !set.RunGuarded()) return false;
-				float rgba[4];
-				if (ReadColor(image, rgba)) ui::Colour(image, 1.0f, 1.0f, 1.0f, rgba[3]);
+				PaintSwap(image, skin.artSwaps[i], true);
 				return true;
 			}
 			// already swapped (a later pass over the same widget): the brush draws one of our own textures
 			for (int i = 0; i < skin.artSwapCount; ++i)
-				if (auto* art = SkinArt(skin.artSwaps[i].file); art && art == ui::BrushResource(image)) return true;
+				if (auto* art = SkinArt(skin.artSwaps[i].file); art && art == current) {
+					PaintSwap(image, skin.artSwaps[i], false);
+					return true;
+				}
 			return false;
+		}
+
+		// A details icon drawn through a material (the Magic type icon: owner on b2c3e1e7 it stayed dark while the plain-texture
+		// Range and Cost turned white): its texture is the material's IconTexture (or Texture). When that is a listed stock icon,
+		// the image takes the same white art as the plain-texture swap. School drawings (T_Illustration_*) are left alone.
+		bool SwapIconMaterial(UE::UObject* image, const uistyle::Skin& skin)
+		{
+			static auto* midClass = ui::Class(L"/Script/Engine.MaterialInstanceDynamic");
+			auto* material = ui::BrushResource(image);
+			if (!midClass || !skin.artSwapCount || !material || !reflect::Usable(material) || !material->GetClass()->IsChildOf(midClass)) return false;
+			for (const wchar_t* parameter : { L"IconTexture", L"Texture" }) {
+				ui::Call tex(material, L"K2_GetTextureParameterValue");
+				if (!tex || !tex.Set("ParameterName", UE::FName(parameter, UE::EFindName::Add)) || !tex.RunGuarded()) continue;
+				auto* texture = tex.Get<UE::UObject*>("ReturnValue");
+				if (!texture || !reflect::Usable(texture)) continue;
+				const auto name = NameOf(texture);
+				if (!name.starts_with("T_MagicMenuIcon_")) return false;
+				for (int i = 0; i < skin.artSwapCount; ++i) {
+					if (name != skin.artSwaps[i].stock) continue;
+					auto* art = SkinArt(skin.artSwaps[i].file);
+					if (!art) return false;
+					ui::Call set(image, L"SetBrushResourceObject");
+					if (!set.Set("ResourceObject", art) || !set.RunGuarded()) return false;
+					PaintSwap(image, skin.artSwaps[i], true);
+					return true;
+				}
+				return false;
+			}
+			return false;
+		}
+
+		// Magic icons (stat icons, school glyphs): when the widget tint is what makes them brown, the light ink instead
+		// (art that is brown itself is unchanged by a tint: phase 2b art, owner's choice 2026-11-10).
+		bool LightIcon(UE::UObject* image, std::string_view resource, const uistyle::Skin& skin)
+		{
+			if (!(resource.starts_with("T_MagicMenuIcon_") || resource.starts_with("T_MagicSchoolSimple_"))) return false;
+			float rgba[4];
+			if (!ReadColor(image, rgba)) return true;
+			const auto icon = darkstyle::Arr(darkstyle::Get().rowIcon, rgba[3]);
+			if (skin.recolor && (detailsskin::IsDarkInk(rgba) || detailsskin::IsWarmInk(rgba))) ui::Colour(image, icon[0], icon[1], icon[2], icon[3]);
+			return true;
+		}
+
+		// One row's art, the same for every skinned list (Inventory, Magic): separators, equipped band and column lines take
+		// the skin's swaps in their DarkStyle.h colours; icons the game tints brown take the row icon colour.
+		void StyleRowArt(UE::UObject* row, const uistyle::Skin& skin)
+		{
+			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
+			if (!imageClass) return;
+			for (auto* widget : ui::TreeWidgets(row, 80)) {
+				if (!reflect::Usable(widget) || !widget->GetClass()->IsChildOf(imageClass)) continue;
+				if (!SwapArt(widget, skin)) LightIcon(widget, NameOf(ui::BrushResource(widget)), skin);
+			}
 		}
 
 		UE::UObject* RowColumn(UE::UObject* row, std::string_view name)
@@ -222,8 +293,13 @@ namespace menuskin
 			UE::UObject* parent = title;
 			for (int depth = 0; depth < 4 && parent && reflect::Usable(parent); ++depth) {
 				if (retainerClass && parent->GetClass()->IsChildOf(retainerClass)) {
-					const bool retain = false;
-					ui::CallFirst(parent, L"SetRetainRendering", &retain, sizeof(retain));
+					// only while it is on: each switch makes the engine drop and rebuild the retainer's render target (RMI-084)
+					static const int retainOffset = reflect::Offset(retainerClass, "bRetainRender");
+					const auto* retaining = retainOffset >= 0 ? reflect::At<bool>(parent, retainOffset) : nullptr;
+					if (!retaining || *retaining) {
+						const bool retain = false;
+						ui::CallFirst(parent, L"SetRetainRendering", &retain, sizeof(retain));
+					}
 				}
 				ui::Call up(parent, L"GetParent");
 				parent = up && up.Run() ? up.Get<UE::UObject*>("ReturnValue") : nullptr;
@@ -240,6 +316,8 @@ namespace menuskin
 		reflect::Handle g_details;
 		std::vector<reflect::Handle> g_unhoveredRules;
 		const Target* g_detailsTarget = &kInventory;
+		std::vector<reflect::Handle> g_magicIcons;   // the Magic details stat icons (the type icon is set again on every hover)
+		std::set<UE::UObject*> g_iconTiles, g_iconImages;   // their tile widgets and images (compared, never read through)
 
 		// the action button (Equip, Use...): its fill and arrows gray, its label light; alpha stays the game's (hover fades)
 		void StyleDetailsButton(UE::UObject* button)
@@ -365,11 +443,15 @@ namespace menuskin
 		// (DT_StatsMenu_SkillDescriptionRichTextStyle_PerLevelDescription, rows 0.12 0.07 0.037). For this widget only:
 		// the warm rows take the skin's emphasis, the widget rebuilds its style from them (SetTextStyleSet null, then the
 		// table), and the rows are restored in the same call, so the Stats menu keeps the table's brown.
-		bool RebuildEmphasis(UE::UObject* rich, const uistyle::Skin& skin)
+		// allRows: every warm row takes this colour (the Magic Spell Effectiveness line) instead of the perk/emphasis split
+		// keepRows: leave the new colours in the table (a table only this menu uses): restoring them right after the rebuild
+		// left the Spell Effectiveness text dark (4bb22392), the text reads the table later.
+		bool RebuildEmphasis(UE::UObject* rich, const uistyle::Skin& skin, const uistyle::Color* allRows = nullptr, bool keepRows = false,
+			bool logRows = false)
 		{
 			static auto* tableClass = ui::Class(L"/Script/Engine.DataTable");
 			static auto* textStyle = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.TextBlockStyle");
-			if (skin.emphasisInk[3] <= 0 || !tableClass || !textStyle) return false;
+			if ((!allRows && skin.emphasisInk[3] <= 0) || !tableClass || !textStyle) return false;
 			const int setOffset = reflect::Offset(rich->GetClass(), "TextStyleSet");
 			auto** setAt = setOffset >= 0 ? reflect::At<UE::UObject*>(rich, setOffset) : nullptr;
 			auto* table = setAt ? *setAt : nullptr;
@@ -385,21 +467,24 @@ namespace menuskin
 			const auto* map = reinterpret_cast<const std::uint8_t*>(table) + rowStructOffset + sizeof(void*);
 			datatablerows::VisitRows(map, Readable, [&](std::uint64_t key, std::uint8_t* row) {
 				auto* color = reinterpret_cast<float*>(row + styleOffset + colorOffset);   // FSlateColor.SpecifiedColor
-				if (!Readable(color, 16) || !detailsskin::IsWarmInk(color)) return;
+				if (!Readable(color, 16) || (!allRows && !detailsskin::IsWarmInk(color))) return;
 				UE::FName name;
 				static_assert(sizeof(name) == sizeof(key));
 				std::memcpy(&name, &key, sizeof(key));
 				// bold rows are the highlighted words (emphasis colour); the other brown rows are normal text (perk ink)
 				const auto rowName = pe::Utf8(name.ToString());
 				const bool bold = detailsskin::IsEmphasisRow(rowName);
+				if (logRows)   // TEMP-DIAG: the Spell Effectiveness rows (it stayed dark on 4c0fd98f); record in the KB
+					logger::warn("TEMP-DIAG MRMAGICDARK rich row {} c={:.3f},{:.3f},{:.3f},{:.2f}", rowName, color[0], color[1], color[2], color[3]);
 				saved.push_back({ color, { color[0], color[1], color[2], color[3] } });
-				std::copy_n((bold ? skin.emphasisInk : skin.perkInk).data(), 3, color);
+				std::copy_n((allRows ? *allRows : bold ? skin.emphasisInk : skin.perkInk).data(), 3, color);
 			});
 			if (saved.empty()) return false;
 			UE::UObject* none = nullptr;
 			ui::CallFirst(rich, L"SetTextStyleSet", &none, sizeof(none));
 			ui::CallFirst(rich, L"SetTextStyleSet", &table, sizeof(table));
-			for (auto& [color, original] : saved) std::copy_n(original.data(), 4, color);
+			if (!keepRows)
+				for (auto& [color, original] : saved) std::copy_n(original.data(), 4, color);
 			return true;
 		}
 
@@ -451,6 +536,52 @@ namespace menuskin
 			return inked;
 		}
 
+		// A rich text line of the Magic page (Spell Effectiveness): its warm table rows and its default colour take the light ink.
+		bool InkRich(UE::UObject* rich, const uistyle::Skin& skin)
+		{
+			static auto* textStyle = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.TextBlockStyle");
+			constexpr bool keepRows = true;   // DT_UI_Magic_SpellEffectiveness_RichTextStyle: WBP_ModernMenu_MagicMenu only
+			static bool s_logged = false;   // TEMP-DIAG
+			bool inked = RebuildEmphasis(rich, skin, &skin.ink, keepRows, !s_logged);
+			if (!s_logged) {
+				s_logged = true;
+				const int over = reflect::Offset(rich->GetClass(), "bOverrideDefaultStyle");
+				const auto* overriding = over >= 0 ? reflect::At<bool>(rich, over) : nullptr;
+				logger::warn("TEMP-DIAG MRMAGICDARK rich text='{}' override={} rebuilt={}", uix::GetText(rich), overriding ? int(*overriding) : -1, inked);
+			}
+			const int styleOffset = reflect::Offset(rich->GetClass(), "DefaultTextStyleOverride");
+			const int colorOffset = textStyle ? reflect::Offset(textStyle, "ColorAndOpacity") : -1;
+			const auto* rgba = styleOffset >= 0 && colorOffset >= 0 ? reflect::At<float>(rich, styleOffset + colorOffset) : nullptr;
+			if (rgba) {   // only called for the Spell Effectiveness line: its colours fail the warm test (log on 243ea76d)
+				ui::Call set(rich, L"SetDefaultColorAndOpacity");
+				auto* color = static_cast<std::uint8_t*>(set.At("InColorAndOpacity"));
+				if (color && set.Size("InColorAndOpacity") >= 20) {
+					const float value[4]{ skin.ink[0], skin.ink[1], skin.ink[2], 1.0f };
+					std::memcpy(color, value, sizeof(value));
+					color[16] = 0;   // ESlateColorStylingMode::UseColor_Specified
+					inked = set.RunGuarded() || inked;
+				}
+			}
+			return inked;
+		}
+
+		// The type icon is set again by the game on every hover (its tile prefab or the image itself); the Magic menu's Tick is not a
+		// ProcessEvent (no "menu tick seen" on 814be2ca), so the icon is re-swapped right after those events instead.
+		void OnIconTileEvent(UE::UObject* object, UE::UFunction* function, void*)
+		{
+			const bool tile = g_iconTiles.contains(object);
+			if (!tile && !g_iconImages.contains(object)) return;
+			const auto& skin = Current();
+			if (!skin.recolor || !reflect::Usable(object)) return;
+			static std::set<std::string> s_seen;   // TEMP-DIAG: which events set the icon (record in the KB)
+			if (const auto name = std::string(pe::FunctionName(function)); s_seen.size() < 20 && s_seen.insert(name).second)
+				logger::warn("TEMP-DIAG MRMAGICDARK icon {} event {}", tile ? "tile" : "image", name);
+			if (!tile) { SwapArt(object, skin); return; }
+			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
+			for (auto* widget : ui::TreeWidgets(object, 8))
+				if (reflect::Usable(widget) && imageClass && widget->GetClass()->IsChildOf(imageClass)) SwapArt(widget, skin);
+		}
+
 		void StyleDetails(UE::UObject* details)
 		{
 			const auto& skin = Current();
@@ -493,6 +624,30 @@ namespace menuskin
 					continue;
 				}
 				if (type->IsChildOf(imageClass)) {
+					if (g_detailsTarget == &kMagic) {
+						static std::set<std::string> s_brushes;   // TEMP-DIAG: what each Magic details image draws (record in the KB)
+						const auto brush = NameOf(widget) + " " + NameOf(ui::BrushResource(widget));
+						if (s_brushes.size() < 40 && s_brushes.insert(brush).second) logger::warn("TEMP-DIAG MRMAGICDARK details image {}", brush);
+					}
+					if (g_detailsTarget == &kMagic && SwapIconMaterial(widget, skin)) {
+						if (g_magicIcons.size() < 24 && std::none_of(g_magicIcons.begin(), g_magicIcons.end(), [&](const reflect::Handle& h) { return reflect::Get(h) == widget; }))
+							g_magicIcons.push_back(reflect::Hold(widget));
+						continue;
+					}
+					if (g_detailsTarget == &kMagic && g_magicIcons.size() < 24 && NameOf(ui::BrushResource(widget)).starts_with("T_MagicMenuIcon_") &&
+						std::none_of(g_magicIcons.begin(), g_magicIcons.end(), [&](const reflect::Handle& h) { return reflect::Get(h) == widget; }))
+					{
+						g_magicIcons.push_back(reflect::Hold(widget));   // re-swapped after its tile's and its own events
+						static auto* userWidget = ui::Class(L"/Script/UMG.UserWidget");
+						g_iconImages.insert(widget);
+						pe::WatchPost(widget->GetClass(), &OnIconTileEvent);
+						for (auto* outer = widget->GetOuter(); outer && userWidget; outer = outer->GetOuter())
+							if (outer->GetClass()->IsChildOf(userWidget)) {
+								g_iconTiles.insert(outer);
+								pe::WatchPost(outer->GetClass(), &OnIconTileEvent);
+								break;
+							}
+					}
 					if (SwapArt(widget, skin)) continue;
 					auto* resource = ui::BrushResource(widget);
 					if (!resource || !reflect::Usable(resource)) continue;
@@ -501,6 +656,7 @@ namespace menuskin
 						if (auto** at = reflect::At<UE::UObject*>(resource, parentOffset); at && *at && reflect::Usable(*at))
 							parent = NameOf(*at);
 					const auto resourceName = NameOf(resource);
+					if (LightIcon(widget, resourceName, skin)) continue;
 					if (detailsskin::IsDescriptionRule(resourceName) ||
 						(resourceName == "T_Line_02" && sigil && ui::IsWithin(widget, sigil))) {
 						if (auto* art = SkinArt(L"RowSeparator.png")) {
@@ -521,7 +677,8 @@ namespace menuskin
 						// keeps M_MaskedPage (its shape leaves the 3D preview open); the preset's gray hides the parchment
 						float rgba[4];
 						if (!ReadColor(widget, rgba)) break;
-						detailsskin::PageTint(rgba, skin.pageGray);
+						// the Dark pack bakes the parchment to this colour already: white then (no double darkening)
+						detailsskin::PageTint(rgba, darkpack::Active() ? 1.0f : skin.pageGray);
 						tint(widget, rgba);
 						break;
 					}
@@ -552,8 +709,26 @@ namespace menuskin
 			}
 		}
 
+		void SyncMagicPaper();
+
 		void OnDetailsUpdated(UE::UObject* details, UE::UFunction* function, void*)
 		{
+			// the Magic path only for the Magic details (after a Magic visit the target stayed Magic for the Inventory's details)
+			if (g_detailsTarget == &kMagic && NameOf(details->GetClass()) == kMagic.detailsClass) {
+				SyncMagicPaper();   // the page follows the paper material's fade every frame (Dark)
+				// Magic details events are not known yet: restyle after any of its own events except per-frame ones, once a frame.
+				const auto event = pe::FunctionName(function);
+				if (event == "Tick" || event.find("Anim") != std::string_view::npos) return;
+				static std::set<std::string> s_seen;   // TEMP-DIAG: the Magic details event names (record in the KB)
+				if (s_seen.size() < 40 && s_seen.insert(std::string(event)).second)
+					logger::warn("TEMP-DIAG MRMAGICDARK details event {}", event);
+				static double s_last = -1;
+				const double now = ui::RealTimeSeconds();
+				if (now >= 0 && now == s_last) return;
+				s_last = now;
+				StyleDetails(details);
+				return;
+			}
 			static constexpr std::string_view kEvents[]{ "Construct", "ToggleDetails", "ChangeVisibilityItemDetailsPanel",
 				"UpdateHoveredItemProperties", "ChangeSpecificDetailsForHoveredItem", "ChangeSpecificDetailsWithFormID",
 				"ChangeSpecificDetailsWithFormType", "SwitchSubTabs", "SwitchPreview", "UpdateDescription" };
@@ -681,15 +856,335 @@ namespace menuskin
 		if (auto* name = RowColumn(row, target.rowName)) uix::Ink(name, skin.ink.data());
 		for (int i = 0; i < target.rowValueCount; ++i)
 			if (auto* label = ui::FindInTree(RowColumn(row, target.rowValues[i]), "inv_entry_value")) uix::Ink(label, skin.ink.data());
-		// the row's art (separator line T_List_Default, shared by twelve menus; equipped band T_List_equip_V2, the RMI-072
-		// line) swapped for the preset's on this row only: Slate tints cannot brighten or neutralise baked brown
-		static auto* imageClass = ui::Class(L"/Script/UMG.Image");
-		if (imageClass)
-			for (auto* widget : ui::TreeWidgets(row, 80))
-				if (reflect::Usable(widget) && widget->GetClass()->IsChildOf(imageClass)) SwapArt(widget, skin);
+		// the row's art (separator T_List_Default, equipped band T_List_equip_V2, column lines T_Line_V) swapped for the
+		// preset's on this row only, shared with the Magic rows (Slate tints cannot brighten or neutralise baked brown)
+		StyleRowArt(row, skin);
 		// the equipped pen scribble (M_UI_Scribble) on dark rows
 		if (skin.hideEquippedScribble)
 			if (auto* scribble = ui::FindInTree(row, "inv_entry_scribble")) ui::Colour(scribble, 1.0f, 1.0f, 1.0f, 0.0f);
+	}
+
+	void StyleMagicRow(UE::UObject* row)
+	{
+		const auto& skin = Current();
+		static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
+		if (!skin.recolor || !textClass || !reflect::Usable(row)) return;
+		// text: the same row ink as the Inventory (DarkStyle.h rowText); colour-coded text keeps its colour
+		for (auto* widget : ui::TreeWidgets(row, 80)) {
+			float rgba[4];
+			if (!reflect::Usable(widget) || !widget->GetClass()->IsChildOf(textClass) || !ReadColor(widget, rgba)) continue;
+			if (detailsskin::IsDarkInk(rgba) || detailsskin::IsWarmInk(rgba)) uix::Ink(widget, WithAlpha(skin.ink, rgba[3]).data());
+		}
+		StyleRowArt(row, skin);
+	}
+
+	namespace
+	{
+		reflect::Handle g_magicMenu;
+		std::vector<reflect::Handle> g_magicPages;
+		reflect::Handle g_magicTabs;
+
+		// One dark page per BackgroundPaper (a reopened menu and the Active Effects details have their own): our overlay in the
+		// paper's slot, holding the game's paper (invisible, so its reveal keeps running), the dark sheet and the school drawing.
+		struct MagicPaper
+		{
+			reflect::Handle paper, page, sheet, school, tile, texture;
+			float lastReveal = 1e9f;
+			ULONGLONG nextLook = 0, nextMeasure = 0;
+			bool imageShown = true;
+			double width = 0, height = 0;
+			bool sized = false;
+		};
+		std::vector<MagicPaper> g_magicPapers;
+
+		// The details page: BackgroundPaper (an AnimatableRetainerBox in Infos_Overlay, behind Active_Castable_Infos_Switcher) draws
+		// the parchment through its effect material (MID M_MagicSchoolIcon_paper_Animated: a fixed parchment sampler, no widget
+		// tint; rounds 8-9). Switching its retainer off crashed (RMI-084). Our overlay takes the paper's slot (ReplaceOverlayChildAt
+		// keeps the slot: same place, behind the details content) and holds, back to front: the paper (render opacity 0: still in
+		// the tree, so the game's reveal animation finds it on every hover; out of the tree it ran once), the stock parchment
+		// times pageGray (the Inventory page) and the school drawing.
+		void PlaceMagicPage(UE::UObject* paper, UE::UObject* tile, const uistyle::Skin& skin)
+		{
+			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
+			static auto* widgetClass = ui::Class(L"/Script/UMG.Widget");
+			static auto* overlayClass = ui::Class(L"/Script/UMG.Overlay");
+			if (!imageClass || !widgetClass || !overlayClass || !reflect::Usable(paper)) return;
+			for (const auto& entry : g_magicPapers)
+				if (reflect::Get(entry.paper) == paper && reflect::Get(entry.page)) return;   // already ours
+			static bool s_told = false;   // TEMP-DIAG: why no page was placed (once)
+			const auto tell = [](const char* why) { if (!s_told) { s_told = true; logger::warn("TEMP-DIAG MRMAGICDARK dark page: {}", why); } };
+			auto* art = SkinArt(L"DetailsPage.png");
+			if (!art) return tell("no DetailsPage.png");
+			ui::Call up(paper, L"GetParent");
+			auto* overlay = up && up.RunGuarded() ? up.Get<UE::UObject*>("ReturnValue") : nullptr;
+			if (!overlay || !reflect::Usable(overlay) || !overlay->GetClass()->IsChildOf(overlayClass)) return tell("the paper's parent is not an Overlay");
+			ui::Call index(overlay, L"GetChildIndex");
+			if (!index || !index.Set("Content", paper) || !index.RunGuarded()) return tell("GetChildIndex failed");
+			const int at = index.Get<int>("ReturnValue");
+			if (at < 0) return tell("BackgroundPaper not in its overlay");
+			static unsigned s_serial = 0;   // unique per re-creation (a reused name replaces a widget in place)
+			const auto serial = std::to_wstring(++s_serial);
+			auto* tree = overlay->GetOuter();
+			auto* page = UE::NewObject<UE::UObject>(tree, overlayClass, UE::FName((L"MrDarkDetailsPage_" + serial).c_str()));
+			auto* sheet = UE::NewObject<UE::UObject>(tree, imageClass, UE::FName((L"MrDarkDetailsSheet_" + serial).c_str()));
+			auto* school = UE::NewObject<UE::UObject>(tree, imageClass, UE::FName((L"MrDarkSchoolArt_" + serial).c_str()));
+			if (!page || !sheet || !school) return;
+			ui::Call set(sheet, L"SetBrushResourceObject");
+			if (!set.Set("ResourceObject", art) || !set.RunGuarded()) return;
+			float rgba[4]{ 1, 1, 1, 1 };
+			detailsskin::PageTint(rgba, skin.pageGray);
+			ui::Colour(sheet, rgba[0], rgba[1], rgba[2], rgba[3]);
+			ui::Colour(school, 1, 1, 1, 0);   // shown by SyncMagicPaper once it has the game's school texture
+			// UOverlay::ReplaceOverlayChildAt (UPanelWidget::ReplaceChildAt is not reflected in this game: exe name scan)
+			ui::Call replace(overlay, L"ReplaceOverlayChildAt");
+			if (!replace || !replace.Set("Index", at) || !replace.Set("Content", page) || !replace.RunGuarded() || !replace.Get<bool>("ReturnValue"))
+				return tell("ReplaceOverlayChildAt failed");
+			static const int slotOffset = reflect::Offset(widgetClass, "Slot");
+			const auto align = [&](UE::UObject* slot, std::uint8_t horizontal) {
+				if (!slot || !reflect::Usable(slot)) return;
+				const std::uint8_t fill = 0;   // VAlign_Fill
+				ui::CallFirstGuarded(slot, L"SetHorizontalAlignment", &horizontal, sizeof(horizontal));
+				ui::CallFirstGuarded(slot, L"SetVerticalAlignment", &fill, sizeof(fill));
+			};
+			if (auto** slot = slotOffset >= 0 ? reflect::At<UE::UObject*>(page, slotOffset) : nullptr; slot) align(*slot, 0);   // fill the details area
+			const auto addTo = [&](UE::UObject* child, std::uint8_t horizontal) {
+				ui::Call add(page, L"AddChildToOverlay");
+				if (!add || !add.Set("Content", child) || !add.RunGuarded()) return false;
+				align(add.Get<UE::UObject*>("ReturnValue"), horizontal);
+				return true;
+			};
+			// the paper back in the tree (behind, invisible); then the sheet (fill) and the school drawing (right)
+			if (!addTo(paper, 0) || !addTo(sheet, 0) || !addTo(school, 3)) return tell("AddChildToOverlay failed");
+			ui::Float(paper, L"SetRenderOpacity", 0.0f);
+			MagicPaper entry;
+			entry.paper = reflect::Hold(paper);
+			entry.page = reflect::Hold(page);
+			entry.sheet = reflect::Hold(sheet);
+			entry.school = reflect::Hold(school);
+			entry.tile = tile ? reflect::Hold(tile) : reflect::Handle{};
+			g_magicPapers.push_back(entry);
+			logger::warn("TEMP-DIAG MRMAGICDARK dark page {} in {} slot {} (pages {})", NameOf(page), NameOf(overlay), at, g_magicPapers.size());
+		}
+
+		// Our pages follow the game's reveal: OpacityControl is a reveal value, not an alpha (logs on d635dbf2..9325a228: restarts
+		// near -0.05 on every hover and rises to about 0.8); copying it left the page half transparent with a laggy fade (RMI-083).
+		// The sheet stays shown while the reveal runs (hidden only below kPaperHidden); the school drawing fades in with it.
+		void SyncMagicPaper()
+		{
+			const auto& skin = Current();
+			if (!skin.recolor) return;
+			std::erase_if(g_magicPapers, [](const MagicPaper& e) { return !reflect::Get(e.paper) || !reflect::Get(e.page); });
+			static auto* widgetClass = ui::Class(L"/Script/UMG.Widget");
+			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
+			static const int visibilityOffset = widgetClass ? reflect::Offset(widgetClass, "Visibility") : -1;
+			static const int slotOffset = widgetClass ? reflect::Offset(widgetClass, "Slot") : -1;
+			for (auto& entry : g_magicPapers) {
+				auto* paper = reflect::Get(entry.paper);
+				auto* page = reflect::Get(entry.page);
+				auto* sheet = reflect::Get(entry.sheet);
+				auto* school = reflect::Get(entry.school);
+				if (!paper || !page || !sheet || !school) continue;
+				if (ui::RenderOpacity(paper) > 0) ui::Float(paper, L"SetRenderOpacity", 0.0f);   // the game never fades it, but keep it so
+				ui::Call get(paper, L"GetEffectMaterial");
+				auto* mid = get && get.Size("ReturnValue") == sizeof(UE::UObject*) && get.RunGuarded() ? get.Get<UE::UObject*>("ReturnValue") : nullptr;
+				if (!mid || !reflect::Usable(mid)) continue;
+				ui::Call read(mid, L"K2_GetScalarParameterValue");
+				if (!read || !read.Set("ParameterName", UE::FName(L"OpacityControl", UE::EFindName::Add)) || !read.RunGuarded()) continue;
+				const float reveal = read.Get<float>("ReturnValue");
+				constexpr float kPaperHidden = -0.5f;
+				ui::Visible(sheet, reveal > kPaperHidden);
+				const bool restarted = reveal + 0.05f < entry.lastReveal;
+				entry.lastReveal = reveal;
+				static int s_restarts = 0;   // TEMP-DIAG: the reveal restarts per hover (it ran once with the paper out of the tree)
+				if (restarted && s_restarts < 12) logger::warn("TEMP-DIAG MRMAGICDARK paper reveal restart {} at {:.2f}", ++s_restarts, reveal);
+
+				// the school drawing: the game's current school texture (the tile image's IconTexture), hidden when the game hides it
+				auto* tile = reflect::Get(entry.tile);
+				bool shown = tile != nullptr;
+				if (tile) {
+					const auto* tileVisibility = visibilityOffset >= 0 ? reflect::At<std::uint8_t>(tile, visibilityOffset) : nullptr;
+					if (tileVisibility && (*tileVisibility == 1 || *tileVisibility == 2)) shown = false;   // Collapsed, Hidden
+				}
+				UE::UObject* texture = reflect::Get(entry.texture);
+				if (tile && (restarted || !texture || GetTickCount64() >= entry.nextLook)) {   // a few reflected calls: on a new hover or twice a second
+					entry.nextLook = GetTickCount64() + 500;
+					texture = nullptr;
+					entry.imageShown = true;
+					for (auto* widget : ui::TreeWidgets(tile, 20)) {
+						if (!reflect::Usable(widget) || !imageClass || !widget->GetClass()->IsChildOf(imageClass)) continue;
+						const auto* imageVisibility = visibilityOffset >= 0 ? reflect::At<std::uint8_t>(widget, visibilityOffset) : nullptr;
+						if (imageVisibility && (*imageVisibility == 1 || *imageVisibility == 2)) entry.imageShown = false;
+						auto* material = ui::BrushResource(widget);
+						if (!material || !reflect::Usable(material)) continue;
+						// M_MagicSchoolIcon_Icon names it IconTexture (log on 9e217d27); M_MagicSchoolIcon_paper names it Texture
+						for (const wchar_t* parameter : { L"IconTexture", L"Texture" }) {
+							ui::Call tex(material, L"K2_GetTextureParameterValue");
+							if (tex && tex.Set("ParameterName", UE::FName(parameter, UE::EFindName::Add)) && tex.RunGuarded())
+								texture = tex.Get<UE::UObject*>("ReturnValue");
+							if (texture && reflect::Usable(texture)) break;
+							texture = nullptr;
+						}
+						if (texture) break;
+					}
+					entry.texture = texture ? reflect::Hold(texture) : reflect::Handle{};
+				}
+				if (!entry.imageShown) shown = false;
+				if (texture && ui::BrushResource(school) != texture) {
+					ui::Call set(school, L"SetBrushResourceObject");
+					if (set.Set("ResourceObject", texture)) set.RunGuarded();
+				}
+				// The drawing is the right half of the visible page (1 wide by 2 high, as tall as the page). DetailsPage.png is
+				// stretched over the slot and its page fills only this box of it (alpha > 128: 35,55 to 957,968 of 1024x1024).
+				constexpr double kPageBox[4]{ 35.0 / 1024, 55.0 / 1024, 957.0 / 1024, 968.0 / 1024 };   // left, top, right, bottom
+				if (!entry.sized || GetTickCount64() >= entry.nextMeasure) {   // the page size rarely changes: measure once a second
+					entry.nextMeasure = GetTickCount64() + 1000;
+					double x = 0, y = 0, w = 0, h = 0;
+					auto** slot = slotOffset >= 0 ? reflect::At<UE::UObject*>(school, slotOffset) : nullptr;
+					if (ui::Measure(page, x, y, w, h) && w > 0 && h > 0 && slot && *slot && reflect::Usable(*slot) &&
+						(!entry.sized || std::abs(w - entry.width) > 1 || std::abs(h - entry.height) > 1)) {
+						const double top = h * kPageBox[1], bottom = h * (1 - kPageBox[3]), right = w * (1 - kPageBox[2]);
+						const double tall = h - top - bottom;
+						const float padding[4]{ 0.0f, float(top), float(right), float(bottom) };   // FMargin: left, top, right, bottom
+						ui::CallFirstGuarded(*slot, L"SetPadding", padding, sizeof(padding));
+						ui::Vec2(school, L"SetDesiredSizeOverride", tall / 2, tall);
+						entry.sized = true;
+						entry.width = w;
+						entry.height = h;
+					}
+				}
+				const float fade = std::clamp((reveal + 0.05f) / 0.82f, 0.0f, 1.0f);
+				const float alpha = shown && texture ? fade * darkstyle::Get().schoolArt : 0.0f;
+				float rgba[4];
+				if (!ReadColor(school, rgba) || std::abs(rgba[3] - alpha) > 0.01f) ui::Colour(school, 1, 1, 1, alpha);
+			}
+		}
+	}
+
+	namespace
+	{
+		// The game's reveal runs every frame; the menu's own Tick (a ProcessEvent, like the hover metrics use) keeps our school
+		// drawing's fade in step with it on every hover (owner on 9e217d27: it faded only once, on the details events).
+		void OnMagicMenuTick(UE::UObject*, UE::UFunction* function, void*)
+		{
+			static UE::UFunction* s_tick = nullptr;
+			if (!s_tick) {
+				if (pe::FunctionName(function) != "Tick") return;
+				s_tick = function;
+			}
+			if (function != s_tick) return;
+			static bool s_seen = false;   // TEMP-DIAG: the Magic menu's Tick reaches us (record in the KB)
+			if (!s_seen) { s_seen = true; logger::warn("TEMP-DIAG MRMAGICDARK menu tick seen"); }
+			SyncMagicPaper();
+			// the details type icon (Spell, Scroll, Power...) is set again by the game on every hover: keep it the skin's
+			const auto& skin = Current();
+			if (!skin.recolor) return;
+			std::erase_if(g_magicIcons, [](const reflect::Handle& h) { return !reflect::Get(h); });
+			for (const auto& icon : g_magicIcons)
+				if (auto* widget = reflect::Get(icon); widget && !SwapIconMaterial(widget, skin)) SwapArt(widget, skin);
+			// TEMP-DIAG: why the Spell type icon stays dark after its swap (owner on f5da9cdb): each icon's art and colour, and the
+			// opacity and colour of the user widgets around it, once per icon. Record in the KB.
+			static std::set<UE::UObject*> s_told;
+			static auto* userWidget = ui::Class(L"/Script/UMG.UserWidget");
+			for (const auto& icon : g_magicIcons) {
+				auto* widget = reflect::Get(icon);
+				if (!widget || s_told.size() >= 12 || !s_told.insert(widget).second) continue;
+				float rgba[4]{ -1, -1, -1, -1 };
+				ReadColor(widget, rgba);
+				std::string chain;
+				for (auto* outer = widget->GetOuter(); outer && chain.size() < 400; outer = outer->GetOuter()) {
+					if (!userWidget || !outer->GetClass()->IsChildOf(userWidget)) continue;
+					const int at = reflect::Offset(outer->GetClass(), "ColorAndOpacity");
+					const auto* c = at >= 0 ? reflect::At<float>(outer, at) : nullptr;
+					chain += std::format(" < {} op={:.2f} c={:.2f},{:.2f},{:.2f},{:.2f}", NameOf(outer), ui::RenderOpacity(outer),
+						c ? c[0] : -1.f, c ? c[1] : -1.f, c ? c[2] : -1.f, c ? c[3] : -1.f);
+				}
+				logger::warn("TEMP-DIAG MRMAGICDARK icon {} art={} c={:.2f},{:.2f},{:.2f},{:.2f} op={:.2f}{}", NameOf(widget), NameOf(ui::BrushResource(widget)),
+					rgba[0], rgba[1], rgba[2], rgba[3], ui::RenderOpacity(widget), chain);
+			}
+		}
+
+		// The Magic tab strip (WBP_ModernMenu_MagicTabs): the game sets the tab picture for the page inside its own events, so the
+		// dark art is swapped right after them (the same frame: no parchment flash on a tab change).
+		void OnMagicTabsEvent(UE::UObject* tabs, UE::UFunction* function, void*)
+		{
+			const auto& skin = Current();
+			if (!skin.recolor || !reflect::Usable(tabs) || (function && pe::FunctionName(function) == "Tick")) return;
+			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
+			if (!imageClass) return;
+			for (auto* widget : ui::TreeWidgets(tabs, 200))
+				if (reflect::Usable(widget) && widget->GetClass()->IsChildOf(imageClass)) SwapArt(widget, skin);
+		}
+	}
+
+	void StyleMagicPage(UE::UObject* menu, bool rescan)
+	{
+		const auto& skin = Current();
+		static auto* imageClass = ui::Class(L"/Script/UMG.Image");
+		static auto* richClass = ui::Class(L"/Script/UMG.RichTextBlock");
+		static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
+		if (!skin.recolor || !imageClass || !reflect::Usable(menu)) return;
+		// a page widget gone (the details view re-created): look again, at most once a second
+		static ULONGLONG s_nextLost = 0;
+		if (!rescan && reflect::Get(g_magicMenu) == menu && GetTickCount64() >= s_nextLost &&
+			(std::any_of(g_magicPapers.begin(), g_magicPapers.end(), [](const auto& e) { return !reflect::Get(e.paper); }) || std::any_of(g_magicPages.begin(), g_magicPages.end(), [](const auto& page) { return !reflect::Get(page); }))) {
+			s_nextLost = GetTickCount64() + 1000;
+			rescan = true;
+		}
+		if (rescan || reflect::Get(g_magicMenu) != menu) {
+			g_magicMenu = reflect::Hold(menu);
+			g_magicPages.clear();
+			auto* pageArt = SkinArt(L"MagicPage.png");
+			// the Spell Effectiveness texts by widget name (any game language; static scan of WBP_ModernMenu_MagicMenu): the line
+			// under the bars (SpellEffectiveness_Box, the game's spelling) and the explanation's title
+			UE::UObject* effectiveness[]{ ui::FindInTree(menu, "Magic_SpellEffectivenes_Value"),
+				ui::FindInTree(menu, "Magic_Active_SpellEffectiveness_Title") };
+			for (auto* widget : ui::TreeWidgets(menu, 3000)) {
+				if (!reflect::Usable(widget)) continue;
+				if (richClass && widget->GetClass()->IsChildOf(richClass)) {
+					// the Spell Effectiveness line: DT_UI_Magic_SpellEffectiveness_RichTextStyle (used by the Magic menu only)
+					const int setOffset = reflect::Offset(widget->GetClass(), "TextStyleSet");
+					auto** table = setOffset >= 0 ? reflect::At<UE::UObject*>(widget, setOffset) : nullptr;
+					if (table && reflect::Usable(*table) && NameOf(*table).find("SpellEffectiveness") != std::string::npos)
+						InkRich(widget, skin);
+					continue;
+				}
+				if (textClass && widget->GetClass()->IsChildOf(textClass)) {
+					// the visible "95% Spell Effectiveness" line (the rich text above is its tooltip, already light): row ink
+					if (std::any_of(std::begin(effectiveness), std::end(effectiveness),
+							[&](UE::UObject* holder) { return holder && (holder == widget || ui::IsWithin(widget, holder)); })) {
+						float rgba[4];
+						if (ReadColor(widget, rgba)) uix::Ink(widget, WithAlpha(skin.ink, rgba[3]).data());
+					}
+					continue;
+				}
+				if (!widget->GetClass()->IsChildOf(imageClass)) continue;
+				auto* brush = ui::BrushResource(widget);
+				if (uistyle::IsMagicPage(NameOf(brush)) || (pageArt && brush == pageArt)) g_magicPages.push_back(reflect::Hold(widget));
+			}
+			pe::WatchPost(menu->GetClass(), &OnMagicMenuTick);
+			// every details paper (the castable and the active details, a reopened menu's new ones) gets its own dark page
+			std::vector<UE::UObject*> papers, tiles;
+			for (auto* widget : ui::TreeWidgets(menu, 3000)) {
+				if (!reflect::Usable(widget)) continue;
+				const auto name = NameOf(widget);
+				if (name == "BackgroundPaper") papers.push_back(widget);
+				else if (name == "Infos_BG_and_School_Illustration") tiles.push_back(widget);
+			}
+			for (auto* paper : papers) {
+				if (darkpack::Active()) break;   // the Dark pack bakes the parchment: the game's own material draws the page
+				UE::UObject* tile = nullptr;
+				for (auto* candidate : tiles) if (ui::IsWithin(candidate, paper)) tile = candidate;
+				PlaceMagicPage(paper, tile, skin);
+			}
+			if (auto* tabs = ui::FindInTree(menu, "MagicTabs"); tabs && reflect::Usable(tabs)) {
+				pe::WatchPost(tabs->GetClass(), &OnMagicTabsEvent);
+				g_magicTabs = reflect::Hold(tabs);
+			}
+		}
+		if (auto* tabs = reflect::Get(g_magicTabs)) OnMagicTabsEvent(tabs, nullptr, nullptr);   // and on every layout pass
+		for (const auto& page : g_magicPages)
+			if (auto* widget = reflect::Get(page)) SwapArt(widget, skin);   // MagicPage.png in DarkStyle.h panel
+		SyncMagicPaper();
 	}
 
 	void WatchFooters(UE::UObject* mainPart, UE::UObject* menu, const Target& target)
@@ -710,10 +1205,28 @@ namespace menuskin
 		if (!skin.recolor) return;
 		ui::Call get(list, L"GetListView");
 		auto* inner = get.Size("ReturnValue") == sizeof(UE::UObject*) && get.RunGuarded()
-			? get.Get<UE::UObject*>("ReturnValue") : list;
+			? get.Get<UE::UObject*>("ReturnValue") : nullptr;
+		// WBP_ModernMenu_MagicListView has no GetListView: its inner "ListView" (VModernListView) holds the ScrollBarStyle
+		if (!inner) inner = ui::FindInTree(list, "ListView");
+		if (!inner) inner = list;
 		if (!reflect::Usable(inner)) return;
 		unsigned count = 0;
-		PaintScrollbarStyle(inner, "ScrollBarStyle", count);
+		const unsigned resets = PaintScrollbarStyle(inner, "ScrollBarStyle", count);
+		static std::set<std::string> s_logged;   // TEMP-DIAG: what each list's scrollbar holds (Magic thumb stayed pale); record in the KB
+		const auto type = NameOf(inner->GetClass());
+		if (s_logged.size() < 4 && s_logged.insert(NameOf(list->GetClass())).second) {
+			static auto* style = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.ScrollBarStyle");
+			static auto* brush = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateBrush");
+			const int styleOffset = reflect::Offset(inner->GetClass(), "ScrollBarStyle");
+			const int thumbOffset = style ? reflect::Offset(style, "NormalThumbImage") : -1;
+			const int resourceOffset = brush ? reflect::Offset(brush, "ResourceObject") : -1;
+			std::string thumb = "?";
+			if (styleOffset >= 0 && thumbOffset >= 0 && resourceOffset >= 0)
+				if (auto** at = reflect::At<UE::UObject*>(inner, styleOffset + thumbOffset + resourceOffset); at && *at && reflect::Usable(*at))
+					thumb = NameOf(*at);
+			logger::warn("TEMP-DIAG MRMAGICDARK scrollbar {} (list {}) style@{} thumb={} calls={} resets={}", type,
+				NameOf(list->GetClass()), styleOffset, thumb, count, resets);
+		}
 	}
 
 	void WatchDetails(UE::UObject* menu, UE::UObject* list, const Target& target)

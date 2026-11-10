@@ -28,6 +28,21 @@ namespace sorting
 			}
 		}
 
+		bool PngBrush(UE::UObject* a_image, const wchar_t* a_file, const darkstyle::Rgb* a_tint)
+		{
+			auto* texture = a_file ? icons::Texture(a_file) : nullptr;
+			if (!a_image || !texture) return false;
+			ui::Call set(a_image, L"SetBrushFromTexture");
+			set.Set("Texture", texture);
+			set.Set("bMatchSize", false);
+			if (!set.Run()) return false;
+			if (a_tint) {
+				const auto c = darkstyle::Arr(*a_tint);
+				ui::Colour(a_image, c[0], c[1], c[2], c[3]);
+			}
+			return true;
+		}
+
 		bool TextureBrush(UE::UObject* a_image, const wchar_t* a_gamePath)
 		{
 			static std::unordered_map<std::wstring, reflect::Handle> s_loaded;

@@ -21,9 +21,8 @@ namespace search::detail
 		// Esc ends it. The text lives in g_queries; the filter and the controller's keyboard read and write the same text.
 		const uistyle::Search& BarStyle(menus::Menu a_menu)
 		{
-			const auto preset = mrconfig::Get().stylePreset;
-			return a_menu == menus::Menu::kInventory && preset == uistyle::Preset::Dark
-				? uistyle::kInventorySkinSearch : uistyle::Get(preset).search;
+			// the skinned menus (Inventory, Magic) take the menu skin's bar in Dark (phase 2, owner 2026-11-10)
+			return uistyle::SearchFor(a_menu == menus::Menu::kInventory || a_menu == menus::Menu::kMagic, mrconfig::Get().stylePreset);
 		}
 
 		const float* BarTextInk(menus::Menu a_menu, bool hint, bool sel)

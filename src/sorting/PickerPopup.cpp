@@ -52,8 +52,7 @@ namespace sorting::detail
 		auto* background = CanvasChild(popupWidget, L"/Script/UMG.Image", (L"PiecePaper" + suffix).c_str(), 0, 0, width, height, 0, &backgroundSlot);
 		if (!background || !backgroundSlot) return false;
 		paperSlot = reflect::Hold(backgroundSlot);
-		const bool skinned = kind == 0 && uistyle::SkinFor(mrconfig::Get().stylePreset).recolor;
-		const auto& style = skinned ? uistyle::kInventorySkinPicker : uistyle::Get(mrconfig::Get().stylePreset).picker;
+		const auto& style = uistyle::PickerFor(uistyle::SkinnedKind(kind), mrconfig::Get().stylePreset);
 		ui::RoundedBox(background, false, style.paper.data(), style.border.data(), 1.5f);
 		const std::uint8_t visible = 0;
 		ui::CallFirst(background, L"SetVisibility", &visible, sizeof(visible));
@@ -100,7 +99,9 @@ namespace sorting::detail
 		if (!image || !a_icon) return;
 		const bool all = std::wcscmp(a_icon, itemtags::Info(tab).icons[0]) == 0;
 		const wchar_t* game = all ? AllTexture(kind) : nullptr;
-		if (!game || !TextureBrush(image, game)) Brush(image, a_icon, kind == 0 && OwnSorts());
+		const bool darkArt = uistyle::InventoryControls(uistyle::SkinnedKind(kind), mrconfig::Get().stylePreset).darkArt;
+		if (game && darkArt && PngBrush(image, itemsort::DarkAllFile(kind), &darkstyle::Get().headerIcon)) return;   // Dark: the white PNG of the game icon
+		if (!game || !TextureBrush(image, game)) Brush(image, a_icon, uistyle::SkinnedKind(kind));
 	}
 
 	const wchar_t* Picker::HeaderIcon() const
@@ -140,7 +141,9 @@ namespace sorting::detail
 				LayoutChild(reflect::Get(labels[i]), x, y + 41, pickergrid::CellWidth, 21);
 				// The popup's "All" of the Magic school/type pickers: the game's icon too (owner, R14 test 2026-11-07).
 				const wchar_t* game = i == 0 && view == tab ? AllTexture(kind) : nullptr;
-				if (!game || !TextureBrush(reflect::Get(icons[i]), game)) Brush(reflect::Get(icons[i]), info.icons[i], kind == 0);
+				const bool darkAll = game && uistyle::InventoryControls(uistyle::SkinnedKind(kind), mrconfig::Get().stylePreset).darkArt &&
+					PngBrush(reflect::Get(icons[i]), itemsort::DarkAllFile(kind), &darkstyle::Get().headerIcon);
+				if (!darkAll && (!game || !TextureBrush(reflect::Get(icons[i]), game))) Brush(reflect::Get(icons[i]), info.icons[i], uistyle::SkinnedKind(kind));
 				const auto display = std::string(itemtags::PopupLabel(view, i));
 				uix::SetText(reflect::Get(labels[i]), display);
 				ui::Call tooltip(reflect::Get(labels[i]), L"SetToolTipText");
@@ -190,7 +193,7 @@ namespace sorting::detail
 		PaintStolen();
 		PaintEnchanted();
 		const int hoveredCell = mouseHoverCell.load();
-		const auto& cellFill = kind == 0 && uistyle::SkinFor(mrconfig::Get().stylePreset).recolor
+		const auto& cellFill = uistyle::SkinnedKind(kind) && uistyle::SkinFor(mrconfig::Get().stylePreset).recolor
 			? uistyle::kInventorySkinPicker.focusFill : focusFill;
 		const bool controllerInput = controllerPopup && !mouseInputActive.load();
 		for (unsigned i = 0; i < itemtags::Info(view).count; ++i) {

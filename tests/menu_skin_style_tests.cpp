@@ -2,7 +2,19 @@
 // layout and behaviour changes run in every preset. Container and barter menus reuse the same table.
 #include <cstdio>
 #include "../src/core/UiTheme.h"
+#if __has_include("../src/core/DarkStyle.h")
+#include "../src/core/DarkStyle.h"
+#else
+// Before the batch (owner 2026-11-10): no shared Dark style values; colours were scattered literals.
+namespace darkstyle {
+struct Rgb { float r, g, b; };
+struct Style { Rgb panel{ 0, 0, 0 }, detailsPage{ 0, 0, 0 }, rowText{ 0, 0, 0 }, rowSeparator{ 0, 0, 0 }, columnLine{ 0, 0, 0 }, rowIcon{ 0, 0, 0 }, headerIcon{ 0, 0, 0 }; };
+inline const Style& Get() { static const Style s{}; return s; }
+inline float Linear(float) { return -1; }
+}
+#endif
 #include <string_view>
+#include <cmath>
 #ifndef UISTYLE_SKIN
 // Pre-split behaviour: the dark Inventory skin applied in every preset.
 namespace uistyle {
@@ -15,6 +27,38 @@ inline constexpr const Skin& SkinFor(Preset) { return kAlways; }
 namespace uistyle {
 struct InventoryControlStyle { bool darkArt; float selectedSortTint; };
 inline constexpr InventoryControlStyle InventoryControls(bool inventory, Preset) { return { inventory, inventory ? 0.24f : 1.0f }; }
+}
+#endif
+#ifndef UISTYLE_MAGIC_SKIN
+// Pre-phase-2 behaviour: only the Inventory (kind 0) took the dark skin; Magic kept the preset palette.
+namespace uistyle {
+inline constexpr bool SkinnedKind(int kind) { return kind == 0; }
+inline constexpr const Search& SearchFor(bool, Preset p) { return Get(p).search; }
+inline constexpr const Picker& PickerFor(bool inventory, Preset p) { return inventory && SkinFor(p).recolor ? kInventorySkinPicker : Get(p).picker; }
+inline constexpr bool IsMagicPage(std::string_view) { return false; }
+}
+#endif
+#ifndef DARKSTYLE_TABS_AND_DETAIL
+// Round 6: tab greys baked into the art script.
+namespace darkstyle { struct TabValues { float selected = 0, unselected = 0, gap = 0, outline = 0, glyph = 0, glyphDim = 0; };
+inline TabValues Tabs() { return {}; } }
+#else
+namespace darkstyle { inline Style::Tab Tabs() { return Get().tab; } }
+#endif
+#ifndef DARKSTYLE_INVENTORY_PAGE
+// Round 7: Magic pages were detail pictures tinted by panel 38; no frame value; the details page was our own box.
+namespace testpage { inline float Frame() { return -1; } inline float DetailsTint() { return -1; } inline bool PageUntinted(const uistyle::Skin&) { return false; } }
+#else
+namespace testpage {
+inline float Frame() { return darkstyle::Get().frame.r; }
+inline float DetailsTint() { return darkstyle::Get().detailsPage; }
+inline bool PageUntinted(const uistyle::Skin& s) { for (int i = 0; i < s.artSwapCount; ++i) if (std::string_view(s.artSwaps[i].stock) == "T_MagicBackground") return !s.artSwaps[i].tint; return false; }
+}
+#endif
+#ifndef UISTYLE_MAGIC_SKIN_R2
+// Round 1 behaviour: Magic header icons dimmed while inactive; the details page (paper material) never tinted.
+namespace uistyle {
+inline constexpr float MagicHeaderOpacity(Preset, float stock) { return stock; }
 }
 #endif
 unsigned checks=0,failures=0;
@@ -66,5 +110,46 @@ Check(!lightControls.darkArt && lightControls.selectedSortTint == 1.0f,
  "Light uses the same original Inventory art");
 Check(darkControls.darkArt && darkControls.selectedSortTint == 0.24f && !InventoryControls(false, Preset::Dark).darkArt,
  "only Dark Inventory selects the dark artwork and dimmed sort background");
+ // Phase 2 (owner 2026-11-10): the Magic menu takes the same Dark look; Classic and Light keep their palettes.
+ Check(SkinnedKind(0)&&SkinnedKind(1)&&SkinnedKind(2)&&SkinnedKind(5)&&SkinnedKind(6),
+  "Inventory and every Magic picker (School, Effect, Type, Active Effects) use the menu skin");
+ Check(!SkinnedKind(3)&&!SkinnedKind(4)&&!SkinnedKind(-1),"container sides and inactive pickers keep the preset palette");
+ Check(&SearchFor(true,Preset::Dark)==&kInventorySkinSearch,"the Magic search bar in Dark is the Inventory's charcoal bar");
+ Check(&SearchFor(true,Preset::Classic)==&kClassic.search&&&SearchFor(false,Preset::Dark)==&kDark.search,
+  "Classic keeps its bar and unskinned menus keep the Dark palette bar");
+ Check(&PickerFor(SkinnedKind(1),Preset::Dark)==&kInventorySkinPicker&&&PickerFor(SkinnedKind(5),Preset::Dark)==&kInventorySkinPicker,
+  "Magic School and Type popups use the Inventory's dark popup in Dark");
+ Check(&PickerFor(SkinnedKind(1),Preset::Classic)==&kClassic.picker,"Magic popups keep the Classic popup in Classic");
+ Check(IsMagicPage("T_MagicBackground")&&!IsMagicPage("T_UI_PlayerMenu_Background")&&!IsMagicPage("T_Magic_Tabs_All"),
+  "the Magic page texture (shared with Quest/Help/Stats) is darkened per widget; tabs are not tinted");
+ // Batch 2026-11-10: one Dark style header; Inventory and Magic read the same values; PNGs are white shapes tinted by them.
+ const auto& ds=darkstyle::Get();
+ const auto same=[](darkstyle::Rgb c,float v){return c.r==v&&c.g==v&&c.b==v;};
+ Check(same(ds.panel,41),"the page body is the installed Inventory panel art's (RGB 41, MRSkinPlayerPanel_P)");
+ Check(same(ds.columnLine,99),"the row column lines are the Inventory pak's gray (flat RGB 99)");
+ Check(same(ds.headerIcon,247),"the header sort icons are the Inventory pak's white (RGB 247)");
+ Check(ds.rowText.r>200,"light row text");
+ Check(std::abs(darkstyle::Linear(ds.rowText.r)-dark.ink[0])<0.002f,"the skin's row ink comes from the shared row text value");
+#ifdef UISTYLE_SKIN_ART
+#ifdef DARKSTYLE_TINTED_ART
+ const auto tinted=[](const Skin& s,std::string_view stock,darkstyle::Value want){for(int i=0;i<s.artSwapCount;++i)if(stock==s.artSwaps[i].stock)return s.artSwaps[i].tint==want;return false;};
+ Check(tinted(dark,"T_Line_V",&darkstyle::Style::columnLine),"row column lines: a shipped white PNG tinted by columnLine (was the local pak)");
+#else
+ Check(false,"row column lines: a shipped white PNG tinted by columnLine (was the local pak)");
+#endif
+#endif
+ // Round 2 (owner screenshot 2026-11-10): Effect, Type and Cost white like the A-Z and School icons; the details page dark.
+ Check(MagicHeaderOpacity(Preset::Dark,0.5f)==1.0f,"Dark Magic header icons are full white even while inactive");
+ Check(MagicHeaderOpacity(Preset::Classic,0.5f)==0.5f&&MagicHeaderOpacity(Preset::Light,0.45f)==0.45f,
+  "Classic and Light keep the dimmed inactive header icons");
+ // Round 7 (owner 2026-11-10): Magic tabs follow the Inventory tab process; pages keep their detail around the header colour.
+ const auto tabs=darkstyle::Tabs();
+ Check(tabs.selected==41&&tabs.unselected==33&&tabs.gap==24&&tabs.outline==134&&tabs.glyph==242&&tabs.glyphDim==162,
+  "the tab greys are the Inventory compiler's (BODY 41, BOX 33, GAP 24, LINE 134, glyphs 242/162), named in DarkStyle.h");
+ // Round 8 (owner 2026-11-10, "not using the same method"): the Inventory method for the Magic pages.
+ Check(testpage::Frame()==16,"the frame is the installed Inventory panel art's (RGB 16), named in DarkStyle.h");
+ Check(testpage::PageUntinted(dark),"the Magic page art is drawn untinted, its colours baked like the Inventory pak");
+ Check(testpage::DetailsTint()==dark.pageGray&&dark.pageGray==0.010f,
+  "one details page tint (DarkStyle.h detailsPage) for the Inventory and the Magic page widgets, the Inventory's 0.010");
 std::printf("%u checks, %u failures\n",checks,failures);return failures?1:0;
 }

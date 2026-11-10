@@ -264,7 +264,8 @@ namespace sorting::detail
 			if (on) TextureBrush(arrow, state.descending ? itemsort::kArrowDown : itemsort::kArrowUp);
 			ui::Visible(arrow, on);
 		}
-		ui::Float(reflect::Get(headerImage), L"SetRenderOpacity", on || choice || category ? 1.0f : 0.5f);
+		const float dim = kind != 0 && uistyle::SkinnedKind(kind) ? uistyle::MagicHeaderOpacity(mrconfig::Get().stylePreset, 0.5f) : 0.5f;
+		ui::Float(reflect::Get(headerImage), L"SetRenderOpacity", on || choice || category ? 1.0f : dim);
 	}
 
 	const wchar_t* AllTexture(int a_kind)
@@ -448,7 +449,9 @@ namespace sorting::detail
 			ui::RoundedBox(reflect::Get(sortFrames[k]), false, focus ? focusFill.data() : kClear, kClear,
 				pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 			if (auto* back = reflect::Get(sortBacks[k])) ui::Visible(back, on && !focus);
-			const float inactiveOpacity = uistyle::Get(mrconfig::Get().stylePreset).picker.inactiveSortOpacity;
+			const float stockInactive = uistyle::Get(mrconfig::Get().stylePreset).picker.inactiveSortOpacity;
+			const float inactiveOpacity = kind != 0 && uistyle::SkinnedKind(kind)
+				? uistyle::MagicHeaderOpacity(mrconfig::Get().stylePreset, stockInactive) : stockInactive;
 			if (auto* image = reflect::Get(sortImages[k])) ui::Float(image, L"SetRenderOpacity", on ? 1.0f : inactiveOpacity);
 			if (auto* arrow = reflect::Get(sortArrows[k])) {
 				if (on) TextureBrush(arrow, state.descending ? itemsort::kArrowDown : itemsort::kArrowUp);   // the Alchemy arrows
