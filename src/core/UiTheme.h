@@ -148,7 +148,6 @@ namespace uistyle
 		{ "T_CircularProgress_bg", L"RingCentre.png" },
 		{ "T_Arrow_Empty", L"ButtonArrow.png" },
 		{ "T_Button_State_Hovered_LeftLineFade", L"ButtonLine.png" },
-		{ "T_Line_V", L"ColumnLine.png", &darkstyle::Style::columnLine },        // row column lines (was the local pak)
 		// Magic row school and spell-type icons (brown art): white shapes drawn in rowIcon (tools/make_dark_row_icons.py)
 		{ "T_MagicSchoolSimple_Alteration", L"MagicRow-T_MagicSchoolSimple_Alteration.png", &darkstyle::Style::rowIcon },
 		{ "T_MagicSchoolSimple_Conjuration", L"MagicRow-T_MagicSchoolSimple_Conjuration.png", &darkstyle::Style::rowIcon },
@@ -199,16 +198,13 @@ namespace uistyle
 	inline constexpr Skin kDarkSkin{
 		true, true, true,
 		darkstyle::Arr(darkstyle::kDefaults.rowText), darkstyle::Arr(darkstyle::kDefaults.rowText),   // row and perk ink
-		{ 0.65f, 0.65f, 0.65f, 0.55f }, { 0.55f, 0.55f, 0.55f, 0.13f },
-		kDarkArt, int(sizeof(kDarkArt) / sizeof(kDarkArt[0])), { 0.55f, 0.55f, 0.55f, 1 },
+		darkstyle::kDefaults.skin.rule, darkstyle::kDefaults.skin.guide,
+		kDarkArt, int(sizeof(kDarkArt) / sizeof(kDarkArt[0])), darkstyle::kDefaults.skin.ring,
 		darkstyle::kDefaults.detailsPage,   // the details page tint (Inventory and Magic)
-		{ 0.45f, 0.45f, 0.45f, 1 },      // T_StatsMenu_Line_R (white art)
-		{ 1, 1, 1, 1 },                  // T_Inventory_pattern ships gray in the texture package
-		{ 0.41f, 0.65f, 1.0f, 1 },       // per-channel inverse of T_inv_details_effects_title_BG's baked brown
-		{ 0.12f, 0.12f, 0.12f, 1 },      // action button fill and arrows
-		0.0052f, 0.0052f, 0.0222f,       // scrollbar track, thumb border, thumb inside (linear gray)
-		{ 0.125f, 0.120f, 0.125f, 1 },   // owner swatch: the highlighted sub-tab disc gray (sRGB 99 97 99)
-		{ 0.83f, 0.83f, 0.83f, 1 }       // rule middles match the end pieces (ButtonLine.png, sRGB 235)
+		darkstyle::kDefaults.skin.ornament, darkstyle::kDefaults.skin.pattern, darkstyle::kDefaults.skin.band,
+		darkstyle::kDefaults.skin.buttonFill,
+		darkstyle::kDefaults.skin.scrollTrack, darkstyle::kDefaults.skin.scrollBorder, darkstyle::kDefaults.skin.scrollInside,
+		darkstyle::kDefaults.skin.emphasisInk, darkstyle::kDefaults.skin.buttonRule
 	};
 
 	inline constexpr const Skin& SkinFor(Preset a_preset) { return a_preset == Preset::Dark ? kDarkSkin : kStockSkin; }

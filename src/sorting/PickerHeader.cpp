@@ -259,7 +259,7 @@ namespace sorting
 					// highlight fill the whole button (owner 2026-11-07).
 					const float extra = key == widest ? 33.0f : 0.0f;
 					if (!make(prefix.c_str(), nullptr, sortHeaders[k], sortImages[k], sortFrames[k], 49.0f, false, &inner, extra)) return false;
-					// Dark (Inventory and Magic): the shipped white PNG; else, or if it is missing, the game's own texture
+					// Dark Magic keys: the shipped white PNG; else (and the Inventory keys, baked white in MRDark_P) the game's own texture
 					if (!inventoryPaint.darkArt || !PngBrush(reflect::Get(sortImages[k]), itemsort::DarkTextureFile(key), &darkstyle::Get().headerIcon))
 						TextureBrush(reflect::Get(sortImages[k]), itemsort::TexturePath(key));
 					// The game's active-sort parchment under the icon (shown by PaintSorts on the active sort only).

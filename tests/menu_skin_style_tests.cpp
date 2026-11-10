@@ -133,10 +133,24 @@ Check(darkControls.darkArt && darkControls.selectedSortTint == 0.24f && !Invento
 #ifdef UISTYLE_SKIN_ART
 #ifdef DARKSTYLE_TINTED_ART
  const auto tinted=[](const Skin& s,std::string_view stock,darkstyle::Value want){for(int i=0;i<s.artSwapCount;++i)if(stock==s.artSwaps[i].stock)return s.artSwaps[i].tint==want;return false;};
- Check(tinted(dark,"T_Line_V",&darkstyle::Style::columnLine),"row column lines: a shipped white PNG tinted by columnLine (was the local pak)");
+ (void)tinted;
+ const auto swapped=[](const Skin& s,std::string_view stock){for(int i=0;i<s.artSwapCount;++i)if(stock==s.artSwaps[i].stock)return true;return false;};
+ Check(!swapped(dark,"T_Line_V"),"row column lines come from the Dark pack (T_Line_V baked in columnLine, no run-time swap)");
 #else
- Check(false,"row column lines: a shipped white PNG tinted by columnLine (was the local pak)");
+ Check(false,"row column lines come from the Dark pack (T_Line_V baked in columnLine, no run-time swap)");
 #endif
+#endif
+ // Phase 2 (owner 2026-11-10): the Dark skin's run-time tints are named in DarkStyle.h, not literals in UiTheme.h.
+#ifdef DARKSTYLE_SKIN_TINTS
+ const auto& dt=darkstyle::kDefaults.skin;
+ Check(dark.rule==dt.rule&&dark.guide==dt.guide&&dark.ring==dt.ring&&dark.ornament==dt.ornament&&dark.pattern==dt.pattern
+  &&dark.band==dt.band&&dark.buttonFill==dt.buttonFill&&dark.emphasisInk==dt.emphasisInk&&dark.buttonRule==dt.buttonRule
+  &&dark.scrollTrack==dt.scrollTrack&&dark.scrollBorder==dt.scrollBorder&&dark.scrollInside==dt.scrollInside,
+  "kDarkSkin takes every tint from DarkStyle.h");
+ Check(dark.rule==Color{0.65f,0.65f,0.65f,0.55f}&&dark.guide==Color{0.55f,0.55f,0.55f,0.13f}&&dark.band==Color{0.41f,0.65f,1.0f,1}
+  &&dark.scrollInside==0.0222f&&dark.buttonRule==Color{0.83f,0.83f,0.83f,1},"the tint values are unchanged by the move");
+#else
+ Check(false,"kDarkSkin takes every tint from DarkStyle.h");
 #endif
  // Round 2 (owner screenshot 2026-11-10): Effect, Type and Cost white like the A-Z and School icons; the details page dark.
  Check(MagicHeaderOpacity(Preset::Dark,0.5f)==1.0f,"Dark Magic header icons are full white even while inactive");

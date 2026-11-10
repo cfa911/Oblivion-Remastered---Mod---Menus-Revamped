@@ -173,7 +173,7 @@ check("!allRows && !detailsskin::IsWarmInk(color)" in rebuild_now,
 rules = (source_paths.ROOT / "src/sorting/rules/ItemSort.h").read_text(encoding="utf-8")
 dark_files = re.findall(r'L"(DarkSort/[A-Za-z-]+\.png)"', rules)
 check("DarkTextureFile(" in rules and "DarkAllFile(" in rules, "the sort rules map each sort key and Magic All to a dark PNG")
-check(len(set(dark_files)) >= 11, f"eleven dark sort icons are named (Inventory 6, Magic 5): {sorted(set(dark_files))}")
+check(len(set(dark_files)) >= 5, f"the Magic-only dark sort icons are named (Cost, Effect, Type, School, Magnitude; the Inventory six are baked into MRDark_P): {sorted(set(dark_files))}")
 missing_icons = [f for f in set(dark_files) if not (source_paths.ROOT / "assets/Sorting" / f).is_file()]
 check(dark_files and not missing_icons, f"every dark sort icon ships in assets/Sorting (missing: {missing_icons})")
 try:
@@ -197,7 +197,7 @@ check(all(f"{v}" in dark_h for v in ("panel", "frame", "detailsPage", "rowText",
 check('#include "core/DarkStyle.h"' in skin_h, "the theme reads the Dark values from DarkStyle.h")
 try:
     from PIL import Image
-    for f in ("ColumnLine.png",):
+    for f in ():   # ColumnLine.png: T_Line_V is baked into MRDark_P (phase 2)
         path = source_paths.ROOT / "assets/Skin" / f
         ok = path.is_file() and all(q[:3] == (255, 255, 255) for q in Image.open(path).convert("RGBA").get_flattened_data() if q[3] > 0)
         check(ok, f"{f} ships as a pure white shape (coloured in game)")

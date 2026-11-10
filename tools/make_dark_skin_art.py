@@ -38,7 +38,6 @@ def gray(scale, floor=0):
 # stock texture -> (file, pixel map). Brown baked into the art cannot be fixed by a Slate tint (it only darkens).
 ART = {
     "T_List_Default": ("RowSeparator.png", flat(235)),
-    "T_Line_V": ("ColumnLine.png", flat(255)),          # white shape, coloured by DarkStyle.h columnLine
     "T_MagicBackground": ("MagicPage.png", flat(255)),  # white shape, coloured by DarkStyle.h panel                       # row separator line: white
     "T_List_equip_V2": ("RowEquipped.png", tint((212, 170, 78), 0.6)),       # equipped row: gold band (owner)
     "T_Property_1_magnitude": ("StatMagnitude.png", flat(190)),              # effect stat icons

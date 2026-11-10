@@ -73,7 +73,7 @@ def shape(active, x, y, v):
     return v["outline"] if y >= STRIP - W else v["gap"]
 
 
-def dark_tab(active, stock, masks, v):
+def dark_tab(active, stock, masks, v, opaque_strip=True):
     alpha = stock.getchannel("A")
     out = Image.new("RGBA", stock.size)
     px = out.load()
@@ -98,7 +98,8 @@ def dark_tab(active, stock, masks, v):
             ink = v["glyph"] if selected else v["glyphDim"]
             g = round(base + (ink - base) * opacity / 255)
             # the strip is opaque like the Inventory atlases (the stock Magic ones have see-through wedges there); stock fade below
-            px[x, y] = (g, g, g, 255 if y < STRIP + 4 else alpha.getpixel((x, y)))
+            # (opaque_strip=False keeps the stock alpha there too: the Inventory atlases in the Dark pack)
+            px[x, y] = (g, g, g, 255 if opaque_strip and y < STRIP + 4 else alpha.getpixel((x, y)))
     return out
 
 

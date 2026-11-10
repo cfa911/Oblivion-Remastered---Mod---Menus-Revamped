@@ -17,6 +17,7 @@ namespace sorting
 	{
 		void Brush(UE::UObject* a_image, const wchar_t* a_icon, bool a_inventory)
 		{
+			// Dark: the white copy (assets/Sorting/DarkInventory, tools/make_dark_picker_icons.py); our own PNGs, not in MRDark_P (RMI-085)
 			const auto paint = uistyle::InventoryControls(a_inventory, mrconfig::Get().stylePreset);
 			auto* texture = paint.darkArt ? icons::Texture((std::wstring(L"DarkInventory/") + a_icon).c_str()) : nullptr;
 			if (!texture) texture = icons::Texture(a_icon);

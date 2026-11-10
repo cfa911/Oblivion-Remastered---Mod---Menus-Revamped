@@ -52,22 +52,18 @@ namespace itemsort
 		return std::find(keys.begin(), keys.end(), a_key) != keys.end();
 	}
 
-	// Dark skin sort icons: white (RGB 247) versions of the game textures with the stock alpha, shipped as PNGs in
-	// assets/Sorting/DarkSort (tools/make_dark_sort_icons.py). Replaces the local texture package look (owner 2026-11-10).
+	// Dark skin sort icons of the Magic-only keys: white versions of the game textures with the stock alpha, shipped as PNGs in
+	// assets/Sorting/DarkSort (tools/make_dark_sort_icons.py). The Inventory keys (A-Z, Health, Damage, Armor, Weight, Value)
+	// draw the game texture, which the Dark pack MRDark_P bakes white (DarkStyle.h headerIcon): nullptr.
 	inline const wchar_t* DarkTextureFile(Key a_key)
 	{
 		switch (a_key) {
-		case Key::Health:      return L"DarkSort/Sort-Health.png";
-		case Key::Damage:      return L"DarkSort/Sort-Damage.png";
-		case Key::Armor:       return L"DarkSort/Sort-Armor.png";
-		case Key::Weight:      return L"DarkSort/Sort-Weight.png";
-		case Key::Value:       return L"DarkSort/Sort-Value.png";
 		case Key::Cost:        return L"DarkSort/Sort-Cost.png";
 		case Key::EffectValue: return L"DarkSort/Sort-Effect.png";
 		case Key::Category:    return L"DarkSort/Sort-Type.png";
 		case Key::School:      return L"DarkSort/Sort-School.png";
 		case Key::Magnitude:   return L"DarkSort/Sort-Magnitude.png";
-		default:               return L"DarkSort/Sort-Name.png";
+		default:               return nullptr;
 		}
 	}
 	// the Magic School (kind 1) and Type (kind 5) pickers' "All" icon in the Dark skin
