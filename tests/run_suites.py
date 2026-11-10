@@ -23,7 +23,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 GROUPS = {
     "skin": ["menu_skin_style_tests", "inventory_details_skin_tests", "inventory_header_layout_tests", "brush_handle_tests",
-             "data_table_rows_tests", "filter_toggle_paint_tests", "dark_skin_wiring_tests", "enchanted_paint_tests",
+             "data_table_rows_tests", "filter_toggle_paint_tests", "dark_skin_wiring_tests", "dark_pack_tests", "dark_pack_switch_tests", "enchanted_paint_tests",
              "ui_style_tests", "config_reader_tests", "inventory_header_transition_tests"],
 }
 COUNT = re.compile(r"(\d+) checks, (\d+) failures")

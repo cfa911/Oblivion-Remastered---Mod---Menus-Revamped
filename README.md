@@ -99,6 +99,18 @@ The standalone Sorting baseline is preserved on `deprecated/sorting-overhaul`.
   Owner-accepted in the development build (container/barter performance and
   the idle-focus flicker); see Validation status.
 
+## Dark preset and the Dark UI pack
+
+`[Style] uPreset=2` (Dark) also darkens the game's own menu art through a texture pack, `MRDark_P` (`.pak`, `.utoc`,
+`.ucas`). It ships in `Plugins/MenusRevamped/DarkPack`; at every start the plugin copies it into
+`OblivionRemastered/Content/Paks/~mods` when the preset is Dark and deletes it there for Classic or Light. A preset change
+applies after one restart. The pack is built by `tools/make_dark_pack.py` from the stock textures and `src/core/DarkStyle.h`
+(re-run it after a colour change; `assets/DarkPack/MRDark_P.json` records what it was built from).
+
+**Before you uninstall** (Vortex or by hand): set `uPreset=0`, start the game once, then uninstall. Or, after uninstalling,
+delete `Content/Paks/~mods/MRDark_P.pak`, `MRDark_P.utoc` and `MRDark_P.ucas` yourself: Vortex does not know these copies,
+and without the plugin they keep the menus dark.
+
 ## Development build and cutover
 
 Build with xmake windows/x64/releasedbg, target `MenusRevamped`.

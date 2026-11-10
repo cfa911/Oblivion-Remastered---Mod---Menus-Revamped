@@ -1,0 +1,22 @@
+{
+  "pack": "MRDark_P",
+  "game_build": "1.512.105.0",
+  "built_by": "tools/make_dark_pack.py",
+  "style": {
+    "detailsPage": 0.01
+  },
+  "textures": {
+    "Art/UI/Modern/GameMenuLayer/SpellPurchase/T_SpellPurchase_LeftPageBG": {
+      "recipe": "details_page",
+      "style": [
+        "detailsPage"
+      ],
+      "stock_uexp_sha256": "f0cd2388dacfcf7d5e3f8ffb564715b3d798e414775af208bef082849515a4f2"
+    }
+  },
+  "files": {
+    "MRDark_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
+    "MRDark_P.utoc": "376df990a8bdad8cc0828849b6f395fb935e43722a91464b458c7e918e14e79b",
+    "MRDark_P.ucas": "197e52a05201e4486251f410ed797a7cdefbed6e4d541a3fa688aeb9ee1c6e79"
+  }
+}

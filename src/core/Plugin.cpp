@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "core/Runtime.h"
 #include "core/Config.h"
+#include "core/DarkPack.h"
 #include "search/Search.h"
 
 namespace
@@ -28,6 +29,7 @@ OBSE_PLUGIN_LOAD(const OBSE::LoadInterface* obse)
 	mrconfig::Load();
 	const auto level = static_cast<spdlog::level::level_enum>(std::clamp(mrconfig::Get().search.logLevel, 0, 4));
 	logger::set_level(level, level);
+	darkpack::Apply();   // before the engine mounts ~mods (KB docs/reverse-engineering/dark-mode-ui.md "Pak mount timing")
 	logger::info("MR-MAP-SEARCH-20261101: world-map results and native marker focus");
 	logger::warn("Menus Revamped MR-SMOOTH-20261027-R3: latest-side quiescent hover replay; integrated hover throttle and object guard; standalone SmoothMenus must be disabled");
 	logger::warn("Menus Revamped MR-INTEGRATION-20261026: unified search/pickers/controller keyboard; one list owner; no display-copy/input-freeze experiment");
