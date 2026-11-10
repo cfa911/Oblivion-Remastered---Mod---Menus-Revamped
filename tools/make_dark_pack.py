@@ -1,17 +1,20 @@
 """Build the Dark UI pack (assets/DarkPack/MRDark_P.pak/.utoc/.ucas): stock textures re-coloured from src/core/DarkStyle.h.
 
 Usage:
-  python tools/make_dark_pack.py --legacy <dir> --dds <dir> --ddstools <UE4-DDS-Tools/src/main.py> --retoc <retoc.exe> [--out <dir>]
+  python tools/make_dark_pack.py --paks <game>/OblivionRemastered/Content/Paks --ddstools <UE4-DDS-Tools/src/main.py>
+                                 --retoc <retoc.exe> [--out <dir>] [--check]
 
---legacy  a `retoc to-legacy --version UE5_3 --no-shaders <Content/Paks> <dir>` output holding the stock assets below
---dds     UE4-DDS-Tools `--mode export --export_as dds` exports of the same textures
+Steps per texture: retoc to-legacy (filtered to the texture; retoc reads only the base containers, never ~mods), UE4-DDS-Tools
+export to DDS, the recipe below re-colours it, UE4-DDS-Tools inject; then one retoc to-zen for the whole pack. Writes
+MRDark_P.json next to the pack: the DarkStyle.h values and stock inputs it was built from and the hashes of the files it wrote
+(tests/dark_pack_tests.py fails when DarkStyle.h changed without a rebuild). --check builds into a temp folder and compares.
 
-Phase 0 (owner 2026-11-10, dark-ui-pack-plan.md): only T_SpellPurchase_LeftPageBG, the parchment shared by the Inventory and
-Magic details, Help, Spell Purchase, Stats page 3 and Quest details. It is baked to what the Inventory details showed at run time:
-the stock colour times DarkStyle.h detailsPage (linear multiply), stock alpha kept byte for byte (BC3 alpha blocks).
-The plugin copies the pack into Content/Paks/~mods when the preset is Dark (src/core/DarkPack.cpp). Requires Pillow.
+Run it again after changing a DarkStyle.h value a recipe reads. The plugin copies the pack into Content/Paks/~mods when the
+preset is Dark (src/core/rules/DarkPackSwitch.h). Requires Pillow. Plan: KB mods/menus-revamped/evidence/dark-ui-pack-plan.md.
 """
 import argparse
+import hashlib
+import json
 import re
 import shutil
 import subprocess
@@ -23,8 +26,10 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 PACK = "MRDark_P"
-# stock asset (path under Content) -> recipe
+GAME_BUILD = "1.512.105.0"
+# stock asset (path under Content) -> recipe name
 TEXTURES = {
+    # the parchment shared by the Inventory and Magic details, Help, Spell Purchase, Stats page 3 and Quest details
     "Art/UI/Modern/GameMenuLayer/SpellPurchase/T_SpellPurchase_LeftPageBG": "details_page",
 }
 
@@ -48,6 +53,10 @@ def srgb(l):
     return round(c * 255)
 
 
+def sha256(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
 def header_size(data):
     assert data[:4] == b"DDS "
     if data[84:88] == b"DXT5":
@@ -56,7 +65,7 @@ def header_size(data):
     return 148
 
 
-def recolour(stock_dds, tint, work):
+def tint_rgb_keep_alpha(stock_dds, tint, work):
     """RGB = stock colour times tint (linear); the stock BC3 alpha blocks are kept byte for byte."""
     image = Image.open(stock_dds).convert("RGBA")
     table = [srgb(linear(v) * tint) for v in range(256)]
@@ -70,46 +79,94 @@ def recolour(stock_dds, tint, work):
     assert len(blocks) == len(replacement), "size mismatch"
     for offset in range(0, len(blocks), 16):
         blocks[offset + 8:offset + 16] = replacement[offset + 8:offset + 16]
-    out = work / stock_dds.name
+    out = work / "recoloured" / stock_dds.name
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(stock[:header_size(stock)] + blocks)
     back = Image.open(out).convert("RGBA")
     assert back.getchannel("A").tobytes() == image.getchannel("A").tobytes(), "alpha changed"
     return out
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--legacy", required=True, type=Path)
-    parser.add_argument("--dds", required=True, type=Path)
-    parser.add_argument("--ddstools", required=True, type=Path)
-    parser.add_argument("--retoc", required=True, type=Path)
-    parser.add_argument("--out", type=Path, default=ROOT / "assets/DarkPack")
-    args = parser.parse_args()
-    tint = style_float("detailsPage")
+# recipe -> (DarkStyle.h floats it reads, function(stock dds, values, work) -> recoloured dds)
+RECIPES = {
+    # what the Inventory details showed at run time: stock colour x detailsPage (linear multiply)
+    "details_page": (("detailsPage",), lambda dds, v, work: tint_rgb_keep_alpha(dds, v["detailsPage"], work)),
+}
+
+
+def run(cmd):
+    result = subprocess.run([str(c) for c in cmd], capture_output=True, text=True, errors="replace")
+    if result.returncode:
+        sys.exit(f"failed ({result.returncode}): {' '.join(map(str, cmd))}\n{result.stdout[-2000:]}{result.stderr[-2000:]}")
+    return result.stdout
+
+
+def build(args, out):
+    style = {}
+    textures = {}
     with tempfile.TemporaryDirectory() as temp:
         work = Path(temp)
         stage = work / "stage"
         for asset, recipe in TEXTURES.items():
             name = Path(asset).name
-            source = args.legacy / "OblivionRemastered/Content" / asset
+            names, make = RECIPES[recipe]
+            values = {n: style_float(n) for n in names}
+            style.update(values)
+            legacy = work / "legacy" / name
+            run([args.retoc, "to-legacy", "--no-shaders", "--version", "UE5_3", "-f", name, args.paks, legacy])
+            source = legacy / "OblivionRemastered/Content" / asset
+            if not source.with_suffix(".uasset").is_file():
+                sys.exit(f"retoc did not extract {asset} from {args.paks}")
+            exported = work / "dds" / name
+            run([sys.executable, args.ddstools, source.with_suffix(".uasset"), "--mode", "export", "--export_as", "dds",
+                 "--save_folder", exported, "--version", "5.3"])
+            stock_dds = next(exported.rglob(name + ".dds"))
+            dds = make(stock_dds, values, work)
             target = stage / "OblivionRemastered/Content" / asset
             target.parent.mkdir(parents=True, exist_ok=True)
             for ext in (".uasset", ".uexp"):
                 shutil.copy2(source.with_suffix(ext), target.with_suffix(ext))
-            dds = recolour(args.dds / f"{name}.dds", tint, work)
-            injected = work / "injected"
-            subprocess.run([sys.executable, str(args.ddstools), str(target.with_suffix(".uasset")), str(dds), "--mode", "inject",
-                            "--save_folder", str(injected), "--version", "5.3"], check=True)
+            injected = work / "injected" / name
+            run([sys.executable, args.ddstools, target.with_suffix(".uasset"), dds, "--mode", "inject",
+                 "--save_folder", injected, "--version", "5.3"])
             for ext in (".uasset", ".uexp"):
-                made = next(injected.rglob(name + ext))
-                shutil.copy2(made, target.with_suffix(ext))
-            print(f"{name}: {recipe}, stock colour x {tint} (linear), stock alpha kept")
-        args.out.mkdir(parents=True, exist_ok=True)
-        utoc = args.out / f"{PACK}.utoc"
-        subprocess.run([str(args.retoc), "to-zen", "--version", "UE5_3", str(stage), str(utoc)], check=True)
+                shutil.copy2(next(injected.rglob(name + ext)), target.with_suffix(ext))
+            textures[asset] = {"recipe": recipe, "style": sorted(values),
+                               "stock_uexp_sha256": sha256(source.with_suffix(".uexp"))}
+            print(f"{name}: {recipe} {values}")
+        out.mkdir(parents=True, exist_ok=True)
+        run([args.retoc, "to-zen", "--version", "UE5_3", stage, out / f"{PACK}.utoc"])
+    files = {}
     for ext in ("pak", "utoc", "ucas"):
-        path = args.out / f"{PACK}.{ext}"
-        print(path.name, path.stat().st_size if path.exists() else "MISSING")
+        path = out / f"{PACK}.{ext}"
+        if not path.is_file():
+            sys.exit(f"retoc wrote no {path.name}")
+        files[path.name] = sha256(path)
+    manifest = {"pack": PACK, "game_build": GAME_BUILD, "built_by": "tools/make_dark_pack.py",
+                "style": style, "textures": textures, "files": files}
+    (out / f"{PACK}.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    return manifest
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--paks", required=True, type=Path, help="the game's OblivionRemastered/Content/Paks")
+    parser.add_argument("--ddstools", required=True, type=Path)
+    parser.add_argument("--retoc", required=True, type=Path)
+    parser.add_argument("--out", type=Path, default=ROOT / "assets/DarkPack")
+    parser.add_argument("--check", action="store_true", help="build into a temp folder and compare with --out")
+    args = parser.parse_args()
+    if not args.check:
+        manifest = build(args, args.out)
+        for name, digest in manifest["files"].items():
+            print(name, (args.out / name).stat().st_size, digest[:16])
+        return
+    with tempfile.TemporaryDirectory() as temp:
+        fresh = build(args, Path(temp))
+    current = json.loads((args.out / f"{PACK}.json").read_text(encoding="utf-8"))
+    same = fresh == current and all(sha256(args.out / n) == d for n, d in fresh["files"].items())
+    print("pack is up to date (rebuild is byte-identical)" if same else "pack is STALE: run without --check to rebuild")
+    sys.exit(0 if same else 1)
 
 
 if __name__ == "__main__":
