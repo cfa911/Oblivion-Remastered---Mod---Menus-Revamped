@@ -5,6 +5,7 @@
 - a missing retoc, a missing UE4-DDS-Tools or a failed Oodle download stops with a clear message.
 retoc and the DDS tools are replaced by fakes here; `make_dark_pack.py --check` proves the real build."""
 import contextlib
+import hashlib
 import importlib.util
 import io
 import subprocess
@@ -102,8 +103,10 @@ def fake_recipe(name):
 
 def build_with(fake, retoc=None, ddstools=None):
     """build() with retoc, the DDS tools and the recipes replaced: (manifest or None, exit message or None)"""
-    saved = {k: getattr(mdp, k, None) for k in ("run", "recipe", "dds_tools", "LAUREL_STOCK_SHA256")}
+    saved = {k: getattr(mdp, k, None) for k in ("run", "recipe", "dds_tools", "LAUREL_STOCK_SHA256", "ALCHEMY_STOCK_SHA256")}
     mdp.LAUREL_STOCK_SHA256 = "919642b09b2c79cc1c9732e96ac16ee07ee9d7d2d5cb196cdeb9b63347e2fca1"  # synthetic stock written by write_asset
+    mdp.ALCHEMY_STOCK_SHA256 = {Path(a).name: hashlib.sha256(b"uexp " + a.encode() + bytes(4096)).hexdigest()
+                                for a, r in mdp.TEXTURES.items() if r == "alchemy"}   # Phase 6: the alchemy stock check
     mdp.run = fake.run
     mdp.recipe = fake_recipe
     mdp.dds_tools = lambda path=None: (fake.export, fake.inject)

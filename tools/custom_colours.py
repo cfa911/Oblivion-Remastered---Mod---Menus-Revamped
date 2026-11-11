@@ -28,6 +28,7 @@ COLOURS = {
     "previewFrameDark": [30.0, 30.0, 30.0], "parchmentDark": [8.0, 8.0, 8.0], "parchmentLight": [33.0, 33.0, 33.0],
     "effectBox": [66.0, 99.0, 153.0], "nameBox": [239.0, 239.0, 239.0], "filterRow": [66.0, 66.0, 66.0],
     "filterHover": [112.0, 112.0, 112.0], "filterSelected": [14.0, 22.0, 42.0], "filterMark": [92.0, 140.0, 214.0],
+    "alchemyMetal": [56.0, 83.0, 118.0], "alchemyStone": [22.0, 25.0, 31.0],
 }
 NUMBERS = {"detailsPage": 0.010}   # [Colours] entries that are one number (detailsPage: a linear multiply, 0..1)
 TAB = {"selected": 41.0, "unselected": 33.0, "gap": 24.0, "outline": 134.0, "glyph": 242.0, "glyphDim": 162.0}
@@ -80,6 +81,8 @@ HELP = {
     "filterHover": "Alchemy hovered filter row background",
     "filterSelected": "Alchemy selected filter row background",
     "filterMark": "Alchemy filter row diamond",
+    "alchemyMetal": "Alchemy frame, ingredient slots and pot - metal",
+    "alchemyStone": "Alchemy frame, ingredient slots and pot - stone",
     "detailsPage": "Inventory, Magic and shared details page brightness",
 }
 TAB_HELP = {

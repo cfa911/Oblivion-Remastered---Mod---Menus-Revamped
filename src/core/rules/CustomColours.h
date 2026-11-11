@@ -54,6 +54,7 @@ namespace customcolours
 		MR_CC_RGB(nameBox, "Alchemy and other editable name fields"), MR_CC_RGB(filterRow, "Alchemy filter row background"),
 		MR_CC_RGB(filterHover, "Alchemy hovered filter row background"), MR_CC_RGB(filterSelected, "Alchemy selected filter row background"),
 		MR_CC_RGB(filterMark, "Alchemy filter row diamond"),
+		MR_CC_RGB(alchemyMetal, "Alchemy frame, ingredient slots and pot - metal"), MR_CC_RGB(alchemyStone, "Alchemy frame, ingredient slots and pot - stone"),
 		Entry{ "Colours", "detailsPage", Kind::Unit, [](darkstyle::Style& s) -> float* { return &s.detailsPage; }, "Inventory, Magic and shared details page brightness" },
 		MR_CC_TAB(selected, "Inventory and Magic selected category tab fill"), MR_CC_TAB(unselected, "Inventory and Magic unselected category tab fill"), MR_CC_TAB(gap, "Inventory and Magic gaps between category tabs"), MR_CC_TAB(outline, "Inventory and Magic category tab outlines"), MR_CC_TAB(glyph, "Inventory and Magic selected category tab icons"), MR_CC_TAB(glyphDim, "Inventory and Magic unselected category tab icons"),
 		MR_CC_TINT(rule, "Inventory and Magic header horizontal lines"), MR_CC_TINT(guide, "Inventory and Magic header column guides"), MR_CC_TINT(ring, "Inventory and Magic details skill level ring"),

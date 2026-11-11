@@ -12,7 +12,7 @@ Layout of PackBuilder/:
                                               Oodle is proprietary and never shipped (owner decision, Phase 0)
   licences/                                   the notices of everything bundled (KB plan "Phase 0 results" section 6)
   README.txt
-Not shipped: owner art (png recipe; owner decision 9), CustomColours.ini (the plugin writes it), Oodle.
+Not shipped: owner art (png recipe, development only; no data file uses it since Phase 6), CustomColours.ini (the plugin writes it), Oodle.
 Pillow's _avif/_webp and the standard library's _ssl/_hashlib (OpenSSL) are excluded: the pipeline uses none of them
 (hashlib falls back to its built-in SHA-256); the frozen --check proves the build is unchanged.
 """
