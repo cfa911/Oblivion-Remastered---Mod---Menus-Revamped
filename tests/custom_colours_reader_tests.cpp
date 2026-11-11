@@ -25,7 +25,7 @@ unsigned checks = 0, failures = 0;
 void Check(bool ok, const char* why) { ++checks; if (!ok) { ++failures; std::printf("FAIL %s\n", why); } }
 bool Same(const darkstyle::Rgb& a, float r, float g, float b) { return a.r == r && a.g == g && a.b == b; }
 unsigned Warnings(const customcolours::Parsed& p) { unsigned n = 0; for (auto& x : p.notes) n += x.warning; return n; }
-std::string ReadFile(const fs::path& f) { std::ifstream in(f, std::ios::binary); return { std::istreambuf_iterator<char>(in), {} }; }
+std::string ReadFile(const fs::path& f) { std::ifstream in(f, std::ios::binary); std::string s{ std::istreambuf_iterator<char>(in), {} }; std::erase(s, ''); return s; }   // a CRLF checkout (core.autocrlf) is the same file
 
 int main()
 {
