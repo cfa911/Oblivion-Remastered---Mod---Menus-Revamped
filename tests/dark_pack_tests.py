@@ -1,6 +1,7 @@
 """Dark UI pack phase 0 (owner 2026-11-10): the baked parchment pack, switched in or out at start-up by the INI preset."""
 import re
 import sys
+from pathlib import Path
 import source_paths
 
 fails = []
@@ -32,7 +33,7 @@ check("~mods" in switch_text and "MRDark_P" in switch_text and "Preset::Dark" in
 
 skin = source_paths.read("picker")
 page = source_paths.function(skin, "void StyleMagicPage(")
-check("darkpack::Active()" in page, "with the pack active the Magic details overlay steps aside (the game's own material draws)")
+check("PlaceMagicPage" not in skin, "the Magic details page is the game's own material on the baked parchment (phase 3: no overlay)")
 details = source_paths.function(skin, "void StyleDetails(")
 check("darkpack::Active()" in details, "with the pack active the Inventory details page tint is white (the parchment itself is dark)")
 
@@ -58,7 +59,7 @@ for ext in ("pak", "utoc", "ucas"):
     path = pack / f"MRDark_P.{ext}"
     digest = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else ""
     check(manifest.get("files", {}).get(f"MRDark_P.{ext}") == digest, f"MRDark_P.{ext} is the file the manifest's build wrote")
-check(set(manifest.get("textures", {})) == set(re.findall(r'"(Art/[^"]+)"\s*:', tool_text)) and manifest.get("textures"),
+check(set(manifest.get("textures", {})) == set(re.findall(r'"((?:Art|UI)/[^"]+)"\s*:', tool_text)) and manifest.get("textures"),
       "the manifest lists exactly the textures make_dark_pack.py bakes")
 
 dp_rules = root / "src/core/rules/DarkPackSwitch.h"
@@ -170,6 +171,77 @@ dark_skin = theme.split("inline constexpr Skin kDarkSkin{", 1)[1].split("};", 1)
 code = re.sub(r"//[^\n]*", "", dark_skin)
 literals = re.findall(r"(?<![\w.])\d*\.\d+f?", code)
 check(dark_skin and not literals, f"kDarkSkin holds no literal colours, they are named in DarkStyle.h (found {literals[:6]})")
+
+# Phase 3 (owner 2026-11-10): the Magic-only art and the cast-frequency text colour baked into MRDark_P. T_MagicBackground
+# (shared with Quest/Help/Stats) and the _ListSmall row icons (shared with Sigil Stone and the effect lists) stay run-time
+# swaps inside Magic (owner: keep the page run-time until phase 4).
+SCHOOLS = [f"Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_{n}" for n in
+           ("Alteration", "Conjuration", "Destruction", "Illusion", "Mysticism", "Restoration")]
+STATS = [f"T_MagicMenuIcon_{n}" for n in ("Cost", "Custom_Spell", "Duration", "Greater_Power", "Lesser_Power", "Magnitude",
+                                          "Range", "Scroll", "Spell", "Weight")]
+MAGIC_TABS = [f"Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_{n}" for n in ("Self", "Touch", "Target", "All", "ActiveEffect")]
+TABLE = "UI/Modern/GameMenuLayer/magic/DT_UI_MagicMenu"
+listed = dict(re.findall(r'"((?:Art|UI)/[^"]+)"\s*:\s*"([^"]+)"', tool_text))
+check(all(listed.get(a) == "flat:rowIcon" for a in SCHOOLS), "phase 3: the six row school icons are baked flat rowIcon on the stock alpha")
+check(sorted(Path(a).name for a, r in listed.items() if r == "flat:rowIcon" and "T_MagicMenuIcon_" in a) == sorted(STATS),
+      "phase 3: the ten details stat/type icons are baked flat rowIcon (Magic-only textures)")
+check([listed.get(a) for a in MAGIC_TABS] == [f"magic_tab:{i}" for i in range(5)], "phase 3: the five Magic tab atlases are baked (magic_tab:<i>)")
+# RMI-086 (owner screenshot on 9828be38): the table's Default row baked blue left the line tan: the details blueprint sets the
+# line's default colour itself (SetDefaultColorAndOpacity), which replaces the Default row. The colour is set at run time.
+check(TABLE not in listed, "RMI-086: DT_UI_MagicMenu is not in the pack (its Default row never reaches the cast-frequency line)")
+check(not any("_ListSmall" in a or a.endswith("/T_MagicBackground") for a in listed),
+      "phase 3: the shared T_MagicBackground and _ListSmall icons stay out of the pack (other menus use them)")
+check(set(listed) <= baked and set(manifest.get("textures", {})) == set(listed),
+      "the shipped pack holds every asset make_dark_pack.py lists (rebuilt), the table included")
+check(TABLE not in manifest.get("textures", {}), "RMI-086: the shipped pack has no DT_UI_MagicMenu")
+check("InkCastFrequency" not in source_paths.read("picker") and "InkCastLines" not in source_paths.read("picker"),
+      "RMI-086 deferred (owner 2026-11-10): no run-time half-fix of the cast-frequency line in phase 3")
+if mdp is not None:
+    import struct
+    patch = getattr(mdp, "rich_row_colour", None)
+    check(patch is not None, "make_dark_pack.py has the rich-text row colour patch")
+    if patch:
+        uexp = bytearray(200)
+        uexp[69:85] = struct.pack("<4f", 0.0723, 0.0382, 0.0284, 1.0)
+        out = patch(bytes(uexp), "Default", [120, 165, 235])
+        check(out[:69] == bytes(uexp[:69]) and out[85:] == bytes(uexp[85:]) and len(out) == len(uexp),
+              "the row patch changes only the colour's 16 bytes")
+        check(all(abs(a - b) < 1e-6 for a, b in zip(struct.unpack_from("<4f", out, 69), [mdp.linear(120), mdp.linear(165), mdp.linear(235), 1.0])),
+              "the row patch writes DarkStyle.h sRGB as linear floats, alpha 1")
+        try:
+            patch(bytes(200), "Default", [1, 2, 3])
+            check(False, "the row patch refuses a .uexp whose stock colour is not where it expects (game update)")
+        except SystemExit:
+            check(True, "")
+    opaque = getattr(mdp, "opaque_rows", None)
+    check(opaque is not None, "make_dark_pack.py can force the Magic tab strip opaque (stock alpha below it)")
+    if opaque:
+        stock_dds = bytes(header) + bytes([7]) * 16 * 4      # 8x8: 2x2 blocks, alpha bytes 7
+        colour_dds = bytes(header) + bytes([9]) * 16 * 4
+        out = opaque(stock_dds, colour_dds, 3)[148:]          # rows 0-2: the first block row
+        check(out[0:8] == bytes([9]) * 8 and out[16:24] == bytes([9]) * 8 and out[32:40] == bytes([7]) * 8 and out[48:56] == bytes([7]) * 8,
+              "the strip's block rows take the encoded (opaque) alpha, the rows below keep the stock alpha")
+        check(all(out[i + 8:i + 16] == bytes([7]) * 8 for i in range(0, 64, 16)), "opaque_rows touches alpha only")
+dark_art = theme.split("inline constexpr ArtSwap kDarkArt[]{", 1)[1].split("};", 1)[0] if "kDarkArt[]{" in theme else ""
+check("T_Magic_Tabs_" not in dark_art and "MagicIcon-" not in dark_art and "T_MagicSchoolSimple_" not in dark_art,
+      "phase 3: the baked Magic textures leave kDarkArt (no run-time swap)")
+check(dark_art.count("_ListSmall\", L\"") == 11 and '"T_MagicBackground", L"MagicPage.png"' in dark_art,
+      "the shared row type icons and the Magic page stay run-time swaps")
+skin_assets = root / "assets/Skin"
+gone = [p.name for p in skin_assets.glob("*.png") if p.name.startswith(("MagicTab-", "MagicIcon-", "MagicRow-T_MagicSchoolSimple_"))
+        or p.name == "DetailsPage.png"]
+check(not gone, f"phase 3: the PNGs the pack replaces are removed ({gone[:4]})")
+check(len(list(skin_assets.glob("MagicRow-T_MagicMenuIcon_*_ListSmall.png"))) == 11 and (skin_assets / "MagicPage.png").is_file(),
+      "the run-time Magic PNGs stay (11 row type icons, the page)")
+for png in ("Sort-Cost", "Sort-Effect", "Sort-Type", "Sort-School", "Sort-Magnitude"):
+    check((root / f"assets/Sorting/DarkSort/{png}.png").is_file(), f"{png} stays (the mod's own header art)")
+menu_skin = source_paths.read("picker")
+for name in ("PlaceMagicPage", "SyncMagicPaper", "OnMagicMenuTick", "MagicPaper", "OnIconTileEvent", "g_magicIcons",
+             "g_iconTiles", "g_iconImages", "SwapIconMaterial", "OnMagicTabsEvent", "g_magicTabs", "DetailsPage.png"):
+    check(name not in menu_skin, f"phase 3: {name} is gone (the pack draws the Magic details page, icons and tabs)")
+check("IsMagicPage(" in source_paths.function(menu_skin, "void StyleMagicPage("), "the Magic page is still swapped per widget (phase 4 bakes it)")
+light = source_paths.function(menu_skin, "bool LightIcon(")
+check("darkpack::Active()" in light, "LightIcon tints the baked icons white (their colour is baked), rowIcon only without the pack")
 
 for why in fails:
     print("FAIL", why)

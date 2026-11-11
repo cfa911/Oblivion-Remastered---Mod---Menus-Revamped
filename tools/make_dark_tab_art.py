@@ -1,10 +1,11 @@
-"""Make the Dark Magic tab pictures (assets/Skin/MagicTab-*.png) and the Magic page (assets/Skin/MagicPage.png).
+"""The Dark tab compiler (used by tools/make_dark_pack.py for the Inventory and Magic tab atlases) and the Magic page
+(assets/Skin/MagicPage.png, a run-time swap: T_MagicBackground is shared with Quest/Help/Stats, so it is not in the pack yet).
 
 Usage: python tools/make_dark_tab_art.py <folder of stock .dds exports> [<output folder>]
 Export with UE4-DDS-Tools (--mode export --export_as dds) after `retoc to-legacy --version UE5_3 --no-shaders <Content/Paks> <out>`
-with --filter T_Magic_Tabs_, Icon_Category/T_Category_<OnSelf|Touch|Target|All|ActiveEffects>. and T_MagicBackground.
+with --filter T_MagicBackground.
 
-Tabs: the Inventory tab process (local compile-outlined-tabs.cjs, RMI-069/070, ported): the stock Magic atlases have the same
+Tabs (dark_tab): the Inventory tab process (local compile-outlined-tabs.cjs, RMI-069/070, ported): the stock Magic atlases have the same
 layout (2026-11-10 measurement). Flat bodies, the stepped outlined selected tab, glyphs from the clean standalone T_Category
 masks (no parchment noise) and drawn arrows. Greys from src/core/DarkStyle.h `tab` (two-tone art is baked: run this again after
 changing them). The strip is opaque like the Inventory atlases (the stock Magic ones have see-through wedges there); the
@@ -26,8 +27,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from make_dark_skin_art import load  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
-TABS = ("Self", "Touch", "Target", "All", "ActiveEffect")
-MASKS = ("OnSelf", "Touch", "Target", "All", "ActiveEffects")
 
 # Inventory compiler geometry (the Magic atlases match it)
 STRIP = 98
@@ -131,11 +130,6 @@ def main():
         sys.exit(__doc__)
     source = Path(sys.argv[1])
     out = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "assets/Skin"
-    v = tab_values()
-    masks = [load(source / f"T_Category_{m}.dds").getchannel("A") for m in MASKS]
-    for i, tab in enumerate(TABS):
-        dark_tab(i, load(source / f"T_Magic_Tabs_{tab}.dds"), masks, v).save(out / f"MagicTab-{tab}.png")
-        print(f"T_Magic_Tabs_{tab} -> MagicTab-{tab}.png")
     inventory_page(load(source / "T_MagicBackground.dds"), style_gray("frame"), style_gray("panel")).save(out / "MagicPage.png")
     print("T_MagicBackground -> MagicPage.png (Inventory panel curve)")
 

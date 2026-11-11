@@ -69,6 +69,11 @@
       228.0,
       228.0,
       228.0
+    ],
+    "rowIcon": [
+      239.0,
+      239.0,
+      239.0
     ]
   },
   "textures": {
@@ -312,11 +317,204 @@
       ],
       "stock_uexp_sha256": "415f248c0245e592719d2e764f9109d51262a2911af1d997ac3965546aa5a6c6",
       "baked_uexp_sha256": "67a86753e657dc61cbd9c9b20359cf9866b5f18d8229ec49a5fd8f84c67942f4"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Alteration": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "4ac7d5c81167df49eb0969a770211a38a5c74c68d2679f1bdc8965331c51bc52",
+      "baked_uexp_sha256": "adba08d3b37736013d90a1f2ead7505b3c7b277e1f0fa98795ad61e498329091"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Conjuration": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "e8e4104589ab2b45be17a94d2a0514f38a27e7a4ae2173dbae5d7bc9ef6c3239",
+      "baked_uexp_sha256": "a450db9760ebbd056409bb23416572fc071fa13c905975c8081a9bc2e380d189"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Destruction": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "fc678e7cc506137122dce98d2d5b003196af2b2cf7f7df07aaf91a7e314ea895",
+      "baked_uexp_sha256": "d8f19870e29685270380a3e2a635316f9cb8611be23895a476425e4760191bc3"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Illusion": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "f4327280b1288994afcdce67b93117d6fca576580d485a7fcc3789ce15a6ae88",
+      "baked_uexp_sha256": "3a3793419dd67a5862a4df97720cbf182317d556039713d4d53a2efc4b6331d7"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Mysticism": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "2d2537446b7e5147ba79a428d122c0f64ef509b81ee14970fc8ea6c655c3270d",
+      "baked_uexp_sha256": "3a9f4c6d4c84e039b0d49b718c40623e56974507f523985a2787885162ab61a8"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Restoration": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "14f4c283ae644f2e468173ce3b0f6591cb659a03b1cbc70613b0d4c445260ed6",
+      "baked_uexp_sha256": "9aab69ac8c97ecfce1096d87d7cc3a31338bf32ad2c4d8396fdfea4ecbdfa84e"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Cost": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "c57672103ca321b2b1afc11e1098198daf829fb825910bed40dd114d283bb985",
+      "baked_uexp_sha256": "9ded4d8213fe83d7a5ff1e50c074186b2939defbc39bbd2ccc8066eb0ae8c9fd"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Duration": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "c98a095e57cb85fa1a2ba0883def2f5a548599af94e669abf253b308675f0b3a",
+      "baked_uexp_sha256": "382632b46e8efd5a4ad7da12975cfe1e50fa91c3bf944be8fdff521bd29a51fa"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Magnitude": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "c214a8508cf9290abdebefb0ea30e7adf2d0daf20e87abce81d187b306875262",
+      "baked_uexp_sha256": "2b698e8f9716ba5b3f2842770da9a961e2ba6ea44f1f9f63ec35400bf5ff142d"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Range": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "c0eeac23b3d0b2b0a0616732d6a8909dcd4e6682f8f50c3e4a3c0abac523b694",
+      "baked_uexp_sha256": "50544b41df94dc320bd6f5ffc42f3696ce1045f3011223c1bbbce7427b70e698"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Weight": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "573018eca1a510dd6daf3d58d619e9e9270034cafdf9571932eaf08d58fbc60c",
+      "baked_uexp_sha256": "db1944d0fab089e5d75e7aca5f27e78dce277d6c9f8db42a1b8ad9be8367ea05"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Custom_Spell": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "ace2e3e9950aabf1f50983deb17a3aa0de69f622b9babfac33a030206d4eeb46",
+      "baked_uexp_sha256": "02af4dffc7b129b8db8dd55e2bb69dfb4d9090b295df23fcc8c2f5388c60179b"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Greater_Power": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "953bc3bb27eba2069094f95aca488c29a175c7ad3cdeafb32f74bd9f634da6e1",
+      "baked_uexp_sha256": "3a654035cd552a637a199617c2dafbaf255b41eb2483f7d322b879bd8610cd6c"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Lesser_Power": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "c52e3eba8218cebcecabf4398f95bdd359a1509c2164e634f0f3a8b2c6d1c45b",
+      "baked_uexp_sha256": "b935d73b6cc484958ce82422e424493234fef3212ad868bf4bc705b36c0a04d2"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Scroll": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "aa087cc96faf1faff31bbaf5061a1fb4e9222ea1e7ece4d57a4c12e71df5bfe1",
+      "baked_uexp_sha256": "6775d6bd6d04b1b3474c96752b41b925aeb7cf803a709b473582891aeed2f43f"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Spell": {
+      "recipe": "flat:rowIcon",
+      "style": [
+        "rowIcon"
+      ],
+      "stock_uexp_sha256": "08c8cc76532b978a85efd23a9e3eae7971203615cd0a3ac287aad3110c3aa73c",
+      "baked_uexp_sha256": "94c707b9868ce45dbf94db75146fc235df3da4e60280d781d5fb2b7a110d8d0f"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Self": {
+      "recipe": "magic_tab:0",
+      "style": [
+        "gap",
+        "glyph",
+        "glyphDim",
+        "outline",
+        "selected",
+        "unselected"
+      ],
+      "stock_uexp_sha256": "b46afb3cc5314dd293248f2f90988c6f1d2317d47764fccf3d6de40bcef466e7",
+      "baked_uexp_sha256": "b009b84522a38a222dfddd90890ddc20d6aaee3a299d2a3a027214e2325e6ac8"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Touch": {
+      "recipe": "magic_tab:1",
+      "style": [
+        "gap",
+        "glyph",
+        "glyphDim",
+        "outline",
+        "selected",
+        "unselected"
+      ],
+      "stock_uexp_sha256": "6930ff1fd76e6da943faeef31da84905c66d4df6fe6b7b42f7e45df3ff4a939c",
+      "baked_uexp_sha256": "0cb0ac97d254bf469d8fa1ece714479a5cf91cc09c826bb8d627826b2619b0ed"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Target": {
+      "recipe": "magic_tab:2",
+      "style": [
+        "gap",
+        "glyph",
+        "glyphDim",
+        "outline",
+        "selected",
+        "unselected"
+      ],
+      "stock_uexp_sha256": "dc9af1da0c35c32925de88c4131e5312629f15826986ff661af26a17ec2fbc05",
+      "baked_uexp_sha256": "b80a96ad9967a7d006b7124ce6ff640e0ae92196c8c0b94833b0548c042e8430"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_All": {
+      "recipe": "magic_tab:3",
+      "style": [
+        "gap",
+        "glyph",
+        "glyphDim",
+        "outline",
+        "selected",
+        "unselected"
+      ],
+      "stock_uexp_sha256": "af11fc8b664d399a04e67bafce9cf4e21535efd1f57bd0a403251170842c2e36",
+      "baked_uexp_sha256": "971b51b71cb3630120af750a3fffa8de1e665ca4a767311b5e7d64406551e7c2"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_ActiveEffect": {
+      "recipe": "magic_tab:4",
+      "style": [
+        "gap",
+        "glyph",
+        "glyphDim",
+        "outline",
+        "selected",
+        "unselected"
+      ],
+      "stock_uexp_sha256": "20e789f9ac55213e9c5e7f7b1ae3354bde4dd1016c6e8f86c35ca84248ed9006",
+      "baked_uexp_sha256": "a4cacd067690233ddffb46caffa7add1e661dc1178ea172886fc26e9c41156f5"
     }
   },
   "files": {
     "MRDark_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRDark_P.utoc": "803b3d7b0fcee52590d95c90c32f793d0e8d5914211ad2697723cc8be7d32c95",
-    "MRDark_P.ucas": "d0f163a4df8dc81baccf026ad1b20132e4d422979a9015fea8264b4737014704"
+    "MRDark_P.utoc": "ad4caa0ab9484b84889f350c8a821cd7ff196980dec5ea35f0e3e651991392df",
+    "MRDark_P.ucas": "3f34193f607acbc112cd0ad67768eca7726d429d5c5f77560ca47b4a47425228"
   }
 }

@@ -148,13 +148,8 @@ namespace uistyle
 		{ "T_CircularProgress_bg", L"RingCentre.png" },
 		{ "T_Arrow_Empty", L"ButtonArrow.png" },
 		{ "T_Button_State_Hovered_LeftLineFade", L"ButtonLine.png" },
-		// Magic row school and spell-type icons (brown art): white shapes drawn in rowIcon (tools/make_dark_row_icons.py)
-		{ "T_MagicSchoolSimple_Alteration", L"MagicRow-T_MagicSchoolSimple_Alteration.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicSchoolSimple_Conjuration", L"MagicRow-T_MagicSchoolSimple_Conjuration.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicSchoolSimple_Destruction", L"MagicRow-T_MagicSchoolSimple_Destruction.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicSchoolSimple_Illusion", L"MagicRow-T_MagicSchoolSimple_Illusion.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicSchoolSimple_Mysticism", L"MagicRow-T_MagicSchoolSimple_Mysticism.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicSchoolSimple_Restoration", L"MagicRow-T_MagicSchoolSimple_Restoration.png", &darkstyle::Style::rowIcon },
+		// Magic row spell-type icons (brown art, shared with Sigil Stone and the effect lists, so not baked): white shapes drawn
+		// in rowIcon (tools/make_dark_row_icons.py). The school icons, details stat icons and tabs are baked into MRDark_P.
 		{ "T_MagicMenuIcon_Ability_ListSmall", L"MagicRow-T_MagicMenuIcon_Ability_ListSmall.png", &darkstyle::Style::rowIcon },
 		{ "T_MagicMenuIcon_Disease_ListSmall", L"MagicRow-T_MagicMenuIcon_Disease_ListSmall.png", &darkstyle::Style::rowIcon },
 		{ "T_MagicMenuIcon_Enchantment_ListSmall", L"MagicRow-T_MagicMenuIcon_Enchantment_ListSmall.png", &darkstyle::Style::rowIcon },
@@ -166,24 +161,7 @@ namespace uistyle
 		{ "T_MagicMenuIcon_SpellCustom_ListSmall", L"MagicRow-T_MagicMenuIcon_SpellCustom_ListSmall.png", &darkstyle::Style::rowIcon },
 		{ "T_MagicMenuIcon_Spell_ListSmall", L"MagicRow-T_MagicMenuIcon_Spell_ListSmall.png", &darkstyle::Style::rowIcon },
 		{ "T_MagicMenuIcon_WortCraft_ListSmall", L"MagicRow-T_MagicMenuIcon_WortCraft_ListSmall.png", &darkstyle::Style::rowIcon },
-		// Magic details stat icons (brown line art, shape in the alpha): white shapes drawn in rowIcon (tools/make_dark_row_icons.py)
-		{ "T_MagicMenuIcon_Cost", L"MagicIcon-T_MagicMenuIcon_Cost.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Custom_Spell", L"MagicIcon-T_MagicMenuIcon_Custom_Spell.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Duration", L"MagicIcon-T_MagicMenuIcon_Duration.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Greater_Power", L"MagicIcon-T_MagicMenuIcon_Greater_Power.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Lesser_Power", L"MagicIcon-T_MagicMenuIcon_Lesser_Power.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Magnitude", L"MagicIcon-T_MagicMenuIcon_Magnitude.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Range", L"MagicIcon-T_MagicMenuIcon_Range.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Scroll", L"MagicIcon-T_MagicMenuIcon_Scroll.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Spell", L"MagicIcon-T_MagicMenuIcon_Spell.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Weight", L"MagicIcon-T_MagicMenuIcon_Weight.png", &darkstyle::Style::rowIcon },
 		{ "T_MagicBackground", L"MagicPage.png" },   // Magic page: the Inventory panel art's curve, baked (DarkStyle.h panel/frame)
-		// Magic tabs (Magic-only atlases): the Inventory tab process, greys from DarkStyle.h tab (tools/make_dark_tab_art.py)
-		{ "T_Magic_Tabs_Self", L"MagicTab-Self.png" },
-		{ "T_Magic_Tabs_Touch", L"MagicTab-Touch.png" },
-		{ "T_Magic_Tabs_Target", L"MagicTab-Target.png" },
-		{ "T_Magic_Tabs_All", L"MagicTab-All.png" },
-		{ "T_Magic_Tabs_ActiveEffect", L"MagicTab-ActiveEffect.png" },
 	};
 
 	inline constexpr Skin kStockSkin{
