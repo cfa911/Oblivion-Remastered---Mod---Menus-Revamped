@@ -52,6 +52,22 @@ namespace darkstyle
 		Rgb previewFrameDark{ 30, 30, 30 };
 		// Phase 3 bakes the Magic row school icons and details stat icons flat rowIcon and the tab atlases from tab into MRDark_P.
 		// The blue "Can only be used once a day" line is a follow-up (RMI-086: its colour is a literal in the details blueprint).
+		// Alchemy (owner 2026-11-11). The four parchments (ingredient page, potion paper, apparatus page, Filters panel; the
+		// first is shared with Spellmaking, the last with Container, Recharge, Repair, Sigil Stone, Training, Help) are baked
+		// neutral gray: the stock brightness range mapped onto parchmentDark..parchmentLight, grain kept (tools/make_dark_pack.py
+		// "parchment"; a multiplied tan came out green and noisy).
+		Rgb parchmentDark{ 8, 8, 8 };       // average about sRGB 25 (owner: as dark as round 1, gray, grain kept)
+		Rgb parchmentLight{ 33, 33, 33 };
+		// Alchemy colours baked into MRDark_P (stock alpha kept; tools/make_dark_pack.py): the effect boxes under the list
+		// (T_Alchemy_Item_Default), the potion name field (quill, rule, text colour), the Filters hover box and diamond, and the
+		// blueprint colours of the Filters row boxes (filterRow, filterSelected: plain boxes, patched in the .uexp). The Alchemy
+		// header's lightning and category icon are baked in headerIcon, the effect names in rowText.
+		Rgb effectBox{ 66, 99, 153 };
+		Rgb nameBox{ 239, 239, 239 };
+		Rgb filterRow{ 66, 66, 66 };         // the normal row box (stock: a brush-tinted solid box, no texture)
+		Rgb filterHover{ 112, 112, 112 };    // the hover box (stock cream T_Alchemy_Filters_Highlighted): light text stays readable
+		Rgb filterSelected{ 14, 22, 42 };
+		Rgb filterMark{ 92, 140, 214 };
 		// Run-time tints of the Dark skin (uistyle::kDarkSkin): linear 0-1 as Slate takes them, alpha last.
 		struct SkinTints
 		{
