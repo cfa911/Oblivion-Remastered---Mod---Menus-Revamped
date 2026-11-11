@@ -27,10 +27,11 @@ def check(ok, why):
 
 
 root = source_paths.ROOT
-spec = importlib.util.spec_from_file_location("make_dark_pack", root / "tools/make_dark_pack.py")
-mdp = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(mdp)
+# Phase 4: the build moved into tools/pack_builder/pipeline.py (make_dark_pack.py is its CLI); the fakes patch the pipeline
+sys.path.insert(0, str(root / "tools"))
+import pack_builder.pipeline as mdp  # noqa: E402
 
+BC3_DDS = b"DDS " + bytes(8) + (4).to_bytes(4, "little") * 2 + bytes(64) + b"DXT5" + bytes(40) + bytes(16)
 MASK_DIR = "Art/UI/FakeMasks"   # where the fake retoc puts the glyph masks (they are listed by name only)
 NEEDED = sorted({Path(a).name for a in mdp.TEXTURES} | {n for names in mdp.GLYPH_MASKS.values() for n in names})
 check(len(NEEDED) >= 70, f"the build needs the 69 assets and the glyph masks (found {len(NEEDED)} names)")
@@ -85,7 +86,7 @@ class FakeTools:
     def export(self, uasset, dds):
         self.exports.append(Path(uasset))
         Path(dds).parent.mkdir(parents=True, exist_ok=True)
-        Path(dds).write_bytes(b"DDS")
+        Path(dds).write_bytes(BC3_DDS)   # Phase 4 checks the stock texture is BC3 and the result keeps its size
 
     def inject(self, uasset, dds, out_uasset):
         self.injects.append(Path(uasset))
@@ -96,7 +97,7 @@ class FakeTools:
 
 
 def fake_recipe(name):
-    return (), (), lambda data, values, work, stock: b"baked"
+    return (), (), lambda data, values, work, stock: data.read_bytes() if hasattr(data, "read_bytes") else data
 
 
 def build_with(fake, retoc=None, ddstools=None):
@@ -104,7 +105,7 @@ def build_with(fake, retoc=None, ddstools=None):
     saved = {k: getattr(mdp, k, None) for k in ("run", "recipe", "dds_tools")}
     mdp.run = fake.run
     mdp.recipe = fake_recipe
-    mdp.dds_tools = lambda path: (fake.export, fake.inject)
+    mdp.dds_tools = lambda path=None: (fake.export, fake.inject)
     try:
         with tempfile.TemporaryDirectory() as temp:
             temp = Path(temp)
@@ -155,7 +156,8 @@ check(len(fake.exports) == len(textures), f"one in-process export per texture ({
 check(all(p.suffix == ".uasset" for p in fake.exports + fake.injects), "export and inject receive the .uasset")
 if manifest:
     check(list(manifest["textures"]) == list(mdp.TEXTURES), "the manifest lists every asset in build order")
-    check(set(manifest) == {"pack", "game_build", "built_by", "style", "textures", "files"}, "the manifest format is unchanged")
+    check(set(manifest) == {"pack", "game_build", "built_by", "builder_version", "style", "textures", "skipped", "files"},
+          "the manifest format is unchanged (Phase 4 adds builder_version and skipped)")
     check(all(e["baked_uexp_sha256"] for e in manifest["textures"].values()), "every asset has its baked hash")
 
 # 3. an asset retoc did not extract is refused before any texture work, naming every missing name
