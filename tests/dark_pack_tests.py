@@ -48,7 +48,7 @@ import hashlib
 import importlib.util
 import json
 
-check("--paks" in tool_text and "to-legacy" in tool_text and "--mode\", \"export\"" in tool_text,
+check("--paks" in tool_text and "to-legacy" in tool_text and ".get_dds().save(" in tool_text,
       "make_dark_pack.py extracts the stock textures from the game's Paks itself (retoc to-legacy, UE4-DDS-Tools export)")
 manifest_path = pack / "MRDark_P.json"
 manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}

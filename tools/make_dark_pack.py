@@ -8,8 +8,10 @@ What is baked lives in data files, one per menu (tools/menus/<menu>.json: asset 
 shared-with notes); the recipes are the code below. The colours come from CustomColours.ini (default config/CustomColours.ini,
 generated from src/core/DarkStyle.h by tools/custom_colours.py; a missing file or entry = today's Dark value).
 
-Steps per texture: retoc to-legacy (filtered to the texture; retoc reads only the base containers, never ~mods), UE4-DDS-Tools
-export to DDS, the recipe re-colours it, UE4-DDS-Tools inject; then one retoc to-zen for the whole pack. Writes <pack>.json
+Steps: one retoc to-legacy call extracts every name the build needs (one -f per asset and glyph mask; retoc reads only the base
+containers, never ~mods). Per texture, UE4-DDS-Tools (imported from its src folder, no process per texture) exports the DDS,
+the recipe re-colours it, UE4-DDS-Tools injects it; then one retoc to-zen for the whole pack. retoc needs Oodle
+(oo2core_9_win64.dll) and downloads it next to itself on its first run (internet). Writes <pack>.json
 next to the pack: the colour values and stock inputs it was built from and the hashes of the files it wrote
 (tests/dark_pack_tests.py fails when DarkStyle.h changed without a rebuild). --check builds into a temp folder and compares the
 baked textures (retoc orders a many-package container differently per run, so the container bytes can differ).
@@ -371,11 +373,80 @@ def recipe_values(recipe_name, colours):
     return {n: colours[n] for n in (*floats, *rgbs)}
 
 
+OODLE_DLL = "oo2core_9_win64.dll"
+
+
 def run(cmd):
-    result = subprocess.run([str(c) for c in cmd], capture_output=True, text=True, errors="replace")
+    cmd = [str(c) for c in cmd]
+    result = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
     if result.returncode:
-        sys.exit(f"failed ({result.returncode}): {' '.join(map(str, cmd))}\n{result.stdout[-2000:]}{result.stderr[-2000:]}")
+        hint = ""
+        retoc = Path(cmd[0])
+        if retoc.stem.lower() == "retoc" and not (retoc.parent / OODLE_DLL).is_file():
+            hint = (f"\nretoc needs Oodle ({OODLE_DLL}) to read the game's containers. It downloads the DLL next to itself on its "
+                    f"first run, which needs internet and a writable folder. Connect to the internet and run again, or copy an "
+                    f"{OODLE_DLL} next to {retoc}.")
+        sys.exit(f"failed ({result.returncode}): {' '.join(cmd)}\n{result.stdout[-2000:]}{result.stderr[-2000:]}{hint}")
     return result.stdout
+
+
+def dds_tools(path):
+    """UE4-DDS-Tools in-process (path: its src/main.py or its src folder): (export(uasset, dds), inject(uasset, dds, out_uasset))."""
+    src = Path(path)
+    src = src.parent if src.suffix == ".py" else src
+    if not (src / "unreal/uasset.py").is_file() or not (src / "directx/dds.py").is_file():
+        sys.exit(f"UE4-DDS-Tools not found in {src} (--ddstools: its src/main.py or its src folder)")
+    if str(src) not in sys.path:
+        sys.path.insert(0, str(src))
+    try:
+        from unreal.uasset import Uasset
+        from directx.dds import DDS
+    except Exception as error:
+        sys.exit(f"UE4-DDS-Tools in {src} did not load ({type(error).__name__}: {error})")
+
+    def texture(asset, uasset):
+        found = asset.get_texture_list()
+        if len(found) != 1:
+            sys.exit(f"{Path(uasset).name}: expected one texture, found {len(found)}")
+        return found[0]
+
+    def export(uasset, dds):
+        tex = texture(Uasset(str(uasset), version="5.3"), uasset)
+        Path(dds).parent.mkdir(parents=True, exist_ok=True)
+        tex.get_dds().save(str(dds))
+
+    def inject(uasset, dds, out_uasset):
+        asset = Uasset(str(uasset), version="5.3")
+        texture(asset, uasset).inject_dds(DDS.load(str(dds)))
+        asset.update_package_source(is_official=False)
+        Path(out_uasset).parent.mkdir(parents=True, exist_ok=True)
+        asset.save(str(out_uasset))
+
+    return export, inject
+
+
+def needed_names():
+    """Every name the build extracts: the data files' assets and the glyph masks."""
+    return sorted({Path(a).name for a in TEXTURES} | {n for names in GLYPH_MASKS.values() for n in names})
+
+
+def extract_all(args, folder):
+    """One retoc to-legacy call with one -f per needed name into folder; refuses any asset it did not extract.
+    Returns {lower-case name: sorted .uasset paths}."""
+    cmd = [args.retoc, "to-legacy", "--no-shaders", "--version", "UE5_3"]
+    for name in needed_names():
+        cmd += ["-f", name]
+    run(cmd + [args.paks, folder])
+    found = {}
+    for path in sorted(Path(folder).rglob("*.uasset")):
+        found.setdefault(path.stem.lower(), []).append(path)
+    content = Path(folder) / "OblivionRemastered/Content"
+    missing = [a for a in TEXTURES if not (content / a).with_suffix(".uasset").is_file()]
+    missing += [n for names in GLYPH_MASKS.values() for n in names if n.lower() not in found]
+    if missing:
+        sys.exit(f"retoc did not extract {len(missing)} asset(s) from {args.paks} (game update or wrong folder?):\n  "
+                 + "\n  ".join(missing))
+    return found
 
 
 def build(args, out, pack=DEFAULT_PACK, colours=None):
@@ -384,24 +455,23 @@ def build(args, out, pack=DEFAULT_PACK, colours=None):
     colours = custom_colours.DEFAULTS if colours is None else colours
     style = {}
     textures = {}
+    if not Path(args.retoc).is_file():
+        sys.exit(f"retoc not found: {args.retoc} (--retoc: the path of retoc.exe)")
+    export, inject = dds_tools(args.ddstools)
     with tempfile.TemporaryDirectory() as temp:
         work = Path(temp)
         stage = work / "stage"
-        sources = {}
+        legacy = work / "legacy"
+        found = extract_all(args, legacy)
+        exported = {}
 
-        def extract(name):
-            """retoc + UE4-DDS-Tools: the stock texture's legacy folder and its DDS export (once per name)"""
-            if name not in sources:
-                legacy = work / "legacy" / name
-                run([args.retoc, "to-legacy", "--no-shaders", "--version", "UE5_3", "-f", name, args.paks, legacy])
-                found = sorted(legacy.rglob(name + ".uasset"))
-                if not found:
-                    sys.exit(f"retoc did not extract {name} from {args.paks}")
-                exported = work / "dds" / name
-                run([sys.executable, args.ddstools, found[0], "--mode", "export", "--export_as", "dds",
-                     "--save_folder", exported, "--version", "5.3"])
-                sources[name] = (legacy, next(exported.rglob(name + ".dds")))
-            return sources[name]
+        def stock_dds(name):
+            """The stock texture's DDS export (once per name; the first extracted file of that name, as before)"""
+            if name not in exported:
+                uasset = found[name.lower()][0]
+                exported[name] = work / "dds" / (uasset.stem + ".dds")
+                export(uasset, exported[name])
+            return exported[name]
 
         for asset, recipe_name in TEXTURES.items():
             name = Path(asset).name
@@ -409,14 +479,7 @@ def build(args, out, pack=DEFAULT_PACK, colours=None):
             values = recipe_values(recipe_name, colours)
             style.update(values)
             table = recipe_name.startswith(("rich_row:", "bp_colour:"))
-            source_root = work / "legacy" / name
-            if table:
-                run([args.retoc, "to-legacy", "--no-shaders", "--version", "UE5_3", "-f", name, args.paks, source_root])
-            else:
-                source_root = extract(name)[0]
-            source = source_root / "OblivionRemastered/Content" / asset
-            if not source.with_suffix(".uasset").is_file():
-                sys.exit(f"retoc did not extract {asset} from {args.paks}")
+            source = legacy / "OblivionRemastered/Content" / asset
             target = stage / "OblivionRemastered/Content" / asset
             target.parent.mkdir(parents=True, exist_ok=True)
             if table:
@@ -427,17 +490,15 @@ def build(args, out, pack=DEFAULT_PACK, colours=None):
                                    "baked_uexp_sha256": sha256(target.with_suffix(".uexp"))}
                 print(f"{name}: {recipe_name} {values}")
                 continue
-            stock_dds = extract(name)[1]
             dds = work / "recoloured" / (name + ".dds")
             dds.parent.mkdir(parents=True, exist_ok=True)
-            dds.write_bytes(make(stock_dds, values, work, lambda n: extract(n)[1]))
+            dds.write_bytes(make(stock_dds(name), values, work, stock_dds))
             for ext in (".uasset", ".uexp"):
                 shutil.copy2(source.with_suffix(ext), target.with_suffix(ext))
-            injected = work / "injected" / name
-            run([sys.executable, args.ddstools, target.with_suffix(".uasset"), dds, "--mode", "inject",
-                 "--save_folder", injected, "--version", "5.3"])
+            injected = work / "injected" / (name + ".uasset")
+            inject(target.with_suffix(".uasset"), dds, injected)
             for ext in (".uasset", ".uexp"):
-                shutil.copy2(next(injected.rglob(name + ext)), target.with_suffix(ext))
+                shutil.copy2(injected.with_suffix(ext), target.with_suffix(ext))
             textures[asset] = {"recipe": recipe_name, "style": sorted(values),
                                "stock_uexp_sha256": sha256(source.with_suffix(".uexp")),
                                "baked_uexp_sha256": sha256(target.with_suffix(".uexp"))}
