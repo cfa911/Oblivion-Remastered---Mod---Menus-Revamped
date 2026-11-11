@@ -14,6 +14,9 @@
 #include "search/WorldMapSearch.h"
 #include "alchemy/AlchemyMenu.h"
 #include "layout/CompactRows.h"
+#ifdef MR_DEVTOOLS
+#include "devtools/Census.h"
+#endif
 
 namespace core
 {
@@ -28,6 +31,9 @@ namespace core
 		LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM key, LPARAM position)
 		{
 			if (message == WM_TIMER && key == kTimer && GetCurrentThreadId() == g_thread) { Tick(); return 0; }
+#ifdef MR_DEVTOOLS
+			if (devtools::Message(message, key, position)) return 0;
+#endif
 			if (alchemy::Message(message, key, position)) return 0;
 			if (sorting::PopupOpen() && sorting::Message(message, key, position)) return 0;
 			if (mapsearch::Message(window, message, key, position)) return 0;
@@ -114,6 +120,9 @@ namespace core
 		hoverfix::Tick(menus::Active());
 		search::Tick(menus::Active());
 		mapsearch::Tick();
+#ifdef MR_DEVTOOLS
+		devtools::Tick();
+#endif
 		PublishInputState();
 	}
 }
