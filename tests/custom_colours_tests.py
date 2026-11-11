@@ -1,6 +1,6 @@
 """Custom pack builder Phase 1 (owner 2026-11-11): the pack recipes read their colours from CustomColours.ini (one value per
 element, today's names; no role merge yet), generated from today's DarkStyle.h. A missing file or key falls back to today's
-Dark value. The pack name is a parameter (default MRDark_P until Phase 3)."""
+Dark value. The pack name is a parameter (default MRCustom_P since Phase 3)."""
 import importlib.util
 import inspect
 import re
@@ -106,7 +106,7 @@ if mdp is not None:
               "a blueprint recipe takes its elements from the colour file")
     check(getattr(mdp, "panel_gray", lambda v: None)(0) == 16, "panel_gray's default frame is today's value without DarkStyle.h")
     # the pack name is a parameter
-    check(getattr(mdp, "DEFAULT_PACK", None) == "MRDark_P", "the default pack name stays MRDark_P until Phase 3")
+    check(getattr(mdp, "DEFAULT_PACK", None) == "MRCustom_P", "the default pack name is MRCustom_P (Phase 3)")
     check(not hasattr(mdp, "PACK"), "no fixed PACK constant: the name is passed in")
     check("pack" in inspect.signature(getattr(mdp, "build", lambda: None)).parameters, "build() takes the pack name")
     check("colours" in inspect.signature(getattr(mdp, "build", lambda: None)).parameters, "build() takes the colour values")

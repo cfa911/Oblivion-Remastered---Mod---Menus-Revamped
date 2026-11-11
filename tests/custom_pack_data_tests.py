@@ -21,7 +21,7 @@ def check(ok, why):
 root = source_paths.ROOT
 menus_dir = root / "tools/menus"
 MENUS = ("inventory", "magic", "alchemy")   # build order: the order of today's single table
-manifest = json.loads((root / "assets/DarkPack/MRDark_P.json").read_text(encoding="utf-8"))
+manifest = json.loads((root / "assets/CustomPack/MRCustom_P.json").read_text(encoding="utf-8"))
 shipped = manifest["textures"]
 
 data = {}
@@ -52,7 +52,7 @@ for menu in MENUS:
 assets = [row.get("asset") for row in rows]
 check(len(assets) == 69, f"the data files describe 69 assets (found {len(assets)})")
 check(len(set(assets)) == len(assets), "no asset is listed twice across the data files")
-check(set(assets) == set(shipped), "the data files list exactly the assets of the shipped MRDark_P")
+check(set(assets) == set(shipped), "the data files list exactly the assets of the shipped MRCustom_P")
 check(assets == list(shipped), "the data files keep today's build order (inventory, magic, alchemy)")
 for row in rows:
     asset = row.get("asset")

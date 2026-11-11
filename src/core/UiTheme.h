@@ -173,19 +173,35 @@ namespace uistyle
 		{ 0, 0, 0, 0 },
 		{ 0, 0, 0, 0 }
 	};
-	inline constexpr Skin kDarkSkin{
-		true, true, true,
-		darkstyle::Arr(darkstyle::kDefaults.rowText), darkstyle::Arr(darkstyle::kDefaults.rowText),   // row and perk ink
-		darkstyle::kDefaults.skin.rule, darkstyle::kDefaults.skin.guide,
-		kDarkArt, int(sizeof(kDarkArt) / sizeof(kDarkArt[0])), darkstyle::kDefaults.skin.ring,
-		darkstyle::kDefaults.detailsPage,   // the details page tint (Inventory and Magic)
-		darkstyle::kDefaults.skin.ornament, darkstyle::kDefaults.skin.pattern, darkstyle::kDefaults.skin.band,
-		darkstyle::kDefaults.skin.buttonFill,
-		darkstyle::kDefaults.skin.scrollTrack, darkstyle::kDefaults.skin.scrollBorder, darkstyle::kDefaults.skin.scrollInside,
-		darkstyle::kDefaults.skin.emphasisInk, darkstyle::kDefaults.skin.buttonRule
-	};
+	// The Dark skin from the colour values in use (darkstyle::Get(): CustomColours.ini over the defaults), so a colour file
+	// edit reaches the run-time ink pass and tints too. Rebuilt only when darkstyle::Set() ran (once at load).
+	inline Skin MakeDarkSkin(const darkstyle::Style& s)
+	{
+		return Skin{
+			true, true, true,
+			darkstyle::Arr(s.rowText), darkstyle::Arr(s.rowText),   // row and perk ink
+			s.skin.rule, s.skin.guide,
+			kDarkArt, int(sizeof(kDarkArt) / sizeof(kDarkArt[0])), s.skin.ring,
+			s.detailsPage,   // the details page tint (Inventory and Magic)
+			s.skin.ornament, s.skin.pattern, s.skin.band, s.skin.buttonFill,
+			s.skin.scrollTrack, s.skin.scrollBorder, s.skin.scrollInside,
+			s.skin.emphasisInk, s.skin.buttonRule
+		};
+	}
+	inline const Skin& DarkSkin()
+	{
+		static Skin     skin = MakeDarkSkin(darkstyle::Get());
+		static unsigned built = darkstyle::Generation();
+		if (built != darkstyle::Generation()) {
+			skin = MakeDarkSkin(darkstyle::Get());
+			built = darkstyle::Generation();
+		}
+		return skin;
+	}
 
-	inline constexpr const Skin& SkinFor(Preset a_preset) { return a_preset == Preset::Dark ? kDarkSkin : kStockSkin; }
+	// Only Dark recolours (constexpr, for the layout helpers below); the colours themselves come from SkinFor.
+	inline constexpr bool Recolors(Preset a_preset) { return a_preset == Preset::Dark; }
+	inline const Skin& SkinFor(Preset a_preset) { return a_preset == Preset::Dark ? DarkSkin() : kStockSkin; }
 
 #define UISTYLE_INVENTORY_CONTROL_PAINT 1
 	struct InventoryControlStyle
@@ -196,7 +212,7 @@ namespace uistyle
 
 	inline constexpr InventoryControlStyle InventoryControls(bool inventory, Preset preset)
 	{
-		const bool dark = inventory && SkinFor(preset).recolor;
+		const bool dark = inventory && Recolors(preset);
 		return { dark, dark ? 0.24f : 1.0f };
 	}
 
@@ -215,11 +231,11 @@ namespace uistyle
 	inline constexpr bool SkinnedKind(int kind) { return kind == 0 || kind == 1 || kind == 2 || kind == 5 || kind == 6; }
 	inline constexpr const Search& SearchFor(bool skinnedMenu, Preset p)
 	{
-		return skinnedMenu && SkinFor(p).recolor ? kInventorySkinSearch : Get(p).search;
+		return skinnedMenu && Recolors(p) ? kInventorySkinSearch : Get(p).search;
 	}
 	inline constexpr const Picker& PickerFor(bool skinnedMenu, Preset p)
 	{
-		return skinnedMenu && SkinFor(p).recolor ? kInventorySkinPicker : Get(p).picker;
+		return skinnedMenu && Recolors(p) ? kInventorySkinPicker : Get(p).picker;
 	}
 	// The Magic page (T_MagicBackground, shared with Quest/Help/Stats, so never replaced in a texture package) is swapped per
 	// widget inside Magic only for MagicPage.png, its own shape in white, drawn in DarkStyle.h panel (the Inventory recipe).
@@ -227,5 +243,5 @@ namespace uistyle
 	// Round 2 (owner screenshot 2026-11-10): in Dark the Magic header icons (Effect, Type, Cost...) are full white like the
 	// A-Z and School icons, not dimmed while inactive; the active one keeps its gray background and arrow.
 #define UISTYLE_MAGIC_SKIN_R2 1
-	inline constexpr float MagicHeaderOpacity(Preset p, float stock) { return SkinFor(p).recolor ? 1.0f : stock; }
+	inline constexpr float MagicHeaderOpacity(Preset p, float stock) { return Recolors(p) ? 1.0f : stock; }
 }
