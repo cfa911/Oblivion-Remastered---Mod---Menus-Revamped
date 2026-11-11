@@ -1,0 +1,35 @@
+{
+  "menu": "Alchemy",
+  "order": 3,
+  "note": "Alchemy (owner 2026-11-11): parchments baked gray, icons and boxes in their final colour, blueprint colour literals patched at verified .uexp offsets (KB docs/alchemy/internals.md). The png recipe uses the owner's edited art in assets-src/DarkPack (not shippable).",
+  "blueprint_colours": {
+    "WBP_ModernMenu_FilterEffectEntry": [{"offset": 2893, "stock": [0.5395, 0.4969, 0.4452, 1.0], "colour": "filterRow"}, {"offset": 3002, "stock": [0.3968, 0.3325, 0.2831, 1.0], "colour": "filterSelected"}],
+    "WBP_ModernPrefab_SelectableButton": [{"offset": 1734, "stock": [0.5395, 0.4969, 0.4452, 1.0], "colour": "filterRow"}, {"offset": 1813, "stock": [0.3968, 0.3325, 0.2831, 1.0], "colour": "filterSelected"}],
+    "WBP_ModernMenu_ItemEffect": [{"offset": 1856, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText"}],
+    "WBP_ModernPrefab_EditableText": [{"offset": 258, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "nameBox"}],
+    "WBP_LegacyMenu_AddedEffects": [{"offset": 18182, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText"}, {"offset": 18251, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText"}, {"offset": 18320, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText"}, {"offset": 18409, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText"}, {"offset": 18554, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText"}]
+  },
+  "assets": [
+    {"asset": "Art/UI/Modern/GameMenuLayer/Spellmaking/T_Spellmaking_LeftPaperBackground", "recipe": "parchment", "colours": ["parchmentDark", "parchmentLight"], "shared_with": ["Spellmaking"]},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_paper_bg", "recipe": "parchment", "colours": ["parchmentDark", "parchmentLight"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_Right_apparatis", "recipe": "parchment", "colours": ["parchmentDark", "parchmentLight"], "shared_with": []},
+    {"asset": "Art/UI/Common/Backgrounds/T_UI_MenuLeft", "recipe": "parchment", "colours": ["parchmentDark", "parchmentLight"], "shared_with": ["Container", "Recharge", "Repair", "Sigil Stone", "Training", "Help"]},
+    {"asset": "Art/UI/Icons/Icon_Stats/T_Property_1_cost", "recipe": "flat:headerIcon", "colours": ["headerIcon"], "shared_with": ["Alchemy", "effect lists", "Enchanting", "Magic", "Inventory"]},
+    {"asset": "Art/UI/Icons/Icon_Category/T_Category_All_items", "recipe": "flat:headerIcon", "colours": ["headerIcon"], "shared_with": []},
+    {"asset": "Art/UI/Common/T_UI_EditableText_FeatherIndicator", "recipe": "flat:nameBox", "colours": ["nameBox"], "shared_with": ["every editable text field"]},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Enchantment/T_GenericMenus_EditableText_Line", "recipe": "flat:nameBox", "colours": ["nameBox"], "shared_with": ["every editable text field"]},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_Item_Default", "recipe": "flat:effectBox", "colours": ["effectBox"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/Filters/T_Alchemy_Filters_Highlighted", "recipe": "flat:filterHover", "colours": ["filterHover"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Icon_Stats/T_ModernCheckmark", "recipe": "tone:filterMark", "colours": ["filterMark"], "shared_with": ["Enchanting", "Spellmaking", "Stats", "selectable buttons"]},
+    {"asset": "UI/Modern/GameMenuLayer/Alchemy/Filters/WBP_ModernMenu_FilterEffectEntry", "recipe": "bp_colour:WBP_ModernMenu_FilterEffectEntry", "colours": ["filterRow", "filterSelected"], "shared_with": []},
+    {"asset": "UI/Modern/GameMenuLayer/Common/WBP_ModernPrefab_SelectableButton", "recipe": "bp_colour:WBP_ModernPrefab_SelectableButton", "colours": ["filterRow", "filterSelected"], "shared_with": []},
+    {"asset": "UI/Modern/GameMenuLayer/Alchemy/WBP_ModernMenu_ItemEffect", "recipe": "bp_colour:WBP_ModernMenu_ItemEffect", "colours": ["rowText"], "shared_with": []},
+    {"asset": "UI/Modern/Prefabs/WBP_ModernPrefab_EditableText", "recipe": "bp_colour:WBP_ModernPrefab_EditableText", "colours": ["nameBox"], "shared_with": ["Enchanting", "Sigil Stone", "Spellmaking", "Character Creation", "custom class"]},
+    {"asset": "UI/Legacy/GameMenuLayer/Commun/WBP_LegacyMenu_AddedEffects", "recipe": "bp_colour:WBP_LegacyMenu_AddedEffects", "colours": ["rowText"], "shared_with": ["Inventory", "Magic", "Sigil Stone", "Enchanting", "Spellmaking", "Alchemy"]},
+    {"asset": "Art/UI/Icons/Icon_Stats/T_Property_1_magnitude", "recipe": "flat:headerIcon", "colours": ["headerIcon"], "shared_with": ["Inventory", "Magic", "Sigil Stone", "Enchanting", "Spellmaking", "Alchemy"]},
+    {"asset": "Art/UI/Icons/Icon_Stats/T_Property_1_time", "recipe": "flat:headerIcon", "colours": ["headerIcon"], "shared_with": ["Inventory", "Magic", "Sigil Stone", "Enchanting", "Spellmaking", "Alchemy"]},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_UI_Alchemy_Background", "recipe": "png", "colours": [], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_IngredientsSlots_BG", "recipe": "png", "colours": [], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_mortar_pestle", "recipe": "png", "colours": [], "shared_with": []}
+  ]
+}

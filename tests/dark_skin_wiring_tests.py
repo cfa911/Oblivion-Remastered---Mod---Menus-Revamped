@@ -220,7 +220,7 @@ check(tool.is_file() and "DarkStyle.h" in tool.read_text(encoding="utf-8"), "the
 check("MRMAGICDARK rich row" in src, "TEMP-DIAG: the Spell Effectiveness style rows are logged once (it stayed dark on 4c0fd98f)")
 # ---- Round 7 (owner 2026-11-10): the Inventory tab process for Magic (phase 3: baked by make_dark_pack.py magic_tab) ----
 tab_tool = (source_paths.ROOT / "tools/make_dark_tab_art.py").read_text(encoding="utf-8")
-check("T_Category_OnSelf" in (source_paths.ROOT / "tools/make_dark_pack.py").read_text(encoding="utf-8") and "tabSelected" not in tab_tool and "tab" in tab_tool and "compile-outlined-tabs" in tab_tool,
+check("T_Category_OnSelf" in (source_paths.ROOT / "tools/menus/magic.json").read_text(encoding="utf-8") and "tabSelected" not in tab_tool and "tab" in tab_tool and "compile-outlined-tabs" in tab_tool,
       "the tab tool ports the Inventory compiler on the standalone T_Category masks")
 # ---- Round 8 (owner 2026-11-10: "Inv is still better", "not using the same method"; RMI-082) ----
 # The Inventory method: its installed panel art (MRSkinPlayerPanel_P, T_UI_PlayerMenu_Background) is a tone curve on the stock

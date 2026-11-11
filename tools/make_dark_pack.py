@@ -1,19 +1,24 @@
-"""Build the Dark UI pack (assets/DarkPack/MRDark_P.pak/.utoc/.ucas): stock textures re-coloured from src/core/DarkStyle.h.
+"""Build the colour pack (default assets/DarkPack/MRDark_P.pak/.utoc/.ucas): stock textures re-coloured from the colour file.
 
 Usage:
   python tools/make_dark_pack.py --paks <game>/OblivionRemastered/Content/Paks --ddstools <UE4-DDS-Tools/src/main.py>
-                                 --retoc <retoc.exe> [--out <dir>] [--check]
+                                 --retoc <retoc.exe> [--out <dir>] [--pack <name>_P] [--colours <ini>] [--check]
+
+What is baked lives in data files, one per menu (tools/menus/<menu>.json: asset -> recipe -> colour elements, stock checks,
+shared-with notes); the recipes are the code below. The colours come from CustomColours.ini (default config/CustomColours.ini,
+generated from src/core/DarkStyle.h by tools/custom_colours.py; a missing file or entry = today's Dark value).
 
 Steps per texture: retoc to-legacy (filtered to the texture; retoc reads only the base containers, never ~mods), UE4-DDS-Tools
-export to DDS, the recipe below re-colours it, UE4-DDS-Tools inject; then one retoc to-zen for the whole pack. Writes
-MRDark_P.json next to the pack: the DarkStyle.h values and stock inputs it was built from and the hashes of the files it wrote
+export to DDS, the recipe re-colours it, UE4-DDS-Tools inject; then one retoc to-zen for the whole pack. Writes <pack>.json
+next to the pack: the colour values and stock inputs it was built from and the hashes of the files it wrote
 (tests/dark_pack_tests.py fails when DarkStyle.h changed without a rebuild). --check builds into a temp folder and compares the
 baked textures (retoc orders a many-package container differently per run, so the container bytes can differ).
 
 Every recipe keeps the stock BC3 alpha blocks byte for byte, except enchanted_dot (it draws its own round alpha) and
 magic_tab (the tab strip is made opaque). rich_row patches one colour of a rich-text style table (a DataTable .uexp).
-Run it again after changing a DarkStyle.h value a recipe reads. The plugin copies the pack into Content/Paks/~mods when the
-preset is Dark (src/core/rules/DarkPackSwitch.h). Requires Pillow. Plan: KB mods/menus-revamped/evidence/dark-ui-pack-plan.md.
+Run it again after changing a colour a recipe reads. The plugin copies MRDark_P into Content/Paks/~mods when the
+preset is Dark (src/core/rules/DarkPackSwitch.h). Requires Pillow. Plans: KB mods/menus-revamped/evidence/dark-ui-pack-plan.md,
+custom-pack-builder-plan.md.
 """
 import argparse
 import hashlib
@@ -29,138 +34,55 @@ from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-PACK = "MRDark_P"
+sys.path.insert(0, str(ROOT / "tools"))
+import custom_colours  # noqa: E402
+
+DEFAULT_PACK = "MRDark_P"   # MRCustom_P comes with the plugin switch (Custom pack builder Phase 3)
 GAME_BUILD = "1.512.105.0"
-# stock asset (path under Content) -> recipe name ("flat:<Rgb>" = that DarkStyle.h colour on the stock alpha)
-TEXTURES = {
-    # the parchment shared by the Inventory and Magic details, Help, Spell Purchase, Stats page 3 and Quest details
-    "Art/UI/Modern/GameMenuLayer/SpellPurchase/T_SpellPurchase_LeftPageBG": "details_page",
-    # Phase 2: the Inventory art of the old local MRSkinPlayerPanel_P / MRSkinHighlight_P packs (owner install, never shipped).
-    # The shared ones (scrollbar, column line, row highlight, sort icons, enchanted dot) were always on there; now Dark only.
-    "Art/UI/Common/Backgrounds/T_UI_PlayerMenu_Background": "panel",
-    "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertBtm_D": "flat:frame",
-    "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertMiddleNew_D": "flat:frame",
-    "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertTop_D": "flat:frame",
-    "Art/UI/Common/T_Line_V": "flat:columnLine",
-    "Art/UI/Common/T_List_highlight_V3": "flat:listHighlight",
-    "Art/UI/Icons/Dynamic_Icons/menus/Icons/T_Icon_enchanted": "enchanted_dot",
-    "Art/UI/Icons/Icon_Stats/T_Property_1_Attack": "flat:headerIcon",
-    "Art/UI/Icons/Icon_Stats/T_Property_1_defense": "flat:headerIcon",
-    "Art/UI/Icons/Icon_Stats/T_Property_1_Health": "flat:headerIcon",
-    "Art/UI/Icons/Icon_Stats/T_Property_1_MoneyV2": "flat:headerIcon",
-    "Art/UI/Icons/Icon_Stats/T_Property_1_sorting": "flat:headerIcon",
-    "Art/UI/Icons/Icon_Stats/T_Property_1_Weight": "flat:headerIcon",
-    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_weapons": "tab:0",
-    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_armor": "tab:1",
-    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_alchemy": "tab:2",
-    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_misc": "tab:3",
-    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_all": "tab:4",
-    "Art/UI/Modern/GameMenuLayer/Inventory/T_InventoryPreview_Background_D": "gray",
-    "Art/UI/Modern/GameMenuLayer/Inventory/T_Inventory_pattern": "flat:pattern",
-    "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_details_preview_frame_D": "preview_frame",
-    "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_BG": "flat:subTabDisc",
-    "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_BG2": "flat:subTabCircle",
-    "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_enchantment_icon": "flat:subTabIcon",
-    "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_overview_icon": "flat:subTabIcon",
-    "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_skill_icon": "flat:subTabIcon",
-    # Phase 3: the Magic-only art (UI asset scan: no other menu imports these). T_MagicBackground (Quest/Help/Stats too) and
-    # the _ListSmall row type icons (Sigil Stone, effect lists) stay run-time swaps inside Magic until their menus are dark.
-    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Alteration": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Conjuration": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Destruction": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Illusion": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Mysticism": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Restoration": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Cost": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Duration": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Magnitude": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Range": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Weight": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Custom_Spell": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Greater_Power": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Lesser_Power": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Scroll": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Spell": "flat:rowIcon",
-    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Self": "magic_tab:0",
-    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Touch": "magic_tab:1",
-    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Target": "magic_tab:2",
-    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_All": "magic_tab:3",
-    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_ActiveEffect": "magic_tab:4",
-    # Alchemy (owner 2026-11-11): its parchments like the Dark details parchment. Shared (owner accepted): the ingredient page
-    # T_Spellmaking_LeftPaperBackground with Spellmaking; the Filters panel T_UI_MenuLeft with Container, Recharge, Repair,
-    # Sigil Stone, Training and Help. Frames and lines stay stock.
-    "Art/UI/Modern/GameMenuLayer/Spellmaking/T_Spellmaking_LeftPaperBackground": "parchment",
-    "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_paper_bg": "parchment",
-    "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_Right_apparatis": "parchment",
-    "Art/UI/Common/Backgrounds/T_UI_MenuLeft": "parchment",
-    # Alchemy round 4 (owner 2026-11-11: a full native dark mode, everything baked). The Alchemy header's lightning (also
-    # effect-list rows, Enchanting stats, the Magic/Inventory filter tables) and category icon (no other UI asset) in headerIcon;
-    # the potion name field's quill and rule (every editable text field) in nameBox; the effect boxes under the ingredient list
-    # (and the dividers between the effects; Alchemy-only) in effectBox; the Filters hover box (also the Must Contain button) in
-    # filterHover; the selected diamond (also Enchanting, Spellmaking, Alchemy ingredient rows, Stats level text, selectable
-    # buttons) in filterMark with its own shading.
-    "Art/UI/Icons/Icon_Stats/T_Property_1_cost": "flat:headerIcon",
-    "Art/UI/Icons/Icon_Category/T_Category_All_items": "flat:headerIcon",
-    "Art/UI/Common/T_UI_EditableText_FeatherIndicator": "flat:nameBox",
-    "Art/UI/Modern/GameMenuLayer/Enchantment/T_GenericMenus_EditableText_Line": "flat:nameBox",
-    "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_Item_Default": "flat:effectBox",
-    "Art/UI/Modern/GameMenuLayer/Alchemy/Filters/T_Alchemy_Filters_Highlighted": "flat:filterHover",
-    "Art/UI/Icons/Icon_Stats/T_ModernCheckmark": "tone:filterMark",
-    # Blueprint colour literals (BLUEPRINT_COLOURS): the Filters row boxes (row and Must Contain button, Alchemy-only), the
-    # effect names under the ingredient list (Alchemy-only), the editable text field's text colour (Alchemy, Enchanting,
-    # Sigil Stone, Spellmaking, Character Creation overview, custom class).
-    "UI/Modern/GameMenuLayer/Alchemy/Filters/WBP_ModernMenu_FilterEffectEntry": "bp_colour:WBP_ModernMenu_FilterEffectEntry",
-    "UI/Modern/GameMenuLayer/Common/WBP_ModernPrefab_SelectableButton": "bp_colour:WBP_ModernPrefab_SelectableButton",
-    "UI/Modern/GameMenuLayer/Alchemy/WBP_ModernMenu_ItemEffect": "bp_colour:WBP_ModernMenu_ItemEffect",
-    "UI/Modern/Prefabs/WBP_ModernPrefab_EditableText": "bp_colour:WBP_ModernPrefab_EditableText",
-    # Round 5: the potion's effect lines and their stat icons white (the game's shared effect line: also the Inventory/Magic
-    # effect lists, Sigil Stone, the Modern added-effects list of Enchanting and Spellmaking; owner accepted)
-    "UI/Legacy/GameMenuLayer/Commun/WBP_LegacyMenu_AddedEffects": "bp_colour:WBP_LegacyMenu_AddedEffects",
-    "Art/UI/Icons/Icon_Stats/T_Property_1_magnitude": "flat:headerIcon",
-    "Art/UI/Icons/Icon_Stats/T_Property_1_time": "flat:headerIcon",
-    # Round 6: the owner's own edited art, used as is (assets-src/DarkPack/<texture>.png): the Alchemy frame (only
-    # M_UI_Alchemy_Background), the ingredient slots (Alchemy-only), the pot under the potion paper (only M_UI_AlchemyPot)
-    "Art/UI/Modern/GameMenuLayer/Alchemy/T_UI_Alchemy_Background": "png",
-    "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_IngredientsSlots_BG": "png",
-    "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_mortar_pestle": "png",
-    # (not DT_UI_MagicMenu: the details blueprint sets the cast-frequency line's default colour itself, RMI-086; the rich_row
-    # recipe stays for the rich-text style tables of phase 4)
-}
-# the tab glyphs: the clean standalone category masks, in tab order (weapons, armor, alchemy, misc, all)
-TAB_MASKS = ("T_Category_Weapons", "T_Category_Armor", "T_Category_Alchemy", "T_Category_Misc", "T_Category_All_items")
-MAGIC_TAB_MASKS = ("T_Category_OnSelf", "T_Category_Touch", "T_Category_Target", "T_Category_All", "T_Category_ActiveEffects")
-# RichTextStyleRow colours: row -> (.uexp byte offset of its linear float4, the stock value), game 1.512.105.0 (KB dark-mode-ui.md)
-RICH_ROWS = {"DT_UI_MagicMenu": {"Default": (69, (0.0723, 0.0382, 0.0284, 1.0)), "RT_BlueMed": (425, (0.0513, 0.0648, 0.1441, 1.0))}}
-# Blueprint colour literals: package -> [(.uexp byte offset of a linear RGBA float4, its stock value, DarkStyle.h Rgb)], game
-# 1.512.105.0 (KB docs/alchemy/internals.md "Blueprint colour literals"; each value occurs once in its package)
-BOX_ROW, BOX_SELECTED, INK = (0.5395, 0.4969, 0.4452, 1.0), (0.3968, 0.3325, 0.2831, 1.0), (0.0723, 0.0382, 0.0284, 1.0)
-BLUEPRINT_COLOURS = {
-    "WBP_ModernMenu_FilterEffectEntry": [(2893, BOX_ROW, "filterRow"), (3002, BOX_SELECTED, "filterSelected")],
-    "WBP_ModernPrefab_SelectableButton": [(1734, BOX_ROW, "filterRow"), (1813, BOX_SELECTED, "filterSelected")],
-    "WBP_ModernMenu_ItemEffect": [(1856, INK, "rowText")],
-    "WBP_ModernPrefab_EditableText": [(258, INK, "nameBox")],
-    "WBP_LegacyMenu_AddedEffects": [(offset, INK, "rowText") for offset in (18182, 18251, 18320, 18409, 18554)],
-}
+MENUS = ROOT / "tools/menus"
+
+
+def load_menus(folder=MENUS):
+    """The pack's tables from the per-menu data files (<menu>.json, in their "order"):
+    TEXTURES {stock asset (path under Content): recipe name}, GLYPH_MASKS {recipe kind: [mask texture names]},
+    RICH_ROWS {table: {row: (.uexp offset of its linear float4, stock value)}},
+    BLUEPRINT_COLOURS {package: [(.uexp offset of a linear RGBA float4, stock value, colour element)]}."""
+    menus = []
+    for path in Path(folder).glob("*.json"):
+        try:
+            menus.append(json.loads(path.read_text(encoding="utf-8")))
+        except ValueError as error:
+            sys.exit(f"{path.name}: not valid JSON ({error})")
+    textures, masks, rich_rows, blueprints = {}, {}, {}, {}
+    for menu in sorted(menus, key=lambda m: (m.get("order", 99), m.get("menu", ""))):
+        for row in menu.get("assets", []):
+            if row["asset"] in textures:
+                sys.exit(f"{row['asset']} is listed twice in {folder}")
+            textures[row["asset"]] = row["recipe"]
+        masks |= {kind: tuple(names) for kind, names in menu.get("glyph_masks", {}).items()}
+        for table, rows in menu.get("rich_rows", {}).items():
+            rich_rows[table] = {row: (e["offset"], tuple(e["stock"])) for row, e in rows.items()}
+        for package, entries in menu.get("blueprint_colours", {}).items():
+            blueprints[package] = [(e["offset"], tuple(e["stock"]), e["colour"]) for e in entries]
+    return textures, masks, rich_rows, blueprints
+
+
+# the stock assets and their recipes ("flat:<element>" = that colour on the stock alpha), the tab glyph masks (the clean
+# standalone category masks, in tab order), the rich-text row and blueprint colour literals with their stock values (game
+# 1.512.105.0; KB dark-mode-ui.md and docs/alchemy/internals.md): all in tools/menus/<menu>.json
+TEXTURES, GLYPH_MASKS, RICH_ROWS, BLUEPRINT_COLOURS = load_menus()
+TAB_MASKS, MAGIC_TAB_MASKS = GLYPH_MASKS.get("tab", ()), GLYPH_MASKS.get("magic_tab", ())
+
+
+def pack_name(name):
+    """A pack name for ~mods: letters and digits with the _P suffix (the game mounts *_P paks after the base ones)."""
+    if not re.fullmatch(r"[A-Za-z0-9]+_P", name or ""):
+        sys.exit(f"pack name {name!r}: letters and digits ending in _P (for example MRDark_P)")
+    return name
+
+
 TAB_STYLE = ("selected", "unselected", "gap", "outline", "glyph", "glyphDim")
 PANEL_DARK, PANEL_LIGHT = 42, 116   # stock brightness of the panel curve's ends (the installed pack's rule)
-
-
-def style_text():
-    return (ROOT / "src/core/DarkStyle.h").read_text(encoding="utf-8")
-
-
-def style_float(name):
-    found = re.search(r"float\s+" + name + r"\s*=\s*([\d.]+)f?", style_text())
-    if not found:
-        sys.exit(f"DarkStyle.h has no float {name}")
-    return float(found.group(1))
-
-
-def style_rgb(name):
-    found = re.search(r"Rgb\s+" + name + r"\{\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\}", style_text())
-    if not found:
-        sys.exit(f"DarkStyle.h has no Rgb {name}")
-    return [float(v) for v in found.groups()]
 
 
 def linear(v):
@@ -245,9 +167,9 @@ def parchment(stock_dds, dark, light):
 
 
 def panel_gray(v, frame=None, panel=None):
-    """List page tone curve: stock brightness <= 42 -> DarkStyle.h frame, >= 116 -> panel, linear between."""
-    frame = style_rgb("frame")[0] if frame is None else frame
-    panel = style_rgb("panel")[0] if panel is None else panel
+    """List page tone curve: stock brightness <= 42 -> frame, >= 116 -> panel, linear between (default: the Dark values)."""
+    frame = custom_colours.DEFAULTS["frame"][0] if frame is None else frame
+    panel = custom_colours.DEFAULTS["panel"][0] if panel is None else panel
     return frame + round((panel - frame) * min(1.0, max(0.0, (v - PANEL_DARK) / (PANEL_LIGHT - PANEL_DARK))))
 
 
@@ -333,7 +255,7 @@ def magic_tab_atlas(stock_dds, active, v, work, stock):
 
 
 def rich_row_colour(uexp, row, rgb, table="DT_UI_MagicMenu"):
-    """A RichTextStyleRow's colour set to a DarkStyle.h sRGB colour (linear floats, alpha 1); refuses an unexpected stock value."""
+    """A RichTextStyleRow's colour set to an sRGB colour (linear floats, alpha 1); refuses an unexpected stock value."""
     offset, expected = RICH_ROWS[table][row]
     found = struct.unpack_from("<4f", uexp, offset) if len(uexp) >= offset + 16 else ()
     if len(found) != 4 or any(abs(a - b) > 5e-4 for a, b in zip(found, expected)):
@@ -350,7 +272,7 @@ def tone_colour(v, peak, rgb):
 
 
 def tone(data, rgb):
-    """The art's own shading in one DarkStyle.h colour: each BC3 colour endpoint becomes the colour times its brightness
+    """The art's own shading in one colour: each BC3 colour endpoint becomes the colour times its brightness
     relative to the brightest endpoint (every mip level; indices and alpha blocks kept, so the relief stays)."""
     out = bytearray(data)
     starts = range(header_size(data) + 8, len(out), 16)
@@ -394,7 +316,7 @@ def owner_png(stock_dds, name, work):
 
 
 def bp_colour(uexp, package, values):
-    """A blueprint's colour literals set to DarkStyle.h sRGB colours (linear floats, alpha 1); refuses an unexpected stock value."""
+    """A blueprint's colour literals set to sRGB colours (linear floats, alpha 1); refuses an unexpected stock value."""
     out = bytearray(uexp)
     for offset, expected, name in BLUEPRINT_COLOURS[package]:
         found = struct.unpack_from("<4f", uexp, offset) if len(uexp) >= offset + 16 else ()
@@ -412,7 +334,7 @@ def preview_frame(stock_dds, v, work):
 
 
 def recipe(name):
-    """recipe name -> (DarkStyle.h floats, DarkStyle.h Rgb values, function(stock dds, values, work, stock) -> DDS bytes)"""
+    """recipe name -> (number elements, colour elements, function(stock dds, values, work, stock) -> DDS bytes)"""
     kind, _, arg = name.partition(":")
     if kind == "flat":
         return (), (arg,), lambda dds, v, work, stock: flat_blocks(dds.read_bytes(), v[arg])
@@ -443,6 +365,12 @@ def recipe(name):
     }[name]
 
 
+def recipe_values(recipe_name, colours):
+    """The colour-file values a recipe reads: {element: value}."""
+    floats, rgbs, _ = recipe(recipe_name)
+    return {n: colours[n] for n in (*floats, *rgbs)}
+
+
 def run(cmd):
     result = subprocess.run([str(c) for c in cmd], capture_output=True, text=True, errors="replace")
     if result.returncode:
@@ -450,7 +378,10 @@ def run(cmd):
     return result.stdout
 
 
-def build(args, out):
+def build(args, out, pack=DEFAULT_PACK, colours=None):
+    """Bake every asset of the data files with the colour values (default: the Dark values) into <out>/<pack>.*"""
+    pack = pack_name(pack)
+    colours = custom_colours.DEFAULTS if colours is None else colours
     style = {}
     textures = {}
     with tempfile.TemporaryDirectory() as temp:
@@ -474,8 +405,8 @@ def build(args, out):
 
         for asset, recipe_name in TEXTURES.items():
             name = Path(asset).name
-            floats, rgbs, make = recipe(recipe_name)
-            values = {n: style_float(n) for n in floats} | {n: style_rgb(n) for n in rgbs}
+            make = recipe(recipe_name)[2]
+            values = recipe_values(recipe_name, colours)
             style.update(values)
             table = recipe_name.startswith(("rich_row:", "bp_colour:"))
             source_root = work / "legacy" / name
@@ -512,16 +443,16 @@ def build(args, out):
                                "baked_uexp_sha256": sha256(target.with_suffix(".uexp"))}
             print(f"{name}: {recipe_name} {values}")
         out.mkdir(parents=True, exist_ok=True)
-        run([args.retoc, "to-zen", "--version", "UE5_3", stage, out / f"{PACK}.utoc"])
+        run([args.retoc, "to-zen", "--version", "UE5_3", stage, out / f"{pack}.utoc"])
     files = {}
     for ext in ("pak", "utoc", "ucas"):
-        path = out / f"{PACK}.{ext}"
+        path = out / f"{pack}.{ext}"
         if not path.is_file():
             sys.exit(f"retoc wrote no {path.name}")
         files[path.name] = sha256(path)
-    manifest = {"pack": PACK, "game_build": GAME_BUILD, "built_by": "tools/make_dark_pack.py",
+    manifest = {"pack": pack, "game_build": GAME_BUILD, "built_by": "tools/make_dark_pack.py",
                 "style": style, "textures": textures, "files": files}
-    (out / f"{PACK}.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    (out / f"{pack}.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return manifest
 
 
@@ -531,18 +462,23 @@ def main():
     parser.add_argument("--ddstools", required=True, type=Path)
     parser.add_argument("--retoc", required=True, type=Path)
     parser.add_argument("--out", type=Path, default=ROOT / "assets/DarkPack")
+    parser.add_argument("--pack", default=DEFAULT_PACK, help=f"pack file name (default {DEFAULT_PACK})")
+    parser.add_argument("--colours", type=Path, default=custom_colours.DEFAULT_PATH,
+                        help="the colour file (default config/CustomColours.ini; missing file or entry = the Dark colours)")
     parser.add_argument("--check", action="store_true", help="build into a temp folder and compare with --out")
     args = parser.parse_args()
+    pack = pack_name(args.pack)
+    colours = custom_colours.load(args.colours)
     if not args.check:
-        manifest = build(args, args.out)
+        manifest = build(args, args.out, pack, colours)
         for name, digest in manifest["files"].items():
             print(name, (args.out / name).stat().st_size, digest[:16])
         return
     with tempfile.TemporaryDirectory() as temp:
-        fresh = build(args, Path(temp))
-    current = json.loads((args.out / f"{PACK}.json").read_text(encoding="utf-8"))
+        fresh = build(args, Path(temp), pack, colours)
+    current = json.loads((args.out / f"{pack}.json").read_text(encoding="utf-8"))
     # retoc 0.1.5 to-zen orders the chunks of a many-package container differently per run, so the container files are not
-    # compared: every baked texture (and the DarkStyle.h values) must be the same, and the shipped files the ones the manifest
+    # compared: every baked texture (and the colour values) must be the same, and the shipped files the ones the manifest
     # names.
     fresh.pop("files")
     files = current.pop("files", {})
