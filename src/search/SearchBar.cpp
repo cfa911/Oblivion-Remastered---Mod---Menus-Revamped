@@ -21,14 +21,17 @@ namespace search::detail
 		// Esc ends it. The text lives in g_queries; the filter and the controller's keyboard read and write the same text.
 		const uistyle::Search& BarStyle(menus::Menu a_menu)
 		{
-			// the skinned menus (Inventory, Magic) take the menu skin's bar in Dark (phase 2, owner 2026-11-10)
-			return uistyle::SearchFor(a_menu == menus::Menu::kInventory || a_menu == menus::Menu::kMagic, mrconfig::Get().stylePreset);
+			// the skinned menus (Inventory, Magic) take the menu skin's bar in Dark (phase 2, owner 2026-11-10); Alchemy and its
+			// Filters panel too since their parchments are dark (owner 2026-11-11)
+			return uistyle::SearchFor(a_menu == menus::Menu::kInventory || a_menu == menus::Menu::kMagic ||
+				a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters, mrconfig::Get().stylePreset);
 		}
 
 		const float* BarTextInk(menus::Menu a_menu, bool hint, bool sel)
 		{
 			const auto& style = BarStyle(a_menu);
-			if (a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) return style.alchemyInk.data();
+			if ((a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) && !uistyle::SkinFor(mrconfig::Get().stylePreset).recolor)
+				return style.alchemyInk.data();
 			return hint ? style.hint.data() : sel ? style.selectedInk.data() : style.ink.data();
 		}
 

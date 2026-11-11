@@ -243,6 +243,128 @@ check("IsMagicPage(" in source_paths.function(menu_skin, "void StyleMagicPage(")
 light = source_paths.function(menu_skin, "bool LightIcon(")
 check("darkpack::Active()" in light, "LightIcon tints the baked icons white (their colour is baked), rowIcon only without the pack")
 
+# Alchemy recolour (owner 2026-11-11): the four Alchemy parchments baked like the Dark details parchment (stock x detailsPage,
+# stock alpha kept). Shared: T_Spellmaking_LeftPaperBackground (Spellmaking), T_UI_MenuLeft (Container, Recharge, Repair,
+# Sigil Stone, Training, Help) - owner accepted. Frames and lines stay stock (owner). The game's brown Alchemy text is inked light
+# at run time when the menu opens, when the Filters panel opens and when a list row is generated (no per-frame work).
+ALCHEMY_PAGES = ["Art/UI/Modern/GameMenuLayer/Spellmaking/T_Spellmaking_LeftPaperBackground",
+                 "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_paper_bg",
+                 "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_Right_apparatis",
+                 "Art/UI/Common/Backgrounds/T_UI_MenuLeft"]
+check(set(ALCHEMY_PAGES) <= baked, "Alchemy: the shipped pack holds the four parchments (rebuilt with make_dark_pack.py)")
+check(not any(Path(a).name in ("T_LevelUp_Frame_Light", "T_InventorySeparator", "T_Line_02")
+              for a in listed), "Alchemy: frames, lines and the right frame stay stock (owner 2026-11-11)")
+ink_tree = source_paths.function(menu_skin, "void InkTree(")
+check("recolor" in ink_tree and "IsDarkInk" in ink_tree and "IsWarmInk" in ink_tree and "TextBlock" in ink_tree,
+      "menuskin::InkTree inks a tree's parchment-dark text with the preset ink (Dark only; coloured text kept)")
+alchemy = source_paths.read("alchemy")
+check("menuskin::InkTree(" in source_paths.function(alchemy, "void DecorateIngredientRow("),
+      "Alchemy: every generated ingredient row is inked")
+check("menuskin::InkTree(" in source_paths.function(alchemy, "void DecorateRow("),
+      "Alchemy: the Filters panel rows are inked (on each bind and in the existing row pass: hover re-darkening heals)")
+tick = source_paths.function(alchemy, "void Tick(")
+check("menuskin::InkTree(menu" in tick and "g_menuInked" in tick and "menuskin::InkTree(filters" in tick,
+      "Alchemy: the menu tree is inked once per opening, the Filters panel each time it opens")
+check("menuskin::InkTree(" not in source_paths.function(alchemy, "void Layout("), "Alchemy: no ink walk in the 100 ms layout pass")
+
+# Alchemy round 2 (owner screenshots 2026-11-11): the multiplied parchment came out green and noisy (BC 565 rounding of a
+# tan texture near black): a neutral gray tone curve that keeps the grain instead. The header's category icon is the game's own
+# T_Category_All_items (no Category-All.png copy) and the lightning T_Property_1_cost: both brown, so baked to a white base
+# and coloured at run time (owner: colours easy to change). Effect names white, their boxes blue, the potion name box white,
+# the Filters rows: hover gray, selected very dark blue, diamond blue. Colours named in DarkStyle.h.
+check(all(listed.get(a) == "parchment" for a in ALCHEMY_PAGES), "Alchemy r2: the four parchments use the gray parchment recipe")
+# Round 4 (owner 2026-11-11, the Dark plan): every texture is baked in its final DarkStyle.h colour, nothing is tinted at
+# run time; only what has no texture (the effect text, the Filters row's plain normal/selected boxes) stays run-time.
+BAKED_R4 = {"Art/UI/Icons/Icon_Stats/T_Property_1_cost": "flat:headerIcon",
+            "Art/UI/Icons/Icon_Category/T_Category_All_items": "flat:headerIcon",
+            "Art/UI/Common/T_UI_EditableText_FeatherIndicator": "flat:nameBox",
+            "Art/UI/Modern/GameMenuLayer/Enchantment/T_GenericMenus_EditableText_Line": "flat:nameBox",
+            "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_Item_Default": "flat:effectBox",
+            "Art/UI/Modern/GameMenuLayer/Alchemy/Filters/T_Alchemy_Filters_Highlighted": "flat:filterHover",
+            "Art/UI/Icons/Icon_Stats/T_ModernCheckmark": "tone:filterMark"}
+for asset, recipe_name in BAKED_R4.items():
+    check(listed.get(asset) == recipe_name and asset in baked, f"Alchemy r4: {Path(asset).name} baked {recipe_name}")
+for name in ("parchmentDark", "parchmentLight", "effectBox", "filterHover", "filterSelected", "filterMark", "nameBox"):
+    check(re.search(r"Rgb\s+" + name + r"\{", style_text) is not None, f"Alchemy r2: DarkStyle.h names {name}")
+if mdp is not None:
+    gray = getattr(mdp, "gray565", None)
+    check(gray is not None, "make_dark_pack.py has gray565 (a 565 colour with equal red, green and blue)")
+    if gray:
+        for v in (0, 14, 20, 25, 33, 41, 255):
+            e = gray(v)
+            check((e >> 11) * 2 == (e >> 5) & 63 and (e >> 11) == e & 31, f"gray565({v}) is neutral (no green cast)")
+    curve = getattr(mdp, "parchment_curve", None)
+    check(curve is not None, "make_dark_pack.py has the parchment tone curve")
+    if curve:
+        dark, light = 12, 40
+        check(curve(0, 100, 200, dark, light) == dark and curve(255, 100, 200, dark, light) == light
+              and dark < curve(150, 100, 200, dark, light) < light,
+              "the parchment curve maps the stock brightness range onto parchmentDark..parchmentLight (grain kept)")
+tex_paths = source_paths.function(alchemy, "constexpr const wchar_t* kTexPaths[]") or alchemy
+check("T_Category_All_items" in alchemy and "Category-All.png" not in alchemy,
+      "Alchemy r2: the category sort icon is the game's T_Category_All_items, not the mod's Category-All.png copy")
+# Round 4 (owner 2026-11-11: "a full native dark mode", baked like the rest): blueprint colour literals are patched in the
+# pack at verified .uexp offsets (KB docs/alchemy/internals.md "Blueprint colour literals"): the Filters row boxes (row and the
+# Must Contain button, both Alchemy-only), the effect names under the ingredient list, the potion name field's text colour.
+BP = {"UI/Modern/GameMenuLayer/Alchemy/Filters/WBP_ModernMenu_FilterEffectEntry": "bp_colour:WBP_ModernMenu_FilterEffectEntry",
+      "UI/Modern/GameMenuLayer/Common/WBP_ModernPrefab_SelectableButton": "bp_colour:WBP_ModernPrefab_SelectableButton",
+      "UI/Modern/GameMenuLayer/Alchemy/WBP_ModernMenu_ItemEffect": "bp_colour:WBP_ModernMenu_ItemEffect",
+      "UI/Modern/Prefabs/WBP_ModernPrefab_EditableText": "bp_colour:WBP_ModernPrefab_EditableText"}
+for asset, recipe_name in BP.items():
+    check(listed.get(asset) == recipe_name and asset in baked, f"Alchemy r4: {Path(asset).name} colours baked ({recipe_name})")
+if mdp is not None:
+    table = getattr(mdp, "BLUEPRINT_COLOURS", {})
+    check(table.get("WBP_ModernMenu_FilterEffectEntry") == [(2893, (0.5395, 0.4969, 0.4452, 1.0), "filterRow"),
+                                                            (3002, (0.3968, 0.3325, 0.2831, 1.0), "filterSelected")]
+          and table.get("WBP_ModernPrefab_SelectableButton") == [(1734, (0.5395, 0.4969, 0.4452, 1.0), "filterRow"),
+                                                               (1813, (0.3968, 0.3325, 0.2831, 1.0), "filterSelected")]
+          and table.get("WBP_ModernMenu_ItemEffect") == [(1856, (0.0723, 0.0382, 0.0284, 1.0), "rowText")]
+          and table.get("WBP_ModernPrefab_EditableText") == [(258, (0.0723, 0.0382, 0.0284, 1.0), "nameBox")],
+          "Alchemy r4: the blueprint colour table holds the census offsets and stock values")
+    patch = getattr(mdp, "bp_colour", None)
+    check(patch is not None, "make_dark_pack.py has the blueprint colour patch")
+    if patch:
+        uexp = bytearray(3100)
+        struct.pack_into("<4f", uexp, 2893, 0.5395, 0.4969, 0.4452, 1.0)
+        struct.pack_into("<4f", uexp, 3002, 0.3968, 0.3325, 0.2831, 1.0)
+        out = patch(bytes(uexp), "WBP_ModernMenu_FilterEffectEntry", {"filterRow": [66, 66, 66], "filterSelected": [14, 22, 42]})
+        check(len(out) == len(uexp) and out[:2893] == bytes(uexp[:2893]) and out[2909:3002] == bytes(uexp[2909:3002]),
+              "the blueprint patch changes only the colours' 16 bytes")
+        check(abs(struct.unpack_from("<f", out, 2893)[0] - mdp.linear(66)) < 1e-6 and struct.unpack_from("<f", out, 3002 + 12)[0] == 1.0,
+              "the blueprint patch writes DarkStyle.h sRGB as linear floats, alpha 1")
+        try:
+            patch(bytes(3100), "WBP_ModernMenu_FilterEffectEntry", {"filterRow": [1, 1, 1], "filterSelected": [1, 1, 1]})
+            check(False, "the blueprint patch refuses a .uexp whose stock colour is not where it expects (game update)")
+        except SystemExit:
+            check(True, "")
+# nothing in Alchemy is tinted at run time any more except the round 1 plain-text ink pass
+check("void StyleDark(" not in alchemy and "void StyleFilterRow(" not in alchemy and "menuskin::Paint(" not in alchemy,
+      "Alchemy r4: no run-time colouring of art or blueprint colours (all baked)")
+check(re.search(r"Rgb\s+iconBase\{", style_text) is None, "Alchemy r4: no white-base colour (icons baked in their final colour)")
+check("void Paint(" not in menu_skin and "void CensusTree(" not in menu_skin, "Alchemy r4: the run-time painter and the census (TEMP-DIAG) are gone")
+if mdp is not None:
+    tone = getattr(mdp, "tone_colour", None)
+    check(tone is not None and tone(255, 255, (92, 140, 214)) == (92, 140, 214) and tone(0, 255, (92, 140, 214)) == (0, 0, 0)
+          and tone(128, 255, (92, 140, 214))[2] < 214, "the tone recipe keeps the art's shading in one colour (the diamond's relief)")
+check(re.search(r"Rgb\s+filterRow\{", style_text) is not None, "Alchemy r3: DarkStyle.h names filterRow")
+search_bar = source_paths.read("search")
+check("menus::Menu::kAlchemy" in search_bar.split("uistyle::SearchFor(", 1)[1].split(";", 1)[0] if "uistyle::SearchFor(" in search_bar else False,
+      "Alchemy r3: the Alchemy and Filters search bars take the Dark Inventory/Magic search theme")
+
+
+# Round 5 (owner screenshot 2026-11-11): the potion's effect lines (WBP_LegacyMenu_AddedEffects: name, magnitude, duration)
+# and their stat icons were brown; baked white like the Magic lines. Shared: Inventory/Magic effect lists (already white in
+# Dark), Sigil Stone, the Modern added-effects list (Enchanting, Spellmaking) - owner accepted.
+check(listed.get("UI/Legacy/GameMenuLayer/Commun/WBP_LegacyMenu_AddedEffects") == "bp_colour:WBP_LegacyMenu_AddedEffects"
+      and "UI/Legacy/GameMenuLayer/Commun/WBP_LegacyMenu_AddedEffects" in baked,
+      "Alchemy r5: the effect line blueprint's brown ink is baked white")
+if mdp is not None:
+    check([o for o, _, n in getattr(mdp, "BLUEPRINT_COLOURS", {}).get("WBP_LegacyMenu_AddedEffects", []) if n == "rowText"]
+          == [18182, 18251, 18320, 18409, 18554], "Alchemy r5: the five brown ink literals of the effect line (census offsets)")
+for asset in ("Art/UI/Icons/Icon_Stats/T_Property_1_magnitude", "Art/UI/Icons/Icon_Stats/T_Property_1_time"):
+    check(listed.get(asset) == "flat:headerIcon" and asset in baked, f"Alchemy r5: {Path(asset).name} baked white")
+
+
 for why in fails:
     print("FAIL", why)
 print(f"{count} checks, {len(fails)} failures")

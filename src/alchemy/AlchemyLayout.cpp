@@ -39,6 +39,7 @@ namespace alchemy
 			auto* label = Field(a_row, "EffectText");
 			auto* text = label ? ui::FindInTree(label, "text_block") : nullptr;
 			if (!text) return;
+			menuskin::InkTree(a_row, 40);   // Dark: light text on the dark Filters parchment, before the count copies its look
 			const auto shown = uix::GetText(text);
 			if (MatchKey(shown).empty()) return;
 			const int n = CountOf(shown);
@@ -546,9 +547,7 @@ namespace alchemy
 				}
 				if (!reflect::Get(ih)) {
 					const int count = static_cast<int>(SortKey::Count);
-					auto* texture = i == count ? icons::Texture(L"Category-All.png") :
-						NativeTexture(i == static_cast<int>(SortKey::Colors) ? count : i);
-					if (i == count && !texture) texture = NativeTexture(count);
+					auto* texture = NativeTexture(i == count ? kTexCategory : i == static_cast<int>(SortKey::Colors) ? count : i);
 					if (auto* m = MakeImage(a_canvas, (L"MrAlchemySortIcon" + std::to_wstring(i)).c_str(), texture, 50, kIconSize)) ih = reflect::Hold(m);
 				}
 			}
@@ -729,6 +728,7 @@ namespace alchemy
 		{
 			auto* text = a_row ? RowNameText(a_row) : nullptr;
 			if (!text) return;
+			menuskin::InkTree(a_row, 40);   // Dark: light text on the dark parchment, before the columns copy its look
 			const auto shown = uix::GetText(text);
 			DecorateIngredientMarkers(a_row, shown); // empty/recycled rows must also hide old markers
 			if (shown.empty()) return;

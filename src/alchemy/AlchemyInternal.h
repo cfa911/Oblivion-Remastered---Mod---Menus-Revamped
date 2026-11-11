@@ -30,6 +30,7 @@
 #include "engine/Reflect.h"
 #include "engine/Ui.h"
 #include "engine/UiText.h"
+#include "sorting/MenuSkin.h"
 #include "sorting/rules/AlchemyRules.h"
 #include "sorting/rules/AlchemyEffectMarkers.h"
 #include "sorting/rules/ControllerPolicy.h"
@@ -67,9 +68,11 @@ namespace alchemy
 			L"/Game/Art/UI/Icons/Icons_Inputs/Xbox/T_Icon_Xbox_LB.T_Icon_Xbox_LB",
 			L"/Game/Art/UI/Icons/Icons_Inputs/Xbox/T_Icon_Xbox_RB.T_Icon_Xbox_RB",
 			L"/Game/Art/UI/Icons/Icons_Inputs/Xbox/T_Icon_Xbox_DPad_Right.T_Icon_Xbox_DPad_Right",
+			// the Count sort: the game's own category icon (owner 2026-11-11: no PNG copy of it; white base in MRDark_P)
+			L"/Game/Art/UI/Icons/Icon_Category/T_Category_All_items.T_Category_All_items",
 		};
 		constexpr int            kTexBack = 4, kTexUp = 5, kTexDown = 6, kTexLine = 7, kTexPadY = 8;
-		constexpr int            kTexPadA = 9, kTexPadB = 10, kTexPadLB = 11, kTexPadRB = 12, kTexPadRight = 13, kTexCount = 14;
+		constexpr int            kTexPadA = 9, kTexPadB = 10, kTexPadLB = 11, kTexPadRB = 12, kTexPadRight = 13, kTexCategory = 14, kTexCount = 15;
 		constexpr double         kHintGlyph = 40;   // own footer hint glyph (viewport units) when the native one is not measured
 		constexpr double         kHintGap = 10;     // glyph to label
 		constexpr double         kHintSpacing = 22; // between our hints and their left neighbour (owner screenshot b2d70c38)
@@ -199,6 +202,7 @@ namespace alchemy
 		using FilterTab = alchemytabs::Tab;
 		inline FilterTab g_filterTab = FilterTab::All;
 		inline bool g_filterOpen = false, g_settingTab = false;
+		inline bool g_menuInked = false;   // Dark: the menu tree's brown text inked light once per opening (menuskin::InkTree)
 		inline std::atomic<int> g_tabRequest{ -1 }, g_tabCycle{ 0 };
 		inline std::atomic<bool> g_filtersVisible{ false };
 		inline std::array<reflect::Handle, 3> g_tabLabels, g_tabLeft, g_tabRight, g_tabDashLeft, g_tabDashRight, g_tabUpperLeft, g_tabUpperRight, g_tabLowerLeft, g_tabLowerRight;

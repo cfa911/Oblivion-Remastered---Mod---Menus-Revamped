@@ -808,6 +808,18 @@ namespace menuskin
 		StyleRowArt(row, skin);
 	}
 
+	void InkTree(UE::UObject* root, int a_limit)
+	{
+		const auto& skin = Current();
+		static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
+		if (!skin.recolor || !textClass || !reflect::Usable(root)) return;
+		for (auto* widget : ui::TreeWidgets(root, a_limit)) {
+			float rgba[4];
+			if (!reflect::Usable(widget) || !widget->GetClass()->IsChildOf(textClass) || !ReadColor(widget, rgba)) continue;
+			if (detailsskin::IsDarkInk(rgba) || detailsskin::IsWarmInk(rgba)) uix::Ink(widget, WithAlpha(skin.ink, rgba[3]).data());
+		}
+	}
+
 	namespace
 	{
 		reflect::Handle g_magicMenu;
