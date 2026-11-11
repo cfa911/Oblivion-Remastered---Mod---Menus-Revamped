@@ -7,7 +7,7 @@ Usage:
 load(path) returns {element: value}: [r, g, b] (sRGB 0-255) for the [Colours] entries, a number for detailsPage and the [Tab]
 greys. A missing file or key gives the built-in default (DEFAULTS, today's Dark values); an unknown key is ignored with a note;
 a broken value stops with a message that names the key. [Skin] holds the plugin's run-time tints (linear 0-1, red, green,
-blue, alpha; load_skin(path)): the pack does not bake them, so load() accepts and skips them. Colours are per element for now; merging them into roles is a later,
+blue, alpha; load_skin(path)). The builder also bakes [Skin] pattern. Colours are per element for now; merging them into roles is a later,
 owner-reviewed step (KB mods/menus-revamped/evidence/custom-pack-builder-plan.md).
 """
 import configparser
@@ -39,24 +39,56 @@ SKIN = {
     "buttonFill": [0.12, 0.12, 0.12, 1.0], "scrollTrack": 0.0052, "scrollBorder": 0.0052, "scrollInside": 0.0222,
     "emphasisInk": [0.125, 0.12, 0.125, 1.0], "buttonRule": [0.83, 0.83, 0.83, 1.0],
 }
+BAKED_SKIN = {"pattern": "Skin.pattern"}  # namespaced so the [Colours] base and [Skin] tint stay independent
 SKIN_HELP = {
-    "rule": "header rules", "guide": "header guides", "ring": "skill level ring", "ornament": "stats ornament line",
-    "pattern": "laurels (1 = as baked)", "band": "details effect title band", "buttonFill": "action button fill and arrows",
-    "scrollTrack": "scrollbar track", "scrollBorder": "scrollbar border", "scrollInside": "scrollbar inside",
-    "emphasisInk": "emphasis rows (perk text)", "buttonRule": "action button rule",
+    "rule": "Inventory and Magic header horizontal lines",
+    "guide": "Inventory and Magic header column guides",
+    "ring": "Inventory and Magic details skill level ring",
+    "ornament": "Inventory and Magic details decorative dividers",
+    "pattern": "Inventory action button laurels - tint and opacity",
+    "band": "Inventory and Magic details Effects heading strip (fallback)",
+    "buttonFill": "Inventory and Magic details action button fill",
+    "scrollTrack": "Skinned menu lists and details scrollbar track",
+    "scrollBorder": "Skinned menu lists and details scrollbar thumb border",
+    "scrollInside": "Skinned menu lists and details scrollbar thumb fill",
+    "emphasisInk": "Inventory and Magic details emphasized perk text",
+    "buttonRule": "Inventory and Magic action button divider centres",
 }
 
 HELP = {
-    "panel": "list page", "frame": "list page edge and scrollbar", "rowText": "row and details text",
-    "rowSeparator": "row separator line", "columnLine": "row column lines", "rowIcon": "row icons",
-    "headerIcon": "header sort icons", "pickerIcon": "sort picker icons", "listHighlight": "hovered row band",
-    "subTabDisc": "selected details sub-tab disc", "subTabCircle": "details sub-tab circle", "subTabIcon": "details sub-tab icons",
-    "pattern": "laurels beside the action button", "enchantedDot": "enchanted item dot",
-    "previewFrameLight": "item preview frame, light end", "previewFrameDark": "item preview frame, dark end",
-    "parchmentDark": "parchment pages, dark end", "parchmentLight": "parchment pages, light end",
-    "effectBox": "Alchemy effect boxes", "nameBox": "editable name fields", "filterRow": "Alchemy filter rows",
-    "filterHover": "Alchemy filter row under the cursor", "filterSelected": "Alchemy selected filter row",
-    "filterMark": "Alchemy filter diamond", "detailsPage": "details page darkness (0 black .. 1 stock)",
+    "panel": "Inventory and Magic list backgrounds",
+    "frame": "Inventory and Magic list edges and shared scrollbar frame",
+    "rowText": "Inventory and Magic list and details text",
+    "rowSeparator": "Inventory list row divider (inactive)",
+    "columnLine": "Inventory and Magic list column dividers",
+    "rowIcon": "Magic school, spell type and detail icons",
+    "headerIcon": "Inventory and Magic header stat icons",
+    "pickerIcon": "Inventory and Magic sort picker icons (inactive)",
+    "listHighlight": "Inventory and Magic highlighted row background",
+    "subTabDisc": "Inventory selected details tab background",
+    "subTabCircle": "Inventory details tab circle",
+    "subTabIcon": "Inventory details tab icons",
+    "pattern": "Inventory action button laurels - base colour",
+    "enchantedDot": "Inventory enchanted item dot",
+    "previewFrameLight": "Inventory item preview frame highlights",
+    "previewFrameDark": "Inventory item preview frame shadows",
+    "parchmentDark": "Alchemy and other parchment menus - shadows",
+    "parchmentLight": "Alchemy and other parchment menus - highlights",
+    "effectBox": "Alchemy effect boxes",
+    "nameBox": "Alchemy and other editable name fields",
+    "filterRow": "Alchemy filter row background",
+    "filterHover": "Alchemy hovered filter row background",
+    "filterSelected": "Alchemy selected filter row background",
+    "filterMark": "Alchemy filter row diamond",
+    "detailsPage": "Inventory, Magic and shared details page brightness",
+}
+TAB_HELP = {
+    "selected": "Inventory and Magic selected category tab fill",
+    "unselected": "Inventory and Magic unselected category tab fill",
+    "gap": "Inventory and Magic gaps between category tabs",
+    "outline": "Inventory and Magic category tab outlines",
+    "glyph": "Inventory and Magic selected category tab icons",
+    "glyphDim": "Inventory and Magic unselected category tab icons",
 }
 
 
@@ -95,16 +127,18 @@ def render(values, skin=None):
     skin = SKIN if skin is None else skin
     lines = ["; Menus Revamped - Custom colours.",
              "; [Colours]: red, green, blue (0-255) per element; detailsPage is one number. [Tab]: tab strip greys (0-255).",
-             "; [Skin]: tints drawn while the game runs: red, green, blue, alpha (0-1); the scrollbar entries are one number.",
-             "; A missing entry uses the default Dark colour. Rebuild the Custom pack after a [Colours] or [Tab] change;",
-             "; [Skin] changes need only a game restart.",
+             "; [Skin]: linear red, green, blue, alpha (0-1); the three scrollbar entries are single numbers.",
+             "; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern.",
+             "; Other active [Skin] edits need a restart. The Effects heading tint is used only when replacement art is unavailable.",
+             "; [Colours] rowSeparator and pickerIcon are retained keys with no effect in this build.",
              "", "[Colours]"]
     for name in list(COLOURS) + list(NUMBERS):
         value = values[name]
         text = ", ".join(number(c) for c in value) if isinstance(value, list) else number(value)
         lines.append(f"{name} = {text}".ljust(36) + f"; {HELP[name]}")
     lines += ["", "[Tab]"]
-    lines += [f"{name} = {number(values[name])}" for name in TAB]
+    for name in TAB:
+        lines.append(f"{name} = {number(values[name])}".ljust(36) + f"; {TAB_HELP[name]}")
     lines += ["", "[Skin]"]
     for name in SKIN:
         value = skin[name]
@@ -167,6 +201,13 @@ def load_skin(path=DEFAULT_PATH):
     values = {k: (list(v) if isinstance(v, list) else v) for k, v in SKIN.items()}
     values |= {name: value for section, name, value in read_entries(path) if section == "Skin"}
     return values
+
+
+def pack_values(path=None):
+    """Values the recipes can consume, including the separately named baked Skin tints."""
+    colours = load(path) if path else DEFAULTS
+    skin = load_skin(path) if path else SKIN
+    return colours | {key: skin[name] for name, key in BAKED_SKIN.items()}
 
 
 def main():

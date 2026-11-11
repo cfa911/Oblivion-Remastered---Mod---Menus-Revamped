@@ -623,7 +623,14 @@ namespace menuskin
 						tint(widget, skin.ornament.data());
 						break;
 					}
-					case detailsskin::Role::Pattern: tint(widget, skin.pattern.data()); break;
+					case detailsskin::Role::Pattern:
+						if (darkpack::BakedLaurelTint()) {
+							static constexpr float neutral[]{ 1, 1, 1, 1 };
+							tint(widget, neutral);
+						} else {
+							tint(widget, skin.pattern.data());   // Phase 4 packs and stock fallback
+						}
+						break;
 					case detailsskin::Role::Band: tint(widget, skin.band.data()); break;
 					case detailsskin::Role::Ring: {   // the level ring: a dynamic instance of M_UI_CircularProgess
 						ui::Call set(resource, L"SetVectorParameterValue");

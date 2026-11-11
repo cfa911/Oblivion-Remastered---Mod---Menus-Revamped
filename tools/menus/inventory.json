@@ -24,7 +24,7 @@
     {"asset": "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_misc", "recipe": "tab:3", "colours": ["gap", "glyph", "glyphDim", "outline", "selected", "unselected"], "shared_with": []},
     {"asset": "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_all", "recipe": "tab:4", "colours": ["gap", "glyph", "glyphDim", "outline", "selected", "unselected"], "shared_with": []},
     {"asset": "Art/UI/Modern/GameMenuLayer/Inventory/T_InventoryPreview_Background_D", "recipe": "gray", "colours": [], "shared_with": []},
-    {"asset": "Art/UI/Modern/GameMenuLayer/Inventory/T_Inventory_pattern", "recipe": "flat:pattern", "colours": ["pattern"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Inventory/T_Inventory_pattern", "recipe": "laurels", "colours": ["Skin.pattern", "pattern"], "shared_with": []},
     {"asset": "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_details_preview_frame_D", "recipe": "preview_frame", "colours": ["previewFrameDark", "previewFrameLight"], "shared_with": []},
     {"asset": "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_BG", "recipe": "flat:subTabDisc", "colours": ["subTabDisc"], "shared_with": []},
     {"asset": "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_BG2", "recipe": "flat:subTabCircle", "colours": ["subTabCircle"], "shared_with": []},

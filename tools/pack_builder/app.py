@@ -44,7 +44,7 @@ def build_pack(paks, target, retoc, colours_path=None, ddstools=None, art=None, 
         problem = paths.oodle_problem(retoc)
         if problem:
             raise pipeline.BuildError(problem)
-        colours = custom_colours.load(colours_path) if colours_path else custom_colours.DEFAULTS
+        colours = custom_colours.pack_values(colours_path)
         target.parent.mkdir(parents=True, exist_ok=True)
         work = Path(tempfile.mkdtemp(prefix=".PackBuilder-", dir=target.parent))   # same drive: the replace is a rename
         out = work / "out"

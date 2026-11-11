@@ -106,8 +106,49 @@ with tempfile.TemporaryDirectory() as temp:
         check(sorted(fresh.needs_build(manifest["style"])) == ["glyph", "rowText"],
               f"[Colours] and [Tab] changes need a Build ({fresh.needs_build(manifest['style'])})")
         note = getattr(model, "BUILD_NOTE", "")
-        check("[Skin]" in note and "restart" in note and "Build" in note,
-              "the window says [Skin] changes need a game restart and [Colours]/[Tab] changes a Build")
+        check("restart" in note and "Build" in note and "Save" in note,
+              "the window explains saving runtime colours and rebuilding baked colours")
+
+        new_style = manifest["style"] | {"Skin.pattern": [1, 1, 1, 1]}
+        laurels = ColourModel(temp / "none.ini")
+        laurels.set_text("Skin", "pattern", "1, 0, 0, 0.5")
+        check(laurels.needs_build(new_style) == ["Skin.pattern"], "laurel tint changes need a build")
+        phase4_style = {k: v for k, v in new_style.items() if k != "Skin.pattern"}
+        check("Skin.pattern" in laurels.needs_build(phase4_style), "Phase 4 packs need a build to bake laurels")
+        laurels.set_text("Skin", "buttonFill", "0, 1, 0, 1")
+        laurels.reset_to_dark()
+        check(laurels.needs_build(new_style) == [], "Reset to Dark restores all baked values")
+        laurels.set_text("Skin", "buttonFill", "0, 1, 0, 1")
+        check(laurels.needs_build(new_style) == [], "a runtime button fill change does not stale the pack")
+        check(laurels.entry("Skin", "pattern").applies == "Build pack" and
+              laurels.entry("Skin", "buttonFill").applies == "Restart game",
+              "the two Skin entries have distinct application instructions")
+        from pack_builder import pipeline
+        recipes = [r for a, r in pipeline.TEXTURES.items() if a.endswith("/T_Inventory_pattern")]
+        check(len(recipes) == 1 and "Skin.pattern" in pipeline.recipe_values(recipes[0], custom_colours.DEFAULTS | {"Skin.pattern": [1, 1, 1, 1]}),
+              "the Inventory laurel recipe consumes the independent Skin tint")
+
+        check("Inventory" in laurels.entry("Skin", "pattern").help and "laurel" in laurels.entry("Skin", "pattern").help.lower(),
+              "the laurel tint label names the Inventory and visible art")
+        check("Inventory" in laurels.entry("Tab", "glyph").help and "Magic" in laurels.entry("Tab", "glyph").help,
+              "the category icon label identifies both menus")
+        check("Inventory" in laurels.entry("Skin", "buttonFill").help and "button fill" in laurels.entry("Skin", "buttonFill").help.lower(),
+              "the action button label identifies the fill and menu")
+        check("inactive" in laurels.entry("Colours", "pickerIcon").help.lower(),
+              "the retained sort picker key is labelled inactive")
+
+        from io import BytesIO
+        from PIL import Image
+        buffer = BytesIO()
+        Image.new("RGBA", (4, 4)).save(buffer, format="DDS", pixel_format="DXT5")
+        stock = bytearray(buffer.getvalue())
+        offset = pipeline.header_size(stock)
+        indices = (0, 1, 1, 6, 6, 2, 3, 3, 5, 6, 0, 0, 6, 3, 6, 0)
+        bits = sum(index << (3 * i) for i, index in enumerate(indices))
+        stock[offset:offset + 8] = bytes((66, 0)) + bits.to_bytes(6, "little")
+        tinted = pipeline.laurels(stock, [150, 150, 150], [1, 0, 0, 0.5])
+        check(Image.open(BytesIO(tinted)).getchannel("A").getextrema() == (0, 33),
+              "baking half opacity preserves the stock laurel alpha range at half strength")
 
         # save: all three sections, a missing file and folder are created
         target = temp / "Plugins/MenusRevamped/CustomColours.ini"

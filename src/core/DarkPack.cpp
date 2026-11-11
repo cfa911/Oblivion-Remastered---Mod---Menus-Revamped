@@ -12,6 +12,7 @@ namespace darkpack
 	namespace
 	{
 		bool g_active = false;
+		bool g_bakedLaurelTint = false;
 
 		const char* Describe(darkpackswitch::Outcome outcome)
 		{
@@ -72,12 +73,16 @@ namespace darkpack
 		const auto mods = plugins.parent_path().parent_path().parent_path().parent_path() / L"Content" / L"Paks" / L"~mods";
 		const bool custom = mrconfig::Get().stylePreset == uistyle::Preset::Dark;   // uPreset=2: Custom (Dark colours by default)
 		bool installable = true;
+		g_bakedLaurelTint = false;
 		if (custom) {
 			LoadColours(folder / L"CustomColours.ini");
 			std::string json;
 			const auto manifest = ReadText(source / L"MRCustom_P.json", json) ? custompack::ParseManifest(json) : custompack::Manifest{};
 			const auto decision = custompack::Decide(manifest, a_gameBuild, darkstyle::Get());
 			installable = decision.install;
+			g_bakedLaurelTint = installable && custompack::HasBakedLaurelTint(manifest);
+			if (installable && !g_bakedLaurelTint)
+				logger::info("Menus Revamped: Custom pack uses the runtime Inventory laurel tint; rebuild to bake it");
 			switch (decision.verdict) {
 			case custompack::Verdict::ColoursChanged:
 				logger::warn("Menus Revamped: Custom pack colours changed since the pack was built ({}): the last pack stays installed; rebuild the pack to bake them",
@@ -103,4 +108,5 @@ namespace darkpack
 	}
 
 	bool Active() { return g_active; }
+	bool BakedLaurelTint() { return g_active && g_bakedLaurelTint; }
 }

@@ -115,8 +115,12 @@ baked = set(manifest.get("textures", {}))
 check(not (INVENTORY - set(data_listed)),
       f"make_dark_pack.py bakes all 26 Inventory textures of the local packs (missing: {sorted(INVENTORY - set(data_listed))[:4]})")
 check(INVENTORY <= baked, "the shipped pack holds the Inventory textures (rebuilt with make_dark_pack.py)")
+sys.path.insert(0, str(root / "tools"))
+from custom_colours import from_skin
 for name, value in manifest.get("style", {}).items():
-    if isinstance(value, list):
+    if name == "Skin.pattern":
+        check(from_skin(style_text)["pattern"] == value, "the pack has the default Inventory laurel tint")
+    elif isinstance(value, list):
         found = re.search(r"Rgb\s+" + re.escape(name) + r"\{\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\}", style_text)
         check(found is not None and [float(x) for x in found.groups()] == value,
               f"the pack was baked from the current DarkStyle.h {name} (rebuild the pack after a colour change)")

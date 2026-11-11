@@ -21,6 +21,16 @@ namespace custompack
 		std::vector<std::pair<std::string, std::vector<float>>> style;
 	};
 
+	inline constexpr std::string_view kLaurelTint = "Skin.pattern";
+
+	inline bool HasBakedLaurelTint(const Manifest& m)
+	{
+		for (const auto& [key, values] : m.style)
+			if (key == kLaurelTint && values.size() == 4)
+				return true;
+		return false;
+	}
+
 	enum class Verdict { Current, ColoursChanged, WrongBuild, Unreadable };
 
 	struct Decision
@@ -110,6 +120,7 @@ namespace custompack
 	// a manifest style key: a [Colours] element or a [Tab] grey (the baked values)
 	inline const customcolours::Entry* Baked(std::string_view key)
 	{
+		if (key == kLaurelTint) return customcolours::Find("Skin", "pattern");
 		if (const auto* e = customcolours::Find("Colours", key)) return e;
 		return customcolours::Find("Tab", key);
 	}

@@ -2,6 +2,7 @@
   "pack": "MRCustom_P",
   "game_build": "1.512.105.0",
   "built_by": "tools/make_dark_pack.py",
+  "builder_version": "0.5.0",
   "style": {
     "detailsPage": 0.01,
     "frame": [
@@ -44,6 +45,12 @@
       150.0,
       150.0,
       150.0
+    ],
+    "Skin.pattern": [
+      1.0,
+      1.0,
+      1.0,
+      1.0
     ],
     "previewFrameLight": [
       150.0,
@@ -307,8 +314,9 @@
       "baked_uexp_sha256": "566772cfd465a7e5a7424c4aa8e8f4723f9c117d47fd108e0053b7ff11b415a1"
     },
     "Art/UI/Modern/GameMenuLayer/Inventory/T_Inventory_pattern": {
-      "recipe": "flat:pattern",
+      "recipe": "laurels",
       "style": [
+        "Skin.pattern",
         "pattern"
       ],
       "stock_uexp_sha256": "62be812455818cd56e241058bd2093659a3e5d94e3eab616f35998f485cb89ef",
@@ -725,6 +733,7 @@
       "baked_uexp_sha256": "06948df5d515a483be77e5ea3842316eae1008d504984060937d98b614e1e3b9"
     }
   },
+  "skipped": [],
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
     "MRCustom_P.utoc": "c7f14ace21626e0ccbb841e1319ee53d69ae75bec11492b113e4e02d2353ba99",
