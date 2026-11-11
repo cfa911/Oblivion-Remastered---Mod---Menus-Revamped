@@ -48,6 +48,7 @@ ROOT = TOOLS.parent
 DEFAULT_PACK = "MRCustom_P"   # the plugin switch installs it for uPreset=2 (Custom pack builder Phase 3; was MRDark_P)
 GAME_BUILD = "1.512.105.0"    # the game build the stock checks were made on (the exe's version resource holds no build)
 MENUS = paths.defaults()["menus"]
+LAUREL_STOCK_SHA256 = "62be812455818cd56e241058bd2093659a3e5d94e3eab616f35998f485cb89ef"
 
 
 class SkipAsset(Exception):
@@ -136,6 +137,40 @@ def flat_blocks(data, rgb):
     for offset in range(header_size(data), len(out), 16):
         out[offset + 8:offset + 16] = colour + colour + bytes(4)
     return bytes(out)
+
+
+def laurels(stock, rgb, tint):
+    """Phase 4 flat laurel colour multiplied by the linear widget tint, including opacity."""
+    if tuple(tint[:3]) != (1, 1, 1):
+        base = rgb565(rgb)
+        channels = ((base >> 11) & 31, (base >> 5) & 63, base & 31)
+        rgb = [srgb(linear(c * 255 / levels) * factor)
+               for c, levels, factor in zip(channels, (31, 63, 31), tint)]
+    baked = bytearray(flat_blocks(stock, rgb))
+    if tint[3] != 1:
+        for offset in range(header_size(baked), len(baked), 16):
+            baked[offset:offset + 8] = scale_bc3_alpha(baked[offset:offset + 8], tint[3])
+    return bytes(baked)
+
+
+def alpha_levels(first, second):
+    if first > second:
+        return [first, second] + [((7 - i) * first + i * second) // 7 for i in range(1, 7)]
+    return [first, second] + [((5 - i) * first + i * second) // 5 for i in range(1, 5)] + [0, 255]
+
+
+def scale_bc3_alpha(block, opacity):
+    """Keep the scaled alpha extrema exactly, quantizing only the six intermediate levels."""
+    scaled = [round(a * opacity) for a in alpha_levels(*block[:2])]
+    bits = int.from_bytes(block[2:], "little")
+    pixels = [scaled[(bits >> shift) & 7] for shift in range(0, 48, 3)]
+    first, second = max(pixels), min(pixels)
+    if first == second:
+        return bytes((first, second)) + bytes(6)
+    levels = alpha_levels(first, second)
+    indices = {a: min(range(8), key=lambda i: abs(levels[i] - a)) for a in set(pixels)}
+    result = sum(indices[a] << (3 * i) for i, a in enumerate(pixels))
+    return bytes((first, second)) + result.to_bytes(6, "little")
 
 
 def endpoint_curve(data, gray):
@@ -360,6 +395,8 @@ def recipe(name):
         return (), (colour,), lambda uexp, v, work, stock: rich_row_colour(uexp, row, v[colour])
     return {
         # what the Inventory details showed at run time: stock colour x detailsPage (linear multiply)
+        "laurels": ((), ("pattern", "Skin.pattern"), lambda dds, v, work, stock: laurels(
+            dds.read_bytes(), v["pattern"], v["Skin.pattern"])),
         "details_page": (("detailsPage",), (), lambda dds, v, work, stock: tint_rgb_keep_alpha(dds, v["detailsPage"], work)),
         "panel": ((), ("frame", "panel"), lambda dds, v, work, stock: endpoint_curve(
             dds.read_bytes(), lambda b: panel_gray(b, v["frame"][0], v["panel"][0]))),
@@ -477,6 +514,8 @@ def bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, injec
     values = recipe_values(recipe_name, colours)
     source = legacy / "OblivionRemastered/Content" / asset
     target = stage / "OblivionRemastered/Content" / asset
+    if kind == "laurels" and sha256(source.with_suffix(".uexp")) != LAUREL_STOCK_SHA256:
+        raise SkipAsset("laurel stock asset differs from the verified game build")
     if kind == "png" and not (art / (name + ".png")).is_file():
         raise SkipAsset(f"owner art missing ({name}.png in {art}); the game's stock texture shows")
     if kind in ("rich_row", "bp_colour"):   # a data table or a widget blueprint: its .uexp is patched (no DDS)
@@ -519,7 +558,7 @@ def build(args, out, pack=DEFAULT_PACK, colours=None, art=None, log=print):
 
 def _build(args, out, pack, colours, art, log):
     pack = pack_name(pack)
-    colours = custom_colours.DEFAULTS if colours is None else colours
+    colours = custom_colours.pack_values() | (colours or {})
     log = log or (lambda line: None)
     style, textures, skipped = {}, {}, []
     if not Path(args.retoc).is_file():

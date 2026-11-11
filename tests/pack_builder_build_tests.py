@@ -145,7 +145,8 @@ def fake_recipe(name):
 
 @contextlib.contextmanager
 def faked(fake, art):
-    saved = {k: getattr(pipe, k) for k in ("run", "recipe", "dds_tools", "ART")}
+    saved = {k: getattr(pipe, k) for k in ("run", "recipe", "dds_tools", "ART", "LAUREL_STOCK_SHA256")}
+    pipe.LAUREL_STOCK_SHA256 = "919642b09b2c79cc1c9732e96ac16ee07ee9d7d2d5cb196cdeb9b63347e2fca1"  # synthetic stock written by write_asset
     pipe.run, pipe.recipe, pipe.ART = fake.run, fake_recipe, art
     pipe.dds_tools = lambda path=None: (fake.export, fake.inject)
     try:

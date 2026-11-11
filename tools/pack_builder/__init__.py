@@ -8,7 +8,7 @@ model.py      the window's colour model (CustomColours.ini entries, ranges, swat
 window.py     the Tk window (thin: it calls model.py and app.py)
 """
 
-VERSION = "0.4.0"   # written into the manifest as builder_version
+VERSION = "0.5.0"   # written into the manifest as builder_version
 
 
 class BuildError(SystemExit):

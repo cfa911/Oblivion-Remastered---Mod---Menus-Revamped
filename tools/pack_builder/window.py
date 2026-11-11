@@ -107,13 +107,13 @@ class App:
         for i, e in enumerate(self.c.model.section(section)):
             swatch = tk.Button(inner, width=4, relief="groove", command=lambda e=e: self.pick_colour(e))
             swatch.grid(row=i, column=0, padx=(0, 6), pady=2)
-            ttk.Label(inner, text=e.name, width=18).grid(row=i, column=1, sticky="w")
+            ttk.Label(inner, text=e.help, wraplength=435, justify="left").grid(row=i, column=1, sticky="w")
             text = tk.StringVar(value=self.c.model.text(e.section, e.name))
             field = ttk.Entry(inner, textvariable=text, width=24)
             field.grid(row=i, column=2, padx=6)
             field.bind("<Return>", lambda ev, e=e: self.take_text(e))
             field.bind("<FocusOut>", lambda ev, e=e: self.take_text(e))
-            ttk.Label(inner, text=e.help).grid(row=i, column=3, sticky="w")
+            ttk.Label(inner, text=e.applies).grid(row=i, column=3, sticky="w")
             self.rows[(e.section, e.name)] = (swatch, text)
             self.paint(e)
         return outer
@@ -138,7 +138,7 @@ class App:
 
     def pick_colour(self, e):
         from tkinter import colorchooser
-        picked = colorchooser.askcolor(self.c.model.swatch(e.section, e.name), parent=self.root, title=f"{e.name}: {e.help}")
+        picked = colorchooser.askcolor(self.c.model.swatch(e.section, e.name), parent=self.root, title=e.help)
         if picked and picked[0]:
             self.c.model.set_rgb(e.section, e.name, picked[0])
             self.paint(e)
@@ -146,7 +146,8 @@ class App:
 
     def refresh_status(self):
         stale = self.c.stale()
-        self.status.configure(text=("Needs a Build: " + ", ".join(stale)) if stale else
+        labels = {("Skin." + e.name if e.section == "Skin" else e.name): e.help for e in self.c.model.entries}
+        self.status.configure(text=("Build pack to apply: " + ", ".join(labels[key] for key in stale)) if stale else
                               "The Custom pack matches the baked colours.")
 
     # ---- game folder ----

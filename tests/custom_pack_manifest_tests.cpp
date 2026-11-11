@@ -68,6 +68,17 @@ int main()
 	Check(custompack::Decide(m, "1.512.105.0", s).verdict == Verdict::Current,
 		"run-time tints and colours the pack does not bake (not in its style) never make it stale");
 
+	const auto laurelPack = custompack::ParseManifest(R"({"game_build":"1.512.105.0","style":{"pattern":[150,150,150],"Skin.pattern":[1,0,0,0.5]}})");
+	Check(custompack::HasBakedLaurelTint(laurelPack) && !custompack::HasBakedLaurelTint(m),
+		"only a new pack with the baked tint disables the runtime tint");
+	s = d; s.skin.pattern = { 1, 0, 0, 0.5f };
+	Check(custompack::Decide(laurelPack, "1.512.105.0", s).verdict == Verdict::Current, "matching laurel tint is current");
+	s.skin.pattern[3] = 1;
+	r = custompack::Decide(laurelPack, "1.512.105.0", s);
+	Check(r.verdict == Verdict::ColoursChanged && r.install && r.changed == std::vector<std::string>{ "Skin.pattern" },
+		"a changed laurel tint keeps the pack and names the Skin key separately from the base colour");
+	Check(custompack::Decide(m, "1.512.105.0", s).verdict == Verdict::Current, "Phase 4 manifests stay compatible");
+
 	s = d; s.panel = { 50, 41, 41 };
 	r = custompack::Decide(m, "1.600.1.0", s);
 	Check(r.verdict == Verdict::WrongBuild && !r.install, "another game build: the pack is not installed (wins over stale colours)");

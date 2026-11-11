@@ -11,10 +11,7 @@ from pathlib import Path
 
 import custom_colours as cc
 
-BUILD_NOTE = ("[Skin] changes need only a game restart. [Colours] and [Tab] changes are baked into the Custom pack: "
-              "they need a Build.")
-TAB_HELP = {"selected": "selected tab", "unselected": "other tabs", "gap": "gap between tabs", "outline": "tab outline",
-            "glyph": "selected tab icon", "glyphDim": "other tab icons"}
+BUILD_NOTE = ("Build packs the marked colours. Save runtime colours and restart the game to apply them.")
 
 
 class ModelError(Exception):
@@ -45,6 +42,12 @@ class Entry:
     value: object
 
     @property
+    def applies(self):
+        if self.section == "Skin":
+            return "Build pack" if self.name in cc.BAKED_SKIN else "Restart game"
+        return "Inactive" if self.name in ("rowSeparator", "pickerIcon") else "Build pack"
+
+    @property
     def kind(self):
         if self.section == "Skin":
             return "rgba" if isinstance(self.default, list) else "scalar"
@@ -63,7 +66,7 @@ class ColourModel:
         except (OSError, configparser.Error, UnicodeError) as error:
             raise ModelError(f"{self.path}: {error}") from None
         table = ([("Colours", n, cc.HELP[n], d) for n, d in (cc.COLOURS | cc.NUMBERS).items()]
-                 + [("Tab", n, TAB_HELP[n], d) for n, d in cc.TAB.items()]
+                 + [("Tab", n, cc.TAB_HELP[n], d) for n, d in cc.TAB.items()]
                  + [("Skin", n, cc.SKIN_HELP[n], d) for n, d in cc.SKIN.items()])
         self.entries = [Entry(s, n, h, copy.deepcopy(d), copy.deepcopy(found.get((s, n), d))) for s, n, h, d in table]
         self._index = {(e.section, e.name): e for e in self.entries}
@@ -115,15 +118,18 @@ class ColourModel:
             e.value = copy.deepcopy(e.default)
 
     def needs_build(self, style):
-        """Baked entries whose value differs from the pack's manifest style ([Skin] is never baked)."""
+        """Baked entries whose value differs from the pack's manifest style."""
         changed = []
         for e in self.entries:
-            if e.section == "Skin" or e.name not in style:
+            key = cc.BAKED_SKIN.get(e.name) if e.section == "Skin" else e.name
+            if key not in style:
+                if key in cc.BAKED_SKIN.values():
+                    changed.append(key)
                 continue
             a = e.value if isinstance(e.value, list) else [e.value]
-            b = style[e.name] if isinstance(style[e.name], list) else [style[e.name]]
-            if len(a) != len(b) or any(abs(float(x) - float(y)) > 1e-6 for x, y in zip(a, b)):
-                changed.append(e.name)
+            b = style[key] if isinstance(style[key], list) else [style[key]]
+            if len(a) != len(b) or any(abs(float(x) - float(y)) > 1e-4 for x, y in zip(a, b)):
+                changed.append(key)
         return changed
 
     def save(self, path=None):

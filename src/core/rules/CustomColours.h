@@ -38,29 +38,29 @@ namespace customcolours
 	static_assert(sizeof(darkstyle::Rgb) == 3 * sizeof(float), "Rgb is three packed floats");
 
 #define MR_CC_RGB(n, h) Entry{ "Colours", #n, Kind::Rgb, [](darkstyle::Style& s) -> float* { return &s.n.r; }, h }
-#define MR_CC_TAB(n) Entry{ "Tab", #n, Kind::Grey, [](darkstyle::Style& s) -> float* { return &s.tab.n; }, nullptr }
+#define MR_CC_TAB(n, h) Entry{ "Tab", #n, Kind::Grey, [](darkstyle::Style& s) -> float* { return &s.tab.n; }, h }
 #define MR_CC_TINT(n, h) Entry{ "Skin", #n, Kind::Tint, [](darkstyle::Style& s) -> float* { return s.skin.n.data(); }, h }
 #define MR_CC_LIN(n, h) Entry{ "Skin", #n, Kind::Linear, [](darkstyle::Style& s) -> float* { return &s.skin.n; }, h }
 	// file order (tools/custom_colours.py COLOURS, NUMBERS, TAB, SKIN)
 	inline const Entry kEntries[]{
-		MR_CC_RGB(panel, "list page"), MR_CC_RGB(frame, "list page edge and scrollbar"), MR_CC_RGB(rowText, "row and details text"),
-		MR_CC_RGB(rowSeparator, "row separator line"), MR_CC_RGB(columnLine, "row column lines"), MR_CC_RGB(rowIcon, "row icons"),
-		MR_CC_RGB(headerIcon, "header sort icons"), MR_CC_RGB(pickerIcon, "sort picker icons"), MR_CC_RGB(listHighlight, "hovered row band"),
-		MR_CC_RGB(subTabDisc, "selected details sub-tab disc"), MR_CC_RGB(subTabCircle, "details sub-tab circle"),
-		MR_CC_RGB(subTabIcon, "details sub-tab icons"), MR_CC_RGB(pattern, "laurels beside the action button"),
-		MR_CC_RGB(enchantedDot, "enchanted item dot"), MR_CC_RGB(previewFrameLight, "item preview frame, light end"),
-		MR_CC_RGB(previewFrameDark, "item preview frame, dark end"), MR_CC_RGB(parchmentDark, "parchment pages, dark end"),
-		MR_CC_RGB(parchmentLight, "parchment pages, light end"), MR_CC_RGB(effectBox, "Alchemy effect boxes"),
-		MR_CC_RGB(nameBox, "editable name fields"), MR_CC_RGB(filterRow, "Alchemy filter rows"),
-		MR_CC_RGB(filterHover, "Alchemy filter row under the cursor"), MR_CC_RGB(filterSelected, "Alchemy selected filter row"),
-		MR_CC_RGB(filterMark, "Alchemy filter diamond"),
-		Entry{ "Colours", "detailsPage", Kind::Unit, [](darkstyle::Style& s) -> float* { return &s.detailsPage; }, "details page darkness (0 black .. 1 stock)" },
-		MR_CC_TAB(selected), MR_CC_TAB(unselected), MR_CC_TAB(gap), MR_CC_TAB(outline), MR_CC_TAB(glyph), MR_CC_TAB(glyphDim),
-		MR_CC_TINT(rule, "header rules"), MR_CC_TINT(guide, "header guides"), MR_CC_TINT(ring, "skill level ring"),
-		MR_CC_TINT(ornament, "stats ornament line"), MR_CC_TINT(pattern, "laurels (1 = as baked)"),
-		MR_CC_TINT(band, "details effect title band"), MR_CC_TINT(buttonFill, "action button fill and arrows"),
-		MR_CC_LIN(scrollTrack, "scrollbar track"), MR_CC_LIN(scrollBorder, "scrollbar border"), MR_CC_LIN(scrollInside, "scrollbar inside"),
-		MR_CC_TINT(emphasisInk, "emphasis rows (perk text)"), MR_CC_TINT(buttonRule, "action button rule"),
+		MR_CC_RGB(panel, "Inventory and Magic list backgrounds"), MR_CC_RGB(frame, "Inventory and Magic list edges and shared scrollbar frame"), MR_CC_RGB(rowText, "Inventory and Magic list and details text"),
+		MR_CC_RGB(rowSeparator, "Inventory list row divider (inactive)"), MR_CC_RGB(columnLine, "Inventory and Magic list column dividers"), MR_CC_RGB(rowIcon, "Magic school, spell type and detail icons"),
+		MR_CC_RGB(headerIcon, "Inventory and Magic header stat icons"), MR_CC_RGB(pickerIcon, "Inventory and Magic sort picker icons (inactive)"), MR_CC_RGB(listHighlight, "Inventory and Magic highlighted row background"),
+		MR_CC_RGB(subTabDisc, "Inventory selected details tab background"), MR_CC_RGB(subTabCircle, "Inventory details tab circle"),
+		MR_CC_RGB(subTabIcon, "Inventory details tab icons"), MR_CC_RGB(pattern, "Inventory action button laurels - base colour"),
+		MR_CC_RGB(enchantedDot, "Inventory enchanted item dot"), MR_CC_RGB(previewFrameLight, "Inventory item preview frame highlights"),
+		MR_CC_RGB(previewFrameDark, "Inventory item preview frame shadows"), MR_CC_RGB(parchmentDark, "Alchemy and other parchment menus - shadows"),
+		MR_CC_RGB(parchmentLight, "Alchemy and other parchment menus - highlights"), MR_CC_RGB(effectBox, "Alchemy effect boxes"),
+		MR_CC_RGB(nameBox, "Alchemy and other editable name fields"), MR_CC_RGB(filterRow, "Alchemy filter row background"),
+		MR_CC_RGB(filterHover, "Alchemy hovered filter row background"), MR_CC_RGB(filterSelected, "Alchemy selected filter row background"),
+		MR_CC_RGB(filterMark, "Alchemy filter row diamond"),
+		Entry{ "Colours", "detailsPage", Kind::Unit, [](darkstyle::Style& s) -> float* { return &s.detailsPage; }, "Inventory, Magic and shared details page brightness" },
+		MR_CC_TAB(selected, "Inventory and Magic selected category tab fill"), MR_CC_TAB(unselected, "Inventory and Magic unselected category tab fill"), MR_CC_TAB(gap, "Inventory and Magic gaps between category tabs"), MR_CC_TAB(outline, "Inventory and Magic category tab outlines"), MR_CC_TAB(glyph, "Inventory and Magic selected category tab icons"), MR_CC_TAB(glyphDim, "Inventory and Magic unselected category tab icons"),
+		MR_CC_TINT(rule, "Inventory and Magic header horizontal lines"), MR_CC_TINT(guide, "Inventory and Magic header column guides"), MR_CC_TINT(ring, "Inventory and Magic details skill level ring"),
+		MR_CC_TINT(ornament, "Inventory and Magic details decorative dividers"), MR_CC_TINT(pattern, "Inventory action button laurels - tint and opacity"),
+		MR_CC_TINT(band, "Inventory and Magic details Effects heading strip (fallback)"), MR_CC_TINT(buttonFill, "Inventory and Magic details action button fill"),
+		MR_CC_LIN(scrollTrack, "Skinned menu lists and details scrollbar track"), MR_CC_LIN(scrollBorder, "Skinned menu lists and details scrollbar thumb border"), MR_CC_LIN(scrollInside, "Skinned menu lists and details scrollbar thumb fill"),
+		MR_CC_TINT(emphasisInk, "Inventory and Magic details emphasized perk text"), MR_CC_TINT(buttonRule, "Inventory and Magic action button divider centres"),
 	};
 #undef MR_CC_RGB
 #undef MR_CC_TAB
@@ -164,9 +164,10 @@ namespace customcolours
 		std::string out =
 			"; Menus Revamped - Custom colours.\n"
 			"; [Colours]: red, green, blue (0-255) per element; detailsPage is one number. [Tab]: tab strip greys (0-255).\n"
-			"; [Skin]: tints drawn while the game runs: red, green, blue, alpha (0-1); the scrollbar entries are one number.\n"
-			"; A missing entry uses the default Dark colour. Rebuild the Custom pack after a [Colours] or [Tab] change;\n"
-			"; [Skin] changes need only a game restart.\n";
+			"; [Skin]: linear red, green, blue, alpha (0-1); the three scrollbar entries are single numbers.\n"
+			"; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern.\n"
+			"; Other active [Skin] edits need a restart. The Effects heading tint is used only when replacement art is unavailable.\n"
+			"; [Colours] rowSeparator and pickerIcon are retained keys with no effect in this build.\n";
 		std::string_view section;
 		for (const auto& e : kEntries) {
 			if (section != e.section) {
