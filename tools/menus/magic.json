@@ -1,0 +1,32 @@
+{
+  "menu": "Magic",
+  "order": 2,
+  "note": "The Magic-only art (UI asset scan: no other menu imports these). T_MagicBackground (Quest/Help/Stats too) and the _ListSmall row type icons stay run-time swaps inside Magic. DT_UI_MagicMenu is not baked (RMI-086: the details blueprint sets the cast-frequency line's colour itself); its rich-text rows stay here for the rich_row recipe.",
+  "glyph_masks": {"magic_tab": ["T_Category_OnSelf", "T_Category_Touch", "T_Category_Target", "T_Category_All", "T_Category_ActiveEffects"]},
+  "rich_rows": {
+    "DT_UI_MagicMenu": {"Default": {"offset": 69, "stock": [0.0723, 0.0382, 0.0284, 1.0]}, "RT_BlueMed": {"offset": 425, "stock": [0.0513, 0.0648, 0.1441, 1.0]}}
+  },
+  "assets": [
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Alteration", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Conjuration", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Destruction", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Illusion", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Mysticism", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Restoration", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Cost", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Duration", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Magnitude", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Range", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Weight", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Custom_Spell", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Greater_Power", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Lesser_Power", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Scroll", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Spell", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Self", "recipe": "magic_tab:0", "colours": ["gap", "glyph", "glyphDim", "outline", "selected", "unselected"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Touch", "recipe": "magic_tab:1", "colours": ["gap", "glyph", "glyphDim", "outline", "selected", "unselected"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Target", "recipe": "magic_tab:2", "colours": ["gap", "glyph", "glyphDim", "outline", "selected", "unselected"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_All", "recipe": "magic_tab:3", "colours": ["gap", "glyph", "glyphDim", "outline", "selected", "unselected"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_ActiveEffect", "recipe": "magic_tab:4", "colours": ["gap", "glyph", "glyphDim", "outline", "selected", "unselected"], "shared_with": []}
+  ]
+}

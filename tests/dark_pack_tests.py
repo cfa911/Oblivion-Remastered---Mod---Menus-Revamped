@@ -17,7 +17,13 @@ pack = root / "assets/DarkPack"
 check(all((pack / f"MRDark_P.{ext}").is_file() for ext in ("pak", "utoc", "ucas")), "the Dark pack ships (MRDark_P .pak/.utoc/.ucas in assets/DarkPack)")
 tool = root / "tools/make_dark_pack.py"
 tool_text = tool.read_text(encoding="utf-8") if tool.is_file() else ""
-check("T_SpellPurchase_LeftPageBG" in tool_text and "to-zen" in tool_text and "DarkStyle.h" in tool_text,
+# the asset table lives in one data file per menu (Custom pack builder Phase 1): asset -> recipe, in build order
+import json as _json
+data_listed = {row["asset"]: row["recipe"]
+               for menu in sorted((_json.loads(f.read_text(encoding="utf-8")) for f in (root / "tools/menus").glob("*.json")),
+                                  key=lambda m: m.get("order", 99))
+               for row in menu.get("assets", [])}
+check("Art/UI/Modern/GameMenuLayer/SpellPurchase/T_SpellPurchase_LeftPageBG" in data_listed and "to-zen" in tool_text and "DarkStyle.h" in tool_text,
       "the pack is built by tools/make_dark_pack.py from the stock parchment and DarkStyle.h")
 
 plugin = (root / "src/core/Plugin.cpp").read_text(encoding="utf-8")
@@ -59,7 +65,7 @@ for ext in ("pak", "utoc", "ucas"):
     path = pack / f"MRDark_P.{ext}"
     digest = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else ""
     check(manifest.get("files", {}).get(f"MRDark_P.{ext}") == digest, f"MRDark_P.{ext} is the file the manifest's build wrote")
-check(set(manifest.get("textures", {})) == set(re.findall(r'"((?:Art|UI)/[^"]+)"\s*:', tool_text)) and manifest.get("textures"),
+check(set(manifest.get("textures", {})) == set(data_listed) and manifest.get("textures"),
       "the manifest lists exactly the textures make_dark_pack.py bakes")
 
 dp_rules = root / "src/core/rules/DarkPackSwitch.h"
@@ -102,8 +108,8 @@ INVENTORY = {
     *(f"Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_{n}" for n in ("alchemy", "all", "armor", "misc", "weapons")),
 }
 baked = set(manifest.get("textures", {}))
-check(not (INVENTORY - set(re.findall(r'"(Art/[^"]+)"\s*:', tool_text))),
-      f"make_dark_pack.py bakes all 26 Inventory textures of the local packs (missing: {sorted(INVENTORY - set(re.findall(r'\"(Art/[^\"]+)\"', tool_text)))[:4]})")
+check(not (INVENTORY - set(data_listed)),
+      f"make_dark_pack.py bakes all 26 Inventory textures of the local packs (missing: {sorted(INVENTORY - set(data_listed))[:4]})")
 check(INVENTORY <= baked, "the shipped pack holds the Inventory textures (rebuilt with make_dark_pack.py)")
 for name, value in manifest.get("style", {}).items():
     if isinstance(value, list):
@@ -181,7 +187,7 @@ STATS = [f"T_MagicMenuIcon_{n}" for n in ("Cost", "Custom_Spell", "Duration", "G
                                           "Range", "Scroll", "Spell", "Weight")]
 MAGIC_TABS = [f"Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_{n}" for n in ("Self", "Touch", "Target", "All", "ActiveEffect")]
 TABLE = "UI/Modern/GameMenuLayer/magic/DT_UI_MagicMenu"
-listed = dict(re.findall(r'"((?:Art|UI)/[^"]+)"\s*:\s*"([^"]+)"', tool_text))
+listed = dict(data_listed)
 check(all(listed.get(a) == "flat:rowIcon" for a in SCHOOLS), "phase 3: the six row school icons are baked flat rowIcon on the stock alpha")
 check(sorted(Path(a).name for a, r in listed.items() if r == "flat:rowIcon" and "T_MagicMenuIcon_" in a) == sorted(STATS),
       "phase 3: the ten details stat/type icons are baked flat rowIcon (Magic-only textures)")
