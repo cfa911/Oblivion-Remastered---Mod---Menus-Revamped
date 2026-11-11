@@ -12,6 +12,15 @@ set_languages("c++23")
 set_warnings("allextra")
 add_rules("mode.debug", "mode.releasedbg")
 
+-- Developer tools (owner 2026-11-11): the widget census key (src/devtools). Off by default, so release DLLs never contain it;
+-- dev builds: xmake f --devtools=y
+option("devtools")
+    set_default(false)
+    set_showmenu(true)
+    set_description("Build the developer tools (widget census key)")
+    add_defines("MR_DEVTOOLS")
+option_end()
+
 -- One development plugin: search, category pickers and controller keyboard.
 target("MenusRevamped")
     set_version("1.5.0")
@@ -23,6 +32,11 @@ target("MenusRevamped")
     add_syslinks("user32", "imm32")
     -- Feature folders under src/; every include is a path from src/ ("engine/Ui.h").
     add_files("src/core/*.cpp", "src/engine/*.cpp", "src/search/*.cpp", "src/keyboard/*.cpp", "src/sorting/*.cpp", "src/hover/*.cpp", "src/alchemy/*.cpp", "src/layout/*.cpp")
+    add_options("devtools")
+    if has_config("devtools") then
+        add_files("src/devtools/*.cpp")
+        add_syslinks("shell32", "ole32")
+    end
     add_headerfiles("src/**.h")
     add_includedirs("src")
     set_pcxxheader("src/core/pch.h")
