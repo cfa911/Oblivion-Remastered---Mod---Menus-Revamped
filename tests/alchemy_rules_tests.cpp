@@ -1,3 +1,4 @@
+#include <cmath>
 // IMP-MR-004/005/006: Alchemy menu sort order, effect filter counts and active-filter labels.
 #include "../src/sorting/rules/AlchemyRules.h"
 
@@ -129,12 +130,10 @@ int main()
 		// tint multiplies linear colour, so the panel's screen ratio 0.71 needs 0.71^2.2 = 0.47
 		check(StripTint(true) > 0.46f && StripTint(true) < 0.48f, "strip greyed like the panel while Filters is open");
 		// owner PSD placement 2026-11-04: on 2560x1440 (viewport scale 1.333) the strip is 829x200 at 64,9 units; the panel's
-		// background widget measured about 72,69 834 wide - so the strip sits 8 left, 60 above, 5 narrower, aspect kept
-		const Box  panel{ 72, 69, 834, 870 };
-		const auto st = PlaceStrip(panel, 266.0 / 1105.0, -8, -60, -5);
-		check(st.box.x == 64 && st.box.y == 9 && st.box.w == 829, "strip at the owner's PSD place relative to the panel");
-		check(st.box.h > 199.5 && st.box.h < 199.6, "aspect kept (no squashing)");
-		check(st.chipsY > st.box.y + 40 && st.chipsY < st.box.y + st.box.h * 0.6, "buttons in the strip's solid space");
+		// owner 2026-11-11: no strip image; the parchment itself reaches up and the buttons sit 66.85 below its top (the strip's
+		// old place: 93.7 above the stock top, 42% into its 197.25 height, 16 up)
+		const Box panel{ 60.8, -32.9, 845.5, 1013.1 };
+		check(std::abs(ChipsInParchment(panel) - (-32.9 + 66.85)) < 0.01, "buttons 66.85 below the parchment top");
 		const std::vector<std::pair<int, std::string>> texts{ { 0x38, "Burden" }, { 0x50, "âº[Alte] Fire Shield" }, { 0x68, "Fire Shield" } };
 		check(LearnTextOffset(texts, "âº[Alte] Fire Shield (2)") == 0x50, "the field matching the row (with our count) is learned");
 		check(LearnTextOffset(texts, "Light (1)") == -1, "no match: unknown");

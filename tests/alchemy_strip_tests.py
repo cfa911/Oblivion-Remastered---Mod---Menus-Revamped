@@ -1,7 +1,7 @@
-"""IMP-MR-006 layout: the parchment strip above the Alchemy Ingredients panel.
+"""IMP-MR-006 layout: the active-filter buttons above the Alchemy Ingredients list.
 
-Owner 2026-11-04: the strip goes on the top-most layer (over the menu's own panels, as in the owner's PSD), under our
-own sort label and active-filter buttons so they stay visible and clickable.
+Owner 2026-11-04: buttons over two/three rows in extra parchment space. Owner 2026-11-11: that space is the game's own
+parchment (Alchemy_IngredientsListBG) made taller by compact rows, not a separate Alchemy-TopParchment strip image.
 """
 import re
 import sys
@@ -29,15 +29,19 @@ def z_in(function):
     return int(m.group(1)) if m else None
 
 
-strip, back, label = z_in("UE::UObject* MakeStrip("), z_in("UE::UObject* MakeBack("), z_in("UE::UObject* MakeLabel(")
-check(strip is not None and strip > 0, "strip above the menu's own widgets (Z > 0)")
-check(None not in (strip, back, label) and strip < back < label, "strip under the button boxes, boxes under the labels")
+back, label = z_in("UE::UObject* MakeBack("), z_in("UE::UObject* MakeLabel(")
+check(None not in (back, label) and back < label, "button boxes under the labels")
+root = Path(__file__).resolve().parents[1]
+check("MakeStrip" not in src and "kStripFile" not in src and "Alchemy-TopParchment" not in src and "g_strip" not in src,
+      "no strip image code (owner 2026-11-11: the parchment itself is taller)")
+check(not (root / "assets/Alchemy/Alchemy-TopParchment.png").exists(), "the strip image is not shipped")
+check("PlaceStrip" not in (root / "src/sorting/rules/AlchemyRules.h").read_text(encoding="utf-8"), "no strip placement rule")
+check("ChipsInParchment(pb)" in src and "mrconfig::Get().compactRows" in src,
+      "buttons follow the parchment top only with compact rows (else their own line under the title row)")
 # owner 2026-11-04: a "Selected filters" title over two rows of slightly smaller buttons
 check('"Selected Filters"' in src, "the active-filter area has a Selected Filters title")
 check("CopyIngredientsFont(chipTitle, title)" in src, "title uses Ingredients font")
 check("line, 0.5f, 6.0f" in src, "button outlines reduced by one from 1.5")
-check("kStripAspect = 263.0 / 1090.0" in src and "kStripDy = -93.7" in src,
-      "latest owner PSD mask keeps its 1090x263 size and y=0 placement")
 m = re.search(r"19\.0,\s*13\.0,", theme)
 check(m is not None and "style.chipFontSize" in src,
       "the button texts are smaller than before (17)")
@@ -47,8 +51,7 @@ m = re.search(r"19\.0,\s*13\.0", theme)
 check(m is not None and "style.chipFontSize" in src, "button text smaller again (13)")
 check("kButtonPadX = 7, kButtonPadY = 2" in src, "smaller button boxes")
 check('L"MrAlchemyChipTitle", ink.data(), 23.1)' in src, "title is 10 percent larger (21 -> 23.1)")
-check(re.search(r"chipsY = st\.chipsY \+ kChipsDy", src) is not None and re.search(r"kChipsDy = -\d+", src) is not None,
-      "the block moved up")
+check("ChipsInParchment(pb)" in src, "the block sits in the parchment's top space")
 # owner 2026-11-04: Clear all stays red; a filter button has a black rim and black text, its x mark red
 style = src[src.find("void StyleBack("):]
 style = style[:style.find("\n\t\t}\n")]

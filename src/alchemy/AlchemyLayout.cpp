@@ -193,40 +193,6 @@ namespace alchemy
 
 		double DesiredWidth(UE::UObject* a_label) { return DesiredSize(a_label)[0]; }
 
-		UE::UObject* StripTexture()
-		{
-			if (auto* t = reflect::Get(g_stripTexture)) return t;
-			static bool s_missing = false;
-			if (s_missing) return nullptr;
-			const auto path = mrconfig::PluginFolder() / L"MenusRevamped" / L"Alchemy" / kStripFile;
-			auto*      t = ui::ImportTexture(path);
-			if (!t) {
-				s_missing = true;
-				logger::warn("alchemy: missing or unreadable {}; no parchment strip above the Ingredients panel", path.filename().string());
-				return nullptr;
-			}
-			g_stripTexture = reflect::Hold(t);
-			return t;
-		}
-
-		// the strip: on top of the menu's own panels (owner 2026-11-04, as in the owner's PSD), under our labels and buttons
-		UE::UObject* MakeStrip(UE::UObject* a_canvas)
-		{
-			auto* texture = StripTexture();
-			if (!texture) return nullptr;
-			UE::UObject* slot = nullptr;
-			auto*        image = ui::AddToCanvas(a_canvas, L"/Script/UMG.Image", L"MrAlchemyStrip", &slot);
-			if (!image || !slot) return nullptr;
-			const int z = 48;
-			ui::CallFirst(slot, L"SetZOrder", &z, sizeof(z));
-			ui::Call set(image, L"SetBrushFromTexture");
-			set.Set("Texture", texture);
-			set.Set("bMatchSize", false);
-			set.Run();
-			ui::Visible(image, false);
-			return image;
-		}
-
 		UE::UObject* MakeBack(UE::UObject* a_canvas, std::size_t a_index)
 		{
 			UE::UObject* slot = nullptr;
@@ -297,7 +263,6 @@ namespace alchemy
 			for (auto& h : g_chipBacks) {
 				if (auto* l = reflect::Get(h)) ui::Visible(l, false);
 			}
-			if (auto* l = reflect::Get(g_strip)) ui::Visible(l, false);
 			if (auto* l = reflect::Get(g_more)) ui::Visible(l, false);
 			if (auto* l = reflect::Get(g_chipTitle)) ui::Visible(l, false);
 			for (auto& h : g_chipMarks) {
@@ -848,7 +813,6 @@ namespace alchemy
 			auto* first = reflect::Get(g_icons[0]);
 			if (!first || !ui::IsWithin(first, a_menu)) {
 				ResetHeader();
-				g_strip = {};
 				g_chips.clear();   // a new menu widget: its labels are new too
 				g_chipBacks.clear();
 				g_chipStyle.clear();
@@ -859,28 +823,17 @@ namespace alchemy
 			}
 			const auto iconRects = LayoutHeader(canvas, a_menu, scale);
 
-			// the parchment strip above the panel; the active-filter buttons go in the space it adds
-			auto* panel = Field(a_menu, "Alchemy_IngredientsListBG");
-			Box   pb;
+			// the active-filter buttons: in the space the taller parchment adds at its top (compact rows make
+			// Alchemy_IngredientsListBG reach the screen top, owner 2026-11-11); without compact rows the parchment is stock and
+			// the buttons get their own line under the title row
 			double chipsY = row.chipsY;
-			if (panel && ui::Measure(panel, pb.x, pb.y, pb.w, pb.h) && pb.w > 0) {
-				auto* strip = reflect::Get(g_strip);
-				if (!strip) {
-					strip = MakeStrip(canvas);
-					if (strip) { g_strip = reflect::Hold(strip); g_stripGreyed = -1; }
-				}
-				if (strip) {
-					const auto st = PlaceStrip(pb, kStripAspect, kStripDx, kStripDy, kStripDw);
-					if (auto* slot = SlotOf(strip)) {
-						ui::Vec2(slot, L"SetPosition", st.box.x, st.box.y);
-						ui::Vec2(slot, L"SetSize", st.box.w, st.box.h);
-					}
-					ui::Visible(strip, true);
-					chipsY = st.chipsY + kChipsDy;
-				}
+			if (mrconfig::Get().compactRows) {
+				Box pb;
+				if (auto* panel = Field(a_menu, "Alchemy_IngredientsListBG"); panel && ui::Measure(panel, pb.x, pb.y, pb.w, pb.h) && pb.w > 0)
+					chipsY = ChipsInParchment(pb);
 			}
 
-			// active filters: in the strip's space (else their own line under the title row)
+			// active filters
 			const auto names = a_readNames ? SelectedNames(a_menu) : std::vector<std::string>{};
 			const auto previousMarkers = std::exchange(g_markerNames, {});
 			for (auto& h : g_chipCircles) if (auto* w = reflect::Get(h)) ui::Visible(w, false);
