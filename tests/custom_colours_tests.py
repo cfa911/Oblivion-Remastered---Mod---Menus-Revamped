@@ -44,7 +44,7 @@ RGB = {n: [float(a), float(b), float(c)] for n, a, b, c in
 TAB = {n: float(v) for n, v in re.findall(r"float\s+(\w+)\s*=\s*([\d.]+)",
                                          re.search(r"struct Tab\s*\{(.*?)\}\s*tab;", style_text, re.S).group(1))}
 TODAY = RGB | {"detailsPage": 0.010} | TAB
-check(len(RGB) == 24 and len(TAB) == 6, f"DarkStyle.h still has 24 Rgb values and 6 tab greys ({len(RGB)}, {len(TAB)})")
+check(len(RGB) == 26 and len(TAB) == 6, f"DarkStyle.h has 26 Rgb values (Phase 6 adds alchemyMetal, alchemyStone) and 6 tab greys ({len(RGB)}, {len(TAB)})")
 
 cc = load_module("custom_colours")
 if cc is not None:

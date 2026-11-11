@@ -22,7 +22,8 @@ preset is Custom (src/core/rules/DarkPackSwitch.h). Requires Pillow. Plans: KB m
 custom-pack-builder-plan.md.
 
 Each asset is checked before it is written (Phase 4, design point 7): blueprint and rich-text stock colour literals, BC3 format,
-the recipe's result the size of the stock texture, the owner's art present for the png recipe. A failing asset is skipped and
+the recipe's result the size of the stock texture, the stock .uexp hash for the laurel and alchemy recipes, the owner's art
+present for the png recipe (development only: no data file row uses it since Phase 6). A failing asset is skipped and
 listed in the manifest's "skipped" (the game's stock asset shows); the rest is built.
 """
 import hashlib
@@ -49,6 +50,12 @@ DEFAULT_PACK = "MRCustom_P"   # the plugin switch installs it for uPreset=2 (Cus
 GAME_BUILD = "1.512.105.0"    # the game build the stock checks were made on (the exe's version resource holds no build)
 MENUS = paths.defaults()["menus"]
 LAUREL_STOCK_SHA256 = "62be812455818cd56e241058bd2093659a3e5d94e3eab616f35998f485cb89ef"
+# the alchemy recipe's stock textures (.uexp SHA-256, game 1.512.105.0; KB docs/alchemy/internals.md)
+ALCHEMY_STOCK_SHA256 = {
+    "T_UI_Alchemy_Background": "10989a5b51e32941b2d8940adee7dc6251502535a2b5191c8486f936c38891a9",
+    "T_Alchemy_IngredientsSlots_BG": "02e3d4bb82c118d5fa01cf69b4bdd1a3c876d48c02ca32b2ce46f894b069fa99",
+    "T_Alchemy_mortar_pestle": "9643a8a439f01440da156b79b40ac4d77a909365dd6b11cbd55d922ffdbcb659",
+}
 
 
 class SkipAsset(Exception):
@@ -331,6 +338,51 @@ def tone(data, rgb):
     return bytes(out)
 
 
+ALCHEMY_WARM = (15, 35)   # stock R - B (sRGB): <= 15 is stone, >= 35 is metal, blended between
+ALCHEMY_CONTRAST = 0.8    # the stock relief kept a little softer (fitted to the owner art, KB plan page "Phase 6 results")
+
+
+def alchemy(stock_dds, metal, stone):
+    """The Alchemy frame, ingredient slots and pot: the stock bronze metal (warm pixels) recoloured to metal, the green-grey
+    stone to stone. Each BC3 colour endpoint becomes its colour times (its linear brightness / that material's average
+    brightness in this texture) ** ALCHEMY_CONTRAST, so each texture's metal and stone average their colours and keep the
+    stock relief; indices and alpha blocks kept (like parchment and tone)."""
+    low, high = ALCHEMY_WARM
+
+    def weight(r, g, b):
+        return min(1.0, max(0.0, ((r - b) - low) / (high - low)))
+
+    def brightness(r, g, b):
+        return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+
+    sums = [0.0, 0.0, 0.0, 0.0]   # metal brightness, metal weight, stone brightness, stone weight (opaque pixels)
+    for n, (r, g, b, a) in Image.open(stock_dds).convert("RGBA").getcolors(1 << 24):
+        if a > 128:
+            w, v = weight(r, g, b), brightness(r, g, b)
+            sums[0] += n * w * v
+            sums[1] += n * w
+            sums[2] += n * (1 - w) * v
+            sums[3] += n * (1 - w)
+    ref_metal = sums[0] / sums[1] if sums[1] and sums[0] else 1.0
+    ref_stone = sums[2] / sums[3] if sums[3] and sums[2] else 1.0
+    metal_lin, stone_lin = [linear(c) for c in metal], [linear(c) for c in stone]
+    data = Path(stock_dds).read_bytes()
+    out = bytearray(data)
+    mapped = {}
+    for offset in range(header_size(data) + 8, len(out), 16):
+        for at in (offset, offset + 2):
+            e = int.from_bytes(out[at:at + 2], "little")
+            if e not in mapped:
+                r, g, b = ((e >> 11) & 31) * 255 / 31, ((e >> 5) & 63) * 255 / 63, (e & 31) * 255 / 31
+                w, v = weight(r, g, b), brightness(r, g, b)
+                k_metal = (v / ref_metal) ** ALCHEMY_CONTRAST if v > 0 else 0.0
+                k_stone = (v / ref_stone) ** ALCHEMY_CONTRAST if v > 0 else 0.0
+                mapped[e] = rgb565([srgb(w * m * k_metal + (1 - w) * s * k_stone)
+                                    for m, s in zip(metal_lin, stone_lin)]).to_bytes(2, "little")
+            out[at:at + 2] = mapped[e]
+    return bytes(out)
+
+
 ART = paths.defaults()["art"]   # the owner's edited textures, one PNG per game texture name (not shipped; owner decision 9)
 
 
@@ -402,7 +454,9 @@ def recipe(name):
             dds.read_bytes(), lambda b: panel_gray(b, v["frame"][0], v["panel"][0]))),
         "parchment": ((), ("parchmentDark", "parchmentLight"), lambda dds, v, work, stock: parchment(
             dds, v["parchmentDark"][0], v["parchmentLight"][0])),
-        "png": ((), (), lambda dds, v, work, stock: owner_png(dds, dds.stem, work)),
+        "alchemy": ((), ("alchemyMetal", "alchemyStone"), lambda dds, v, work, stock: alchemy(
+            dds, v["alchemyMetal"], v["alchemyStone"])),
+        "png": ((), (), lambda dds, v, work, stock: owner_png(dds, dds.stem, work)),   # development only (owner art)
         "enchanted_dot": ((), ("enchantedDot",), lambda dds, v, work, stock: enchanted_dot(dds.read_bytes(), v["enchantedDot"])),
         # the preview background: the stock brightness without its brown cast
         "gray": ((), (), lambda dds, v, work, stock: per_pixel(dds, work, lambda p: (round(lum(p)),) * 3)),
@@ -516,6 +570,8 @@ def bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, injec
     target = stage / "OblivionRemastered/Content" / asset
     if kind == "laurels" and sha256(source.with_suffix(".uexp")) != LAUREL_STOCK_SHA256:
         raise SkipAsset("laurel stock asset differs from the verified game build")
+    if kind == "alchemy" and sha256(source.with_suffix(".uexp")) != ALCHEMY_STOCK_SHA256.get(name):
+        raise SkipAsset(f"{name}: stock asset differs from the verified game build (game update?)")
     if kind == "png" and not (art / (name + ".png")).is_file():
         raise SkipAsset(f"owner art missing ({name}.png in {art}); the game's stock texture shows")
     if kind in ("rich_row", "bp_colour"):   # a data table or a widget blueprint: its .uexp is patched (no DDS)

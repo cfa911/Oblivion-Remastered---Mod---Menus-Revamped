@@ -79,6 +79,21 @@ int main()
 		"a changed laurel tint keeps the pack and names the Skin key separately from the base colour");
 	Check(custompack::Decide(m, "1.512.105.0", s).verdict == Verdict::Current, "Phase 4 manifests stay compatible");
 
+	// Phase 6 (owner decision 14): the alchemy recipe bakes alchemyMetal and alchemyStone, so a changed key makes the pack stale
+	const auto alchemyPack = custompack::ParseManifest(
+		R"({"game_build":"1.512.105.0","style":{"alchemyMetal":[56,83,118],"alchemyStone":[22,25,31]}})");
+	Check(custompack::Known("alchemyMetal") && custompack::Known("alchemyStone"), "alchemyMetal and alchemyStone are baked colours the plugin reads");
+	Check(custompack::Decide(alchemyPack, "1.512.105.0", d).verdict == Verdict::Current, "the default Alchemy colours match a default pack");
+	r = custompack::Decide(alchemyPack, "1.512.105.0", customcolours::Parse("[Colours]\nalchemyMetal = 200, 40, 40\n").style);
+	Check(r.verdict == Verdict::ColoursChanged && r.install && r.changed == std::vector<std::string>{ "alchemyMetal" },
+		"a changed alchemyMetal in CustomColours.ini makes the pack stale and is named");
+	r = custompack::Decide(alchemyPack, "1.512.105.0", customcolours::Parse("[Colours]\nalchemyStone = 90, 90, 90\n").style);
+	Check(r.verdict == Verdict::ColoursChanged && r.changed == std::vector<std::string>{ "alchemyStone" },
+		"a changed alchemyStone makes the pack stale and is named");
+	const auto rendered = customcolours::Render(d);
+	Check(rendered.find("alchemyMetal = 56, 83, 118") != std::string::npos && rendered.find("alchemyStone = 22, 25, 31") != std::string::npos,
+		"the plugin's default CustomColours.ini lists both Alchemy keys");
+
 	s = d; s.panel = { 50, 41, 41 };
 	r = custompack::Decide(m, "1.600.1.0", s);
 	Check(r.verdict == Verdict::WrongBuild && !r.install, "another game build: the pack is not installed (wins over stale colours)");

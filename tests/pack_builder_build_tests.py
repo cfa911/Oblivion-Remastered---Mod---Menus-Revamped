@@ -56,7 +56,8 @@ TEXTURES = pipe.TEXTURES
 PNG = [a for a, r in TEXTURES.items() if r == "png"]
 BLUEPRINTS = [a for a, r in TEXTURES.items() if r.startswith("bp_colour:")]
 FLAT = [a for a, r in TEXTURES.items() if r.startswith("flat:")]
-check(len(PNG) == 3, f"the data files hold the three owner-art (png) assets ({len(PNG)})")
+check(not PNG, f"no data file row uses the owner-art png recipe (Phase 6: the alchemy recipe) ({len(PNG)})")
+ALCHEMY = [a for a, r in TEXTURES.items() if r == "alchemy"]
 BAD, GROWS = FLAT[0], FLAT[1]   # a texture that is not BC3, a texture whose recipe returns a different size
 check(len(FLAT) >= 2, "two flat assets to break")
 
@@ -66,6 +67,11 @@ def dds(fourcc=b"DXT5", dxgi=None):
     if dxgi is not None:
         head += dxgi.to_bytes(4, "little") + bytes(16)
     return head + bytes(16)
+
+
+def synthetic_hash(asset):
+    import hashlib
+    return hashlib.sha256(b"uexp " + asset.encode() + bytes(4096)).hexdigest()
 
 
 def write_asset(folder, asset):
@@ -147,6 +153,8 @@ def fake_recipe(name):
 def faked(fake, art):
     saved = {k: getattr(pipe, k) for k in ("run", "recipe", "dds_tools", "ART", "LAUREL_STOCK_SHA256")}
     pipe.LAUREL_STOCK_SHA256 = "919642b09b2c79cc1c9732e96ac16ee07ee9d7d2d5cb196cdeb9b63347e2fca1"  # synthetic stock written by write_asset
+    saved["ALCHEMY_STOCK_SHA256"] = getattr(pipe, "ALCHEMY_STOCK_SHA256", {})
+    pipe.ALCHEMY_STOCK_SHA256 = {Path(a).name: synthetic_hash(a) for a in ALCHEMY}   # Phase 6: the alchemy stock check
     pipe.run, pipe.recipe, pipe.ART = fake.run, fake_recipe, art
     pipe.dds_tools = lambda path=None: (fake.export, fake.inject)
     try:

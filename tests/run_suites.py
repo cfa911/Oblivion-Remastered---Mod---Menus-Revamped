@@ -29,7 +29,7 @@ GROUPS = {
                     "dark_pack_switch_tests", "dark_skin_wiring_tests", "custom_colours_reader_tests",
                     "custom_pack_switch_tests", "custom_pack_manifest_tests", "custom_pack_wiring_tests",
                     "pack_builder_colours_tests", "pack_builder_paths_tests", "pack_builder_build_tests",
-                    "pack_builder_cli_tests"],
+                    "pack_builder_cli_tests", "custom_pack_alchemy_tests"],
 }
 COUNT = re.compile(r"(\d+) checks, (\d+) failures")
 

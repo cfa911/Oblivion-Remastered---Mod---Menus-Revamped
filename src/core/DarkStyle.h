@@ -68,6 +68,10 @@ namespace darkstyle
 		Rgb filterHover{ 112, 112, 112 };    // the hover box (stock cream T_Alchemy_Filters_Highlighted): light text stays readable
 		Rgb filterSelected{ 14, 22, 42 };
 		Rgb filterMark{ 92, 140, 214 };
+		// Alchemy frame (T_UI_Alchemy_Background), ingredient slots and pot (Custom pack builder Phase 6, "alchemy" recipe): the
+		// stock bronze metal and green-grey stone recoloured separately, stock shading and alpha kept; defaults = the owner art's averages.
+		Rgb alchemyMetal{ 56, 83, 118 };
+		Rgb alchemyStone{ 22, 25, 31 };
 		// Run-time tints of the Dark skin (uistyle::kDarkSkin): linear 0-1 as Slate takes them, alpha last.
 		struct SkinTints
 		{

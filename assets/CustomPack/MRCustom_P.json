@@ -126,6 +126,16 @@
       239.0,
       239.0,
       239.0
+    ],
+    "alchemyMetal": [
+      56.0,
+      83.0,
+      118.0
+    ],
+    "alchemyStone": [
+      22.0,
+      25.0,
+      31.0
     ]
   },
   "textures": {
@@ -715,28 +725,37 @@
       "baked_uexp_sha256": "0bd690bab0203ac362ee550da93724219f1835af7588c3b51c3968dae28144dd"
     },
     "Art/UI/Modern/GameMenuLayer/Alchemy/T_UI_Alchemy_Background": {
-      "recipe": "png",
-      "style": [],
+      "recipe": "alchemy",
+      "style": [
+        "alchemyMetal",
+        "alchemyStone"
+      ],
       "stock_uexp_sha256": "10989a5b51e32941b2d8940adee7dc6251502535a2b5191c8486f936c38891a9",
-      "baked_uexp_sha256": "540214ecfbe57e9de6f6e08e23f1a1b38cacb75defa43b48a9285f724259659c"
+      "baked_uexp_sha256": "7f790970e280d3c28e64359bb5eaab64cc4cb70e1dd519ba41f6dae6e961d194"
     },
     "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_IngredientsSlots_BG": {
-      "recipe": "png",
-      "style": [],
+      "recipe": "alchemy",
+      "style": [
+        "alchemyMetal",
+        "alchemyStone"
+      ],
       "stock_uexp_sha256": "02e3d4bb82c118d5fa01cf69b4bdd1a3c876d48c02ca32b2ce46f894b069fa99",
-      "baked_uexp_sha256": "fca85b53ea7d7803796be4b210d20a7193a6574c275ae329a5f99cacd58a8752"
+      "baked_uexp_sha256": "496d924de9d5f4bf5f65354244a5077597de7a65b582f0386e7da84b36e8d64d"
     },
     "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_mortar_pestle": {
-      "recipe": "png",
-      "style": [],
+      "recipe": "alchemy",
+      "style": [
+        "alchemyMetal",
+        "alchemyStone"
+      ],
       "stock_uexp_sha256": "9643a8a439f01440da156b79b40ac4d77a909365dd6b11cbd55d922ffdbcb659",
-      "baked_uexp_sha256": "06948df5d515a483be77e5ea3842316eae1008d504984060937d98b614e1e3b9"
+      "baked_uexp_sha256": "96e4a225f449bdc7a86b44d8c4da39016941756e5614f722d41da9bdfcdcf336"
     }
   },
   "skipped": [],
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "c7f14ace21626e0ccbb841e1319ee53d69ae75bec11492b113e4e02d2353ba99",
-    "MRCustom_P.ucas": "2e4fde47a5c8c34acbb10bc4b2f92dd1fec32a4eeee02c913f069453273884ab"
+    "MRCustom_P.utoc": "929759240e4a77dff4e8870bb4584a80f3d847e940fe07e0722dc478482c2786",
+    "MRCustom_P.ucas": "87fd3bd676c7f0109b88ad394662f852d6bf1b1fa5e98b2364b8a139862bd9fd"
   }
 }

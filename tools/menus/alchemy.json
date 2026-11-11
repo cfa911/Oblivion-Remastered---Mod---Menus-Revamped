@@ -1,7 +1,7 @@
 {
   "menu": "Alchemy",
   "order": 3,
-  "note": "Alchemy (owner 2026-11-11): parchments baked gray, icons and boxes in their final colour, blueprint colour literals patched at verified .uexp offsets (KB docs/alchemy/internals.md). The png recipe uses the owner's edited art in assets-src/DarkPack (not shippable).",
+  "note": "Alchemy (owner 2026-11-11): parchments baked gray, icons and boxes in their final colour, blueprint colour literals patched at verified .uexp offsets (KB docs/alchemy/internals.md). The frame, ingredient slots and pot are rebuilt from stock by the alchemy recipe (Phase 6; the png recipe and the owner art in assets-src/DarkPack stay for development only).",
   "blueprint_colours": {
     "WBP_ModernMenu_FilterEffectEntry": [{"offset": 2893, "stock": [0.5395, 0.4969, 0.4452, 1.0], "colour": "filterRow"}, {"offset": 3002, "stock": [0.3968, 0.3325, 0.2831, 1.0], "colour": "filterSelected"}],
     "WBP_ModernPrefab_SelectableButton": [{"offset": 1734, "stock": [0.5395, 0.4969, 0.4452, 1.0], "colour": "filterRow"}, {"offset": 1813, "stock": [0.3968, 0.3325, 0.2831, 1.0], "colour": "filterSelected"}],
@@ -28,8 +28,8 @@
     {"asset": "UI/Legacy/GameMenuLayer/Commun/WBP_LegacyMenu_AddedEffects", "recipe": "bp_colour:WBP_LegacyMenu_AddedEffects", "colours": ["rowText"], "shared_with": ["Inventory", "Magic", "Sigil Stone", "Enchanting", "Spellmaking", "Alchemy"]},
     {"asset": "Art/UI/Icons/Icon_Stats/T_Property_1_magnitude", "recipe": "flat:headerIcon", "colours": ["headerIcon"], "shared_with": ["Inventory", "Magic", "Sigil Stone", "Enchanting", "Spellmaking", "Alchemy"]},
     {"asset": "Art/UI/Icons/Icon_Stats/T_Property_1_time", "recipe": "flat:headerIcon", "colours": ["headerIcon"], "shared_with": ["Inventory", "Magic", "Sigil Stone", "Enchanting", "Spellmaking", "Alchemy"]},
-    {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_UI_Alchemy_Background", "recipe": "png", "colours": [], "shared_with": []},
-    {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_IngredientsSlots_BG", "recipe": "png", "colours": [], "shared_with": []},
-    {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_mortar_pestle", "recipe": "png", "colours": [], "shared_with": []}
+    {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_UI_Alchemy_Background", "recipe": "alchemy", "colours": ["alchemyMetal", "alchemyStone"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_IngredientsSlots_BG", "recipe": "alchemy", "colours": ["alchemyMetal", "alchemyStone"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_mortar_pestle", "recipe": "alchemy", "colours": ["alchemyMetal", "alchemyStone"], "shared_with": []}
   ]
 }
