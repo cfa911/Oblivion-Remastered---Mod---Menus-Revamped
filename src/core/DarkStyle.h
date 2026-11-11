@@ -86,8 +86,16 @@ namespace darkstyle
 #define DARKSTYLE_SKIN_TINTS 1
 
 	inline constexpr Style kDefaults{};
-	// The values in use. Defaults today; an INI override would be read here.
-	inline const Style& Get() { return kDefaults; }
+	// The values in use: the compiled-in defaults until darkpack::Apply reads Plugins/MenusRevamped/CustomColours.ini at load
+	// (src/core/rules/CustomColours.h). Set once at OBSE_PLUGIN_LOAD, before any menu opens.
+	namespace detail
+	{
+		inline Style    g_style = kDefaults;
+		inline unsigned g_generation = 0;
+	}
+	inline const Style& Get() { return detail::g_style; }
+	inline void         Set(const Style& a_style) { detail::g_style = a_style; ++detail::g_generation; }
+	inline unsigned     Generation() { return detail::g_generation; }   // changes with every Set (uistyle::SkinFor rebuilds the Dark skin)
 
 	// sRGB 0-255 to linear 0-1 (what Slate colours take), constexpr: x^2.4 = x^2 * fifth root of x^2.
 	inline constexpr float Root5(float v)

@@ -99,19 +99,29 @@ The standalone Sorting baseline is preserved on `deprecated/sorting-overhaul`.
   Owner-accepted in the development build (container/barter performance and
   the idle-focus flicker); see Validation status.
 
-## Dark preset and the Dark UI pack
+## Custom preset, the Custom UI pack and CustomColours.ini
 
-`[Style] uPreset=2` (Dark) also darkens the game's own menu art through a texture pack, `MRDark_P` (`.pak`, `.utoc`,
-`.ucas`). It ships in `Plugins/MenusRevamped/DarkPack`; at every start the plugin copies it into
-`OblivionRemastered/Content/Paks/~mods` when the preset is Dark and deletes it there for Classic or Light. A preset change
-applies after one restart. The pack is built by `tools/make_dark_pack.py` from the stock textures, the per-menu data files
-`tools/menus/<menu>.json` (which asset gets which recipe and colours) and the colour file `config/CustomColours.ini`
-(generated from `src/core/DarkStyle.h` by `tools/custom_colours.py`; re-run both after a colour change;
-`assets/DarkPack/MRDark_P.json` records what the pack was built from).
+`[Style] uPreset=2` (Custom; its default colours are the Dark look) also recolours the game's own menu art through a texture
+pack, `MRCustom_P` (`.pak`, `.utoc`, `.ucas`). It ships in `Plugins/MenusRevamped/CustomPack` with its build manifest
+`MRCustom_P.json`; at every start the plugin copies the pack into `OblivionRemastered/Content/Paks/~mods` when the preset is
+Custom and deletes it there for Classic or Light. It also deletes the older Dark pack `MRDark_P` from `~mods` (versions up
+to 1.3 installed it there). A preset change applies after one restart.
+
+The colours are in `Plugins/MenusRevamped/CustomColours.ini`. The zip does not contain it, so a mod update keeps your edits:
+the plugin writes the default file at the first start with `uPreset=2`. `[Skin]` entries are drawn while the game runs and
+change after a restart. `[Colours]` and `[Tab]` entries are also baked into the pack: after a change the menus' run-time
+parts use the new colour at once, but the baked art keeps the old one until the pack is rebuilt (the log then says the pack's
+colours changed). If the game was updated since the pack was built, the plugin does not install the pack (a log warning says
+so) until it is rebuilt for the new game build.
+
+The pack is built by `tools/make_dark_pack.py` from the stock textures, the per-menu data files `tools/menus/<menu>.json`
+(which asset gets which recipe and colours) and a colour file (default `config/CustomColours.ini`, generated from
+`src/core/DarkStyle.h` by `tools/custom_colours.py`; `assets/CustomPack/MRCustom_P.json` records what the pack was built
+from).
 
 **Before you uninstall** (Vortex or by hand): set `uPreset=0`, start the game once, then uninstall. Or, after uninstalling,
-delete `Content/Paks/~mods/MRDark_P.pak`, `MRDark_P.utoc` and `MRDark_P.ucas` yourself: Vortex does not know these copies,
-and without the plugin they keep the menus dark.
+delete `Content/Paks/~mods/MRCustom_P.pak`, `MRCustom_P.utoc` and `MRCustom_P.ucas` (or the older `MRDark_P.*`) yourself:
+Vortex does not know these copies, and without the plugin they keep the menus recoloured.
 
 ## Development build and cutover
 

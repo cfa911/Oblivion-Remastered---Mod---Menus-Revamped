@@ -1,11 +1,13 @@
-"""The Custom pack's colour file, CustomColours.ini: one value per element (today's DarkStyle.h names), read by the pack recipes.
+"""The Custom pack's colour file, CustomColours.ini: one value per element (today's DarkStyle.h names), read by the pack recipes
+and by the plugin (src/core/rules/CustomColours.h renders the same default file and reads the same keys and ranges).
 
 Usage:
   python tools/custom_colours.py [<output .ini>]   write the default file from src/core/DarkStyle.h (default config/CustomColours.ini)
 
 load(path) returns {element: value}: [r, g, b] (sRGB 0-255) for the [Colours] entries, a number for detailsPage and the [Tab]
 greys. A missing file or key gives the built-in default (DEFAULTS, today's Dark values); an unknown key is ignored with a note;
-a broken value stops with a message that names the key. Colours are per element for now; merging them into roles is a later,
+a broken value stops with a message that names the key. [Skin] holds the plugin's run-time tints (linear 0-1, red, green,
+blue, alpha; load_skin(path)): the pack does not bake them, so load() accepts and skips them. Colours are per element for now; merging them into roles is a later,
 owner-reviewed step (KB mods/menus-revamped/evidence/custom-pack-builder-plan.md).
 """
 import configparser
@@ -30,6 +32,19 @@ COLOURS = {
 NUMBERS = {"detailsPage": 0.010}   # [Colours] entries that are one number (detailsPage: a linear multiply, 0..1)
 TAB = {"selected": 41.0, "unselected": 33.0, "gap": 24.0, "outline": 134.0, "glyph": 242.0, "glyphDim": 162.0}
 DEFAULTS = COLOURS | NUMBERS | TAB
+# the plugin's run-time tints of the Dark skin (DarkStyle.h SkinTints, header order): four linear values, or one for the scrollbar
+SKIN = {
+    "rule": [0.65, 0.65, 0.65, 0.55], "guide": [0.55, 0.55, 0.55, 0.13], "ring": [0.55, 0.55, 0.55, 1.0],
+    "ornament": [0.45, 0.45, 0.45, 1.0], "pattern": [1.0, 1.0, 1.0, 1.0], "band": [0.41, 0.65, 1.0, 1.0],
+    "buttonFill": [0.12, 0.12, 0.12, 1.0], "scrollTrack": 0.0052, "scrollBorder": 0.0052, "scrollInside": 0.0222,
+    "emphasisInk": [0.125, 0.12, 0.125, 1.0], "buttonRule": [0.83, 0.83, 0.83, 1.0],
+}
+SKIN_HELP = {
+    "rule": "header rules", "guide": "header guides", "ring": "skill level ring", "ornament": "stats ornament line",
+    "pattern": "laurels (1 = as baked)", "band": "details effect title band", "buttonFill": "action button fill and arrows",
+    "scrollTrack": "scrollbar track", "scrollBorder": "scrollbar border", "scrollInside": "scrollbar inside",
+    "emphasisInk": "emphasis rows (perk text)", "buttonRule": "action button rule",
+}
 
 HELP = {
     "panel": "list page", "frame": "list page edge and scrollbar", "rowText": "row and details text",
@@ -59,15 +74,30 @@ def from_darkstyle(text):
     return values
 
 
+def from_skin(text):
+    """The run-time skin tints of a DarkStyle.h text, in header order."""
+    block = re.search(r"struct SkinTints\s*\{(.*?)\}\s*skin;", text, re.S)
+    values = {}
+    for found in re.finditer(r"array<float,\s*4>\s+(\w+)\{([^}]*)\}|(\w+)\s*=\s*([\d.]+)f", block.group(1) if block else ""):
+        if found.group(1):
+            values[found.group(1)] = [float(v.strip().rstrip("f")) for v in found.group(2).split(",")]
+        else:
+            values[found.group(3)] = float(found.group(4))
+    return values
+
+
 def number(v):
     return str(int(v)) if float(v).is_integer() else repr(float(v))
 
 
-def render(values):
-    """The text of a CustomColours.ini holding these values."""
+def render(values, skin=None):
+    """The text of a CustomColours.ini holding these values (skin: the [Skin] tints, default SKIN)."""
+    skin = SKIN if skin is None else skin
     lines = ["; Menus Revamped - Custom colours.",
              "; [Colours]: red, green, blue (0-255) per element; detailsPage is one number. [Tab]: tab strip greys (0-255).",
-             "; A missing entry uses the default Dark colour. Rebuild the Custom pack after a change.",
+             "; [Skin]: tints drawn while the game runs: red, green, blue, alpha (0-1); the scrollbar entries are one number.",
+             "; A missing entry uses the default Dark colour. Rebuild the Custom pack after a [Colours] or [Tab] change;",
+             "; [Skin] changes need only a game restart.",
              "", "[Colours]"]
     for name in list(COLOURS) + list(NUMBERS):
         value = values[name]
@@ -75,15 +105,25 @@ def render(values):
         lines.append(f"{name} = {text}".ljust(36) + f"; {HELP[name]}")
     lines += ["", "[Tab]"]
     lines += [f"{name} = {number(values[name])}" for name in TAB]
+    lines += ["", "[Skin]"]
+    for name in SKIN:
+        value = skin[name]
+        text = ", ".join(number(c) for c in value) if isinstance(value, list) else number(value)
+        lines.append(f"{name} = {text}".ljust(36) + f"; {SKIN_HELP[name]}")
     return "\n".join(lines) + "\n"
 
 
-def parse(name, raw):
+def parse(name, raw, section="Colours"):
     raw = raw.split(";", 1)[0].strip()
     try:
         parts = [float(p) for p in raw.split(",")]
     except ValueError:
         sys.exit(f"CustomColours.ini: {name} = {raw!r} is not a number list")
+    if section == "Skin":
+        size = 4 if isinstance(SKIN[name], list) else 1
+        if len(parts) != size or not all(0 <= p <= 1 for p in parts):
+            sys.exit(f"CustomColours.ini: [Skin] {name} needs {size} number(s) from 0 to 1, found {raw!r}")
+        return parts if size == 4 else parts[0]
     if name in COLOURS:
         if len(parts) != 3 or not all(0 <= p <= 255 for p in parts):
             sys.exit(f"CustomColours.ini: {name} needs three numbers from 0 to 255 (red, green, blue), found {raw!r}")
@@ -94,22 +134,38 @@ def parse(name, raw):
     return parts[0]
 
 
-def load(path=DEFAULT_PATH):
-    """The colour values: the file's entries over DEFAULTS (a missing file = DEFAULTS)."""
-    values = {k: (list(v) if isinstance(v, list) else v) for k, v in DEFAULTS.items()}
+SECTIONS = {"Colours": set(COLOURS) | set(NUMBERS), "Tab": set(TAB), "Skin": set(SKIN)}
+
+
+def read_entries(path):
+    """[(section, name, value)] of the known entries of a colour file (unknown ones noted on stderr and skipped)."""
     path = Path(path)
     if not path.is_file():
-        return values
+        return []
     parser = configparser.ConfigParser(interpolation=None, inline_comment_prefixes=None)
     parser.optionxform = str
     parser.read(path, encoding="utf-8-sig")
-    sections = {"Colours": set(COLOURS) | set(NUMBERS), "Tab": set(TAB)}
+    found = []
     for section in parser.sections():
         for name, raw in parser.items(section):
-            if name not in sections.get(section, ()):
+            if name not in SECTIONS.get(section, ()):
                 print(f"CustomColours.ini: [{section}] {name} is not a known entry, ignored", file=sys.stderr)
                 continue
-            values[name] = parse(name, raw)
+            found.append((section, name, parse(name, raw, section)))
+    return found
+
+
+def load(path=DEFAULT_PATH):
+    """The baked colour values: the file's [Colours] and [Tab] entries over DEFAULTS (a missing file = DEFAULTS)."""
+    values = {k: (list(v) if isinstance(v, list) else v) for k, v in DEFAULTS.items()}
+    values |= {name: value for section, name, value in read_entries(path) if section != "Skin"}
+    return values
+
+
+def load_skin(path=DEFAULT_PATH):
+    """The run-time tints: the file's [Skin] entries over SKIN."""
+    values = {k: (list(v) if isinstance(v, list) else v) for k, v in SKIN.items()}
+    values |= {name: value for section, name, value in read_entries(path) if section == "Skin"}
     return values
 
 
@@ -120,7 +176,10 @@ def main():
     if missing:
         sys.exit(f"DarkStyle.h lacks {missing}")
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(render(values), encoding="utf-8", newline="\n")
+    skin = from_skin((ROOT / "src/core/DarkStyle.h").read_text(encoding="utf-8"))
+    if list(skin) != list(SKIN):
+        sys.exit(f"DarkStyle.h skin tints {list(skin)} differ from SKIN {list(SKIN)}")
+    out.write_text(render(values, skin), encoding="utf-8", newline="\n")
     print(f"wrote {out} ({len(DEFAULTS)} entries)")
 
 

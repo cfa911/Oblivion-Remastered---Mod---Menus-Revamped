@@ -1,4 +1,4 @@
-"""Build the colour pack (default assets/DarkPack/MRDark_P.pak/.utoc/.ucas): stock textures re-coloured from the colour file.
+"""Build the colour pack (default assets/CustomPack/MRCustom_P.pak/.utoc/.ucas): stock textures re-coloured from the colour file.
 
 Usage:
   python tools/make_dark_pack.py --paks <game>/OblivionRemastered/Content/Paks --ddstools <UE4-DDS-Tools/src/main.py>
@@ -39,7 +39,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 import custom_colours  # noqa: E402
 
-DEFAULT_PACK = "MRDark_P"   # MRCustom_P comes with the plugin switch (Custom pack builder Phase 3)
+DEFAULT_PACK = "MRCustom_P"   # the plugin switch installs it for uPreset=2 (Custom pack builder Phase 3; was MRDark_P)
 GAME_BUILD = "1.512.105.0"
 MENUS = ROOT / "tools/menus"
 
@@ -522,7 +522,7 @@ def main():
     parser.add_argument("--paks", required=True, type=Path, help="the game's OblivionRemastered/Content/Paks")
     parser.add_argument("--ddstools", required=True, type=Path)
     parser.add_argument("--retoc", required=True, type=Path)
-    parser.add_argument("--out", type=Path, default=ROOT / "assets/DarkPack")
+    parser.add_argument("--out", type=Path, default=ROOT / "assets/CustomPack")
     parser.add_argument("--pack", default=DEFAULT_PACK, help=f"pack file name (default {DEFAULT_PACK})")
     parser.add_argument("--colours", type=Path, default=custom_colours.DEFAULT_PATH,
                         help="the colour file (default config/CustomColours.ini; missing file or entry = the Dark colours)")

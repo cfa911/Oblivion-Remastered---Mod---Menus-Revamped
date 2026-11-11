@@ -1,7 +1,8 @@
 #pragma once
-// The Dark UI pack switch (tests/dark_pack_switch_tests.cpp): at plugin load, before the engine mounts Content/Paks/~mods,
-// Dark copies the plugin's pack (Plugins/MenusRevamped/DarkPack/MRDark_P.pak/.utoc/.ucas) into ~mods and the other presets
-// remove it. All or nothing: the engine never sees part of a pack. Another mod's files are never touched.
+// The UI pack switch (tests/dark_pack_switch_tests.cpp, tests/custom_pack_switch_tests.cpp): at plugin load, before the engine
+// mounts Content/Paks/~mods, uPreset=2 (Custom) copies the plugin's pack (Plugins/MenusRevamped/CustomPack/MRCustom_P.pak/.utoc
+// /.ucas) into ~mods and removes the old Dark pack MRDark_P there (upgrade path); the other presets remove both. All or nothing:
+// the engine never sees part of a pack. Another mod's files are never touched.
 #include <filesystem>
 #include <string>
 #include <system_error>
@@ -16,7 +17,11 @@ namespace darkpackswitch
 		Absent,       // not Dark: nothing to remove
 		Incomplete,   // Dark, but the plugin's pack is missing a file: nothing left in ~mods
 		Failed,       // a copy or remove failed: nothing of ours left in ~mods (as far as the OS allowed)
+		WrongBuild,   // Custom, but the pack's manifest is for another game build (or unreadable): removed, not installed
 	};
+
+	inline constexpr const wchar_t* kCustomPack = L"MRCustom_P";
+	inline constexpr const wchar_t* kLegacyPack = L"MRDark_P";   // the Dark pack before Custom replaced it (MR 1.3)
 
 	inline bool Active(Outcome outcome) { return outcome == Outcome::Installed || outcome == Outcome::UpToDate; }
 
@@ -77,5 +82,23 @@ namespace darkpackswitch
 			copied = true;
 		}
 		return copied ? Outcome::Installed : Outcome::UpToDate;
+	}
+
+	// custom: uPreset=2. installable: the manifest check allows the pack (same game build; see rules/CustomPackManifest.h).
+	inline Outcome SwitchCustom(const std::filesystem::path& source, const std::filesystem::path& mods, bool custom, bool installable)
+	{
+		namespace fs = std::filesystem;
+		std::error_code error;
+		bool legacy = false;
+		for (const auto* extension : kExtensions) legacy = legacy || fs::exists(mods / (std::wstring(kLegacyPack) + extension), error);
+		const bool legacyGone = RemoveAll(mods, kLegacyPack);
+		if (!custom) {
+			const auto outcome = Switch(source, mods, false, kCustomPack);
+			if (outcome == Outcome::Failed || !legacyGone) return Outcome::Failed;
+			return outcome == Outcome::Absent && legacy ? Outcome::Removed : outcome;
+		}
+		if (!installable) return RemoveAll(mods, kCustomPack) && legacyGone ? Outcome::WrongBuild : Outcome::Failed;
+		const auto outcome = Switch(source, mods, true, kCustomPack);
+		return legacyGone ? outcome : (RemoveAll(mods, kCustomPack), Outcome::Failed);
 	}
 }

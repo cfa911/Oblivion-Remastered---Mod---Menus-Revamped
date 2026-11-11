@@ -13,8 +13,9 @@ def check(ok, why):
         fails.append(why)
 
 root = source_paths.ROOT
-pack = root / "assets/DarkPack"
-check(all((pack / f"MRDark_P.{ext}").is_file() for ext in ("pak", "utoc", "ucas")), "the Dark pack ships (MRDark_P .pak/.utoc/.ucas in assets/DarkPack)")
+# Custom pack builder Phase 3 (owner 2026-11-11): the shipped pack is MRCustom_P in assets/CustomPack (it replaced MRDark_P)
+pack = root / "assets/CustomPack"
+check(all((pack / f"MRCustom_P.{ext}").is_file() for ext in ("pak", "utoc", "ucas")), "the Custom pack ships (MRCustom_P .pak/.utoc/.ucas in assets/CustomPack)")
 tool = root / "tools/make_dark_pack.py"
 tool_text = tool.read_text(encoding="utf-8") if tool.is_file() else ""
 # the asset table lives in one data file per menu (Custom pack builder Phase 1): asset -> recipe, in build order
@@ -28,7 +29,7 @@ check("Art/UI/Modern/GameMenuLayer/SpellPurchase/T_SpellPurchase_LeftPageBG" in 
 
 plugin = (root / "src/core/Plugin.cpp").read_text(encoding="utf-8")
 load = plugin.split("OBSE_PLUGIN_LOAD", 1)[1] if "OBSE_PLUGIN_LOAD" in plugin else ""
-check("darkpack::Apply()" in load and load.index("mrconfig::Load()") < load.index("darkpack::Apply()") < load.index("RegisterListener"),
+check("darkpack::Apply(" in load and load.index("mrconfig::Load()") < load.index("darkpack::Apply(") < load.index("RegisterListener"),
       "the plugin switches the pack at load, after reading the INI (before the engine mounts paks: MR-PAK-PROBE)")
 dp_path = root / "src/core/DarkPack.cpp"
 dp = dp_path.read_text(encoding="utf-8") if dp_path.is_file() else ""
@@ -50,9 +51,9 @@ import json
 
 check("--paks" in tool_text and "to-legacy" in tool_text and ".get_dds().save(" in tool_text,
       "make_dark_pack.py extracts the stock textures from the game's Paks itself (retoc to-legacy, UE4-DDS-Tools export)")
-manifest_path = pack / "MRDark_P.json"
+manifest_path = pack / "MRCustom_P.json"
 manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
-check(bool(manifest), "the pack has a build manifest (assets/DarkPack/MRDark_P.json) written by make_dark_pack.py")
+check(bool(manifest), "the pack has a build manifest (assets/CustomPack/MRCustom_P.json) written by make_dark_pack.py")
 style_text = (root / "src/core/DarkStyle.h").read_text(encoding="utf-8")
 for name, value in manifest.get("style", {}).items():
     if isinstance(value, list):
@@ -62,14 +63,14 @@ for name, value in manifest.get("style", {}).items():
           f"the pack was baked from the current DarkStyle.h {name} (rebuild the pack after a colour change)")
 check(bool(manifest.get("style")), "the manifest records the DarkStyle.h values the pack was baked from")
 for ext in ("pak", "utoc", "ucas"):
-    path = pack / f"MRDark_P.{ext}"
+    path = pack / f"MRCustom_P.{ext}"
     digest = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else ""
-    check(manifest.get("files", {}).get(f"MRDark_P.{ext}") == digest, f"MRDark_P.{ext} is the file the manifest's build wrote")
+    check(manifest.get("files", {}).get(f"MRCustom_P.{ext}") == digest, f"MRCustom_P.{ext} is the file the manifest's build wrote")
 check(set(manifest.get("textures", {})) == set(data_listed) and manifest.get("textures"),
       "the manifest lists exactly the textures make_dark_pack.py bakes")
 
 dp_rules = root / "src/core/rules/DarkPackSwitch.h"
-check(dp_rules.is_file() and "darkpackswitch::Switch(" in dp, "DarkPack.cpp uses the tested switch (src/core/rules/DarkPackSwitch.h)")
+check(dp_rules.is_file() and "darkpackswitch::SwitchCustom(" in dp, "DarkPack.cpp uses the tested switch (src/core/rules/DarkPackSwitch.h)")
 check("MR-PAK-PROBE" not in plugin and "PakMountProbe" not in plugin, "the pak mount probe (TEMP-DIAG, recorded in the KB) is removed")
 
 files_tool = root / "tools/plugin_files.py"
@@ -81,18 +82,19 @@ if files_tool.is_file():
     entries = module.entries(root)
 prefix = "OblivionRemastered/Binaries/Win64/OBSE/Plugins/"
 for ext in ("pak", "utoc", "ucas"):
-    check(entries.get(prefix + f"MenusRevamped/DarkPack/MRDark_P.{ext}") == pack / f"MRDark_P.{ext}",
-          f"the release zip ships MRDark_P.{ext} in Plugins/MenusRevamped/DarkPack (tools/plugin_files.py)")
+    check(entries.get(prefix + f"MenusRevamped/CustomPack/MRCustom_P.{ext}") == pack / f"MRCustom_P.{ext}",
+          f"the release zip ships MRCustom_P.{ext} in Plugins/MenusRevamped/CustomPack (tools/plugin_files.py)")
 check(not any("~mods" in name for name in entries), "the zip puts nothing into ~mods itself (the plugin copies the pack)")
-check(not any(name.endswith(".json") for name in entries), "the build manifest stays out of the zip")
+check([n for n in entries if n.endswith(".json")] == [prefix + "MenusRevamped/CustomPack/MRCustom_P.json"],
+      "only the pack manifest ships (Phase 3: the plugin checks its game build and colours at load)")
 check(prefix + "MenusRevamped.dll" in entries and prefix + "MenusRevamped.ini" in entries
       and any(n.endswith(".png") for n in entries), "the zip list still holds the DLL, the INI and the PNGs")
 
 readme = (root / "README.md").read_text(encoding="utf-8")
-check("MRDark_P" in readme and "~mods" in readme and "uninstall" in readme.lower(),
-      "README tells Vortex users to switch to Classic before uninstalling, or to delete ~mods/MRDark_P.* by hand")
+check("MRCustom_P" in readme and "~mods" in readme and "uninstall" in readme.lower(),
+      "README tells Vortex users to switch to Classic before uninstalling, or to delete ~mods/MRCustom_P.* by hand")
 ini = (root / "config/MenusRevamped.defaults.ini").read_text(encoding="utf-8")
-check("MRDark_P" in ini.split("uPreset", 1)[0][-600:], "the INI preset comment says Dark installs the MRDark_P pack and needs a restart")
+check("MRCustom_P" in ini.split("uPreset", 1)[0][-700:], "the INI preset comment says Custom installs the MRCustom_P pack and needs a restart")
 
 # Phase 2 (owner 2026-11-10): the Inventory art of the local, never-shipped MRSkinPlayerPanel_P / MRSkinHighlight_P packs is
 # baked into MRDark_P by recipes that read DarkStyle.h, so Classic is stock once those packs leave ~mods.
@@ -173,10 +175,10 @@ check("Rgb pickerIcon{" in (root / "src/core/DarkStyle.h").read_text(encoding="u
       and (root / "tools/make_dark_picker_icons.py").is_file(),
       "RMI-085: the white picker icons are made from DarkStyle.h pickerIcon by tools/make_dark_picker_icons.py")
 # hard coding: the Dark skin's colours live in DarkStyle.h
-dark_skin = theme.split("inline constexpr Skin kDarkSkin{", 1)[1].split("};", 1)[0] if "inline constexpr Skin kDarkSkin{" in theme else ""
+dark_skin = theme.split("inline Skin MakeDarkSkin(", 1)[1].split("};", 1)[0] if "inline Skin MakeDarkSkin(" in theme else ""
 code = re.sub(r"//[^\n]*", "", dark_skin)
 literals = re.findall(r"(?<![\w.])\d*\.\d+f?", code)
-check(dark_skin and not literals, f"kDarkSkin holds no literal colours, they are named in DarkStyle.h (found {literals[:6]})")
+check(dark_skin and not literals, f"the Dark skin (MakeDarkSkin) holds no literal colours, they come from DarkStyle.h / CustomColours.ini (found {literals[:6]})")
 
 # Phase 3 (owner 2026-11-10): the Magic-only art and the cast-frequency text colour baked into MRDark_P. T_MagicBackground
 # (shared with Quest/Help/Stats) and the _ListSmall row icons (shared with Sigil Stone and the effect lists) stay run-time
