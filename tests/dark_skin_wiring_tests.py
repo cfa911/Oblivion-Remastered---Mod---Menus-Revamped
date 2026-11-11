@@ -11,12 +11,10 @@ def check(ok, why):
     if not ok:
         fails.append(why)
 
-paint = source_paths.function(src, "unsigned PaintScrollbarStyle(")
-check(bool(paint), "one scrollbar painter serves the list and the skill sub-tab")
-check("ResetBrushHandle(" in paint, "a swapped brush resource clears the cached Slate handle (RMI-068)")
-check("if (track ||" not in paint, "a static track material also gets a dynamic instance (skill sub-tab)")
+# Phase 7 (owner decision 18): the scrollbar colours are baked into the stock scrollbar materials; no run-time painter
+check("PaintScrollbarStyle" not in src, "the run-time scrollbar painter is removed (baked in the Custom pack)")
 details = source_paths.function(src, "void StyleDetails(")
-check("WidgetBarStyle" in details, "the skill sub-tab ScrollBox bar is painted")
+check("WidgetBarStyle" not in details, "the skill sub-tab ScrollBox bar is not painted at run time (baked)")
 page_case = details.split("case detailsskin::Role::Page:", 1)[1].split("case detailsskin::Role::Ornament:", 1)[0]
 check("PageTint(" in page_case and "SetBrushResourceObject" not in page_case, "the page keeps its stock material brush")
 check("PageTint(" in details, "the page is darkened by its widget tint")
@@ -41,8 +39,7 @@ check("DisableTextColor" in src and "EnableTextColor" in src, "perk level entrie
 headers = (source_paths.ROOT / "src/sorting/InventoryHeaders.cpp").read_text(encoding="utf-8-sig")
 check(not any(s in headers for s in ("kProbeInk", "detailsskin::k", "ruleInk", "0.65f,0.65f")),
       "the Inventory layout code holds no skin colours (styling separate from logic)")
-scroll = source_paths.function(src, "void StyleListScrollbar(")
-check(all("skin.recolor" in body for body in (rows, details, scroll)), "every recolour is gated by the preset's skin")
+check(all("skin.recolor" in body for body in (rows, details)), "every recolour is gated by the preset's skin")
 check("StyleRowArt(" in rows and "SwapArt(" in source_paths.function(src, "void StyleRowArt("), "rows take the preset's art swaps (separators, equipped marker)")
 check("SwapArt(" in details, "the details view takes the preset's art swaps (bands, icons, ring centre)")
 button = source_paths.function(src, "void StyleDetailsButton(")
@@ -148,8 +145,7 @@ check(bool(magic_row) and "skin.recolor" in magic_row and "StyleRowArt(" in magi
       "Magic rows take light ink and the row art swaps, gated by the preset")
 check("OnMagicRowBound" in layout and "menuskin::WatchDetails(a_menu, list, menuskin::kMagic)" in layout,
       "the Magic header layout hooks its rows (generated, not in the menu tree) and its details view")
-check("menuskin::StyleListScrollbar(list)" in layout.split("OnMagicRowBound", 1)[-1] or layout.count("StyleListScrollbar(list)") >= 2,
-      "the Magic list scrollbar is painted dark")
+check("StyleListScrollbar" not in layout, "the Magic list scrollbar is not painted at run time (baked)")
 page = source_paths.function(src, "void StyleMagicPage(")
 check(bool(page) and "IsMagicPage(" in page and "SwapArt(" in page, "the Magic page takes its white-shape art in the panel colour, per widget")
 check("menuskin::StyleMagicPage(" in layout, "the Magic layout applies the page tint")
@@ -277,15 +273,13 @@ updated = source_paths.function(src, "void OnDetailsUpdated(")
 layout_src = source_paths.function((source_paths.ROOT / "src/sorting/InventoryHeaders.cpp").read_text(encoding="utf-8"), "bool Picker::LayoutInventoryHeaders(")
 magic_block = layout_src.split("if (magic) {   // Dark Magic", 1)[1].split("inventoryheaders::Box canvasBounds", 1)[0] if "if (magic) {   // Dark Magic" in layout_src else ""
 first_bind = magic_block.split("pe::WatchPost(row->GetClass(),&OnMagicRowBound)", 1)[0]
-check("StyleListScrollbar(" in first_bind, "the Magic scrollbar is repainted on every layout pass (the game resets its thumb)")
-check("MRMAGICDARK scrollbar" in source_paths.function(src, "void StyleListScrollbar("),
-      "TEMP-DIAG: what the Magic scrollbar holds is logged once")
+check("StyleListScrollbar(" not in first_bind, "the Magic scrollbar is no longer repainted per layout pass (baked, Phase 7)")
+check("MRMAGICDARK scrollbar" not in src, "the scrollbar TEMP-DIAG went with the painter (owner decision 18)")
 # ---- Round 12 (owner on d635dbf2: page half transparent with a laggy fade; Magic thumb still pale; RMI-083) ----
 # Log: OpacityControl is a reveal value (restarts near -0.08 per hover, rises slowly to about 0.4), not an alpha. Static scan:
 # WBP_ModernMenu_MagicListView wraps "ListView" (VModernListView, ScrollBarStyle with MIC_UI_ScrollbarVert_Handle_Dark) and has
 # no GetListView, so the painter fell back to the wrapper (no ScrollBarStyle) and painted nothing.
-check('"ListView"' in source_paths.function(src, "void StyleListScrollbar("),
-      "the Magic list's inner ListView (no GetListView on the wrapper) takes the Inventory scrollbar paint")
+check("void StyleListScrollbar(" not in src, "no list scrollbar painter is left (Phase 7: baked)")
 # ---- Round 13 (light streak on the selected tab): the strip is forced opaque when baking (dark_pack_tests opaque_rows) ----
 # ---- Round 14 (RMI-084: crash painting a freed brush resource, in the Magic menu, on 3d89afae) ----
 # The game's details widgets are no longer altered: the retainer was switched off on every details event while the game turned

@@ -1,0 +1,164 @@
+{
+  "_about": "Menu grouping and reasons for tools/custom_pack_coverage.py (not a builder data file). menus: [path fragment, menu], first match wins.",
+  "menus": [
+    [
+      "/Inventory/",
+      "Inventory"
+    ],
+    [
+      "/Container",
+      "Inventory"
+    ],
+    [
+      "/magic/",
+      "Magic"
+    ],
+    [
+      "/Magic",
+      "Magic"
+    ],
+    [
+      "/SpellType",
+      "Magic"
+    ],
+    [
+      "/Alchemy",
+      "Alchemy"
+    ],
+    [
+      "/enchantment/",
+      "Enchanting"
+    ],
+    [
+      "/SpellMaking",
+      "Spellmaking"
+    ],
+    [
+      "/Spellmaking",
+      "Spellmaking"
+    ],
+    [
+      "/SpellPurchase",
+      "Spell Purchase"
+    ],
+    [
+      "/stats",
+      "Stats"
+    ],
+    [
+      "/Stats",
+      "Stats"
+    ],
+    [
+      "Icon_Character",
+      "Stats"
+    ],
+    [
+      "/class/",
+      "Character creation and class"
+    ],
+    [
+      "/CharacterCreation",
+      "Character creation and class"
+    ],
+    [
+      "/SkillAndClass",
+      "Character creation and class"
+    ],
+    [
+      "/BirthSign",
+      "Character creation and class"
+    ],
+    [
+      "/Icons/Quest",
+      "Quest journal"
+    ],
+    [
+      "/Icons/quests",
+      "Quest journal"
+    ],
+    [
+      "/ndquest",
+      "Quest journal"
+    ],
+    [
+      "/Quest",
+      "Quest journal"
+    ],
+    [
+      "/level_up",
+      "Level Up"
+    ],
+    [
+      "/LevelUp",
+      "Level Up"
+    ],
+    [
+      "/Help",
+      "Help"
+    ],
+    [
+      "/book",
+      "Book"
+    ],
+    [
+      "/sigil",
+      "Sigil Stone"
+    ],
+    [
+      "/Repair",
+      "Repair"
+    ],
+    [
+      "/Recharge",
+      "Recharge"
+    ],
+    [
+      "/Settomgs",
+      "Settings"
+    ],
+    [
+      "/Settings",
+      "Settings"
+    ],
+    [
+      "/ModalLayer",
+      "Messages and modals"
+    ],
+    [
+      "/Prefab",
+      "Shared widgets"
+    ],
+    [
+      "/prefab",
+      "Shared widgets"
+    ],
+    [
+      "Icon_Category",
+      "Shared icons"
+    ],
+    [
+      "Icon_Stats",
+      "Shared icons"
+    ],
+    [
+      "Art/UI/Common",
+      "Shared art"
+    ],
+    [
+      "UI/Materials",
+      "Shared art"
+    ]
+  ],
+  "not_planned": {},
+  "later": {
+    "/stats": "page T_MagicBackground shared with Help and the Quest list; text is blueprint ink (decision 22)",
+    "Icon_Character": "Stats page 1 icons, with the Stats batch",
+    "Icon_Category": "shown on light menus (Quest, map, Magic ranges) or no UI importer: with their menu (decision 23)",
+    "Art/UI/Common": "shared with light menus or no UI importer: with the menu that needs it (decision 23)",
+    "/enchantment/Tabs": "",
+    "T_Enchantment_AddedEffect_Decorator": "shared with Spellmaking and the Skills menu",
+    "SeparatorLine": "uncompressed texture: coloured by the SeparatorLine blueprint tint (in pack)",
+    "T_Enchantment_VerticalSeparator": "uncompressed texture: needs a B8G8R8A8 recipe"
+  }
+}

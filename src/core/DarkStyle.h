@@ -72,6 +72,14 @@ namespace darkstyle
 		// stock bronze metal and green-grey stone recoloured separately, stock shading and alpha kept; defaults = the owner art's averages.
 		Rgb alchemyMetal{ 56, 83, 118 };
 		Rgb alchemyStone{ 22, 25, 31 };
+		Rgb enchantingFrame{ 67, 75, 91 };
+		Rgb spellmakingFrame{ 85, 130, 182 };
+		Rgb altarPaper{ 24, 25, 28 };
+		Rgb enchantingCrystal{ 103, 159, 236 };
+		Rgb enchantingOrnament{ 72, 78, 90 };
+		Rgb spellmakingEye{ 86, 127, 181 };
+		Rgb enchantingTabPaper{ 27, 27, 29 };
+		Rgb enchantingTabIcon{ 255, 255, 255 };
 		// Run-time tints of the Dark skin (uistyle::kDarkSkin): linear 0-1 as Slate takes them, alpha last.
 		struct SkinTints
 		{

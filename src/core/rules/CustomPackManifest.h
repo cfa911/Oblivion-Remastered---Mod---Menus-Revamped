@@ -22,6 +22,9 @@ namespace custompack
 	};
 
 	inline constexpr std::string_view kLaurelTint = "Skin.pattern";
+	// [Skin] values the builder bakes (manifest key "Skin.<name>"): the laurel tint (Phase 5) and the scrollbar materials
+	// (Phase 7, owner decision 18). The other [Skin] tints stay run-time and never make a pack stale.
+	inline constexpr std::string_view kBakedSkin[] = { "pattern", "scrollTrack", "scrollBorder", "scrollInside" };
 
 	inline bool HasBakedLaurelTint(const Manifest& m)
 	{
@@ -29,6 +32,16 @@ namespace custompack
 			if (key == kLaurelTint && values.size() == 4)
 				return true;
 		return false;
+	}
+
+	// Phase 7: the scrollbar materials are baked (all three keys); an older pack shows the stock scrollbar until rebuilt
+	inline bool HasBakedScrollbar(const Manifest& m)
+	{
+		int found = 0;
+		for (const auto& [key, values] : m.style)
+			if ((key == "Skin.scrollTrack" || key == "Skin.scrollBorder" || key == "Skin.scrollInside") && values.size() == 1)
+				++found;
+		return found == 3;
 	}
 
 	enum class Verdict { Current, ColoursChanged, WrongBuild, Unreadable };
@@ -117,10 +130,12 @@ namespace custompack
 		return m;
 	}
 
-	// a manifest style key: a [Colours] element or a [Tab] grey (the baked values)
+	// a manifest style key: a [Colours] element, a [Tab] grey or a baked [Skin] value (the baked values)
 	inline const customcolours::Entry* Baked(std::string_view key)
 	{
-		if (key == kLaurelTint) return customcolours::Find("Skin", "pattern");
+		if (key.starts_with("Skin."))
+			for (const auto name : kBakedSkin)
+				if (key.substr(5) == name) return customcolours::Find("Skin", name);
 		if (const auto* e = customcolours::Find("Colours", key)) return e;
 		return customcolours::Find("Tab", key);
 	}

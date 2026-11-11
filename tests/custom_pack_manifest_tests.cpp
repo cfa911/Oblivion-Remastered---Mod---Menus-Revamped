@@ -94,6 +94,22 @@ int main()
 	Check(rendered.find("alchemyMetal = 56, 83, 118") != std::string::npos && rendered.find("alchemyStone = 22, 25, 31") != std::string::npos,
 		"the plugin's default CustomColours.ini lists both Alchemy keys");
 
+	// Phase 7 (owner decision 18): the three [Skin] scrollbar values are baked into the scrollbar materials
+	const auto scrollPack = custompack::ParseManifest(
+		R"({"game_build":"1.512.105.0","style":{"Skin.scrollTrack":0.0052,"Skin.scrollBorder":0.0052,"Skin.scrollInside":0.0222}})");
+	Check(scrollPack.ok && custompack::Known("Skin.scrollTrack") && custompack::Known("Skin.scrollBorder") && custompack::Known("Skin.scrollInside"),
+		"Skin.scrollTrack, Skin.scrollBorder and Skin.scrollInside are baked values the plugin reads");
+	Check(!custompack::Known("Skin.buttonFill") && !custompack::Known("Skin.rule"), "run-time [Skin] tints stay unknown to the stale check");
+	Check(custompack::HasBakedScrollbar(scrollPack) && !custompack::HasBakedScrollbar(m) && !custompack::HasBakedScrollbar(laurelPack),
+		"only a pack with the three scrollbar keys has a baked scrollbar (an older pack: the stock scrollbar, one log line)");
+	Check(custompack::Decide(scrollPack, "1.512.105.0", d).verdict == Verdict::Current, "the default scrollbar values match a default pack");
+	r = custompack::Decide(scrollPack, "1.512.105.0", customcolours::Parse("[Skin]\nscrollTrack = 0.3\n").style);
+	Check(r.verdict == Verdict::ColoursChanged && r.install && r.changed == std::vector<std::string>{ "Skin.scrollTrack" },
+		"a changed scrollTrack makes the pack stale and is named");
+	r = custompack::Decide(scrollPack, "1.512.105.0", customcolours::Parse("[Skin]\nscrollInside = 0.5\nscrollBorder = 0.4\n").style);
+	Check(r.verdict == Verdict::ColoursChanged && r.changed == std::vector<std::string>{ "Skin.scrollBorder", "Skin.scrollInside" },
+		"changed thumb values are named in manifest order");
+
 	s = d; s.panel = { 50, 41, 41 };
 	r = custompack::Decide(m, "1.600.1.0", s);
 	Check(r.verdict == Verdict::WrongBuild && !r.install, "another game build: the pack is not installed (wins over stale colours)");

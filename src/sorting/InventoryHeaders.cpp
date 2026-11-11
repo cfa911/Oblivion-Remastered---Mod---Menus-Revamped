@@ -633,13 +633,11 @@ namespace sorting::detail
 			}
 			menuskin::WatchFooters(mainPart, a_menu, menuskin::kInventory);
 			inventoryStatusReady=true;
-			menuskin::StyleListScrollbar(list);
-			menuskin::WatchDetails(a_menu, list, menuskin::kInventory);
+			menuskin::WatchDetails(a_menu, list, menuskin::kInventory);   // the scrollbar is baked in the Custom pack (Phase 7)
 		}
 
-		if (magic) {   // Dark Magic (phase 2): the parchment page, rows, scrollbar and details; nothing happens in Classic/Light
+		if (magic) {   // Dark Magic (phase 2): the parchment page, rows and details (scrollbar: baked, Phase 7); nothing in Classic/Light
 			menuskin::StyleMagicPage(a_menu,measureColumns);
-			if (list) menuskin::StyleListScrollbar(list);   // every pass: the game puts the pale thumb back (owner screenshot 2026-11-10)
 			if (menuskin::Current().recolor && !inventoryStatusReady && measureColumns && row &&
 				pe::WatchPost(row->GetClass(),&OnMagicRowBound)) {
 				static bool s_announced=false;

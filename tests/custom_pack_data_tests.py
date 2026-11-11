@@ -20,7 +20,7 @@ def check(ok, why):
 
 root = source_paths.ROOT
 menus_dir = root / "tools/menus"
-MENUS = ("inventory", "magic", "alchemy")   # build order: the order of today's single table
+MENUS = ("inventory", "magic", "alchemy", "common", "enchanting", "spellmaking")   # build order ("order" in each file); Phase 7 added the last two
 manifest = json.loads((root / "assets/CustomPack/MRCustom_P.json").read_text(encoding="utf-8"))
 shipped = manifest["textures"]
 
@@ -50,17 +50,17 @@ for menu in MENUS:
         check(isinstance(row.get("shared_with"), list), f"{name}: has a shared-with list (empty when the menu owns it alone)")
 
 assets = [row.get("asset") for row in rows]
-check(len(assets) == 69, f"the data files describe 69 assets (found {len(assets)})")
+check(len(assets) == 90, f"the data files describe 90 assets (Phase 7: 69 + 2 scrollbar materials + 4 shared icons + 13 Enchanting + 2 Spellmaking; found {len(assets)})")
 check(len(set(assets)) == len(assets), "no asset is listed twice across the data files")
 check(set(assets) == set(shipped), "the data files list exactly the assets of the shipped MRCustom_P")
-check(assets == list(shipped), "the data files keep today's build order (inventory, magic, alchemy)")
+check(assets == list(shipped), "the data files keep the build order (inventory, magic, alchemy, common, enchanting, spellmaking)")
 for row in rows:
     asset = row.get("asset")
     if asset in shipped:
         check(row.get("recipe") == shipped[asset]["recipe"], f"{asset}: same recipe as the shipped pack")
         check(row.get("colours") == shipped[asset]["style"], f"{asset}: colour elements match the shipped manifest")
 
-inventory, magic, alchemy = (data.get(m, {}) for m in MENUS)
+inventory, magic, alchemy = (data.get(m, {}) for m in MENUS[:3])
 check(inventory.get("glyph_masks", {}).get("tab") ==
       ["T_Category_Weapons", "T_Category_Armor", "T_Category_Alchemy", "T_Category_Misc", "T_Category_All_items"],
       "inventory.json holds the Inventory tab glyph masks in tab order")
@@ -78,10 +78,11 @@ check(sorted(bps) == sorted(["WBP_ModernMenu_FilterEffectEntry", "WBP_ModernPref
 check(all(isinstance(e.get("offset"), int) and len(e.get("stock", [])) == 4 and isinstance(e.get("colour"), str)
           for entries in bps.values() for e in entries) and bps,
       "each blueprint colour has its stock check (offset + expected float4) and a colour element")
+all_bps = {p for m in data.values() for p in m.get("blueprint_colours", {})}   # Phase 7: enchanting.json too
 for row in rows:
     if row.get("recipe", "").startswith("bp_colour:"):
         package = row["recipe"].split(":", 1)[1]
-        check(package in bps, f"{package}: its blueprint colours are in a data file")
+        check(package in all_bps, f"{package}: its blueprint colours are in a data file")
 
 # make_dark_pack.py reads the data files and keeps no asset table of its own
 tool = root / "tools/make_dark_pack.py"

@@ -58,8 +58,8 @@ manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_pat
 check(bool(manifest), "the pack has a build manifest (assets/CustomPack/MRCustom_P.json) written by make_dark_pack.py")
 style_text = (root / "src/core/DarkStyle.h").read_text(encoding="utf-8")
 for name, value in manifest.get("style", {}).items():
-    if isinstance(value, list):
-        continue   # Rgb values: checked in the phase 2 block
+    if isinstance(value, list) or name.startswith("Skin."):
+        continue   # Rgb values: checked in the phase 2 block; baked [Skin] values: in the Skin block below
     found = re.search(r"float\s+" + name + r"\s*=\s*([\d.]+)f?", style_text)
     check(found is not None and abs(float(found.group(1)) - value) < 1e-9,
           f"the pack was baked from the current DarkStyle.h {name} (rebuild the pack after a colour change)")
@@ -118,8 +118,8 @@ check(INVENTORY <= baked, "the shipped pack holds the Inventory textures (rebuil
 sys.path.insert(0, str(root / "tools"))
 from custom_colours import from_skin
 for name, value in manifest.get("style", {}).items():
-    if name == "Skin.pattern":
-        check(from_skin(style_text)["pattern"] == value, "the pack has the default Inventory laurel tint")
+    if name.startswith("Skin."):   # baked [Skin] values: the laurel tint (Phase 5), the scrollbar (Phase 7)
+        check(from_skin(style_text)[name[5:]] == value, f"the pack has the default {name}")
     elif isinstance(value, list):
         found = re.search(r"Rgb\s+" + re.escape(name) + r"\{\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\}", style_text)
         check(found is not None and [float(x) for x in found.groups()] == value,

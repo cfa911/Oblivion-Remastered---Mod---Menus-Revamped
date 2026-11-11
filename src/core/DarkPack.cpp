@@ -83,6 +83,8 @@ namespace darkpack
 			g_bakedLaurelTint = installable && custompack::HasBakedLaurelTint(manifest);
 			if (installable && !g_bakedLaurelTint)
 				logger::info("Menus Revamped: Custom pack uses the runtime Inventory laurel tint; rebuild to bake it");
+			if (installable && !custompack::HasBakedScrollbar(manifest))
+				logger::info("Menus Revamped: Custom pack has no baked scrollbar colours (the stock scrollbar shows); rebuild the pack");
 			switch (decision.verdict) {
 			case custompack::Verdict::ColoursChanged:
 				logger::warn("Menus Revamped: Custom pack colours changed since the pack was built ({}): the last pack stays installed; rebuild the pack to bake them",
