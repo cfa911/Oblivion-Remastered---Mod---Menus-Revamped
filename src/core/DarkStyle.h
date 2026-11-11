@@ -20,9 +20,6 @@ namespace darkstyle
 		// Details page: the game's own page widget tinted (linear, a multiply; sRGB about 25; black hides the parchment
 		// completely). The Inventory page (M_MaskedPage) and the Magic page image use the same value.
 		float detailsPage = 0.010f;
-		// The school illustration on the Magic details page (the game's white T_Illustration_<School>_LeftPage, soft alpha):
-		// drawn white at this opacity over the dark page, faded in with the game's reveal.
-		float schoolArt = 0.5f;
 		Rgb rowText{ 239, 239, 239 };     // row names and values, details text (linear 0.86)
 		Rgb rowSeparator{ 255, 255, 255 };// times RowSeparator.png (its own gray 235)
 		Rgb columnLine{ 99, 99, 99 };     // row column lines T_Line_V (the Inventory pak's gray)
@@ -53,6 +50,8 @@ namespace darkstyle
 		// T_inv_details_preview_frame_D: the stock brightness inverted, black -> light, white -> dark
 		Rgb previewFrameLight{ 150, 150, 150 };
 		Rgb previewFrameDark{ 30, 30, 30 };
+		// Phase 3 bakes the Magic row school icons and details stat icons flat rowIcon and the tab atlases from tab into MRDark_P.
+		// The blue "Can only be used once a day" line is a follow-up (RMI-086: its colour is a literal in the details blueprint).
 		// Run-time tints of the Dark skin (uistyle::kDarkSkin): linear 0-1 as Slate takes them, alpha last.
 		struct SkinTints
 		{

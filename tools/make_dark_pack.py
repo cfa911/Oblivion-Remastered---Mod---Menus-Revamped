@@ -10,7 +10,8 @@ MRDark_P.json next to the pack: the DarkStyle.h values and stock inputs it was b
 (tests/dark_pack_tests.py fails when DarkStyle.h changed without a rebuild). --check builds into a temp folder and compares the
 baked textures (retoc orders a many-package container differently per run, so the container bytes can differ).
 
-Every recipe keeps the stock BC3 alpha blocks byte for byte, except enchanted_dot (it draws its own round alpha).
+Every recipe keeps the stock BC3 alpha blocks byte for byte, except enchanted_dot (it draws its own round alpha) and
+magic_tab (the tab strip is made opaque). rich_row patches one colour of a rich-text style table (a DataTable .uexp).
 Run it again after changing a DarkStyle.h value a recipe reads. The plugin copies the pack into Content/Paks/~mods when the
 preset is Dark (src/core/rules/DarkPackSwitch.h). Requires Pillow. Plan: KB mods/menus-revamped/evidence/dark-ui-pack-plan.md.
 """
@@ -19,6 +20,7 @@ import hashlib
 import json
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import tempfile
@@ -61,9 +63,37 @@ TEXTURES = {
     "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_enchantment_icon": "flat:subTabIcon",
     "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_overview_icon": "flat:subTabIcon",
     "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_subtabs_button_skill_icon": "flat:subTabIcon",
+    # Phase 3: the Magic-only art (UI asset scan: no other menu imports these). T_MagicBackground (Quest/Help/Stats too) and
+    # the _ListSmall row type icons (Sigil Stone, effect lists) stay run-time swaps inside Magic until their menus are dark.
+    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Alteration": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Conjuration": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Destruction": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Illusion": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Mysticism": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Restoration": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Cost": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Duration": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Magnitude": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Range": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/T_MagicMenuIcon_Weight": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Custom_Spell": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Greater_Power": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Lesser_Power": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Scroll": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Spell": "flat:rowIcon",
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Self": "magic_tab:0",
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Touch": "magic_tab:1",
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Target": "magic_tab:2",
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_All": "magic_tab:3",
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_ActiveEffect": "magic_tab:4",
+    # (not DT_UI_MagicMenu: the details blueprint sets the cast-frequency line's default colour itself, RMI-086; the rich_row
+    # recipe stays for the rich-text style tables of phase 4)
 }
 # the tab glyphs: the clean standalone category masks, in tab order (weapons, armor, alchemy, misc, all)
 TAB_MASKS = ("T_Category_Weapons", "T_Category_Armor", "T_Category_Alchemy", "T_Category_Misc", "T_Category_All_items")
+MAGIC_TAB_MASKS = ("T_Category_OnSelf", "T_Category_Touch", "T_Category_Target", "T_Category_All", "T_Category_ActiveEffects")
+# RichTextStyleRow colours: row -> (.uexp byte offset of its linear float4, the stock value), game 1.512.105.0 (KB dark-mode-ui.md)
+RICH_ROWS = {"DT_UI_MagicMenu": {"Default": (69, (0.0723, 0.0382, 0.0284, 1.0)), "RT_BlueMed": (425, (0.0513, 0.0648, 0.1441, 1.0))}}
 TAB_STYLE = ("selected", "unselected", "gap", "outline", "glyph", "glyphDim")
 PANEL_DARK, PANEL_LIGHT = 42, 116   # stock brightness of the panel curve's ends (the installed pack's rule)
 
@@ -205,6 +235,39 @@ def tab_atlas(stock_dds, active, v, work, stock):
     return splice_colour(stock_dds, tabs.dark_tab(active, image, masks, v, opaque_strip=False), work)
 
 
+def opaque_rows(stock_dds, colour_dds, rows):
+    """The stock texture with the encoded alpha blocks of colour_dds in the block rows that hold pixel rows < rows (mip 0)."""
+    out = bytearray(stock_dds)
+    width = int.from_bytes(stock_dds[16:20], "little")
+    start, source = header_size(stock_dds), header_size(colour_dds)
+    for block in range(((rows + 3) // 4) * (width // 4)):
+        at = block * 16
+        out[start + at:start + at + 8] = colour_dds[source + at:source + at + 8]
+    return bytes(out)
+
+
+def magic_tab_atlas(stock_dds, active, v, work, stock):
+    """The same compiler with the Magic glyph masks; the strip is opaque (the stock Magic atlases have see-through wedges there:
+    owner screenshot, a light streak on the selected tab), the stock alpha below it (the fade into the title band)."""
+    sys.path.insert(0, str(ROOT / "tools"))
+    import make_dark_tab_art as tabs
+    masks = [Image.open(stock(name)).convert("RGBA").getchannel("A") for name in MAGIC_TAB_MASKS]
+    image = Image.open(stock_dds).convert("RGBA")
+    spliced = splice_colour(stock_dds, tabs.dark_tab(active, image, masks, v, opaque_strip=True), work)
+    return opaque_rows(spliced, (work / "colour.dds").read_bytes(), tabs.STRIP + 4)
+
+
+def rich_row_colour(uexp, row, rgb, table="DT_UI_MagicMenu"):
+    """A RichTextStyleRow's colour set to a DarkStyle.h sRGB colour (linear floats, alpha 1); refuses an unexpected stock value."""
+    offset, expected = RICH_ROWS[table][row]
+    found = struct.unpack_from("<4f", uexp, offset) if len(uexp) >= offset + 16 else ()
+    if len(found) != 4 or any(abs(a - b) > 5e-4 for a, b in zip(found, expected)):
+        sys.exit(f"{table} row {row}: stock colour {found} at byte {offset}, expected {expected} (game update? re-scan the table)")
+    out = bytearray(uexp)
+    struct.pack_into("<4f", out, offset, *(linear(c) for c in rgb), 1.0)
+    return bytes(out)
+
+
 def preview_frame(stock_dds, v, work):
     """The stock brightness inverted between previewFrameLight (black) and previewFrameDark (white)."""
     dark, light = v["previewFrameDark"], v["previewFrameLight"]
@@ -219,6 +282,11 @@ def recipe(name):
         return (), (arg,), lambda dds, v, work, stock: flat_blocks(dds.read_bytes(), v[arg])
     if kind == "tab":
         return TAB_STYLE, (), lambda dds, v, work, stock: tab_atlas(dds, int(arg), v, work, stock)
+    if kind == "magic_tab":
+        return TAB_STYLE, (), lambda dds, v, work, stock: magic_tab_atlas(dds, int(arg), v, work, stock)
+    if kind == "rich_row":   # a data table, not a texture: build() patches its .uexp (no DDS)
+        row, _, colour = arg.partition(":")
+        return (), (colour,), lambda uexp, v, work, stock: rich_row_colour(uexp, row, v[colour])
     return {
         # what the Inventory details showed at run time: stock colour x detailsPage (linear multiply)
         "details_page": (("detailsPage",), (), lambda dds, v, work, stock: tint_rgb_keep_alpha(dds, v["detailsPage"], work)),
@@ -265,15 +333,29 @@ def build(args, out):
             floats, rgbs, make = recipe(recipe_name)
             values = {n: style_float(n) for n in floats} | {n: style_rgb(n) for n in rgbs}
             style.update(values)
-            legacy, stock_dds = extract(name)
-            source = legacy / "OblivionRemastered/Content" / asset
+            table = recipe_name.startswith("rich_row:")
+            source_root = work / "legacy" / name
+            if table:
+                run([args.retoc, "to-legacy", "--no-shaders", "--version", "UE5_3", "-f", name, args.paks, source_root])
+            else:
+                source_root = extract(name)[0]
+            source = source_root / "OblivionRemastered/Content" / asset
             if not source.with_suffix(".uasset").is_file():
                 sys.exit(f"retoc did not extract {asset} from {args.paks}")
+            target = stage / "OblivionRemastered/Content" / asset
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if table:
+                shutil.copy2(source.with_suffix(".uasset"), target.with_suffix(".uasset"))
+                target.with_suffix(".uexp").write_bytes(make(source.with_suffix(".uexp").read_bytes(), values, work, None))
+                textures[asset] = {"recipe": recipe_name, "style": sorted(values),
+                                   "stock_uexp_sha256": sha256(source.with_suffix(".uexp")),
+                                   "baked_uexp_sha256": sha256(target.with_suffix(".uexp"))}
+                print(f"{name}: {recipe_name} {values}")
+                continue
+            stock_dds = extract(name)[1]
             dds = work / "recoloured" / (name + ".dds")
             dds.parent.mkdir(parents=True, exist_ok=True)
             dds.write_bytes(make(stock_dds, values, work, lambda n: extract(n)[1]))
-            target = stage / "OblivionRemastered/Content" / asset
-            target.parent.mkdir(parents=True, exist_ok=True)
             for ext in (".uasset", ".uexp"):
                 shutil.copy2(source.with_suffix(ext), target.with_suffix(ext))
             injected = work / "injected" / name
