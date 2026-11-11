@@ -1,0 +1,173 @@
+{
+  "menu": "Shared art",
+  "order": 4,
+  "note": "Assets drawn by many menus (Phase 7). The scrollbar: the Dark scrollbar instances MIC_UI_Scrollbar_Vert_Dark and MIC_UI_ScrollbarVert_Handle_Dark hold no colours, so the [Skin] scrollbar values are baked into their parent materials' defaults (CachedExpressionData and the shader map's uniform defaults; KB docs/reverse-engineering/dark-mode-ui.md 'Scrollbar materials', game 1.512.105.0). Every scrollbar but Settings (Light instances) takes them.",
+  "material_colours": {
+    "M_UI_Scrollbar_Vert_Reworked": [
+      {
+        "offset": 351,
+        "stock": [
+          0.42327,
+          0.30499,
+          0.19462,
+          1.0
+        ],
+        "colour": "Skin.scrollTrack",
+        "parameter": "DarkColor"
+      },
+      {
+        "offset": 367,
+        "stock": [
+          0.0999,
+          0.05613,
+          0.03955,
+          1.0
+        ],
+        "colour": "Skin.scrollTrack",
+        "parameter": "LightColor"
+      },
+      {
+        "offset": 8556,
+        "stock": [
+          0.0999,
+          0.05613,
+          0.03955,
+          1.0
+        ],
+        "colour": "Skin.scrollTrack",
+        "parameter": "LightColor (shader map default)"
+      }
+    ],
+    "M_UI_Scrollbar_Handle": [
+      {
+        "offset": 329,
+        "stock": [
+          0.42327,
+          0.30499,
+          0.19462,
+          1.0
+        ],
+        "colour": "Skin.scrollBorder",
+        "parameter": "BorderColor - Dark"
+      },
+      {
+        "offset": 345,
+        "stock": [
+          0.0999,
+          0.05613,
+          0.03955,
+          1.0
+        ],
+        "colour": "Skin.scrollBorder",
+        "parameter": "BorderColor - Light"
+      },
+      {
+        "offset": 361,
+        "stock": [
+          0.0356,
+          0.02519,
+          0.0185,
+          1.0
+        ],
+        "colour": "Skin.scrollInside",
+        "parameter": "InsideColor - Dark"
+      },
+      {
+        "offset": 377,
+        "stock": [
+          0.62396,
+          0.58408,
+          0.51492,
+          1.0
+        ],
+        "colour": "Skin.scrollInside",
+        "parameter": "InsideColor - Light"
+      },
+      {
+        "offset": 8405,
+        "stock": [
+          0.0999,
+          0.05613,
+          0.03955,
+          1.0
+        ],
+        "colour": "Skin.scrollBorder",
+        "parameter": "BorderColor - Light (shader map default)"
+      },
+      {
+        "offset": 8421,
+        "stock": [
+          0.62396,
+          0.58408,
+          0.51492,
+          1.0
+        ],
+        "colour": "Skin.scrollInside",
+        "parameter": "InsideColor - Light (shader map default)"
+      }
+    ]
+  },
+  "assets": [
+    {
+      "asset": "UI/Materials/Common/M_UI_Scrollbar_Vert_Reworked",
+      "recipe": "material_colour:M_UI_Scrollbar_Vert_Reworked",
+      "colours": [
+        "Skin.scrollTrack"
+      ],
+      "shared_with": [
+        "every scrolling menu but Settings (Inventory, Magic, Alchemy, Repair, Recharge, Help, Enchanting, Spellmaking, Spell Purchase, Save/Load, Stats, Training, Class, character creation, Book, EULA, Quest journal, Sigil Stone)"
+      ]
+    },
+    {
+      "asset": "UI/Materials/Common/M_UI_Scrollbar_Handle",
+      "recipe": "material_colour:M_UI_Scrollbar_Handle",
+      "colours": [
+        "Skin.scrollBorder",
+        "Skin.scrollInside"
+      ],
+      "shared_with": [
+        "every scrolling menu but Settings (same list as the track)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Icon_Stats/T_Property_1_LesserPower",
+      "recipe": "flat:headerIcon",
+      "colours": [
+        "headerIcon"
+      ],
+      "shared_with": [
+        "Magic filters (filter icon table; every user already dark)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Icon_Stats/T_Property_1_goodbad",
+      "recipe": "flat:headerIcon",
+      "colours": [
+        "headerIcon"
+      ],
+      "shared_with": [
+        "Magic filters (filter icon table; every user already dark)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Icon_Stats/T_Property_1_school",
+      "recipe": "flat:headerIcon",
+      "colours": [
+        "headerIcon"
+      ],
+      "shared_with": [
+        "Magic filters (filter icon table; every user already dark)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Icon_Stats/T_Property_Recharge",
+      "recipe": "flat:headerIcon",
+      "colours": [
+        "headerIcon"
+      ],
+      "shared_with": [
+        "Inventory filters (filter icon table; every user already dark)"
+      ]
+    }
+  ]
+}

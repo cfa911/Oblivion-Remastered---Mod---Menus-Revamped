@@ -1,0 +1,273 @@
+{
+  "menu": "Enchanting",
+  "order": 5,
+  "note": "Phase 7 first batch (owner decision 22). The page and its tab strips (BC1) in the parchment greys, the tab icon and separators light, and the text literals of the Enchanting blueprints in rowText (owners proven from the export table: KB docs/reverse-engineering/dark-mode-ui.md 'Enchanting menu textures', game 1.512.105.0). The right panel (frame and paper, one texture, shared with Sigil Stone), its crystal and ornament and the tab strips follow the owner's dark art with their own colour keys (decisions 24-25). Later: the added-effect decorators (shared with Spellmaking and the Skills menu), the thin separators (uncompressed, drawn in the SeparatorLine tint).",
+  "blueprint_colours": {
+    "WBP_ModernMenu_EnchanteStats": [
+      {
+        "offset": 9941,
+        "stock": [
+          0.1195,
+          0.0704,
+          0.0369,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "GoldCost_Value"
+      },
+      {
+        "offset": 10012,
+        "stock": [
+          0.1195,
+          0.0704,
+          0.0369,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "MagickaCost_Value"
+      },
+      {
+        "offset": 10078,
+        "stock": [
+          0.1195,
+          0.0704,
+          0.0369,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "MaxMagickaCost_Value"
+      },
+      {
+        "offset": 10145,
+        "stock": [
+          0.1195,
+          0.0704,
+          0.0369,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "MaxUsage_Value"
+      }
+    ],
+    "WBP_ModernMenu_EnchantmentEntry": [
+      {
+        "offset": 5065,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Entry_Durability"
+      },
+      {
+        "offset": 5132,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Entry_Name"
+      },
+      {
+        "offset": 5205,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Entry_SoulType"
+      }
+    ],
+    "WBP_ModernMenu_EnchantmentMenu": [
+      {
+        "offset": 63312,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "columnLine",
+        "widget": "SeparatorLine (image tint)"
+      },
+      {
+        "offset": 73289,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "AddedEffect_Title"
+      },
+      {
+        "offset": 73395,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Enchantment_TabName"
+      },
+      {
+        "offset": 73716,
+        "stock": [
+          0.1195,
+          0.0704,
+          0.0369,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "ItemToEnchant_Text"
+      },
+      {
+        "offset": 73789,
+        "stock": [
+          0.0999,
+          0.0561,
+          0.0395,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "PlayerGold_Value"
+      },
+      {
+        "offset": 73862,
+        "stock": [
+          0.1195,
+          0.0704,
+          0.0369,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "SoulGem_Text"
+      }
+    ]
+  },
+  "assets": [
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Paper",
+      "recipe": "parchment:enchanting",
+      "colours": [
+        "parchmentDark",
+        "parchmentLight"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Effect",
+      "recipe": "tab_strip",
+      "colours": [
+        "enchantingTabIcon",
+        "enchantingTabPaper"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Gear",
+      "recipe": "tab_strip",
+      "colours": [
+        "enchantingTabIcon",
+        "enchantingTabPaper"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_SoulGem",
+      "recipe": "tab_strip",
+      "colours": [
+        "enchantingTabIcon",
+        "enchantingTabPaper"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Effects_icon",
+      "recipe": "flat:headerIcon",
+      "colours": [
+        "headerIcon"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_DecoratedSeparator",
+      "recipe": "flat:columnLine",
+      "colours": [
+        "columnLine"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_Gold_Preview_Background",
+      "recipe": "parchment",
+      "colours": [
+        "parchmentDark",
+        "parchmentLight"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_EnchantingBackground",
+      "recipe": "altar_panel:enchantingFrame",
+      "colours": [
+        "altarPaper",
+        "enchantingFrame"
+      ],
+      "shared_with": [
+        "Sigil Stone (same panel material)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/T_UI_Crystal_Enchant",
+      "recipe": "altar_metal:enchantingCrystal",
+      "colours": [
+        "enchantingCrystal"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/T_UI_Frame_Enchant",
+      "recipe": "altar_metal:enchantingOrnament",
+      "colours": [
+        "enchantingOrnament"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/Common/WBP_ModernMenu_EnchanteStats",
+      "recipe": "bp_colour:WBP_ModernMenu_EnchanteStats",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "Spellmaking (cost values)"
+      ]
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/enchantment/WBP_ModernMenu_EnchantmentEntry",
+      "recipe": "bp_colour:WBP_ModernMenu_EnchantmentEntry",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/enchantment/WBP_ModernMenu_EnchantmentMenu",
+      "recipe": "bp_colour:WBP_ModernMenu_EnchantmentMenu",
+      "colours": [
+        "columnLine",
+        "rowText"
+      ],
+      "shared_with": []
+    }
+  ]
+}

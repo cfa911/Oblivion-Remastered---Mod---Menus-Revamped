@@ -49,8 +49,6 @@ namespace menuskin
 	void StyleMagicPage(UE::UObject* menu, bool rescan);
 	// The footer labels under a list: inked now and whenever the game rewrites them.
 	void WatchFooters(UE::UObject* mainPart, UE::UObject* menu, const Target& target);
-	// The list's scrollbar track and thumbs.
-	void StyleListScrollbar(UE::UObject* list);
 	// The item details view: restyled when it opens and whenever its item or sub-tab changes.
 	void WatchDetails(UE::UObject* menu, UE::UObject* list, const Target& target);
 }

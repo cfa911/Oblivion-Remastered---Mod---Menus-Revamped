@@ -75,7 +75,7 @@ check(sorted(alchemy_rows) == sorted(ALCHEMY), "the three Alchemy textures are s
 for name, (menu, row) in alchemy_rows.items():
     check(menu == "alchemy" and row["recipe"] == "alchemy", f"{name}: alchemy.json, recipe alchemy ({menu}, {row['recipe']})")
     check(row["colours"] == ["alchemyMetal", "alchemyStone"], f"{name}: reads alchemyMetal and alchemyStone ({row['colours']})")
-check(len(rows) == 69, f"still 69 assets ({len(rows)})")
+check(len(rows) == 90, f"90 assets after Phase 7 ({len(rows)})")
 
 # ---- 3. the recipe on a synthetic BC3 texture: bronze top half, green-grey stone bottom half, a soft alpha ----
 try:
@@ -255,8 +255,8 @@ try:
         with contextlib.redirect_stdout(io.StringIO()):
             manifest = pipe.build(SimpleNamespace(retoc=retoc, paks=temp / "Paks", ddstools=None), temp / "out",
                                   art=temp / "no-art")
-        check(len(manifest["textures"]) == 69 and manifest["skipped"] == [],
-              f"a build without owner art: 69 baked, 0 skipped ({len(manifest['textures'])}, {len(manifest['skipped'])} skipped)")
+        check(len(manifest["textures"]) == 90 and manifest["skipped"] == [],
+              f"a build without owner art: 90 baked, 0 skipped ({len(manifest['textures'])}, {len(manifest['skipped'])} skipped)")
         check(manifest["style"].get("alchemyMetal") == METAL and manifest["style"].get("alchemyStone") == STONE,
               "the manifest style records alchemyMetal and alchemyStone")
 except Exception as error:   # noqa: BLE001

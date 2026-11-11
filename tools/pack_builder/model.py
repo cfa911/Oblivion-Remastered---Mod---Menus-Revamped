@@ -77,6 +77,22 @@ class ColourModel:
     def section(self, section):
         return [e for e in self.entries if e.section == section]
 
+    def pages(self):
+        """The window's tabs (owner decision 26): [(label, [(group, [entries])])]. Baked colours (with the baked [Skin] values),
+        baked tab greys, then the run-time [Skin] tints only; each tab split into menu groups in cc.GROUP_ORDER."""
+        baked_skin = [e for e in self.section("Skin") if e.name in cc.BAKED_SKIN]
+        tabs = (("Colours (baked)", self.section("Colours") + baked_skin), ("Tabs (baked)", self.section("Tab")),
+                ("Skin (run time)", [e for e in self.section("Skin") if e.name not in cc.BAKED_SKIN]))
+
+        def group(e):
+            return cc.GROUPS.get(f"Skin.{e.name}" if e.section == "Skin" and e.name in cc.BAKED_SKIN else e.name, "Other")
+
+        out = []
+        for label, entries in tabs:
+            names = sorted({group(e) for e in entries}, key=lambda g: (cc.GROUP_ORDER.index(g) if g in cc.GROUP_ORDER else 99, g))
+            out.append((label, [(g, [e for e in entries if group(e) == g]) for g in names]))
+        return out
+
     def value(self, section, name):
         return self.entry(section, name).value
 

@@ -165,67 +165,6 @@ namespace menuskin
 			return nullptr;
 		}
 
-		// Darkens one ScrollBarStyle's track and thumbs (RMI-068). A static material gets a dynamic instance written into
-		// the style, and the brush's cached Slate handle is cleared so the new material draws even after the first paint
-		// (the thumb stayed pale whenever it had painted before the swap). Returns the handles cleared.
-		unsigned PaintScrollbarStyle(UE::UObject* owner, const char* property, unsigned& count)
-		{
-			const auto& skin = Current();
-			static auto* style = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.ScrollBarStyle");
-			static auto* brush = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateBrush");
-			static auto* dynamicType = ui::Class(L"/Script/Engine.MaterialInstanceDynamic");
-			static auto* materialType = ui::Class(L"/Script/Engine.MaterialInterface");
-			static auto* materialLibrary = ui::Class(L"/Script/Engine.KismetMaterialLibrary");
-			if (!skin.recolor || !reflect::Usable(owner) || !style || !brush || !dynamicType || !materialType || !materialLibrary) return 0;
-			const int styleOffset = reflect::Offset(owner->GetClass(), property);
-			const int styleSize = ui::SizeOf(owner->GetClass(), property);
-			const int resourceOffset = reflect::Offset(brush, "ResourceObject");
-			const int brushSize = ui::SizeOf(style, "NormalThumbImage");
-			if (styleOffset < 0 || styleSize <= 0 || resourceOffset < 0) return 0;
-			unsigned resets = 0;
-			const auto paint = [&](const char* field, bool track) {
-				const int offset = reflect::Offset(style, field);
-				if (offset < 0 || offset + resourceOffset + int(sizeof(UE::UObject*)) > styleSize) return;
-				auto* brushAt = reinterpret_cast<std::uint8_t*>(owner) + styleOffset + offset;
-				auto* resource = reflect::At<UE::UObject*>(owner, styleOffset + offset + resourceOffset);
-				if (!resource || !reflect::Usable(*resource)) return;
-				auto* material = *resource;
-				if (!material->GetClass()->IsChildOf(dynamicType)) {
-					if (!material->GetClass()->IsChildOf(materialType)) return;
-					ui::Call create(materialLibrary->GetDefaultObject(false), L"CreateDynamicMaterialInstance");
-					if (create.Size("ReturnValue") != sizeof(UE::UObject*) ||
-						!create.Set("WorldContextObject", owner) || !create.Set("Parent", material) ||
-						!create.RunGuarded()) return;
-					auto* instance = create.Get<UE::UObject*>("ReturnValue");
-					if (!reflect::Usable(instance) || !instance->GetClass()->IsChildOf(dynamicType)) return;
-					material = instance;
-				}
-				const auto before = count;
-				const auto setColor = [&](const wchar_t* parameter, float gray) {
-					const std::array value{gray, gray, gray, 1.0f};
-					ui::Call set(material, L"SetVectorParameterValue");
-					if (set.Set("ParameterName", UE::FName(parameter, UE::EFindName::Add)) &&
-						set.Set("Value", value) && set.RunGuarded()) ++count;
-				};
-				if (track) {
-					setColor(L"DarkColor", skin.scrollTrack);
-					setColor(L"LightColor", skin.scrollTrack);
-				} else {
-					setColor(L"BorderColor - Dark", skin.scrollBorder);
-					setColor(L"BorderColor - Light", skin.scrollBorder);
-					setColor(L"InsideColor - Dark", skin.scrollInside);
-					setColor(L"InsideColor - Light", skin.scrollInside);
-				}
-				if (count > before && *resource != material) {
-					*resource = material;
-					if (ui::ResetBrushHandle(brushAt, brushSize)) ++resets;
-				}
-			};
-			paint("VerticalBackgroundImage", true);
-			for (const auto* field : {"NormalThumbImage", "HoveredThumbImage", "DraggedThumbImage"}) paint(field, false);
-			return resets;
-		}
-
 		// RMI-073: Slate cuts text at its widget's box, and the title box kept the width of a shorter name (156, the width of
 		// "Weapons"; log on 2cdd2c68). A minimum width that fits "Miscellaneous" (about 228) and a fresh layout pass keep
 		// every tab name whole. The title may be a prefab text widget: its inner "text" then. Layout: every preset.
@@ -540,12 +479,10 @@ namespace menuskin
 			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
 			static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
 			static auto* instanceClass = ui::Class(L"/Script/Engine.MaterialInstance");
-			static auto* scrollBoxClass = ui::Class(L"/Script/UMG.ScrollBox");
 			static auto* listViewClass = ui::Class(L"/Script/UMG.ListViewBase");
 			if (!skin.recolor || !imageClass || !textClass || !reflect::Usable(details)) return;
 			static const int colorOffset = reflect::Offset(textClass, "ColorAndOpacity");
 			static const int parentOffset = instanceClass ? reflect::Offset(instanceClass, "Parent") : -1;
-			unsigned barCalls = 0;
 			const auto tint = [&](UE::UObject* widget, const float* c) { ui::Colour(widget, c[0], c[1], c[2], c[3]); };
 			UE::UObject* sigil = nullptr;
 			for (auto* widget : ui::TreeWidgets(details, 3000)) {
@@ -569,10 +506,6 @@ namespace menuskin
 				}
 				if (listViewClass && type->IsChildOf(listViewClass)) {   // effect lines and other generated entries
 					StyleListEntries(widget);
-					continue;
-				}
-				if (scrollBoxClass && type->IsChildOf(scrollBoxClass)) {   // the skill sub-tab's perk list
-					PaintScrollbarStyle(widget, "WidgetBarStyle", barCalls);
 					continue;
 				}
 				if (type->IsChildOf(imageClass)) {
@@ -893,36 +826,6 @@ namespace menuskin
 			if (!footer) continue;
 			pe::WatchPost(footer->GetClass(), &OnFooterUpdated);
 			InkFooter(footer);
-		}
-	}
-
-	void StyleListScrollbar(UE::UObject* list)
-	{
-		const auto& skin = Current();
-		if (!skin.recolor) return;
-		ui::Call get(list, L"GetListView");
-		auto* inner = get.Size("ReturnValue") == sizeof(UE::UObject*) && get.RunGuarded()
-			? get.Get<UE::UObject*>("ReturnValue") : nullptr;
-		// WBP_ModernMenu_MagicListView has no GetListView: its inner "ListView" (VModernListView) holds the ScrollBarStyle
-		if (!inner) inner = ui::FindInTree(list, "ListView");
-		if (!inner) inner = list;
-		if (!reflect::Usable(inner)) return;
-		unsigned count = 0;
-		const unsigned resets = PaintScrollbarStyle(inner, "ScrollBarStyle", count);
-		static std::set<std::string> s_logged;   // TEMP-DIAG: what each list's scrollbar holds (Magic thumb stayed pale); record in the KB
-		const auto type = NameOf(inner->GetClass());
-		if (s_logged.size() < 4 && s_logged.insert(NameOf(list->GetClass())).second) {
-			static auto* style = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.ScrollBarStyle");
-			static auto* brush = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateBrush");
-			const int styleOffset = reflect::Offset(inner->GetClass(), "ScrollBarStyle");
-			const int thumbOffset = style ? reflect::Offset(style, "NormalThumbImage") : -1;
-			const int resourceOffset = brush ? reflect::Offset(brush, "ResourceObject") : -1;
-			std::string thumb = "?";
-			if (styleOffset >= 0 && thumbOffset >= 0 && resourceOffset >= 0)
-				if (auto** at = reflect::At<UE::UObject*>(inner, styleOffset + thumbOffset + resourceOffset); at && *at && reflect::Usable(*at))
-					thumb = NameOf(*at);
-			logger::warn("TEMP-DIAG MRMAGICDARK scrollbar {} (list {}) style@{} thumb={} calls={} resets={}", type,
-				NameOf(list->GetClass()), styleOffset, thumb, count, resets);
 		}
 	}
 

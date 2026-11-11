@@ -12,7 +12,6 @@ from pack_builder import VERSION, app, paths
 from pack_builder.model import BUILD_NOTE, ColourModel, ModelError
 
 TITLE = "Menus Revamped - Custom Pack Builder"
-SECTIONS = (("Colours", "Colours (baked)"), ("Tab", "Tabs (baked)"), ("Skin", "Skin (run time)"))
 
 
 class Controller:
@@ -76,8 +75,8 @@ class App:
         top.columnconfigure(0, weight=1)
         book = ttk.Notebook(root)
         book.pack(fill="both", expand=True, padx=8)
-        for section, label in SECTIONS:
-            book.add(self.section_page(book, section), text=f"{label} - {len(controller.model.section(section))}")
+        for label, groups in controller.model.pages():   # owner decision 26: run-time tab without baked entries, menu groups
+            book.add(self.section_page(book, groups), text=f"{label} - {sum(len(entries) for _, entries in groups)}")
         ttk.Label(root, text=BUILD_NOTE, wraplength=730, padding=(8, 6, 8, 0)).pack(fill="x")
         self.status = ttk.Label(root, text="", wraplength=730, padding=(8, 2))
         self.status.pack(fill="x")
@@ -91,7 +90,7 @@ class App:
         self.refresh_status()
 
     # ---- the colour pages ----
-    def section_page(self, book, section):
+    def section_page(self, book, groups):
         tk, ttk = self.tk, self.ttk
         outer = ttk.Frame(book)
         canvas = tk.Canvas(outer, highlightthickness=0)
@@ -104,19 +103,29 @@ class App:
         bar.pack(side="right", fill="y")
         canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", lambda w: canvas.yview_scroll(-w.delta // 120, "units")))
         canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
-        for i, e in enumerate(self.c.model.section(section)):
-            swatch = tk.Button(inner, width=4, relief="groove", command=lambda e=e: self.pick_colour(e))
-            swatch.grid(row=i, column=0, padx=(0, 6), pady=2)
-            ttk.Label(inner, text=e.help, wraplength=435, justify="left").grid(row=i, column=1, sticky="w")
-            text = tk.StringVar(value=self.c.model.text(e.section, e.name))
-            field = ttk.Entry(inner, textvariable=text, width=24)
-            field.grid(row=i, column=2, padx=6)
-            field.bind("<Return>", lambda ev, e=e: self.take_text(e))
-            field.bind("<FocusOut>", lambda ev, e=e: self.take_text(e))
-            ttk.Label(inner, text=e.applies).grid(row=i, column=3, sticky="w")
-            self.rows[(e.section, e.name)] = (swatch, text)
-            self.paint(e)
+        i = 0
+        for group, entries in groups:
+            heading = ttk.Label(inner, text=group, font=("Segoe UI", 10, "bold"))   # one heading per menu group
+            heading.grid(row=i, column=0, columnspan=4, sticky="w", pady=(10 if i else 0, 2))
+            i += 1
+            for e in entries:
+                self.entry_row(inner, i, e)
+                i += 1
         return outer
+
+    def entry_row(self, inner, i, e):
+        tk, ttk = self.tk, self.ttk
+        swatch = tk.Button(inner, width=4, relief="groove", command=lambda e=e: self.pick_colour(e))
+        swatch.grid(row=i, column=0, padx=(0, 6), pady=2)
+        ttk.Label(inner, text=e.help, wraplength=435, justify="left").grid(row=i, column=1, sticky="w")
+        text = tk.StringVar(value=self.c.model.text(e.section, e.name))
+        field = ttk.Entry(inner, textvariable=text, width=24)
+        field.grid(row=i, column=2, padx=6)
+        field.bind("<Return>", lambda ev, e=e: self.take_text(e))
+        field.bind("<FocusOut>", lambda ev, e=e: self.take_text(e))
+        ttk.Label(inner, text=e.applies).grid(row=i, column=3, sticky="w")
+        self.rows[(e.section, e.name)] = (swatch, text)
+        self.paint(e)
 
     def paint(self, e):
         swatch, text = self.rows[(e.section, e.name)]

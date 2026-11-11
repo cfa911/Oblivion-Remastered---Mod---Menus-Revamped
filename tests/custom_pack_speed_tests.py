@@ -34,7 +34,8 @@ import pack_builder.pipeline as mdp  # noqa: E402
 
 BC3_DDS = b"DDS " + bytes(8) + (4).to_bytes(4, "little") * 2 + bytes(64) + b"DXT5" + bytes(40) + bytes(16)
 MASK_DIR = "Art/UI/FakeMasks"   # where the fake retoc puts the glyph masks (they are listed by name only)
-NEEDED = sorted({Path(a).name for a in mdp.TEXTURES} | {n for names in mdp.GLYPH_MASKS.values() for n in names})
+NEEDED = sorted({Path(a).name for a in mdp.TEXTURES} | {n for names in mdp.GLYPH_MASKS.values() for n in names}
+                | {m for m, _ in getattr(mdp, "PANEL_MASKS", {}).values()})   # Phase 7: the Enchanting panel's paper mask
 check(len(NEEDED) >= 70, f"the build needs the 69 assets and the glyph masks (found {len(NEEDED)} names)")
 
 
@@ -154,7 +155,7 @@ check(not any(sys.executable in c or any(s.endswith("main.py") for s in c) for c
       "no Python subprocess (UE4-DDS-Tools runs in-process)")
 
 # 2. the DDS tools in-process: one export per texture (plus the masks when a recipe needs them), one inject per texture
-textures = [a for a, r in mdp.TEXTURES.items() if not r.startswith(("rich_row:", "bp_colour:"))]
+textures = [a for a, r in mdp.TEXTURES.items() if not r.startswith(("rich_row:", "bp_colour:", "material_colour:"))]
 check(len(fake.injects) == len(textures), f"one in-process inject per texture ({len(fake.injects)} of {len(textures)})")
 check(len(fake.exports) == len(textures), f"one in-process export per texture ({len(fake.exports)} of {len(textures)})")
 check(all(p.suffix == ".uasset" for p in fake.exports + fake.injects), "export and inject receive the .uasset")

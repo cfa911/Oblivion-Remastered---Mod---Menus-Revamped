@@ -1,0 +1,24 @@
+{
+  "menu": "Spellmaking",
+  "order": 6,
+  "note": "Phase 7 (owner decisions 24-25): the right panel (winged frame and paper, one uncompressed B8G8R8A8 texture) and the eye ornament, recoloured from stock with colour keys fitted to the owner's dark art. The left paper is in alchemy.json (parchment).",
+  "assets": [
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/Spellmaking/T_UI_Spellmaking-Frame",
+      "recipe": "altar_panel:spellmakingFrame",
+      "colours": [
+        "altarPaper",
+        "spellmakingFrame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/Spellmaking/T_UI_SpellMaking_Frame",
+      "recipe": "altar_metal:spellmakingEye",
+      "colours": [
+        "spellmakingEye"
+      ],
+      "shared_with": []
+    }
+  ]
+}

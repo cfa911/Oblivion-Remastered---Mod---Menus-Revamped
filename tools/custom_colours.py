@@ -29,6 +29,14 @@ COLOURS = {
     "effectBox": [66.0, 99.0, 153.0], "nameBox": [239.0, 239.0, 239.0], "filterRow": [66.0, 66.0, 66.0],
     "filterHover": [112.0, 112.0, 112.0], "filterSelected": [14.0, 22.0, 42.0], "filterMark": [92.0, 140.0, 214.0],
     "alchemyMetal": [56.0, 83.0, 118.0], "alchemyStone": [22.0, 25.0, 31.0],
+    "enchantingFrame": [67.0, 75.0, 91.0],
+    "spellmakingFrame": [85.0, 130.0, 182.0],
+    "altarPaper": [24.0, 25.0, 28.0],
+    "enchantingCrystal": [103.0, 159.0, 236.0],
+    "enchantingOrnament": [72.0, 78.0, 90.0],
+    "spellmakingEye": [86.0, 127.0, 181.0],
+    "enchantingTabPaper": [27.0, 27.0, 29.0],
+    "enchantingTabIcon": [255.0, 255.0, 255.0],
 }
 NUMBERS = {"detailsPage": 0.010}   # [Colours] entries that are one number (detailsPage: a linear multiply, 0..1)
 TAB = {"selected": 41.0, "unselected": 33.0, "gap": 24.0, "outline": 134.0, "glyph": 242.0, "glyphDim": 162.0}
@@ -40,7 +48,10 @@ SKIN = {
     "buttonFill": [0.12, 0.12, 0.12, 1.0], "scrollTrack": 0.0052, "scrollBorder": 0.0052, "scrollInside": 0.0222,
     "emphasisInk": [0.125, 0.12, 0.125, 1.0], "buttonRule": [0.83, 0.83, 0.83, 1.0],
 }
-BAKED_SKIN = {"pattern": "Skin.pattern"}  # namespaced so the [Colours] base and [Skin] tint stay independent
+# namespaced so the [Colours] base and [Skin] tint stay independent; the scrollbar values are baked into the stock
+# scrollbar materials (Phase 7, owner decision 18)
+BAKED_SKIN = {"pattern": "Skin.pattern", "scrollTrack": "Skin.scrollTrack", "scrollBorder": "Skin.scrollBorder",
+              "scrollInside": "Skin.scrollInside"}
 SKIN_HELP = {
     "rule": "Inventory and Magic header horizontal lines",
     "guide": "Inventory and Magic header column guides",
@@ -49,9 +60,9 @@ SKIN_HELP = {
     "pattern": "Inventory action button laurels - tint and opacity",
     "band": "Inventory and Magic details Effects heading strip (fallback)",
     "buttonFill": "Inventory and Magic details action button fill",
-    "scrollTrack": "Skinned menu lists and details scrollbar track",
-    "scrollBorder": "Skinned menu lists and details scrollbar thumb border",
-    "scrollInside": "Skinned menu lists and details scrollbar thumb fill",
+    "scrollTrack": "Scrollbar track in every menu but Settings",
+    "scrollBorder": "Scrollbar thumb border in every menu but Settings",
+    "scrollInside": "Scrollbar thumb fill in every menu but Settings",
     "emphasisInk": "Inventory and Magic details emphasized perk text",
     "buttonRule": "Inventory and Magic action button divider centres",
 }
@@ -83,6 +94,14 @@ HELP = {
     "filterMark": "Alchemy filter row diamond",
     "alchemyMetal": "Alchemy frame, ingredient slots and pot - metal",
     "alchemyStone": "Alchemy frame, ingredient slots and pot - stone",
+    "enchantingFrame": "Enchanting right panel frame - metal",
+    "spellmakingFrame": "Spellmaking right panel frame - metal",
+    "altarPaper": "Enchanting and Spellmaking right panel paper",
+    "enchantingCrystal": "Enchanting crystal under the right panel",
+    "enchantingOrnament": "Enchanting ornament under the right panel",
+    "spellmakingEye": "Spellmaking eye ornament under the right panel",
+    "enchantingTabPaper": "Enchanting tab strip background",
+    "enchantingTabIcon": "Enchanting tab strip icons and arrows",
     "detailsPage": "Inventory, Magic and shared details page brightness",
 }
 TAB_HELP = {
@@ -92,6 +111,26 @@ TAB_HELP = {
     "outline": "Inventory and Magic category tab outlines",
     "glyph": "Inventory and Magic selected category tab icons",
     "glyphDim": "Inventory and Magic unselected category tab icons",
+}
+
+
+# the builder window's subgroups (owner decision 26): every entry -> the menu it changes; baked [Skin] values as "Skin.<name>"
+GROUP_ORDER = ("All menus", "Inventory and Magic lists", "Inventory and Magic category tabs", "Inventory details", "Alchemy",
+               "Enchanting", "Spellmaking", "Enchanting and Spellmaking", "Inventory and Magic header (run time)",
+               "Inventory and Magic details (run time)")
+GROUPS = {
+    **{k: "All menus" for k in ("Skin.scrollTrack", "Skin.scrollBorder", "Skin.scrollInside", "parchmentDark", "parchmentLight", "nameBox")},
+    **{k: "Inventory and Magic lists" for k in ("panel", "frame", "rowText", "rowSeparator", "columnLine", "rowIcon", "headerIcon",
+                                                 "pickerIcon", "listHighlight")},
+    **{k: "Inventory and Magic category tabs" for k in ("selected", "unselected", "gap", "outline", "glyph", "glyphDim")},
+    **{k: "Inventory details" for k in ("subTabDisc", "subTabCircle", "subTabIcon", "pattern", "Skin.pattern", "enchantedDot",
+                                         "previewFrameLight", "previewFrameDark", "detailsPage")},
+    **{k: "Alchemy" for k in ("effectBox", "filterRow", "filterHover", "filterSelected", "filterMark", "alchemyMetal", "alchemyStone")},
+    **{k: "Enchanting" for k in ("enchantingFrame", "enchantingCrystal", "enchantingOrnament", "enchantingTabPaper", "enchantingTabIcon")},
+    **{k: "Spellmaking" for k in ("spellmakingFrame", "spellmakingEye")},
+    "altarPaper": "Enchanting and Spellmaking",
+    **{k: "Inventory and Magic header (run time)" for k in ("rule", "guide")},
+    **{k: "Inventory and Magic details (run time)" for k in ("ring", "ornament", "band", "buttonFill", "emphasisInk", "buttonRule")},
 }
 
 
@@ -131,7 +170,7 @@ def render(values, skin=None):
     lines = ["; Menus Revamped - Custom colours.",
              "; [Colours]: red, green, blue (0-255) per element; detailsPage is one number. [Tab]: tab strip greys (0-255).",
              "; [Skin]: linear red, green, blue, alpha (0-1); the three scrollbar entries are single numbers.",
-             "; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern.",
+             "; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern and the scrollbar.",
              "; Other active [Skin] edits need a restart. The Effects heading tint is used only when replacement art is unavailable.",
              "; [Colours] rowSeparator and pickerIcon are retained keys with no effect in this build.",
              "", "[Colours]"]

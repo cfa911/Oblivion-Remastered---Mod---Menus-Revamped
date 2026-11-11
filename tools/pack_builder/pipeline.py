@@ -27,6 +27,7 @@ present for the png recipe (development only: no data file row uses it since Pha
 listed in the manifest's "skipped" (the game's stock asset shows); the rest is built.
 """
 import hashlib
+import gc
 import json
 import re
 import shutil
@@ -66,7 +67,8 @@ def load_menus(folder=MENUS):
     """The pack's tables from the per-menu data files (<menu>.json, in their "order"):
     TEXTURES {stock asset (path under Content): recipe name}, GLYPH_MASKS {recipe kind: [mask texture names]},
     RICH_ROWS {table: {row: (.uexp offset of its linear float4, stock value)}},
-    BLUEPRINT_COLOURS {package: [(.uexp offset of a linear RGBA float4, stock value, colour element)]}."""
+    BLUEPRINT_COLOURS {package: [(.uexp offset of a linear RGBA float4, stock value, colour element)]}: the widget blueprints'
+    "blueprint_colours" and the materials' "material_colours" (the same in-place literal patch)."""
     menus = []
     for path in Path(folder).glob("*.json"):
         try:
@@ -82,8 +84,9 @@ def load_menus(folder=MENUS):
         masks |= {kind: tuple(names) for kind, names in menu.get("glyph_masks", {}).items()}
         for table, rows in menu.get("rich_rows", {}).items():
             rich_rows[table] = {row: (e["offset"], tuple(e["stock"])) for row, e in rows.items()}
-        for package, entries in menu.get("blueprint_colours", {}).items():
-            blueprints[package] = [(e["offset"], tuple(e["stock"]), e["colour"]) for e in entries]
+        for section in ("blueprint_colours", "material_colours"):
+            for package, entries in menu.get(section, {}).items():
+                blueprints[package] = [(e["offset"], tuple(e["stock"]), e["colour"]) for e in entries]
     return textures, masks, rich_rows, blueprints
 
 
@@ -130,6 +133,17 @@ def header_size(data):
         return 128
     assert data[84:88] == b"DX10" and int.from_bytes(data[128:132], "little") in (77, 78), "not BC3"
     return 148
+
+
+def bc1_header_size(data):
+    """The DDS header size of a BC1 texture (8-byte blocks), or None for any other format."""
+    if data[:4] != b"DDS ":
+        return None
+    if data[84:88] == b"DXT1":
+        return 128
+    if data[84:88] == b"DX10" and int.from_bytes(data[128:132], "little") in (71, 72):
+        return 148
+    return None
 
 
 def rgb565(rgb):
@@ -198,26 +212,288 @@ def gray565(v):
     return (k << 11) | ((2 * k) << 5) | k
 
 
+def bgra_layout(data):
+    """(header size, byte order of R, G, B, A in a pixel) of an uncompressed 32-bit DDS (DXGI 87/88 or a legacy RGB header with
+    masks), or None. T_UI_Spellmaking-Frame is B8G8R8A8 with one mip."""
+    if data[:4] != b"DDS ":
+        return None
+    if data[84:88] == b"DX10" and int.from_bytes(data[128:132], "little") in (87, 88):
+        return 148, (2, 1, 0, 3)
+    flags, bits = int.from_bytes(data[80:84], "little"), int.from_bytes(data[88:92], "little")
+    if flags & 0x40 and bits == 32:
+        masks = [int.from_bytes(data[92 + 4 * i:96 + 4 * i], "little") for i in range(4)]
+        order = tuple((m.bit_length() - 1) // 8 if m else 3 for m in masks)
+        return 128, order
+    return None
+
+
+def texture_header(data):
+    """The DDS header size of a texture the colour recipes can map: BC3, BC1 or uncompressed 32-bit; AssertionError otherwise."""
+    for size in (bc1_header_size(data), (bgra_layout(data) or (None,))[0]):
+        if size:
+            return size
+    return header_size(data)
+
+
+def map_colours(data, fn):
+    """Every colour of a texture through fn((r, g, b) sRGB) -> (r, g, b): BC3 and BC1 colour endpoints (indices and BC3 alpha
+    blocks kept; a BC1 block keeps its four-colour or transparent mode), or every pixel of an uncompressed texture (alpha kept)."""
+    out = bytearray(data)
+    layout = bgra_layout(data)
+    if layout:
+        head, (r, g, b, _) = layout
+        for at in range(head, len(out) - 3, 4):
+            c = fn((out[at + r], out[at + g], out[at + b]))
+            out[at + r], out[at + g], out[at + b] = (max(0, min(255, round(v))) for v in c)
+        return bytes(out)
+
+    def mapped(e):
+        rgb = (((e >> 11) & 31) * 255 / 31, ((e >> 5) & 63) * 255 / 63, (e & 31) * 255 / 31)
+        return rgb565(tuple(max(0, min(255, round(v))) for v in fn(rgb)))
+
+    bc1 = bc1_header_size(data)
+    if bc1 is None:
+        for offset in range(header_size(data) + 8, len(out), 16):
+            for at in (offset, offset + 2):
+                out[at:at + 2] = mapped(int.from_bytes(out[at:at + 2], "little")).to_bytes(2, "little")
+        return bytes(out)
+    for at in range(bc1, len(out) - 7, 8):
+        c0, c1 = int.from_bytes(out[at:at + 2], "little"), int.from_bytes(out[at + 2:at + 4], "little")
+        n0, n1 = mapped(c0), mapped(c1)
+        bits = int.from_bytes(out[at + 4:at + 8], "little")
+        if c0 > c1 and n0 <= n1:
+            if n0 == n1:
+                bits = 0
+            else:
+                n0, n1 = n1, n0
+                bits ^= 0x55555555
+        elif c0 <= c1 and n0 > n1:
+            n0, n1 = n1, n0
+            bits = sum(((v ^ 1) if v < 2 else v) << (2 * i) for i, v in ((i, (bits >> (2 * i)) & 3) for i in range(16)))
+        out[at:at + 2], out[at + 2:at + 4] = n0.to_bytes(2, "little"), n1.to_bytes(2, "little")
+        out[at + 4:at + 8] = bits.to_bytes(4, "little")
+    return bytes(out)
+
+
+def clamp01(v):
+    return min(1.0, max(0.0, v))
+
+
+ALTAR_REF, ALTAR_CONTRAST = 150, 0.8   # stock brightness drawn at the key colour; the relief exponent (fitted to the owner art)
+
+
+def altar_metal(rgb, metal):
+    """One colour times the stock brightness (the owner art's crystal, ornaments and frame metal, KB dark-mode-ui.md)."""
+    k = (lum(rgb) / ALTAR_REF) ** ALTAR_CONTRAST if lum(rgb) > 0 else 0.0
+    return tuple(c * k for c in metal)
+
+
+def altar_panel(rgb, metal, paper):
+    """A right-panel frame: stock paper (bright, little colour) -> the paper colour; the metal -> altar_metal."""
+    w = clamp01((lum(rgb) - 140) / 25) * clamp01((45 - (max(rgb) - min(rgb))) / 20)
+    m = altar_metal(rgb, metal)
+    return tuple(p * w + c * (1 - w) for p, c in zip(paper, m))
+
+
+def decode_rgba(stock_dds):
+    """The top mip of a stock texture as an RGBA image (BC3/BC1 through Pillow, uncompressed 32-bit read raw)."""
+    data = stock_dds.read_bytes()
+    layout = bgra_layout(data)
+    if not layout:
+        return Image.open(stock_dds).convert("RGBA")
+    head, order = layout
+    height, width = int.from_bytes(data[12:16], "little"), int.from_bytes(data[16:20], "little")
+    raw = data[head:head + width * height * 4]
+    channels = [Image.frombytes("L", (width, height), bytes(raw[i::4])) for i in range(4)]
+    return Image.merge("RGBA", [channels[order[i]] for i in range(4)])
+
+
+# a panel's own paper mask (texture, channel): exact paper area where the stock paper has dark stains (KB dark-mode-ui.md)
+PANEL_MASKS = {"T_Enchantment_EnchantingBackground": ("T_Enchantment_Masks", 0)}
+
+
+def altar_panel_texture(stock_dds, metal, paper, work, mask=None):
+    """A right-panel frame recoloured per pixel (owner run 2026-11-11: block-wise endpoints left metal-coloured specks in the
+    paper, and the gems were recoloured): the paper weight map is median-filtered so grain specks stay paper, the paper keeps
+    a soft grain, and stock blue/cyan gems keep their colour. BC3 re-encoded with the stock alpha; uncompressed written as is."""
+    from PIL import ImageFilter
+    image = decode_rgba(stock_dds)
+    px = image.get_flattened_data()
+    lums = [lum(p) for p in px]
+    weight = Image.new("L", image.size)
+    weight.putdata([round(255 * clamp01((v - 140) / 25) * clamp01((45 - (max(p[:3]) - min(p[:3]))) / 20)) for p, v in zip(px, lums)])
+    weight = weight.filter(ImageFilter.MedianFilter(9)).filter(ImageFilter.GaussianBlur(1.2))
+    if mask is not None:   # the panel's paper mask replaces the brightness rule
+        path, channel = mask
+        weight = Image.open(path).convert("RGBA").getchannel(channel).resize(image.size, Image.BILINEAR).filter(ImageFilter.GaussianBlur(1.0))
+    gem = Image.new("L", image.size)
+    gem.putdata([round(255 * clamp01((p[2] - p[0] - 20) / 25) * clamp01((max(p[:3]) - min(p[:3]) - 30) / 30)) for p in px])
+    gem = gem.filter(ImageFilter.MedianFilter(3))
+    paper_l = [v for v, w in zip(lums, weight.get_flattened_data()) if w > 200]
+    mean = sum(paper_l) / len(paper_l) if paper_l else 200.0
+    out = []
+    for p, v, w, g in zip(px, lums, weight.get_flattened_data(), gem.get_flattened_data()):
+        w, g = w / 255, g / 255
+        grain = min(1.2, max(0.8, (v / mean) ** 0.6)) if v > 0 else 0.8
+        m = altar_metal(p, metal)
+        c = [pc * grain * w + mc * (1 - w) for pc, mc in zip(paper, m)]
+        c = [cc * (1 - g) + sc * g for cc, sc in zip(c, p[:3])]
+        out.append(tuple(max(0, min(255, round(x))) for x in c) + (p[3],))
+    result = Image.new("RGBA", image.size)
+    result.putdata(out)
+    data = stock_dds.read_bytes()
+    layout = bgra_layout(data)
+    if not layout:
+        return colour_keep_alpha(stock_dds, result, work)
+    head, order = layout
+    raw = bytearray(data)
+    flat = result.tobytes()
+    for i in range(image.size[0] * image.size[1]):
+        for c in range(3):   # alpha stays the stock byte
+            raw[head + 4 * i + order[c]] = flat[4 * i + c]
+    return bytes(raw)
+
+
+def colour_bc1(stock_dds, art, work):
+    """An RGBA image into a stock BC1 texture: every mip level BC1-encoded by Pillow (its 1-bit alpha from the image's alpha),
+    whole 8-byte blocks replaced; the stock header (size, mips, format) stays."""
+    stock = stock_dds.read_bytes()
+    head = bc1_header_size(stock)
+    height, width = int.from_bytes(stock[12:16], "little"), int.from_bytes(stock[16:20], "little")
+    blocks = bytearray(stock[head:])
+    at = 0
+    for size in mip_sizes(width, height, int.from_bytes(stock[28:32], "little")):
+        level = work / "level1.dds"
+        art.resize(size, Image.LANCZOS).save(level, pixel_format="DXT1")
+        data = level.read_bytes()
+        encoded = data[bc1_header_size(data):]
+        blocks[at:at + len(encoded)] = encoded
+        at += len(encoded)
+    assert at == len(blocks), "size mismatch"
+    return stock[:head] + bytes(blocks)
+
+
+# Shield, crystal and skull (and their arrows) have the same positions in all
+# three stock strips. Read each group from the variant with the lightest paper
+# there. Limit contrast detection to the artwork so torn paper edges stay dark.
+TAB_STRIP_ART = {
+    "T_Enchantment_Tab_Gear": ((90, 34, 125, 69), (168, 9, 239, 94), (281, 33, 317, 69)),
+    "T_Enchantment_Tab_SoulGem": ((399, 33, 434, 69), (483, 13, 545, 90), (591, 34, 625, 69)),
+    "T_Enchantment_Tab_Effect": ((708, 34, 742, 69), (780, 9, 862, 93), (899, 34, 934, 69)),
+}
+
+
+def tab_strip_mask(image, stock):
+    """Extract one shared mask from the three stock variants."""
+    from PIL import ImageFilter
+
+    mask = Image.new("L", image.size)
+    if image.size != (1024, 128):
+        raise SkipAsset("the stock tab strip has unexpected dimensions")
+    for name, zones in TAB_STRIP_ART.items():
+        source = decode_rgba(stock(name))
+        if source.size != image.size:
+            raise SkipAsset("the stock tab strips have different dimensions")
+        gray = source.convert("L")
+        local = gray.filter(ImageFilter.MedianFilter(41))
+        for zone in zones:
+            pixels = source.crop(zone).get_flattened_data()
+            paper = local.crop(zone).get_flattened_data()
+            strokes = Image.new("L", (zone[2] - zone[0], zone[3] - zone[1]))
+            strokes.putdata([round(255 * clamp01((m - lum(p) - 11) / 24)) for p, m in zip(pixels, paper)])
+            mask.paste(strokes, zone)
+    return mask
+
+
+def tab_strip_texture(stock_dds, icon, paper, work, stock=None):
+    """Recolour the shared icons and arrows over the variant's darkened paper."""
+    from PIL import ImageFilter
+
+    image = decode_rgba(stock_dds)
+    pixels = image.get_flattened_data()
+    if stock is not None:
+        weights = [w / 255 for w in tab_strip_mask(image, stock).get_flattened_data()]
+    else:
+        # A standalone texture can still be recoloured without a stock lookup.
+        gray = image.convert("L")
+        local = gray.filter(ImageFilter.MedianFilter(15)).get_flattened_data()
+        weights = [clamp01((m - v - 12) / 25) for v, m in zip(gray.get_flattened_data(), local)]
+
+    out = []
+    for p, w in zip(pixels, weights):
+        shade = (8 + 0.10 * lum(p)) / 27
+        rgb = tuple(min(255, round(i * w + c * shade * (1 - w))) for i, c in zip(icon, paper))
+        out.append(rgb + (p[3],))
+    result = Image.new("RGBA", image.size)
+    result.putdata(out)
+    encode = colour_bc1 if bc1_header_size(stock_dds.read_bytes()) else colour_keep_alpha
+    return encode(stock_dds, result, work)
+
+
 def parchment_curve(v, low, high, dark, light):
     """Stock brightness low..high -> dark..light (clamped): the parchment's grain kept in a narrow neutral gray band."""
     t = min(1.0, max(0.0, (v - low) / (high - low))) if high > low else 0.5
     return dark + (light - dark) * t
 
 
-def parchment(stock_dds, dark, light):
-    """Every BC3 colour endpoint mapped to a neutral gray by the parchment curve over the texture's own brightness range
-    (opaque pixels, 2nd..98th percentile); indices and alpha blocks kept, so the grain and torn edges stay."""
-    image = Image.open(stock_dds).convert("RGBA")
-    values = sorted(round(lum(p)) for p in image.get_flattened_data() if p[3] > 128)
-    low, high = values[len(values) * 2 // 100], values[len(values) * 98 // 100]
-    data = stock_dds.read_bytes()
+def _rgb_of(e):
+    return (((e >> 11) & 31) * 255 / 31, ((e >> 5) & 63) * 255 / 63, (e & 31) * 255 / 31)
+
+
+_GREY_LEVELS = sorted({gray565(v) for v in range(256)})   # neutral 565 codes, increasing code = increasing grey
+
+
+def grey_blocks(data, grey):
+    """Every BC3/BC1 colour block re-encoded in neutral greys: its 16 stock colours are decoded, each mapped by grey(brightness)
+    to a target grey, and the block gets the two neighbouring grey levels around its targets plus the interpolated 1/3 and 2/3
+    steps, each pixel taking the nearest. Smooth gradients stay smooth (owner run 2026-11-11: endpoint-only mapping snapped
+    each block to a coarse level). BC1 blocks in transparent mode keep their mode (endpoints mapped only)."""
     out = bytearray(data)
-    for offset in range(header_size(data) + 8, len(out), 16):
-        for at in (offset, offset + 2):
-            e = int.from_bytes(out[at:at + 2], "little")
-            r, g, b = ((e >> 11) & 31) * 255 / 31, ((e >> 5) & 63) * 255 / 63, (e & 31) * 255 / 31
-            out[at:at + 2] = gray565(parchment_curve(lum((r, g, b)), low, high, dark, light)).to_bytes(2, "little")
+    bc1 = bc1_header_size(data)
+    head, stride, first = (bc1, 8, 0) if bc1 else (header_size(data), 16, 8)
+    lums = {}
+
+    def lum_of(e):
+        if e not in lums:
+            lums[e] = lum(_rgb_of(e))
+        return lums[e]
+
+    for at in range(head + first, len(out) - 7, stride):
+        c0, c1 = int.from_bytes(out[at:at + 2], "little"), int.from_bytes(out[at + 2:at + 4], "little")
+        bits = int.from_bytes(out[at + 4:at + 8], "little")
+        if bc1 and c0 <= c1:   # three colours and transparent: endpoints only, mode kept
+            n0, n1 = gray565(grey(lum_of(c0))), gray565(grey(lum_of(c1)))
+            if n0 > n1:
+                n0, n1 = n1, n0
+                bits = sum(((v ^ 1) if v < 2 else v) << (2 * i) for i, v in ((i, (bits >> (2 * i)) & 3) for i in range(16)))
+            out[at:at + 2], out[at + 2:at + 4], out[at + 4:at + 8] = n0.to_bytes(2, "little"), n1.to_bytes(2, "little"), bits.to_bytes(4, "little")
+            continue
+        l0, l1 = lum_of(c0), lum_of(c1)
+        palette = (l0, l1, (2 * l0 + l1) / 3, (l0 + 2 * l1) / 3)
+        targets = [grey(palette[(bits >> (2 * i)) & 3]) for i in range(16)]
+        lo_t, hi_t = min(targets), max(targets)
+        lo = max((c for c in _GREY_LEVELS if lum_of(c) <= lo_t + 1e-6), default=_GREY_LEVELS[0])
+        hi = min((c for c in _GREY_LEVELS if lum_of(c) >= hi_t - 1e-6), default=_GREY_LEVELS[-1])
+        if hi <= lo:
+            i = _GREY_LEVELS.index(lo)
+            if i + 1 < len(_GREY_LEVELS):
+                hi = _GREY_LEVELS[i + 1]
+            else:
+                lo, hi = _GREY_LEVELS[i - 1], lo
+        a, b = lum_of(hi), lum_of(lo)
+        steps = (a, b, (2 * a + b) / 3, (a + 2 * b) / 3)
+        new_bits = sum(min(range(4), key=lambda k: abs(steps[k] - v)) << (2 * i) for i, v in enumerate(targets))
+        out[at:at + 2], out[at + 2:at + 4], out[at + 4:at + 8] = hi.to_bytes(2, "little"), lo.to_bytes(2, "little"), new_bits.to_bytes(4, "little")
     return bytes(out)
+
+
+def parchment(stock_dds, dark, light):
+    """Every pixel's brightness mapped to a neutral grey by the parchment curve over the texture's own brightness range
+    (opaque pixels, 2nd..98th percentile), encoded by grey_blocks (BC3 alpha blocks untouched; BC1 modes kept)."""
+    image = decode_rgba(stock_dds)
+    values = sorted(round(lum(p)) for p in image.get_flattened_data() if p[3] > 128) or [0, 255]
+    low, high = values[len(values) * 2 // 100], values[len(values) * 98 // 100]
+    return grey_blocks(stock_dds.read_bytes(), lambda v: parchment_curve(v, low, high, dark, light))
 
 
 def panel_gray(v, frame=None, panel=None):
@@ -394,9 +670,14 @@ def mip_sizes(width, height, count):
 def owner_png(stock_dds, name, work):
     """The owner's PNG for this texture at the stock size, every mip level BC3-encoded by Pillow; only the colour blocks go into
     the stock texture, so the stock alpha (the shape the game's material expects) stays byte for byte."""
+    return colour_keep_alpha(stock_dds, Image.open(ART / (name + ".png")).convert("RGBA"), work)
+
+
+def colour_keep_alpha(stock_dds, art, work):
+    """A colour image (any size) into a stock BC3 texture: every mip level BC3-encoded by Pillow, only the colour halves of the
+    blocks taken, so the stock alpha stays byte for byte."""
     stock = stock_dds.read_bytes()
     height, width = int.from_bytes(stock[12:16], "little"), int.from_bytes(stock[16:20], "little")
-    art = Image.open(ART / (name + ".png")).convert("RGBA")
     blocks = bytearray(stock[header_size(stock):])
     at = 0
     for size in mip_sizes(width, height, int.from_bytes(stock[28:32], "little")):
@@ -410,14 +691,22 @@ def owner_png(stock_dds, name, work):
     return stock[:header_size(stock)] + bytes(blocks)
 
 
+def literal_rgba(value):
+    """A colour-file value as a linear RGBA float4: one number = a linear grey ([Skin] scrollbar entries), three = sRGB 0-255."""
+    if isinstance(value, (int, float)):
+        return (float(value),) * 3 + (1.0,)
+    return (*(linear(c) for c in value), 1.0)
+
+
 def bp_colour(uexp, package, values):
-    """A blueprint's colour literals set to sRGB colours (linear floats, alpha 1); refuses an unexpected stock value."""
+    """A blueprint's or material's colour literals set to the colour-file values (linear floats, alpha 1); refuses an
+    unexpected stock value (a game update moved it): nothing is patched then."""
     out = bytearray(uexp)
     for offset, expected, name in BLUEPRINT_COLOURS[package]:
         found = struct.unpack_from("<4f", uexp, offset) if len(uexp) >= offset + 16 else ()
         if len(found) != 4 or any(abs(a - b) > 5e-4 for a, b in zip(found, expected)):
-            raise SkipAsset(f"{package}: stock colour {found} at byte {offset}, expected {expected} (game update? re-scan the blueprint)")
-        struct.pack_into("<4f", out, offset, *(linear(c) for c in values[name]), 1.0)
+            raise SkipAsset(f"{package}: stock colour {found} at byte {offset}, expected {expected} (game update? re-scan the asset)")
+        struct.pack_into("<4f", out, offset, *literal_rgba(values[name]))
     return bytes(out)
 
 
@@ -435,13 +724,25 @@ def recipe(name):
         return (), (arg,), lambda dds, v, work, stock: flat_blocks(dds.read_bytes(), v[arg])
     if kind == "tone":
         return (), (arg,), lambda dds, v, work, stock: tone(dds.read_bytes(), v[arg])
-    if kind == "bp_colour":   # a widget blueprint, not a texture: build() patches its .uexp (no DDS)
+    if kind in ("bp_colour", "material_colour"):   # a widget blueprint or a material: build() patches its .uexp (no DDS)
         names = tuple(sorted({name for _, _, name in BLUEPRINT_COLOURS[arg]}))
         return (), names, lambda uexp, v, work, stock: bp_colour(uexp, arg, v)
     if kind == "tab":
         return TAB_STYLE, (), lambda dds, v, work, stock: tab_atlas(dds, int(arg), v, work, stock)
     if kind == "magic_tab":
         return TAB_STYLE, (), lambda dds, v, work, stock: magic_tab_atlas(dds, int(arg), v, work, stock)
+    if kind == "altar_metal":
+        return (), (arg,), lambda dds, v, work, stock: map_colours(dds.read_bytes(), lambda c: altar_metal(c, v[arg]))
+    if kind == "altar_panel":
+        def panel(dds, v, work, stock):
+            name, channel = PANEL_MASKS.get(Path(dds).stem, (None, 0))
+            mask = (stock(name), channel) if name and stock else None
+            return altar_panel_texture(dds, v[arg], v["altarPaper"], work, mask)
+        return (), (arg, "altarPaper"), panel
+    if name == "parchment:enchanting":
+        # Match the darker left-page reference using the existing parchment controls.
+        return (), ("parchmentDark", "parchmentLight"), lambda dds, v, work, stock: parchment(
+            dds, v["parchmentDark"][0] * 0.60, v["parchmentLight"][0] * 0.82)
     if kind == "rich_row":   # a data table, not a texture: build() patches its .uexp (no DDS)
         row, _, colour = arg.partition(":")
         return (), (colour,), lambda uexp, v, work, stock: rich_row_colour(uexp, row, v[colour])
@@ -456,6 +757,8 @@ def recipe(name):
             dds, v["parchmentDark"][0], v["parchmentLight"][0])),
         "alchemy": ((), ("alchemyMetal", "alchemyStone"), lambda dds, v, work, stock: alchemy(
             dds, v["alchemyMetal"], v["alchemyStone"])),
+        "tab_strip": ((), ("enchantingTabIcon", "enchantingTabPaper"), lambda dds, v, work, stock: tab_strip_texture(
+            dds, v["enchantingTabIcon"], v["enchantingTabPaper"], work, stock)),
         "png": ((), (), lambda dds, v, work, stock: owner_png(dds, dds.stem, work)),   # development only (owner art)
         "enchanted_dot": ((), ("enchantedDot",), lambda dds, v, work, stock: enchanted_dot(dds.read_bytes(), v["enchantedDot"])),
         # the preview background: the stock brightness without its brown cast
@@ -528,7 +831,8 @@ def dds_tools(path=None):
 
 def needed_names():
     """Every name the build extracts: the data files' assets and the glyph masks."""
-    return sorted({Path(a).name for a in TEXTURES} | {n for names in GLYPH_MASKS.values() for n in names})
+    return sorted({Path(a).name for a in TEXTURES} | {n for names in GLYPH_MASKS.values() for n in names}
+                  | {mask for mask, _ in PANEL_MASKS.values()})
 
 
 def extract_all(args, folder):
@@ -554,7 +858,7 @@ def checked_texture(stock, baked):
     """Refuses a recipe result the game would not take: not the stock size or header (dimensions, mips, format)."""
     if len(baked) != len(stock):
         raise SkipAsset(f"the recipe's result has another size ({len(baked)} bytes, stock texture {len(stock)})")
-    head = header_size(stock)
+    head = texture_header(stock)
     if baked[:head] != stock[:head]:
         raise SkipAsset("the recipe changed the texture header (size, mips or format)")
     return baked
@@ -574,7 +878,7 @@ def bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, injec
         raise SkipAsset(f"{name}: stock asset differs from the verified game build (game update?)")
     if kind == "png" and not (art / (name + ".png")).is_file():
         raise SkipAsset(f"owner art missing ({name}.png in {art}); the game's stock texture shows")
-    if kind in ("rich_row", "bp_colour"):   # a data table or a widget blueprint: its .uexp is patched (no DDS)
+    if kind in ("rich_row", "bp_colour", "material_colour"):   # a data table, blueprint or material: its .uexp is patched (no DDS)
         uexp = make(source.with_suffix(".uexp").read_bytes(), values, work, None)
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source.with_suffix(".uasset"), target.with_suffix(".uasset"))
@@ -585,17 +889,21 @@ def bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, injec
         try:
             header_size(stock)
         except AssertionError:
-            raise SkipAsset("the stock texture is not BC3 (game update?)") from None
+            other = bc1_header_size(stock) or bgra_layout(stock)
+            if not (kind in ("parchment", "altar_metal", "altar_panel", "tab_strip") and other):   # these map BC1 and BGRA too
+                raise SkipAsset("the stock texture is not BC3 (game update?)") from None
         dds = work / "recoloured" / (name + ".dds")
         dds.parent.mkdir(parents=True, exist_ok=True)
         dds.write_bytes(checked_texture(stock, make(stock_path, values, work, stock_dds)))
         target.parent.mkdir(parents=True, exist_ok=True)
-        for ext in (".uasset", ".uexp"):
+        exts = (".uasset", ".uexp") + ((".ubulk",) if source.with_suffix(".ubulk").is_file() else ())   # bulk mips (T_Effects_icon)
+        for ext in exts:
             shutil.copy2(source.with_suffix(ext), target.with_suffix(ext))
         injected = work / "injected" / (name + ".uasset")
         inject(target.with_suffix(".uasset"), dds, injected)
-        for ext in (".uasset", ".uexp"):
-            shutil.copy2(injected.with_suffix(ext), target.with_suffix(ext))
+        for ext in (".uasset", ".uexp", ".ubulk"):
+            if injected.with_suffix(ext).is_file():
+                shutil.copy2(injected.with_suffix(ext), target.with_suffix(ext))
     return values, {"recipe": recipe_name, "style": sorted(values),
                     "stock_uexp_sha256": sha256(source.with_suffix(".uexp")),
                     "baked_uexp_sha256": sha256(target.with_suffix(".uexp"))}
@@ -645,8 +953,12 @@ def _build(args, out, pack, colours, art, log):
                 raise
             except Exception as error:   # SkipAsset or a recipe failing on unexpected data: skip and list, build the rest
                 reason = str(error) if isinstance(error, SkipAsset) else f"{type(error).__name__}: {error}"
-                for ext in (".uasset", ".uexp"):
-                    target.with_suffix(ext).unlink(missing_ok=True)
+                gc.collect()   # a failed in-process inject can still hold the staged file open (Windows: WinError 32)
+                for ext in (".uasset", ".uexp", ".ubulk"):
+                    try:
+                        target.with_suffix(ext).unlink(missing_ok=True)
+                    except OSError as locked:
+                        log(f"could not remove the staged {target.with_suffix(ext).name}: {locked}")
                 skipped.append({"asset": asset, "recipe": recipe_name, "reason": reason})
                 log(f"SKIPPED {name}: {reason}")
                 continue
