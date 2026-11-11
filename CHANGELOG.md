@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Compact rows (new INI option `[Layout] bCompactRows`, default 1): shorter list rows, smaller icons and text and taller
+  lists in Magic, Inventory, Alchemy, Enchanting, Spellmaking, Spell Purchase, Stats skills and Quest, without separate
+  layout mods. Only values still at the game's default are changed. 0 keeps the game's own layout.
+- Alchemy: the ingredient page's own parchment now reaches the top of the screen; the separate parchment strip image
+  (`Alchemy-TopParchment.png`) is no longer used.
+
 - Inside a category group, items now run A-Z, items with the same name from the highest value, then by weight.
   New INI option `[Picker] bCategorySortValueFirst` (default 0; 1 = the 1.5.0 order: highest value first, equal
   values A-Z). The reversed order is the exact reverse either way.

@@ -266,15 +266,6 @@ namespace alchemy
 		if (g_dirtyCounts) ComputeCounts(menu);
 		if (g_dirtySort) ApplySort(menu);
 		g_inside = false;
-		if (auto* strip = reflect::Get(g_strip)) {   // grey with the Ingredients panel while the Filters panel is open
-			auto*     filters = Field(menu, "Alchemy_Filters");
-			const int greyed = filters && Active(filters) ? 1 : 0;
-			if (greyed != g_stripGreyed) {
-				const float t = StripTint(greyed != 0);
-				ui::Colour(strip, t, t, t, 1.0f);
-				g_stripGreyed = greyed;
-			}
-		}
 		if (g_hoverNow.exchange(false)) {
 			const int hovered = g_hoverChip.load(), padFocus = g_chipFocus.load();
 			for (std::size_t i = 0; i < g_chipBacks.size(); ++i) StyleBack(i, static_cast<int>(i) == hovered || static_cast<int>(i) == padFocus);

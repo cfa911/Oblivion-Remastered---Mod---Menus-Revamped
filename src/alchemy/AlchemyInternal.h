@@ -86,13 +86,8 @@ namespace alchemy
 		constexpr double         kMarkGap = 4;   // between the red x mark and the filter name
 		constexpr double         kButtonPadX = 7, kButtonPadY = 2;
 		constexpr double         kTitleAbove = 32;   // "Selected filters" sits this far above the first row
-		constexpr double         kChipsDy = -16;     // the title + rows block, up into the strip top (owner 2026-11-04)
 		constexpr int            kChipRows = 3;      // active-filter button rows (owner 2026-11-04)
 		constexpr double         kRowGap = 5;        // between those rows
-		// Owner's updated Better Mask PSD (2026-11-04 18:50): 1090x263, at 100,0 on the 2559x1439 canvas.
-		// Panel background measured 60.8,93.7,845.5 viewport units; mask sits at 75, 0 with width 817.5.
-		constexpr const wchar_t* kStripFile = L"Alchemy-TopParchment.png";
-		constexpr double         kStripAspect = 263.0 / 1090.0, kStripDx = 14.2, kStripDy = -93.7, kStripDw = -28.0;
 
 		struct RawArray { std::uint8_t* data; std::int32_t num; std::int32_t max; };
 
@@ -133,7 +128,7 @@ namespace alchemy
 		inline alchemyrules::IngredientIndex g_ingredients;   // name key -> weight, value of every loaded IngredientItem
 		inline bool g_ingredientsBuilt = false;
 
-		inline reflect::Handle              g_titleBox, g_strip, g_stripTexture;
+		inline reflect::Handle              g_titleBox;
 		inline std::array<reflect::Handle, kIcons>    g_icons, g_iconBacks;   // the sort header (index = SortKey)
 		inline reflect::Handle                         g_arrow;   // direction mark on the active icon
 		inline std::array<reflect::Handle, 3>          g_seps;    // Count | Name, Weight | Value, Colors | Weight
@@ -144,7 +139,6 @@ namespace alchemy
 		inline double                                  g_columnDy = 0;      // column labels' vertical correction (ColumnDy)
 		inline bool                                    g_dyKnown = false;
 		inline std::unordered_set<UE::UObject*>        g_dyDone;   // column labels already moved by g_columnDy
-		inline int                          g_stripGreyed = -1;   // tint applied to the strip: -1 none yet, 0 full, 1 greyed
 		inline std::vector<reflect::Handle> g_chips;   // created on demand; the entries' meaning is in g_chipNames
 		inline std::vector<reflect::Handle> g_chipBacks;   // the button box behind each chip (an Image)
 		inline std::vector<std::string>     g_chipText;    // the text each chip label was given (its width is then its own)
@@ -291,7 +285,6 @@ namespace alchemy
 		std::array<double, 2> DesiredSize(UE::UObject* a_label);
 		double DesiredWidth(UE::UObject* a_label);
 		UE::UObject* StripTexture();
-		UE::UObject* MakeStrip(UE::UObject* a_canvas);
 		UE::UObject* MakeBack(UE::UObject* a_canvas, std::size_t a_index);
 		void StyleBack(std::size_t a_index, bool a_hovered);
 		double MarkWidth();

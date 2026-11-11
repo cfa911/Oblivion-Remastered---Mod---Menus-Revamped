@@ -359,18 +359,10 @@ namespace alchemyrules
 		return best;
 	}
 
-	// The parchment strip added above the Ingredients panel (owner 2026-11-04, extra space for the active-filter buttons):
-	// placed as in the owner's PSD, at fixed offsets from the panel's background widget (a_dx, a_dy, a_dw in viewport
-	// units), its height keeping the image's aspect (h / w). chipsY: the centre of the new space for the buttons.
-	struct StripLayout { Box box; double chipsY = 0; };
-	inline StripLayout PlaceStrip(Box a_panel, double a_aspect, double a_dx, double a_dy, double a_dw)
-	{
-		StripLayout l;
-		const double w = a_panel.w + a_dw;
-		l.box = { a_panel.x + a_dx, a_panel.y + a_dy, w, w * a_aspect };
-		l.chipsY = l.box.y + l.box.h * 0.42;   // the middle of the strip's solid part (it is solid to 62% of its height)
-		return l;
-	}
+	// The active-filter buttons' row centre (viewport units) in the space the taller parchment adds above the list (compact
+	// rows: Alchemy_IngredientsListBG reaches the screen top, owner 2026-11-11). 66.85 below the parchment top is where the
+	// former Alchemy-TopParchment strip put them (93.7 above the stock top, 42% into its 197.25 height, 16 up).
+	inline double ChipsInParchment(Box a_parchment) { return a_parchment.y + 66.85; }
 
 	// The strip greys with the Ingredients panel while the Filters panel is open (the menu shows ListGreyedImage over the
 	// panel). The multiplier is linear colour: the panel's screen ratio 0.71 (owner screenshots 2026-11-04) is 0.71^2.2 = 0.47.
