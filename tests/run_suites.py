@@ -27,7 +27,9 @@ GROUPS = {
              "ui_style_tests", "config_reader_tests", "inventory_header_transition_tests"],
     "custom-pack": ["custom_pack_data_tests", "custom_colours_tests", "custom_pack_speed_tests", "dark_pack_tests",
                     "dark_pack_switch_tests", "dark_skin_wiring_tests", "custom_colours_reader_tests",
-                    "custom_pack_switch_tests", "custom_pack_manifest_tests", "custom_pack_wiring_tests"],
+                    "custom_pack_switch_tests", "custom_pack_manifest_tests", "custom_pack_wiring_tests",
+                    "pack_builder_colours_tests", "pack_builder_paths_tests", "pack_builder_build_tests",
+                    "pack_builder_cli_tests"],
 }
 COUNT = re.compile(r"(\d+) checks, (\d+) failures")
 

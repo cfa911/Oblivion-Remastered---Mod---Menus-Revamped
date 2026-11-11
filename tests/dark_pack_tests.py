@@ -18,6 +18,8 @@ pack = root / "assets/CustomPack"
 check(all((pack / f"MRCustom_P.{ext}").is_file() for ext in ("pak", "utoc", "ucas")), "the Custom pack ships (MRCustom_P .pak/.utoc/.ucas in assets/CustomPack)")
 tool = root / "tools/make_dark_pack.py"
 tool_text = tool.read_text(encoding="utf-8") if tool.is_file() else ""
+# Phase 4: the pipeline moved into tools/pack_builder (make_dark_pack.py is its CLI): read both
+tool_text += "".join(f.read_text(encoding="utf-8") for f in sorted((root / "tools/pack_builder").glob("*.py")))
 # the asset table lives in one data file per menu (Custom pack builder Phase 1): asset -> recipe, in build order
 import json as _json
 data_listed = {row["asset"]: row["recipe"]
@@ -85,8 +87,8 @@ for ext in ("pak", "utoc", "ucas"):
     check(entries.get(prefix + f"MenusRevamped/CustomPack/MRCustom_P.{ext}") == pack / f"MRCustom_P.{ext}",
           f"the release zip ships MRCustom_P.{ext} in Plugins/MenusRevamped/CustomPack (tools/plugin_files.py)")
 check(not any("~mods" in name for name in entries), "the zip puts nothing into ~mods itself (the plugin copies the pack)")
-check([n for n in entries if n.endswith(".json")] == [prefix + "MenusRevamped/CustomPack/MRCustom_P.json"],
-      "only the pack manifest ships (Phase 3: the plugin checks its game build and colours at load)")
+check([n for n in entries if n.endswith(".json") and "/PackBuilder/" not in n] == [prefix + "MenusRevamped/CustomPack/MRCustom_P.json"],
+      "only the pack manifest ships outside the builder (Phase 3: the plugin checks it; Phase 4: PackBuilder/menus/*.json)")
 check(prefix + "MenusRevamped.dll" in entries and prefix + "MenusRevamped.ini" in entries
       and any(n.endswith(".png") for n in entries), "the zip list still holds the DLL, the INI and the PNGs")
 
@@ -219,7 +221,7 @@ if mdp is not None:
         try:
             patch(bytes(200), "Default", [1, 2, 3])
             check(False, "the row patch refuses a .uexp whose stock colour is not where it expects (game update)")
-        except SystemExit:
+        except (SystemExit, getattr(mdp, "SkipAsset", SystemExit)):   # Phase 4: refused = the asset is skipped
             check(True, "")
     opaque = getattr(mdp, "opaque_rows", None)
     check(opaque is not None, "make_dark_pack.py can force the Magic tab strip opaque (stock alpha below it)")
@@ -343,7 +345,7 @@ if mdp is not None:
         try:
             patch(bytes(3100), "WBP_ModernMenu_FilterEffectEntry", {"filterRow": [1, 1, 1], "filterSelected": [1, 1, 1]})
             check(False, "the blueprint patch refuses a .uexp whose stock colour is not where it expects (game update)")
-        except SystemExit:
+        except (SystemExit, getattr(mdp, "SkipAsset", SystemExit)):   # Phase 4: refused = the asset is skipped
             check(True, "")
 # nothing in Alchemy is tinted at run time any more except the round 1 plain-text ink pass
 check("void StyleDark(" not in alchemy and "void StyleFilterRow(" not in alchemy and "menuskin::Paint(" not in alchemy,
