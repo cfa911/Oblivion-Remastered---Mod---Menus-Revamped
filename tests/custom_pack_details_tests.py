@@ -47,6 +47,7 @@ WARM = [0.11954, 0.07036, 0.03689, 1.0]
 GOLD = [0.0999, 0.05613, 0.03955, 1.0]
 ORN = [0.2502, 0.1845, 0.1119, 1.0]
 BAND = [0.2918, 0.1590, 0.0908, 1.0]
+SHADOW_AT = 11509
 ID, IS = "UI/Original/GameMenuLayer/Inventory/ItemDetails/", "UI/Original/GameMenuLayer/Inventory/ItemDetails/Specific/"
 P3 = "UI/Modern/GameMenuLayer/Stats/Page3_Skills/"
 BLUEPRINTS = {   # package: (menu data file, asset path, [(offset, stock, colour)])
@@ -221,6 +222,7 @@ try:
     uexp = bytearray(48000)
     for offset, stock, _ in BLUEPRINTS["WBP_OriginalMenu_InventoryItemDetails"][2]:
         struct.pack_into("<4f", uexp, offset, *stock)
+    struct.pack_into("<d", uexp, SHADOW_AT, 1.0)   # RMI-089: the stock UseShadow? literal
     v = {"rowText": [239.0, 239.0, 239.0], "Skin.ornament": [0.45, 0.4, 0.35, 0.2]}
     out = pipe.bp_colour(bytes(uexp), "WBP_OriginalMenu_InventoryItemDetails", v)
     o = struct.unpack_from("<4f", out, 46544)
@@ -240,6 +242,29 @@ try:
           "the perk table: Default = rowText, RT_BlueMed = emphasisInk")
 except Exception as error:   # noqa: BLE001
     check(False, f"bp_colour with [Skin] values ({type(error).__name__}: {error})")
+
+# ---- RMI-089: the Inventory details page drop shadow (brown strip along the list panel) is baked off at its writer ----
+# KB docs/reverse-engineering/dark-mode-ui.md details-view lookups: Construct() sets UseShadow? = SelectFloat(0.0, 1.0,
+# IsInContainer); the 1.0 (Inventory) is an EX_DoubleConst at .uexp byte 11509 (build 1.512.105.0). Custom only (MRCustom_P).
+lit = menus.get("inventory", {}).get("blueprint_literals", {}).get("WBP_OriginalMenu_InventoryItemDetails", [])
+check(len(lit) == 1 and lit[0].get("offset") == SHADOW_AT and lit[0].get("type") == "double" and lit[0].get("stock") == 1.0
+      and lit[0].get("value") == 0.0, f"inventory.json blueprint_literals: UseShadow? 1.0 -> 0.0 at {SHADOW_AT} ({lit})")
+try:
+    out = pipe.bp_colour(bytes(uexp), "WBP_OriginalMenu_InventoryItemDetails", v)
+    check(struct.unpack_from("<d", out, SHADOW_AT)[0] == 0.0, "bp_colour: UseShadow? literal baked to 0.0")
+    check(out[SHADOW_AT - 9:SHADOW_AT - 1] == uexp[SHADOW_AT - 9:SHADOW_AT - 1], "bp_colour: the Container 0.0 literal untouched")
+    moved = bytearray(uexp)
+    struct.pack_into("<d", moved, SHADOW_AT, 0.5)
+    try:
+        pipe.bp_colour(bytes(moved), "WBP_OriginalMenu_InventoryItemDetails", v)
+        check(False, "bp_colour: an unexpected UseShadow? stock value is refused")
+    except pipe.SkipAsset:
+        check(True, "bp_colour: an unexpected UseShadow? stock value is refused")
+    if "WBP_OriginalMenu_InventoryItemDetails" in pipe.LAYOUT:
+        _, lay = pipe.layout_package(b"", bytes(uexp), "WBP_OriginalMenu_InventoryItemDetails", pipe.custom_colours.SIZE_DEFAULTS)
+        check(struct.unpack_from("<d", lay, SHADOW_AT)[0] == 1.0, "the layout pack keeps the stock shadow")
+except Exception as error:   # noqa: BLE001
+    check(False, f"RMI-089 shadow literal ({type(error).__name__}: {error})")
 
 # ---- 4. the run-time details passes are gone ----
 skin = (root / "src/sorting/MenuSkin.cpp").read_text(encoding="utf-8")

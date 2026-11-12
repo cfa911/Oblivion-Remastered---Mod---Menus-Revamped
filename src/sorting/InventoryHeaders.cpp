@@ -29,7 +29,7 @@ namespace sorting::detail
 		struct LayoutFilter { reflect::Handle* widget = nullptr; Picker* owner = nullptr; bool category = false; };
 		std::array<LayoutFilter,3> Filters(Picker& p)
 		{
-			if (p.kind==0) return {{{&p.enchantedHeader,&p,false},{&p.stolenHeader,&p,false},{&p.header,&p,true}}};
+			if (p.InventoryStrip()) return {{{&p.enchantedHeader,&p,false},{&p.stolenHeader,&p,false},{&p.header,&p,true}}};
 			if (p.kind!=1) return {};
 			auto* menu=reflect::Get(p.menu);
 			const auto peer=[&](Picker& q) {
@@ -170,9 +170,13 @@ namespace sorting::detail
 
 		void OnInventoryRowBound(UE::UObject* row,UE::UFunction* function,void* params)
 		{
-			auto& picker=g_pickers[0];
-			if (picker.kind!=0 || !picker.active.load() || !picker.inventoryStatusReady ||
-				!params || pe::FunctionName(function)!="OnListItemObjectSet") return;
+			if (!params || pe::FunctionName(function)!="OnListItemObjectSet") return;
+			// The Inventory or the container/barter side whose list made the row (entry widgets live in their list's tree).
+			Picker* owner=nullptr;
+			for (auto& p : g_pickers)
+				if (p.InventoryStrip() && p.active.load() && p.inventoryStatusReady && ui::IsWithin(row,reflect::Get(p.menu))) { owner=&p; break; }
+			if (!owner) return;
+			auto& picker=*owner;
 			const int offset=reflect::Offset(function,"ListItemObject");
 			if (offset<0 || offset+int(sizeof(UE::UObject*))>function->parmsSize ||
 				ui::SizeOf(function,"ListItemObject")!=sizeof(UE::UObject*)) return;
@@ -292,7 +296,7 @@ namespace sorting::detail
 	// slot by the difference (probe 2026-11-09). Move those controls' render translations back by the same amount first.
 	void Picker::CompensateInventorySlots()
 	{
-		if (kind!=0 || !inventoryHeaderReady) return;
+		if (!InventoryStrip() || !inventoryHeaderReady) return;
 		ui::Call parent(reflect::Get(header),L"GetParent");
 		auto* panel=parent && parent.RunGuarded()?parent.Get<UE::UObject*>("ReturnValue"):nullptr;
 		ui::Call count(panel,L"GetChildrenCount");
@@ -364,7 +368,7 @@ namespace sorting::detail
 
 	void Picker::HideInventoryHeaderLayout()
 	{
-		if (kind==0 || inventoryListReserved || inventoryHeaderReady) SetInventoryHeaderOpacity(0.0f);
+		if (InventoryStrip() || inventoryListReserved || inventoryHeaderReady) SetInventoryHeaderOpacity(0.0f);
 		inventoryHeaderReady=false;
 		inventoryFillPending=true;
 		inventoryHeaderFrame=-1;
@@ -428,13 +432,14 @@ namespace sorting::detail
 	bool Picker::LayoutInventoryHeaders(UE::UObject* a_menu,UE::UObject* a_canvas,bool measureColumns)
 	{
 		if (!HeaderLayout() || !OwnSorts()) return false;
-		const bool magic=kind!=0;   // Magic spell pages (School host) or Active Effects
+		const bool magic=kind==1 || kind==6;   // Magic spell pages (School host) or Active Effects; else the Inventory strip
 		if (measureColumns) {
 			ui::Visible(ui::FindInTree(a_menu, "HeaderList_Separator"), false);   // our own rules replace it (both menus)
-			if (!magic) menuskin::StyleTitle(ui::FindInTree(a_menu, "inv_cont_title"));
+			if (kind==0) menuskin::StyleTitle(ui::FindInTree(a_menu, "inv_cont_title"));   // the Inventory title only
 		}
-		static bool announced=false, announcedMagic=false;
-		if (!magic && !announced) { announced=true; logger::info("Menus Revamped MR-INVENTORY-SINGLE-HEADER-R9"); }
+		static bool announced=false, announcedMagic=false, announcedContainer=false;
+		if (kind==0 && !announced) { announced=true; logger::info("Menus Revamped MR-INVENTORY-SINGLE-HEADER-R9"); }
+		if ((kind==3 || kind==4) && !announcedContainer) { announcedContainer=true; logger::info("Menus Revamped MR-CONTAINER-SINGLE-HEADER-C1K"); }
 		if (magic && !announcedMagic) { announcedMagic=true; logger::info("Menus Revamped MR-MAGIC-SINGLE-HEADER-R10"); }
 		const double frameTime=ui::RealTimeSeconds();
 		if (frameTime>=0 && frameTime==inventoryHeaderFrame) return true;
@@ -456,7 +461,7 @@ namespace sorting::detail
 		const auto viewport=bounds;
 		bounds.y=inventoryHeaderY;
 		bounds.h+=inventoryheaders::kInset;
-		double nameX=bounds.x+60;
+		double nameX=inventoryheaders::DefaultNameX(kind,bounds);
 		double rowsBottom=0;
 		inventoryheaders::Box status;
 		std::array<inventoryheaders::Box,inventoryheaders::kCount> columns{};
@@ -468,7 +473,10 @@ namespace sorting::detail
 		// RMI-077: this tab's own earlier measurement is final at once; another tab's is the starting estimate.
 		const auto tabIndex=static_cast<std::size_t>(tab);
 		bool exact=false;
-		const auto stored=inventoryTabMeasures.For(tabIndex,bounds,&exact);
+		auto stored=inventoryTabMeasures.For(tabIndex,bounds,&exact);
+		// RMI-092: a container/barter side's other tab gives its name place only (each tab packs its own columns; the Inventory
+		// keeps RMI-077's estimate, owner-accepted).
+		if (!exact && stored && (kind==3 || kind==4)) stored=inventoryheaders::OtherTabEstimate(*stored);
 		if (!inventoryHeaderMeasured && stored && exact) {
 			inventoryMeasuredList=stored->list;
 			inventoryMeasuredNameX=stored->nameX;
@@ -535,7 +543,9 @@ namespace sorting::detail
 		const auto slots=Filters(*this);
 		const std::array filters{slots[0].widget?*slots[0].widget:reflect::Handle{},slots[1].widget?*slots[1].widget:reflect::Handle{},
 			slots[2].widget?*slots[2].widget:reflect::Handle{}};
-		const auto plan=inventoryheaders::Arrange(kind,bounds,nameX,columns,offered,kind==6?0:3,status,rowsBottom);
+		// The Inventory strip without a stolen toggle (the container/barter other side, or the INI off): no stolen cell.
+		const int filterCount=kind==6?0:InventoryStrip() && !reflect::Get(stolenHeader)?2:3;
+		const auto plan=inventoryheaders::Arrange(kind,bounds,nameX,columns,offered,filterCount,status,rowsBottom);
 		if (!plan.enabled || !ReserveList(*this,reserved,bounds.y)) return false;
 		inventoryHeaderFrame=frameTime;
 		bool settled=inventoryHeaderReady || inventoryHeaderMeasured || displayed.empty();
@@ -604,7 +614,7 @@ namespace sorting::detail
 			if (hint) inventoryHint=reflect::Hold(hint);
 			else {
 				static bool s_warned=false;
-				if (!s_warned) { s_warned=true; logger::warn("Menus Revamped: {} filter Y glyph (WBP_ModernPrefab_ControllerInputHint) not found", magic?"Magic":"Inventory"); }
+				if (!s_warned) { s_warned=true; logger::warn("Menus Revamped: {} filter Y glyph (WBP_ModernPrefab_ControllerInputHint) not found", magic?"Magic":kind==0?"Inventory":"container"); }
 			}
 		}
 		inventoryheaders::Box hintBounds;
@@ -648,7 +658,10 @@ namespace sorting::detail
 				}
 				if (!guide) {
 					// Magic: per header kind (a shared name in one widget tree replaces the other header's guide in place).
-					const auto name=magic?L"MrMagicHeaderGuide"+std::to_wstring(kind)+L"_"+std::to_wstring(i)+L"_"+std::to_wstring(g_widgetSerial++):L"MrInventoryHeaderGuide"+std::to_wstring(i);
+					// Container/barter: both sides share one canvas, so each side's guides get their own names.
+					const auto name=magic?L"MrMagicHeaderGuide"+std::to_wstring(kind)+L"_"+std::to_wstring(i)+L"_"+std::to_wstring(g_widgetSerial++)
+						:kind!=0?L"MrContainerHeaderGuide"+std::to_wstring(kind)+L"_"+std::to_wstring(i)+L"_"+std::to_wstring(g_widgetSerial++)
+						:L"MrInventoryHeaderGuide"+std::to_wstring(i);
 					guide=CanvasChild(a_canvas,L"/Script/UMG.Image",name.c_str(),0,0,1,1);
 					if (!guide) continue;
 					handle=reflect::Hold(guide);
@@ -659,7 +672,7 @@ namespace sorting::detail
 				LayoutChild(guide,rect.x-canvasBounds.x,rect.y-canvasBounds.y,rect.w,rect.h);
 				ui::Visible(guide,settled || inventoryHeaderReady);
 			}
-			if (!magic) PlaceTitleLabel(*this,a_menu,a_canvas,canvasBounds);   // RMI-073 is an Inventory title cut
+			if (kind==0) PlaceTitleLabel(*this,a_menu,a_canvas,canvasBounds);   // RMI-073 is an Inventory title cut
 		}
 		if (inventoryFillPending) {
 			const bool reveal = inventoryheaders::CanRevealControlFills(measureColumns, settled);

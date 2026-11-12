@@ -43,10 +43,18 @@ namespace searchcfg
 				// Magic revamp: the bar sits in the title row, right of the page title (probe 2026-11-09: title row 248.2-304.4,
 				// list right edge 904.3), like the Inventory bar.
 				v.magicBar = place(L"Magic", { 440, 258, 460, 36 }, false);
-				v.yoursBar = place(L"ContainerYours", v.yoursBar, true);
-				v.theirsBar = place(L"ContainerTheirs", v.theirsBar, true);
+				// Step C.1: the side bars sit in the title row like the Inventory bar and take its size. The old keys (uXOffset/uYOffset/
+				// uWidth/uHeight: a place above the header, shipped as -48/-90/825/37) are not read: they moved the bar out of the row.
+				const auto rowOffset = [&](const wchar_t* a_section) {
+					searchcfg::Values::Place p{};
+					p.x = ReadDouble(ini, a_section, L"uTitleRowXOffset", 0, -1500, 1500);
+					p.y = ReadDouble(ini, a_section, L"uTitleRowYOffset", 0, -1500, 1500);
+					return p;
+				};
+				v.yoursBar = rowOffset(L"ContainerYours");
+				v.theirsBar = rowOffset(L"ContainerTheirs");
 				v.mapBar = place(L"Map", v.mapBar, false);
-				v.takeBar = place(L"ContainerTake", v.takeBar, true);
+				v.takeBar = rowOffset(L"ContainerTake");
 				// The quests tab keeps the Magic bar's earlier place (above the tabs) unless [Quest] says otherwise.
 				v.questBar = place(L"Quest", { v.barX + 3, v.barY + v.barYMagic, v.barW - 3, v.barH }, false);
 			}

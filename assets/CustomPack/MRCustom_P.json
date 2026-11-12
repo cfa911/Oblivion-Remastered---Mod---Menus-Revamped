@@ -491,7 +491,7 @@
         "rowText"
       ],
       "stock_uexp_sha256": "ea172be7400730b0cb2592e98dbeb7253a8e3b7d437ba263fb39e258c7d22787",
-      "baked_uexp_sha256": "49d7a508ff6ffc811a15895cd256d9b182d4e4c0fd85a04504d893bbb67f16c7"
+      "baked_uexp_sha256": "17510ec4410a981adb41d290427e80668032c9aa73188ea520f6e12653ccc60e"
     },
     "UI/Original/GameMenuLayer/Inventory/ItemDetails/WBP_OriginalMenu_InventoryMainContent": {
       "recipe": "bp_colour:WBP_OriginalMenu_InventoryMainContent",
@@ -1396,7 +1396,7 @@
   "skipped": [],
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "1f0c8ead1d08a0674dff142f4fa13da32784386d945aa1f85ef877dce659b0dc",
-    "MRCustom_P.ucas": "037b78e509c00ae262a7818c01cc440faaaff91a68ea508c07ba53b90b427ead"
+    "MRCustom_P.utoc": "bbc2cf276234a6cd07366a7845805811fee637e8da609c2b1d61929f6291c133",
+    "MRCustom_P.ucas": "ea784a0e6a35eb39afb5f8eecd68991550b2b3fa50e99b05010e0175f0b50e8f"
   }
 }

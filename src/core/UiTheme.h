@@ -215,9 +215,12 @@ namespace uistyle
 	}
 
 	// Phase 2 (owner 2026-11-10): the Magic menu takes the Inventory's Dark look. Picker kinds the menu skin covers: 0 Inventory;
-	// 1/2/5 the Magic School, Effect and Type pickers; 6 Magic Active Effects. Container sides (3/4) keep the preset palette.
+	// 1/2/5 the Magic School, Effect and Type pickers; 6 Magic Active Effects; 3/4 the container/barter sides, which take the
+	// Inventory bar with its look (owner, C.1 walk-through 2026-11-12).
 #define UISTYLE_MAGIC_SKIN 1
-	inline constexpr bool SkinnedKind(int kind) { return kind == 0 || kind == 1 || kind == 2 || kind == 5 || kind == 6; }
+	inline constexpr bool SkinnedKind(int kind) { return kind == 0 || kind == 1 || kind == 2 || kind == 3 || kind == 4 || kind == 5 || kind == 6; }
+	// The Inventory strip kinds (Inventory, container/barter sides): the Inventory's stock inactive-icon opacity, not Magic's.
+	inline constexpr bool InventoryStripKind(int kind) { return kind == 0 || kind == 3 || kind == 4; }
 	inline constexpr const Search& SearchFor(bool skinnedMenu, Preset p)
 	{
 		return skinnedMenu && Recolors(p) ? kInventorySkinSearch : Get(p).search;

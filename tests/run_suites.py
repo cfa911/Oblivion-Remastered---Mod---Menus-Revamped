@@ -24,8 +24,9 @@ REPO = Path(__file__).resolve().parents[1]
 GROUPS = {
     "skin": ["menu_skin_style_tests", "inventory_details_skin_tests", "inventory_header_layout_tests", "brush_handle_tests",
              "data_table_rows_tests", "filter_toggle_paint_tests", "dark_skin_wiring_tests", "dark_pack_tests", "dark_pack_switch_tests", "enchanted_paint_tests",
-             "ui_style_tests", "config_reader_tests", "inventory_header_transition_tests"],
-    "custom-pack": ["custom_pack_data_tests", "custom_colours_tests", "custom_pack_speed_tests", "dark_pack_tests",
+             "ui_style_tests", "config_reader_tests", "inventory_header_transition_tests",
+             "container_header_layout_tests"],
+    "custom-pack": ["container_title_bake_tests", "custom_pack_data_tests", "custom_colours_tests", "custom_pack_speed_tests", "dark_pack_tests",
                     "dark_pack_switch_tests", "dark_skin_wiring_tests", "custom_colours_reader_tests",
                     "custom_pack_switch_tests", "custom_pack_manifest_tests", "custom_pack_wiring_tests",
                     "pack_builder_colours_tests", "pack_builder_paths_tests", "pack_builder_build_tests",

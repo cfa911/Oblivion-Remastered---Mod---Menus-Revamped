@@ -41,7 +41,9 @@ uFontSize=200
 uX=300.5
 uY=abc
 [ContainerYours]
-uXOffset=-2000
+uTitleRowXOffset=-2000
+uYOffset=-90
+uWidth=825
 [SearchKeyboard]
 uHoldMs=5
 uLeftPercent=40
@@ -87,6 +89,7 @@ int main() {
     check(v.search.inventoryBar.x==300.5,"decimal place parses");
     check(v.search.inventoryBar.y==109.5,"unparsable value keeps the default");
     check(v.search.yoursBar.x==-1500,"offset clamps to -1500");
+    check(v.search.yoursBar.y==0 && v.search.yoursBar.w==0,"the old container keys (place above the header) are not read (Step C.1)");
     check(v.search.ownFilter,"absent filter key defaults on");
     check(v.search.worldMap,"map search defaults on");
     check(v.search.mapBar.x==200 && v.search.mapBar.y==78 && v.search.mapBar.w==440,"map panel fits owner red rectangle");

@@ -113,7 +113,9 @@ Check(darkControls.darkArt && darkControls.selectedSortTint == 0.24f && !Invento
  // Phase 2 (owner 2026-11-10): the Magic menu takes the same Dark look; Classic and Light keep their palettes.
  Check(SkinnedKind(0)&&SkinnedKind(1)&&SkinnedKind(2)&&SkinnedKind(5)&&SkinnedKind(6),
   "Inventory and every Magic picker (School, Effect, Type, Active Effects) use the menu skin");
- Check(!SkinnedKind(3)&&!SkinnedKind(4)&&!SkinnedKind(-1),"container sides and inactive pickers keep the preset palette");
+ // C.1 (owner 2026-11-12): the container/barter sides take the Inventory bar, its look included.
+ Check(SkinnedKind(3)&&SkinnedKind(4),"container/barter sides use the Inventory bar skin");
+ Check(!SkinnedKind(-1),"inactive pickers keep the preset palette");
  Check(&SearchFor(true,Preset::Dark)==&kInventorySkinSearch,"the Magic search bar in Dark is the Inventory's charcoal bar");
  Check(&SearchFor(true,Preset::Classic)==&kClassic.search&&&SearchFor(false,Preset::Dark)==&kDark.search,
   "Classic keeps its bar and unskinned menus keep the Dark palette bar");
