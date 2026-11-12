@@ -738,10 +738,11 @@
     "UI/Modern/Prefabs/WBP_ModernPrefab_EditableText": {
       "recipe": "bp_colour:WBP_ModernPrefab_EditableText",
       "style": [
+        "listHighlight",
         "nameBox"
       ],
       "stock_uexp_sha256": "96a2a7feb7154d8bf83bf7650575ac45ba6dfe236fbd69d90da12cfe54a7ba8b",
-      "baked_uexp_sha256": "8623d27fcbe52fc87f21160248a542c465804a1feb70a6906177a01fadbb1b80"
+      "baked_uexp_sha256": "a0a09ce76d3561c85a11194aa34846256d4b4c98424334c1f0ff519b256f23f6"
     },
     "UI/Legacy/GameMenuLayer/Commun/WBP_LegacyMenu_AddedEffects": {
       "recipe": "bp_colour:WBP_LegacyMenu_AddedEffects",
@@ -842,6 +843,40 @@
       ],
       "stock_uexp_sha256": "8c460448aed6219e383f34e9e44b7d0ab01dffc00a253d57fd08c8734718686d",
       "baked_uexp_sha256": "3d2062932bba5f45051f9956a3563f87cd2dc78111f0a7db5f060e62f6bc01ba"
+    },
+    "UI/Modern/Prefabs/Buttons/WBP_ModernPrefab_Button": {
+      "recipe": "bp_colour:WBP_ModernPrefab_Button",
+      "style": [
+        "columnLine",
+        "listHighlight",
+        "rowText"
+      ],
+      "stock_uexp_sha256": "7954fce6a2e3becc7159c9d9a3394fbf34a6ab1d2a3e32e3cdf1b7d71c260bc5",
+      "baked_uexp_sha256": "8a019680bf2407bec9233e9bb5636b92055a55a5900dfad21b726d98400fa7e3"
+    },
+    "Art/UI/Common/Buttons/T_Button_State_Hovered_LeftFill": {
+      "recipe": "flat:listHighlight",
+      "style": [
+        "listHighlight"
+      ],
+      "stock_uexp_sha256": "7e26e256affc256a33341fe4b4d1a8d1f7ee03d678ef2c0249e223385baf435a",
+      "baked_uexp_sha256": "000effd683d0280d04b5a5072ec75901f60e52390891c689bf3b4c451f886da5"
+    },
+    "Art/UI/Common/T_Arrow_Empty": {
+      "recipe": "flat:headerIcon",
+      "style": [
+        "headerIcon"
+      ],
+      "stock_uexp_sha256": "e0f3daa1ef52d48b8e02c498070381c32c6e4dd87679b51ae267bb738714dc91",
+      "baked_uexp_sha256": "fd97b3800ba5c789f23757b9694700109f96df13d7ab8b45a2359f8a082c1961"
+    },
+    "Art/UI/Common/Buttons/T_Button_State_Hovered_LeftLineFade": {
+      "recipe": "flat:columnLine",
+      "style": [
+        "columnLine"
+      ],
+      "stock_uexp_sha256": "5e44d6292a1f7a8a13d96c6cc7f974127cb218e82f8a05e1bafd29b0f5423197",
+      "baked_uexp_sha256": "b17971e4a398fc74e79d9cfbe24fb6191a3bfd88f3fafa7af1b8e85d395ebac4"
     },
     "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Paper": {
       "recipe": "parchment:enchanting",
@@ -949,10 +984,76 @@
       "recipe": "bp_colour:WBP_ModernMenu_EnchantmentMenu",
       "style": [
         "columnLine",
+        "panel",
         "rowText"
       ],
       "stock_uexp_sha256": "69770706c94b880ad0ad707f0c782a81c9bb4933ab28b3eb096b2d2754ef6ae4",
-      "baked_uexp_sha256": "3b28320251543c54c314d86fca442a87301c1d57c9e7c4090d1a490a84ab9e84"
+      "baked_uexp_sha256": "47aca4ed71bbb8cb8780fc2d40f3c830ec330c41b58afa6376722a1d4b0efef1"
+    },
+    "Art/UI/Icons/Icon_Stats/T_Property_1_Price": {
+      "recipe": "flat:headerIcon",
+      "style": [
+        "headerIcon"
+      ],
+      "stock_uexp_sha256": "7dd3f60ba7d6cb93c2990ada9b41256acf4c325df45400f50127cd9c00aa5151",
+      "baked_uexp_sha256": "ab174dfb8e65cf698cab15c2cb03178f6090ce16cb07ed12754cee609d35005d"
+    },
+    "Art/UI/Icons/Icon_Stats/T_Property_1_Uses": {
+      "recipe": "flat:headerIcon",
+      "style": [
+        "headerIcon"
+      ],
+      "stock_uexp_sha256": "4b88c8b0c26d88df40d62493ac109007664de296abe74e7568534f3f706d9690",
+      "baked_uexp_sha256": "6673db8b487e4b1e63b586ec7a56b41d0103304a91e95b2e9d48b596d0ea00e7"
+    },
+    "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_AddedEffect_Decorator_Let": {
+      "recipe": "flat:columnLine",
+      "style": [
+        "columnLine"
+      ],
+      "stock_uexp_sha256": "dff7f37e5d4730bc230b5107617b4cfa9526cd76ab1ee895d43b446fa0845077",
+      "baked_uexp_sha256": "4e2058469e528441654f5ff29c8d5fb56fe023b32e0cdee4fccf6e051fbf29fd"
+    },
+    "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_AddedEffect_Decorator_Right": {
+      "recipe": "flat:columnLine",
+      "style": [
+        "columnLine"
+      ],
+      "stock_uexp_sha256": "ec2f376b3add4dc7b0b049fe12390fe1e687a05b6016b9bfa7e94a4f3cb5372a",
+      "baked_uexp_sha256": "1938f0fab32d39dbafeb4440428a885dfdc0a41ac027a0ee3c5cf607d9695d10"
+    },
+    "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_VerticalSeparator": {
+      "recipe": "flat:columnLine",
+      "style": [
+        "columnLine"
+      ],
+      "stock_uexp_sha256": "cb04cff1ffbbeb44470d1b40b895cf0f06c6212df125da2f2c6eed5f8278290b",
+      "baked_uexp_sha256": "88be05ec3fcc864333a8429b41410e257a537ad465e609b035417e75c62def82"
+    },
+    "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_ThinSeparatorLine": {
+      "recipe": "flat:columnLine",
+      "style": [
+        "columnLine"
+      ],
+      "stock_uexp_sha256": "c17ef863c28f2e7e2df97447bf46c9c74a052fefea52285c77fcb394f3c27091",
+      "baked_uexp_sha256": "b3c09631a4113084bbc87bd649154dae9931963d099a678a153f4526593df053"
+    },
+    "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_ItemThumbnail": {
+      "recipe": "tone:previewFrameLight",
+      "style": [
+        "previewFrameLight"
+      ],
+      "stock_uexp_sha256": "b9fd40d33cbbefb1046cfadea199984159526b766c70cbcdabb6c5a724d562d8",
+      "baked_uexp_sha256": "0fbfdacd38ce6104305d955c9a732bfac8dba40f64423230dbd88b03b672a3df"
+    },
+    "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_EnchantEffectBackground": {
+      "recipe": "parchment",
+      "style": [
+        "parchmentDark",
+        "parchmentLight"
+      ],
+      "stock_uexp_sha256": "8de054ed1ffd8ecaa5ccbc44a7a1c6023f782e183677a9936ab351f9b9a11049",
+      "baked_uexp_sha256": "d686b6a07988c32a9d9fe306668480bc4fce7ab552be6953177dff5b011a4dca"
     },
     "Art/UI/Modern/GameMenuLayer/Spellmaking/T_UI_Spellmaking-Frame": {
       "recipe": "altar_panel:spellmakingFrame",
@@ -970,12 +1071,53 @@
       ],
       "stock_uexp_sha256": "991ee5da1a789476e20cf50dff4a844973c74fc0f94842ba0782b0fefdbca513",
       "baked_uexp_sha256": "dc9a2925d4c410c5443a19d3c04388d69bbc2bf00662e5f5775b362323b8d288"
+    },
+    "UI/Modern/GameMenuLayer/Spellmaking/WBP_ModernMenu_SpellMakingMenu": {
+      "recipe": "bp_colour:WBP_ModernMenu_SpellMakingMenu",
+      "style": [
+        "panel",
+        "rowText"
+      ],
+      "stock_uexp_sha256": "14154b3a43a35b02a081c1458af8dfecebfd84f8302cad5546673492a4290b14",
+      "baked_uexp_sha256": "14f8836e61bb417b0f4c554d0df46b5ffc397b5819435b27104be62d4ccae118"
+    },
+    "UI/Modern/GameMenuLayer/Spellmaking/WBP_ModernMenu_SpellmakingEntry": {
+      "recipe": "bp_colour:WBP_ModernMenu_SpellmakingEntry",
+      "style": [
+        "rowText"
+      ],
+      "stock_uexp_sha256": "6d0ea47e0a302883a9ba4a89df90f8e20332c1d4fc780c0799a2899adbdd0445",
+      "baked_uexp_sha256": "e85878d2a431c872c62ae23b55738147f01f17ad6a3b216f0e05cc8e09092635"
+    },
+    "UI/Modern/MenuLayer/EffectSettings/WBP_ModernMenu_EffectsSettings": {
+      "recipe": "bp_colour:WBP_ModernMenu_EffectsSettings",
+      "style": [
+        "rowText"
+      ],
+      "stock_uexp_sha256": "bf61773a6e979165256535eef39956351f699c4b88e530827c376de10fbe3d73",
+      "baked_uexp_sha256": "cc2793989068a52c4974e572d4bc6a9986e84353a80d901da3973a5bbaf53400"
+    },
+    "UI/Legacy/MenuLayer/EffectSettings/WBP_LegacyMenu_EffectsSettingsEntry": {
+      "recipe": "bp_colour:WBP_LegacyMenu_EffectsSettingsEntry",
+      "style": [
+        "rowText"
+      ],
+      "stock_uexp_sha256": "83f5d0da919bf939081209aaa18c334b7dacad5c27fbc6100fd67126176ed6c3",
+      "baked_uexp_sha256": "c2660191810dba8b6bf2b280c2cdd87cfe28bcb7f648d88c93900c3c1e7e6d24"
+    },
+    "Art/UI/Modern/GameMenuLayer/Spellmaking/T_SpellMaking_FilterSeparator": {
+      "recipe": "flat:columnLine",
+      "style": [
+        "columnLine"
+      ],
+      "stock_uexp_sha256": "dbce4205aac6a7e0cf72d507c8c7a80745ce5ef5a4b9329af83a5a9d58a45aca",
+      "baked_uexp_sha256": "f86dd181c2eb4629086c247986f5e088cfa83cc8eab7e9a96c5f227962b700b4"
     }
   },
   "skipped": [],
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "18d93102abb4c86565937078f548ef3c45bc475f7d209c94835cfaae36561940",
-    "MRCustom_P.ucas": "80a87b652cee3ba769a3e62476330a3fc02a230173307115d3a255cae8de520b"
+    "MRCustom_P.utoc": "34dea26759ecf45960ddbf9ce6ec7002919f3dbeecf4e6e72a25f79df75d5a73",
+    "MRCustom_P.ucas": "f1347b14e27ff65b6b2a5bc14fa6f2a4c2b9c6eff2dcfedd861e7b2f00d7e5e0"
   }
 }

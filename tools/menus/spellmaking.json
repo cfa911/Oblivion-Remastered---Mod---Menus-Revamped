@@ -1,7 +1,7 @@
 {
   "menu": "Spellmaking",
   "order": 6,
-  "note": "Phase 7 (owner decisions 24-25): the right panel (winged frame and paper, one uncompressed B8G8R8A8 texture) and the eye ornament, recoloured from stock with colour keys fitted to the owner's dark art. The left paper is in alchemy.json (parchment).",
+  "note": "Phase 7 (owner decisions 24-25): the right panel (winged frame and paper, one uncompressed B8G8R8A8 texture) and the eye ornament, recoloured from stock with colour keys fitted to the owner's dark art. The left paper is in alchemy.json (parchment). RMI-087 (owner 2026-11-12): the Spellmaking and effect editor text literals in rowText (owners: KB dark-mode-ui.md 'Remaining altar colour owners'), the empty-effects banner tint in panel, the row rules in columnLine. Confirm/Cancel are baked in common.json (WBP_ModernPrefab_Button, shared by 27 widgets).",
   "assets": [
     {
       "asset": "Art/UI/Modern/GameMenuLayer/Spellmaking/T_UI_Spellmaking-Frame",
@@ -19,6 +19,160 @@
         "spellmakingEye"
       ],
       "shared_with": []
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/Spellmaking/WBP_ModernMenu_SpellMakingMenu",
+      "recipe": "bp_colour:WBP_ModernMenu_SpellMakingMenu",
+      "colours": [
+        "panel",
+        "rowText"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/Spellmaking/WBP_ModernMenu_SpellmakingEntry",
+      "recipe": "bp_colour:WBP_ModernMenu_SpellmakingEntry",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Modern/MenuLayer/EffectSettings/WBP_ModernMenu_EffectsSettings",
+      "recipe": "bp_colour:WBP_ModernMenu_EffectsSettings",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "Enchanting (effect editor)"
+      ]
+    },
+    {
+      "asset": "UI/Legacy/MenuLayer/EffectSettings/WBP_LegacyMenu_EffectsSettingsEntry",
+      "recipe": "bp_colour:WBP_LegacyMenu_EffectsSettingsEntry",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "Enchanting (effect editor)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/Spellmaking/T_SpellMaking_FilterSeparator",
+      "recipe": "flat:columnLine",
+      "colours": [
+        "columnLine"
+      ],
+      "shared_with": []
     }
-  ]
+  ],
+  "blueprint_colours": {
+    "WBP_ModernMenu_SpellMakingMenu": [
+      {
+        "offset": 55826,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "AddedEffect_Title"
+      },
+      {
+        "offset": 56046,
+        "stock": [
+          0.0999,
+          0.0561,
+          0.0395,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "PlayerGold_Value"
+      },
+      {
+        "offset": 56204,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "SpellMaking_TabName"
+      },
+      {
+        "offset": 57138,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "panel",
+        "widget": "NotificationBackground_1 (image tile tint, T_LevelUp_Frame_Light)"
+      }
+    ],
+    "WBP_ModernMenu_SpellmakingEntry": [
+      {
+        "offset": 4659,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Entry_Name"
+      }
+    ],
+    "WBP_ModernMenu_EffectsSettings": [
+      {
+        "offset": 27340,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Effect_name"
+      }
+    ],
+    "WBP_LegacyMenu_EffectsSettingsEntry": [
+      {
+        "offset": 4497,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "effects_settings_focus_text"
+      },
+      {
+        "offset": 4574,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "effects_settings_text"
+      },
+      {
+        "offset": 4647,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "effects_settings_value"
+      }
+    ]
+  }
 }

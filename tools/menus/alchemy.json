@@ -6,7 +6,7 @@
     "WBP_ModernMenu_FilterEffectEntry": [{"offset": 2893, "stock": [0.5395, 0.4969, 0.4452, 1.0], "colour": "filterRow"}, {"offset": 3002, "stock": [0.3968, 0.3325, 0.2831, 1.0], "colour": "filterSelected"}],
     "WBP_ModernPrefab_SelectableButton": [{"offset": 1734, "stock": [0.5395, 0.4969, 0.4452, 1.0], "colour": "filterRow"}, {"offset": 1813, "stock": [0.3968, 0.3325, 0.2831, 1.0], "colour": "filterSelected"}],
     "WBP_ModernMenu_ItemEffect": [{"offset": 1856, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText"}],
-    "WBP_ModernPrefab_EditableText": [{"offset": 258, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "nameBox"}],
+    "WBP_ModernPrefab_EditableText": [{"offset": 258, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "nameBox"}, {"offset": 13364, "stock": [0.995, 0.995, 0.995, 1.0], "colour": "listHighlight", "widget": "HoverEffect (image tile tint, T_GenericMenu_EditableText_Hover; RMI-087)"}],
     "WBP_LegacyMenu_AddedEffects": [{"offset": 18182, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText"}, {"offset": 18251, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText"}, {"offset": 18320, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText"}, {"offset": 18409, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText"}, {"offset": 18554, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText"}]
   },
   "assets": [
@@ -24,7 +24,7 @@
     {"asset": "UI/Modern/GameMenuLayer/Alchemy/Filters/WBP_ModernMenu_FilterEffectEntry", "recipe": "bp_colour:WBP_ModernMenu_FilterEffectEntry", "colours": ["filterRow", "filterSelected"], "shared_with": []},
     {"asset": "UI/Modern/GameMenuLayer/Common/WBP_ModernPrefab_SelectableButton", "recipe": "bp_colour:WBP_ModernPrefab_SelectableButton", "colours": ["filterRow", "filterSelected"], "shared_with": []},
     {"asset": "UI/Modern/GameMenuLayer/Alchemy/WBP_ModernMenu_ItemEffect", "recipe": "bp_colour:WBP_ModernMenu_ItemEffect", "colours": ["rowText"], "shared_with": []},
-    {"asset": "UI/Modern/Prefabs/WBP_ModernPrefab_EditableText", "recipe": "bp_colour:WBP_ModernPrefab_EditableText", "colours": ["nameBox"], "shared_with": ["Enchanting", "Sigil Stone", "Spellmaking", "Character Creation", "custom class"]},
+    {"asset": "UI/Modern/Prefabs/WBP_ModernPrefab_EditableText", "recipe": "bp_colour:WBP_ModernPrefab_EditableText", "colours": ["listHighlight", "nameBox"], "shared_with": ["Enchanting", "Sigil Stone", "Spellmaking", "Character Creation", "custom class"]},
     {"asset": "UI/Legacy/GameMenuLayer/Commun/WBP_LegacyMenu_AddedEffects", "recipe": "bp_colour:WBP_LegacyMenu_AddedEffects", "colours": ["rowText"], "shared_with": ["Inventory", "Magic", "Sigil Stone", "Enchanting", "Spellmaking", "Alchemy"]},
     {"asset": "Art/UI/Icons/Icon_Stats/T_Property_1_magnitude", "recipe": "flat:headerIcon", "colours": ["headerIcon"], "shared_with": ["Inventory", "Magic", "Sigil Stone", "Enchanting", "Spellmaking", "Alchemy"]},
     {"asset": "Art/UI/Icons/Icon_Stats/T_Property_1_time", "recipe": "flat:headerIcon", "colours": ["headerIcon"], "shared_with": ["Inventory", "Magic", "Sigil Stone", "Enchanting", "Spellmaking", "Alchemy"]},

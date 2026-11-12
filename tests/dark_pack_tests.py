@@ -333,7 +333,7 @@ if mdp is not None:
           and table.get("WBP_ModernPrefab_SelectableButton") == [(1734, (0.5395, 0.4969, 0.4452, 1.0), "filterRow"),
                                                                (1813, (0.3968, 0.3325, 0.2831, 1.0), "filterSelected")]
           and table.get("WBP_ModernMenu_ItemEffect") == [(1856, (0.0723, 0.0382, 0.0284, 1.0), "rowText")]
-          and table.get("WBP_ModernPrefab_EditableText") == [(258, (0.0723, 0.0382, 0.0284, 1.0), "nameBox")],
+          and table.get("WBP_ModernPrefab_EditableText") == [(258, (0.0723, 0.0382, 0.0284, 1.0), "nameBox"), (13364, (0.995, 0.995, 0.995, 1.0), "listHighlight")],
           "Alchemy r4: the blueprint colour table holds the census offsets and stock values")
     patch = getattr(mdp, "bp_colour", None)
     check(patch is not None, "make_dark_pack.py has the blueprint colour patch")
