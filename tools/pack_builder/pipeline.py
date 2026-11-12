@@ -152,7 +152,10 @@ def rgb565(rgb):
 
 
 def flat_blocks(data, rgb):
-    """Every BC3 colour block = one RGB565 colour (index 0); the alpha blocks are kept byte for byte."""
+    """Every BC3 colour block = one RGB565 colour (index 0); the alpha blocks are kept byte for byte. An uncompressed 32-bit
+    texture (the B8G8R8A8 altar separators, RMI-087) gets the colour in every pixel, alpha kept."""
+    if bgra_layout(data):
+        return map_colours(data, lambda c: rgb)
     out = bytearray(data)
     colour = rgb565(rgb).to_bytes(2, "little")
     for offset in range(header_size(data), len(out), 16):
@@ -699,14 +702,15 @@ def literal_rgba(value):
 
 
 def bp_colour(uexp, package, values):
-    """A blueprint's or material's colour literals set to the colour-file values (linear floats, alpha 1); refuses an
-    unexpected stock value (a game update moved it): nothing is patched then."""
+    """A blueprint's or material's colour literals set to the colour-file values (linear floats, the stock alpha kept: the
+    button hover fill and rules are 0.62-0.70, RMI-087); refuses an unexpected stock value (a game update moved it): nothing
+    is patched then."""
     out = bytearray(uexp)
     for offset, expected, name in BLUEPRINT_COLOURS[package]:
         found = struct.unpack_from("<4f", uexp, offset) if len(uexp) >= offset + 16 else ()
         if len(found) != 4 or any(abs(a - b) > 5e-4 for a, b in zip(found, expected)):
             raise SkipAsset(f"{package}: stock colour {found} at byte {offset}, expected {expected} (game update? re-scan the asset)")
-        struct.pack_into("<4f", out, offset, *literal_rgba(values[name]))
+        struct.pack_into("<4f", out, offset, *literal_rgba(values[name])[:3], found[3])
     return bytes(out)
 
 
@@ -864,6 +868,19 @@ def checked_texture(stock, baked):
     return baked
 
 
+def format_supported(kind, stock):
+    """Whether a recipe kind can recolour this stock DDS: every recipe takes BC3; parchment, altar_metal, altar_panel and
+    tab_strip also BC1 and uncompressed 32-bit; flat also uncompressed 32-bit (the altar separators, RMI-087)."""
+    try:
+        header_size(stock)
+        return True
+    except AssertionError:
+        pass
+    if kind in ("parchment", "altar_metal", "altar_panel", "tab_strip"):
+        return bool(bc1_header_size(stock) or bgra_layout(stock))
+    return kind == "flat" and bool(bgra_layout(stock))
+
+
 def bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, inject):
     """One asset into the stage folder: (values it read, manifest entry). Raises SkipAsset before writing when a check fails."""
     name = Path(asset).name
@@ -886,12 +903,8 @@ def bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, injec
     else:
         stock_path = stock_dds(name)
         stock = stock_path.read_bytes()
-        try:
-            header_size(stock)
-        except AssertionError:
-            other = bc1_header_size(stock) or bgra_layout(stock)
-            if not (kind in ("parchment", "altar_metal", "altar_panel", "tab_strip") and other):   # these map BC1 and BGRA too
-                raise SkipAsset("the stock texture is not BC3 (game update?)") from None
+        if not format_supported(kind, stock):
+            raise SkipAsset("the stock texture is not BC3 (game update?)")
         dds = work / "recoloured" / (name + ".dds")
         dds.parent.mkdir(parents=True, exist_ok=True)
         dds.write_bytes(checked_texture(stock, make(stock_path, values, work, stock_dds)))

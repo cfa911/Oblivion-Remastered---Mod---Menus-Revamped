@@ -1,7 +1,7 @@
 {
   "menu": "Enchanting",
   "order": 5,
-  "note": "Phase 7 first batch (owner decision 22). The page and its tab strips (BC1) in the parchment greys, the tab icon and separators light, and the text literals of the Enchanting blueprints in rowText (owners proven from the export table: KB docs/reverse-engineering/dark-mode-ui.md 'Enchanting menu textures', game 1.512.105.0). The right panel (frame and paper, one texture, shared with Sigil Stone), its crystal and ornament and the tab strips follow the owner's dark art with their own colour keys (decisions 24-25). Later: the added-effect decorators (shared with Spellmaking and the Skills menu), the thin separators (uncompressed, drawn in the SeparatorLine tint).",
+  "note": "Phase 7 first batch (owner decision 22). The page and its tab strips (BC1) in the parchment greys, the tab icon and separators light, and the text literals of the Enchanting blueprints in rowText (owners proven from the export table: KB docs/reverse-engineering/dark-mode-ui.md 'Enchanting menu textures', game 1.512.105.0). The right panel (frame and paper, one texture, shared with Sigil Stone), its crystal and ornament and the tab strips follow the owner's dark art with their own colour keys (decisions 24-25). Later: the added-effect decorators (shared with Spellmaking and the Skills menu), the thin separators (uncompressed, drawn in the SeparatorLine tint). RMI-087 (owner 2026-11-12): the cost glyphs Price/Uses, the Added Effects flourishes (shared with the Skills class background and Birthsign), the uncompressed separators, the preview tiles, the effect editor header strip and the notification banner tints.",
   "blueprint_colours": {
     "WBP_ModernMenu_EnchanteStats": [
       {
@@ -150,6 +150,28 @@
         ],
         "colour": "rowText",
         "widget": "SoulGem_Text"
+      },
+      {
+        "offset": 75158,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "panel",
+        "widget": "NotificationBG (image tile tint, T_LevelUp_Frame_Light)"
+      },
+      {
+        "offset": 75493,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "panel",
+        "widget": "WBP_OriginalImageTile_224 (image tile tint, T_LevelUp_Frame_Light)"
       }
     ]
   },
@@ -265,9 +287,89 @@
       "recipe": "bp_colour:WBP_ModernMenu_EnchantmentMenu",
       "colours": [
         "columnLine",
+        "panel",
         "rowText"
       ],
       "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Icon_Stats/T_Property_1_Price",
+      "recipe": "flat:headerIcon",
+      "colours": [
+        "headerIcon"
+      ],
+      "shared_with": [
+        "Spellmaking (cost line, WBP_ModernMenu_EnchanteStats)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Icon_Stats/T_Property_1_Uses",
+      "recipe": "flat:headerIcon",
+      "colours": [
+        "headerIcon"
+      ],
+      "shared_with": [
+        "Spellmaking (cost line, WBP_ModernMenu_EnchanteStats)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_AddedEffect_Decorator_Let",
+      "recipe": "flat:columnLine",
+      "colours": [
+        "columnLine"
+      ],
+      "shared_with": [
+        "Spellmaking",
+        "Skills class background",
+        "Birthsign"
+      ]
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_AddedEffect_Decorator_Right",
+      "recipe": "flat:columnLine",
+      "colours": [
+        "columnLine"
+      ],
+      "shared_with": [
+        "Spellmaking",
+        "Skills class background",
+        "Birthsign"
+      ]
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_VerticalSeparator",
+      "recipe": "flat:columnLine",
+      "colours": [
+        "columnLine"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_ThinSeparatorLine",
+      "recipe": "flat:columnLine",
+      "colours": [
+        "columnLine"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_ItemThumbnail",
+      "recipe": "tone:previewFrameLight",
+      "colours": [
+        "previewFrameLight"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_EnchantEffectBackground",
+      "recipe": "parchment",
+      "colours": [
+        "parchmentDark",
+        "parchmentLight"
+      ],
+      "shared_with": [
+        "Spellmaking (effect editor header, WBP_ModernMenu_EffectsSettings)"
+      ]
     }
   ]
 }

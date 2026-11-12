@@ -1,7 +1,7 @@
 {
   "menu": "Shared art",
   "order": 4,
-  "note": "Assets drawn by many menus (Phase 7). The scrollbar: the Dark scrollbar instances MIC_UI_Scrollbar_Vert_Dark and MIC_UI_ScrollbarVert_Handle_Dark hold no colours, so the [Skin] scrollbar values are baked into their parent materials' defaults (CachedExpressionData and the shader map's uniform defaults; KB docs/reverse-engineering/dark-mode-ui.md 'Scrollbar materials', game 1.512.105.0). Every scrollbar but Settings (Light instances) takes them.",
+  "note": "Assets drawn by many menus (Phase 7). The scrollbar: the Dark scrollbar instances MIC_UI_Scrollbar_Vert_Dark and MIC_UI_ScrollbarVert_Handle_Dark hold no colours, so the [Skin] scrollbar values are baked into their parent materials' defaults (CachedExpressionData and the shader map's uniform defaults; KB docs/reverse-engineering/dark-mode-ui.md 'Scrollbar materials', game 1.512.105.0). Every scrollbar but Settings (Light instances) takes them. RMI-087 (owner 2026-11-12, baked not run time): the shared button prefab's label, rules and hover band (Confirm/Cancel and every other WBP_ModernPrefab_Button).",
   "material_colours": {
     "M_UI_Scrollbar_Vert_Reworked": [
       {
@@ -168,6 +168,129 @@
       "shared_with": [
         "Inventory filters (filter icon table; every user already dark)"
       ]
+    },
+    {
+      "asset": "UI/Modern/Prefabs/Buttons/WBP_ModernPrefab_Button",
+      "recipe": "bp_colour:WBP_ModernPrefab_Button",
+      "colours": [
+        "columnLine",
+        "listHighlight",
+        "rowText"
+      ],
+      "shared_with": [
+        "27 widgets: Pause menu, Settings popups, Container, Quantity, Training, Level Up, Spell Purchase, Help, Sleep/Wait, Quest panels, Character Creation, custom class, Birthsign, Inventory details, Alchemy, Enchanting/Spellmaking effect editor"
+      ]
+    },
+    {
+      "asset": "Art/UI/Common/Buttons/T_Button_State_Hovered_LeftFill",
+      "recipe": "flat:listHighlight",
+      "colours": [
+        "listHighlight"
+      ],
+      "shared_with": [
+        "27 widgets: Pause menu, Settings popups, Container, Quantity, Training, Level Up, Spell Purchase, Help, Sleep/Wait, Quest panels, Character Creation, custom class, Birthsign, Inventory details, Alchemy, Enchanting/Spellmaking effect editor"
+      ]
+    },
+    {
+      "asset": "Art/UI/Common/T_Arrow_Empty",
+      "recipe": "flat:headerIcon",
+      "colours": [
+        "headerIcon"
+      ],
+      "shared_with": [
+        "WBP_ModernPrefab_Button (27 widgets, see the button row)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Common/Buttons/T_Button_State_Hovered_LeftLineFade",
+      "recipe": "flat:columnLine",
+      "colours": [
+        "columnLine"
+      ],
+      "shared_with": [
+        "WBP_ModernPrefab_Button (27 widgets, see the button row)"
+      ]
     }
-  ]
+  ],
+  "blueprint_colours": {
+    "WBP_ModernPrefab_Button": [
+      {
+        "offset": 2332,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "text (label)"
+      },
+      {
+        "offset": 2391,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "text (label)"
+      },
+      {
+        "offset": 2782,
+        "stock": [
+          0.0704,
+          0.0382,
+          0.0284,
+          0.6235
+        ],
+        "colour": "columnLine",
+        "widget": "State_Default_Middle_LineBottom"
+      },
+      {
+        "offset": 2853,
+        "stock": [
+          0.0704,
+          0.0382,
+          0.0284,
+          0.6235
+        ],
+        "colour": "columnLine",
+        "widget": "State_Default_Middle_LineTop"
+      },
+      {
+        "offset": 3295,
+        "stock": [
+          1.0,
+          1.0,
+          1.0,
+          0.6745
+        ],
+        "colour": "listHighlight",
+        "widget": "State_Hover_Middle_FIll"
+      },
+      {
+        "offset": 3366,
+        "stock": [
+          0.0704,
+          0.0382,
+          0.0284,
+          0.698
+        ],
+        "colour": "columnLine",
+        "widget": "State_Hover_Middle_LineBottom"
+      },
+      {
+        "offset": 3437,
+        "stock": [
+          0.0704,
+          0.0382,
+          0.0284,
+          0.698
+        ],
+        "colour": "columnLine",
+        "widget": "State_Hover_Middle_LineTop"
+      }
+    ]
+  }
 }

@@ -287,6 +287,109 @@ with tempfile.TemporaryDirectory() as temp:
     m = model.ColourModel(ini_path)
     check(m.needs_build(dict(custom_colours.pack_values())) == ["altarPaper"], f"a changed altarPaper needs a Build ({m.needs_build(dict(custom_colours.pack_values()))})")
 
+# ---- 5. RMI-087 (owner 2026-11-12): the remaining brown altar text, glyphs, rules, flourishes, tiles and banners ----
+# Owners: KB docs/reverse-engineering/dark-mode-ui.md "Remaining altar colour owners" (static scan + dev census, game 1.512.105.0).
+INK, GOLD = [0.0723, 0.0382, 0.0284, 1.0], [0.0999, 0.0561, 0.0395, 1.0]
+SM, ES = "UI/Modern/GameMenuLayer/Spellmaking/", "UI/Modern/MenuLayer/EffectSettings/"
+BP_087 = {   # package: (menu json, asset path, [(offset, stock, colour)])
+    "WBP_ModernMenu_SpellMakingMenu": ("spellmaking", SM + "WBP_ModernMenu_SpellMakingMenu", [
+        (55826, INK, "rowText"), (56046, GOLD, "rowText"), (56204, INK, "rowText"), (57138, INK, "panel")]),
+    "WBP_ModernMenu_SpellmakingEntry": ("spellmaking", SM + "WBP_ModernMenu_SpellmakingEntry", [(4659, INK, "rowText")]),
+    "WBP_ModernMenu_EffectsSettings": ("spellmaking", ES + "WBP_ModernMenu_EffectsSettings", [(27340, INK, "rowText")]),
+    "WBP_LegacyMenu_EffectsSettingsEntry": ("spellmaking", "UI/Legacy/MenuLayer/EffectSettings/WBP_LegacyMenu_EffectsSettingsEntry", [
+        (4497, INK, "rowText"), (4574, INK, "rowText"), (4647, INK, "rowText")]),
+}
+TEX_087 = {
+    "Art/UI/Icons/Icon_Stats/T_Property_1_Price": ("enchanting", "flat:headerIcon"),
+    "Art/UI/Icons/Icon_Stats/T_Property_1_Uses": ("enchanting", "flat:headerIcon"),
+    E + "T_Enchantment_AddedEffect_Decorator_Let": ("enchanting", "flat:columnLine"),
+    E + "T_Enchantment_AddedEffect_Decorator_Right": ("enchanting", "flat:columnLine"),
+    E + "T_Enchantment_VerticalSeparator": ("enchanting", "flat:columnLine"),
+    E + "T_Enchantment_ThinSeparatorLine": ("enchanting", "flat:columnLine"),
+    E + "T_Enchantment_ItemThumbnail": ("enchanting", "tone:previewFrameLight"),
+    E + "T_Enchantment_EnchantEffectBackground": ("enchanting", "parchment"),
+    S + "T_SpellMaking_FilterSeparator": ("spellmaking", "flat:columnLine"),
+}
+menus = {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in (root / "tools/menus").glob("*.json")}
+asset_rows = {row["asset"]: (stem, row) for stem, data in menus.items() for row in data.get("assets", [])}
+for package, (menu, asset, wanted) in BP_087.items():
+    got = {r["offset"]: r for r in menus[menu].get("blueprint_colours", {}).get(package, [])}
+    for offset, stock, colour in wanted:
+        row = got.get(offset, {})
+        check(row.get("stock") == stock and row.get("colour") == colour, f"{package} {offset}: {stock} -> {colour} ({row.get('stock')}, {row.get('colour')})")
+    menu_row = asset_rows.get(asset, (None, {}))
+    check(menu_row[0] == menu and menu_row[1].get("recipe") == f"bp_colour:{package}", f"{package}: an asset row in {menu}.json ({menu_row[0]}, {menu_row[1].get('recipe')})")
+enchant = {r["offset"]: r for r in menus["enchanting"]["blueprint_colours"]["WBP_ModernMenu_EnchantmentMenu"]}
+for offset in (75158, 75493):   # the Enchanting notification banner tiles (T_LevelUp_Frame_Light tinted with the ink)
+    check(enchant.get(offset, {}).get("stock") == INK and enchant.get(offset, {}).get("colour") == "panel", f"EnchantmentMenu {offset}: banner tint -> panel ({enchant.get(offset)})")
+for asset, (menu, recipe) in TEX_087.items():
+    got_menu, row = asset_rows.get(asset, (None, {}))
+    check(got_menu == menu and row.get("recipe") == recipe, f"{Path(asset).name}: {menu}.json {recipe} ({got_menu}, {row.get('recipe')})")
+# flat on an uncompressed B8G8R8A8 texture (the three separators): every pixel the colour, alpha kept
+with tempfile.TemporaryDirectory() as temp:
+    temp = Path(temp)
+    line = Image.new("RGBA", (8, 4))
+    line.putdata([(75, 54, 46, 40 * x) for y in range(4) for x in range(8)])
+    path = temp / "line.dds"
+    line.save(path)
+    try:
+        out_bytes = pipe.recipe("flat:columnLine")[2](path, dict(V, columnLine=[99.0, 99.0, 99.0]), temp, None)
+        out, ref = decoded(out_bytes, temp, "line_o.dds"), decoded(path.read_bytes(), temp, "line_s.dds")
+        check(len(out_bytes) == len(path.read_bytes()), "flat on B8G8R8A8: size kept")
+        check(all(out.getpixel((x, y))[:3] == (99, 99, 99) for y in range(4) for x in range(1, 8)), f"flat on B8G8R8A8: the colour ({out.getpixel((4, 1))})")
+        check(all(out.getpixel((x, y))[3] == ref.getpixel((x, y))[3] for y in range(4) for x in range(8)), "flat on B8G8R8A8: alpha unchanged")
+    except Exception as error:   # noqa: BLE001
+        check(False, f"flat works on B8G8R8A8 ({type(error).__name__}: {error})")
+    # the build's format gate (first build skipped the three separators: "the stock texture is not BC3")
+    try:
+        check(pipe.format_supported("flat", path.read_bytes()), "the build accepts flat on a B8G8R8A8 stock texture")
+        check(not pipe.format_supported("tone", path.read_bytes()), "the build still refuses tone on a B8G8R8A8 stock texture")
+    except Exception as error:   # noqa: BLE001
+        check(False, f"pipeline.format_supported exists ({type(error).__name__}: {error})")
+
+# owner run 2026-11-12: the name field's focus band (HoverEffect, art T_GenericMenu_EditableText_Hover, tint 0.995) behind the
+# white name text -> listHighlight, the hovered list row band (owner choice; shared with Alchemy, Sigil Stone, Character Creation,
+# custom class)
+edit = {r["offset"]: r for r in menus["alchemy"]["blueprint_colours"]["WBP_ModernPrefab_EditableText"]}
+check(edit.get(13364, {}).get("stock") == [0.995, 0.995, 0.995, 1.0] and edit.get(13364, {}).get("colour") == "listHighlight",
+      f"WBP_ModernPrefab_EditableText 13364: HoverEffect band -> listHighlight ({edit.get(13364)})")
+edit_row = asset_rows.get("UI/Modern/Prefabs/WBP_ModernPrefab_EditableText", (None, {}))[1]
+check(sorted(edit_row.get("colours", [])) == ["listHighlight", "nameBox"], f"the EditableText row reads listHighlight and nameBox ({edit_row.get('colours')})")
+
+# owner 2026-11-12: Confirm / Cancel are BAKED (no run-time ink: "we are baking all for the Dark menu"). WBP_ModernPrefab_Button is
+# shared by 27 widgets; owners from the export table (KB dark-mode-ui.md "Remaining altar colour owners").
+check(not (root / "src/alchemy/EffectEditorInk.cpp").exists() and "effecteditorink" not in (root / "src/core/Runtime.cpp").read_text(encoding="utf-8"),
+      "no run-time effect editor ink: the button colours are baked")
+BTN_INK = [0.0704, 0.0382, 0.0284]
+BTN = {2332: ([0.0723, 0.0382, 0.0284, 1.0], "rowText"), 2391: ([0.0723, 0.0382, 0.0284, 1.0], "rowText"),
+       2782: (BTN_INK + [0.6235], "columnLine"), 2853: (BTN_INK + [0.6235], "columnLine"),
+       3295: ([1.0, 1.0, 1.0, 0.6745], "listHighlight"), 3366: (BTN_INK + [0.698], "columnLine"), 3437: (BTN_INK + [0.698], "columnLine")}
+got_btn = {r["offset"]: r for r in menus["common"].get("blueprint_colours", {}).get("WBP_ModernPrefab_Button", [])}
+for offset, (stock, colour) in BTN.items():
+    row = got_btn.get(offset, {})
+    check(row.get("stock") == stock and row.get("colour") == colour, f"WBP_ModernPrefab_Button {offset}: {stock} -> {colour} ({row.get('stock')}, {row.get('colour')})")
+btn_row = asset_rows.get("UI/Modern/Prefabs/Buttons/WBP_ModernPrefab_Button", (None, {}))
+check(btn_row[0] == "common" and btn_row[1].get("recipe") == "bp_colour:WBP_ModernPrefab_Button", f"WBP_ModernPrefab_Button: common.json bp_colour ({btn_row[0]}, {btn_row[1].get('recipe')})")
+fill = asset_rows.get("Art/UI/Common/Buttons/T_Button_State_Hovered_LeftFill", (None, {}))
+check(fill[0] == "common" and fill[1].get("recipe") == "flat:listHighlight", f"T_Button_State_Hovered_LeftFill: common.json flat:listHighlight ({fill[0]}, {fill[1].get('recipe')})")
+# bp_colour keeps the stock alpha (the hover fill is 0.6745, the rules 0.62-0.70; every earlier literal has alpha 1)
+try:
+    uexp = bytearray(4000)
+    for offset, (stock, _) in BTN.items():
+        struct.pack_into("<4f", uexp, offset, *stock)
+    out = pipe.bp_colour(bytes(uexp), "WBP_ModernPrefab_Button", dict(V, rowText=[239.0] * 3, columnLine=[99.0] * 3, listHighlight=[91.0] * 3))
+    fill_rgba = struct.unpack_from("<4f", out, 3295)
+    check(abs(fill_rgba[3] - 0.6745) < 1e-4 and abs(fill_rgba[0] - pipe.linear(91.0)) < 1e-4, f"bp_colour keeps the stock alpha ({fill_rgba})")
+    check(abs(struct.unpack_from("<4f", out, 2332)[3] - 1.0) < 1e-6, "an alpha-1 literal stays alpha 1")
+except Exception as error:   # noqa: BLE001
+    check(False, f"bp_colour patches WBP_ModernPrefab_Button ({type(error).__name__}: {error})")
+
+# owner run 3 (2026-11-12): the hover arrows (T_Arrow_Empty, stock 87 66 56) and the side rules (T_Button_State_Hovered_LeftLineFade,
+# B8G8R8A8, stock 74 54 46) were still brown; both are drawn only by WBP_ModernPrefab_Button
+for asset, recipe in (("Art/UI/Common/T_Arrow_Empty", "flat:headerIcon"), ("Art/UI/Common/Buttons/T_Button_State_Hovered_LeftLineFade", "flat:columnLine")):
+    got = asset_rows.get(asset, (None, {}))
+    check(got[0] == "common" and got[1].get("recipe") == recipe, f"{Path(asset).name}: common.json {recipe} ({got[0]}, {got[1].get('recipe')})")
+
 print(f"{count} checks, {len(fails)} failures")
 for why in fails:
     print("FAIL:", why)
