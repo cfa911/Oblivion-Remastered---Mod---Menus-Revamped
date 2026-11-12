@@ -146,9 +146,10 @@ namespace sorting
 						nativeSorts.push_back(reflect::Hold(child.widget));
 		for (const auto& child : children)
 			if (!IsOwnedHeader(child.widget)) nativePeers.push_back(reflect::Hold(child.widget));
-		const bool inventoryColumns = kind == 0 && OwnSorts();
-		// paint only (icons, active-sort background): Inventory and the Magic pickers; layout still follows inventoryColumns
-		const bool skinnedPaint = uistyle::SkinnedKind(kind) && (kind != 0 || inventoryColumns);
+		// The Inventory strip order and paint: the Inventory and both container/barter sides (owner, C.1 2026-11-12).
+		const bool inventoryColumns = InventoryStrip() && OwnSorts();
+		// paint only (icons, active-sort background): Inventory strip and the Magic pickers; layout still follows inventoryColumns
+		const bool skinnedPaint = uistyle::SkinnedKind(kind) && (!InventoryStrip() || inventoryColumns);
 		const auto inventoryPaint = uistyle::InventoryControls(skinnedPaint, mrconfig::Get().stylePreset);
 		const auto inventoryOrder = [&] {
 			using itemsort::Key;

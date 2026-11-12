@@ -41,6 +41,14 @@ namespace inventoryheaders {
 inline Box ControlFill(const Plan&, Box control) { return control.w==30 ? kFilterFill : Box{0,0,control.w,control.h}; }
 }
 #endif
+#ifndef INVENTORYHEADERS_COLUMN_MODEL
+// RMI-092 pre-fix: an unmeasured tab kept another tab's columns, the guesses ended Value 22 inside the list, and the name
+// guess was 60 for every side.
+namespace inventoryheaders {
+inline Measure OtherTabEstimate(const Measure& m) { return m; }
+inline double DefaultNameX(int, Box list) { return list.x+60; }
+}
+#endif
 #ifndef INVENTORYHEADERS_FILL_REVEAL
 namespace inventoryheaders {
 inline bool CanRevealControlFills(bool, bool settled) { return settled; }
@@ -147,7 +155,21 @@ int main(){
   Check(styleStable,"each guide slot keeps one style across tabs");
  }
  // Magic spell pages (1) and Active Effects (6) get the row too since the Magic revamp (magic_header_layout_tests).
-for(int kind:{2,3,4,5})Check(!Arrange(kind,{100,140,800,600},190,columns,offered,3).enabled,"other menus retain existing layout");
+for(int kind:{2,5})Check(!Arrange(kind,{100,140,800,600},190,columns,offered,3).enabled,"other menus retain existing layout");
+ // Container and Barter sides (kinds 3/4, owner C.1 walk-through 2026-11-12): the Inventory header row on both sides.
+ {const auto inv=Arrange(0,{100,140,800,600},190,columns,offered,3,{},700);
+  for(int kind:{3,4}){const auto side=Arrange(kind,{100,140,800,600},190,columns,offered,3,{},700);
+   bool same=side.enabled&&side.inset==inv.inset;
+   for(int i=0;i<kCount;++i)same=same&&side.sorts[i].x==inv.sorts[i].x&&side.sorts[i].w==inv.sorts[i].w;
+   for(int i=0;i<3;++i)same=same&&side.filters[i].x==inv.filters[i].x&&side.filters[i].y==inv.filters[i].y;
+   for(std::size_t i=0;i<inv.guides.size();++i)same=same&&side.guides[i].x==inv.guides[i].x&&side.guides[i].w==inv.guides[i].w&&side.rule[i]==inv.rule[i];
+   Check(same,kind==3?"container/barter player side gets the Inventory header row":"container/barter other side gets the Inventory header row");}
+  // The other side has no stolen toggle (stolenfilter::Supports): count 2 = enchanted + category, no empty stolen cell.
+  const auto noStolen=Arrange(4,{100,140,800,600},190,columns,offered,2,{},700);
+  int rules3=0,rules2=0; for(int i=0;i<kListGuide;++i){rules3+=inv.rule[i]&&inv.guides[i].w>0;rules2+=noStolen.rule[i]&&noStolen.guides[i].w>0;}
+  Check(noStolen.enabled&&noStolen.filters[1].w==0&&noStolen.filters[0].x==inv.filters[0].x&&noStolen.filters[2].x==inv.filters[2].x,
+   "without a stolen toggle its cell is left out; enchanted and category keep their places");
+  Check(rules2==rules3-1,"without a stolen toggle one header divider fewer");}
  offered[health]=false;offered[damage]=false;
  p=Arrange(0,{100,140,800,600},190,columns,offered,1);
  Check(p.sorts[health].w==0&&p.sorts[damage].w==0,"hidden tab columns leave no header hit area");
@@ -272,6 +294,36 @@ for(int kind:{2,3,4,5})Check(!Arrange(kind,{100,140,800,600},190,columns,offered
   Check(glyph.x>=top.x+top.w&&glyph.x<=top.x+top.w+16,"the Y glyph starts just right of the header row's end");
   Check(std::abs(glyph.y+glyph.h/2-(top.y+(kHeight+kRule)/2))<0.01,"the Y glyph is centred on the header strip");
   Check(glyph.w==36&&glyph.h==36,"the Y glyph keeps its native size");
+ }
+ {
+  // RMI-092 (owner 2026-11-12, "still mangled"; probe C1G on ECA083A7): a row shows only its tab's numeric columns, packed
+  // right: Value 87 wide ending 42 inside the list, the others 54 wide to its left. Measured offsets (from the list's left):
+  // container side (725 wide) Weapons Health 434 Damage 488 Weight 542 Value 596; Inventory (737) All Items Health 392
+  // Damage 446 Armor 500 Weight 554 Value 608. Name: 86 (Inventory, player side), 42 (container/merchant side).
+  const auto centre=[](const Box& b){return b.x+b.w/2;};
+  std::array<bool,kCount> weapons{},all{};
+  for(auto key:itemsort::Keys(itemtags::Tab::Weapons))weapons[int(key)]=true;
+  for(auto key:itemsort::Keys(itemtags::Tab::AllItems))all[int(key)]=true;
+  const int H=int(itemsort::Key::Health),D=int(itemsort::Key::Damage),A=int(itemsort::Key::Armor),
+   W=int(itemsort::Key::Weight),V=int(itemsort::Key::Value);
+  const Box side{160,140,725,600},inv{168,140,737,600};
+  const std::array<Box,kCount> none{};
+  const auto empty=Arrange(4,side,DefaultNameX(4,side),none,weapons,2,{},500);
+  Check(std::abs(centre(empty.sorts[V])-(160+596+43.5))<0.01&&std::abs(centre(empty.sorts[W])-(160+542+27))<0.01
+   &&std::abs(centre(empty.sorts[D])-(160+488+27))<0.01&&std::abs(centre(empty.sorts[H])-(160+434+27))<0.01,
+   "an unmeasured container Weapons tab puts each sort on the column its rows would have");
+  const auto allItems=Arrange(0,inv,DefaultNameX(0,inv),none,all,3,{},500);
+  Check(std::abs(centre(allItems.sorts[H])-(168+392+27))<0.01&&std::abs(centre(allItems.sorts[A])-(168+500+27))<0.01
+   &&std::abs(centre(allItems.sorts[V])-(168+608+43.5))<0.01,"the unmeasured columns match the Inventory's measured All Items row");
+  Check(DefaultNameX(4,side)==160+42&&DefaultNameX(3,side)==160+86&&DefaultNameX(0,inv)==168+86,
+   "the name guess is 42 on the container/merchant side and 86 elsewhere");
+  Measure measuredAll;measuredAll.list=side;measuredAll.nameX=160+42;
+  measuredAll.columns[H]={160+380,150,54,28};measuredAll.columns[D]={160+434,150,54,28};measuredAll.columns[A]={160+488,150,54,28};
+  measuredAll.columns[W]={160+542,150,54,28};measuredAll.columns[V]={160+596,150,87,28};
+  const auto other=OtherTabEstimate(measuredAll);
+  const auto fromOther=Arrange(4,side,other.nameX,other.columns,weapons,2,other.status,500);
+  Check(std::abs(centre(fromOther.sorts[H])-(160+434+27))<0.01&&std::abs(centre(fromOther.sorts[D])-(160+488+27))<0.01&&other.nameX==160+42,
+   "another tab's measurement keeps the side's name place but not its columns (the owner's mangled Weapons header)");
  }
 std::printf("%u checks, %u failures\n",checks,failures);return failures?1:0;
 }

@@ -111,7 +111,10 @@ int main()
 	{
 		Check(!Arrange(2, list, nameX, columns, spell, 3).enabled && !Arrange(5, list, nameX, columns, spell, 3).enabled,
 			"the Effect and Type pickers are laid out by the School host, not on their own");
-		Check(!Arrange(3, list, nameX, columns, spell, 3).enabled, "container sides keep the native row");
+		// C.1 (owner 2026-11-12): container sides take the Inventory row (inventory_header_layout_tests), never the Magic one.
+		const auto side = Arrange(3, list, nameX, columns, spell, 3), inv = Arrange(0, list, nameX, columns, spell, 3);
+		Check(side.enabled && side.filters[2].x == inv.filters[2].x && side.filters[0].x == inv.filters[0].x,
+			"container sides get the Inventory row, not the Magic row");
 	}
 	std::printf("%u checks, %u failures\n", checks, failures);
 	return failures ? 1 : 0;

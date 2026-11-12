@@ -24,13 +24,15 @@ void Colour(Widget*,float,float,float,float){}
 struct Call { Call(Widget*,const wchar_t*){} explicit operator bool()const{return true;} int Size(const char*){return 4;} bool Set(const char*,float){return true;} bool RunGuarded(){return true;} };
 }
 constexpr float kClear[4]={};
-struct Picker { int kind=1; bool enchantedOnly=true,enchantedFocus=false; Widget* enchantedFrame=nullptr,*enchantedImage=nullptr; void PaintEnchanted(); };
+struct Picker { int kind=1; bool enchantedOnly=true,enchantedFocus=false; Widget* enchantedFrame=nullptr,*enchantedImage=nullptr; bool InventoryStrip() const { return kind==0||kind==3||kind==4; } void PaintEnchanted(); };
 '''+body+r'''
 int main(){Picker p;p.PaintEnchanted();bool blue=colour[2]>colour[0] && colour[2]>colour[1] && colour[3]==0.5f;
 if(!blue)std::puts("FAIL active enchanted background must be blue at half opacity");
 Picker inv;inv.kind=0;inv.PaintEnchanted();bool bare=colour[3]==0;
 if(!bare)std::puts("FAIL Inventory skin: an active enchanted toggle has no coloured fill");
-return blue&&bare?0:1;}
+Picker side;side.kind=4;side.PaintEnchanted();bool sideBare=colour[3]==0;
+if(!sideBare)std::puts("FAIL container/barter side (C.1): the toggle paints like the Inventory's");
+return blue&&bare&&sideBare?0:1;}
 '''
 cpp=out/'enchanted_paint.cpp';exe=out/'enchanted_paint.exe';cpp.write_text(code)
 subprocess.run(['cl','/nologo','/EHsc','/std:c++latest',*source_paths.include_flags(),str(cpp),f'/Fe{exe}',f'/Fo{out}\\'],check=True)

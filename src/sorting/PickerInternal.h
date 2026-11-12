@@ -180,7 +180,10 @@ namespace sorting
 		// The single header row (strip under the title, sorts over their columns): Inventory, and since the Magic revamp the
 		// Magic spell pages (the School host, which also places the Effect and Type pickers) and Active Effects. The
 		// inventory* layout fields below are this row's state for all three.
-		bool HeaderLayout() const { return kind == 0 || kind == 1 || kind == 6; }
+		// The Inventory strip (Inventory rows): the Inventory and both container/barter sides (owner, C.1 2026-11-12: the same
+		// WBP_ModernMenu_ContainerInventory_MainContent lays out each side).
+		bool InventoryStrip() const { return kind == 0 || kind == 3 || kind == 4; }
+		bool HeaderLayout() const { return InventoryStrip() || kind == 1 || kind == 6; }
 		reflect::Handle magicTitleText;   // RMI-079: the Magic page title's drawn text (VAltarTextBlock) our label copies
 		void SyncMagicTitle();            // RMI-079: our Magic title label takes a new page name in the same tick
 			std::vector<itemsort::Key> SortKeys() const { return kind == 1 ? itemsort::MagicKeys() : kind == 6 ? itemsort::ActiveKeys() : itemsort::Keys(tab); }

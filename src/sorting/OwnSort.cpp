@@ -264,7 +264,7 @@ namespace sorting::detail
 			if (on) TextureBrush(arrow, state.descending ? itemsort::kArrowDown : itemsort::kArrowUp);
 			ui::Visible(arrow, on);
 		}
-		const float dim = kind != 0 && uistyle::SkinnedKind(kind) ? uistyle::MagicHeaderOpacity(mrconfig::Get().stylePreset, 0.5f) : 0.5f;
+		const float dim = !uistyle::InventoryStripKind(kind) && uistyle::SkinnedKind(kind) ? uistyle::MagicHeaderOpacity(mrconfig::Get().stylePreset, 0.5f) : 0.5f;
 		ui::Float(reflect::Get(headerImage), L"SetRenderOpacity", on || choice || category ? 1.0f : dim);
 	}
 
@@ -427,8 +427,8 @@ namespace sorting::detail
 			auto* widget = reflect::Get(sortHeaders[k]);
 			if (!widget) continue;
 			const bool offered = OwnSorts() && Offers(static_cast<itemsort::Key>(k));
-			if (kind == 0 && OwnSorts() && !offered) {
-				// Hidden preserves the ScrollBox slot width across Inventory tab changes.
+			if (InventoryStrip() && OwnSorts() && !offered) {
+				// Hidden preserves the ScrollBox slot width across tab changes (Inventory and container sides).
 				constexpr std::uint8_t hiddenSortVisibility = 2;
 				ui::CallFirstGuarded(widget,L"SetVisibility",&hiddenSortVisibility,1);
 			} else {
@@ -450,7 +450,7 @@ namespace sorting::detail
 				pickerhighlight::kOutlineWidth, pickerhighlight::kCornerRadius);
 			if (auto* back = reflect::Get(sortBacks[k])) ui::Visible(back, on && !focus);
 			const float stockInactive = uistyle::Get(mrconfig::Get().stylePreset).picker.inactiveSortOpacity;
-			const float inactiveOpacity = kind != 0 && uistyle::SkinnedKind(kind)
+			const float inactiveOpacity = !uistyle::InventoryStripKind(kind) && uistyle::SkinnedKind(kind)
 				? uistyle::MagicHeaderOpacity(mrconfig::Get().stylePreset, stockInactive) : stockInactive;
 			if (auto* image = reflect::Get(sortImages[k])) ui::Float(image, L"SetRenderOpacity", on ? 1.0f : inactiveOpacity);
 			if (auto* arrow = reflect::Get(sortArrows[k])) {

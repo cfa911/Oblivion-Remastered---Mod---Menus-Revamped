@@ -22,9 +22,11 @@ namespace search::detail
 		const uistyle::Search& BarStyle(menus::Menu a_menu)
 		{
 			// the skinned menus (Inventory, Magic) take the menu skin's bar in Dark (phase 2, owner 2026-11-10); Alchemy and its
-			// Filters panel too since their parchments are dark (owner 2026-11-11)
+			// Filters panel too since their parchments are dark (owner 2026-11-11); the container/barter sides like the Inventory
+			// (Step C.1, owner 2026-11-12: "use the styling of the inv search bar, dark. It is brown rn")
 			return uistyle::SearchFor(a_menu == menus::Menu::kInventory || a_menu == menus::Menu::kMagic ||
-				a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters, mrconfig::Get().stylePreset);
+				a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters ||
+				a_menu == menus::Menu::kContainerYours || a_menu == menus::Menu::kContainerTheirs, mrconfig::Get().stylePreset);
 		}
 
 		const float* BarTextInk(menus::Menu a_menu, bool hint, bool sel)
@@ -91,8 +93,12 @@ namespace search::detail
 			return tex;
 		}
 
-		// the container / barter menu's bar: above the side's header (menu units, local to the menu's root canvas); the container's list alone on the
-		// screen (the player's side not shown) has a place of its own
+		// the container / barter menu's bar (menu units, local to the menu's root canvas). Step C.1 (owner on A0A6D6BA: "the search bar is not in
+		// the same position as in the inv"; accepted on C8FB448F, "the bars are correctly positioned"): like the Inventory and Magic bars it
+		// sits in the side's title row (centred on inv_cont_title), right of the tab name, its right edge kSideBarRightInset inside the side's
+		// header (Magic: list edge 904.3, bar end 900), with the Inventory bar's size. The [ContainerYours/Theirs/Take] title-row keys offset it.
+		constexpr double kSideBarRightInset = 4;
+		constexpr double kSideBarOwnerShift = 10;   // owner 2026-11-12 on E5F0F6DA: "shift both bars to the right ... 10 px shuld be enough"
 		bool ContainerBarRect(menus::Menu a_side, UE::UObject* a_canvas, double& a_x, double& a_y, double& a_w, double& a_h, bool a_log)
 		{
 			auto* content = container::SideContent(a_side);
@@ -106,10 +112,12 @@ namespace search::detail
 			auto*       tabs = menuW ? container::FindWidget(menuW, a_side == menus::Menu::kContainerYours ? "cont_give_tabs" : "cont_take_tabs") : nullptr;
 			const bool  take = a_side == menus::Menu::kContainerTheirs && !(tabs && ui::ShownOnScreen(tabs));
 			const auto& p = take ? c.takeBar : a_side == menus::Menu::kContainerYours ? c.yoursBar : c.theirsBar;
-			a_h = p.h;
-			a_w = p.w > 0 ? p.w : hw + 2 * std::abs(p.x);
-			a_x = hx - cx + p.x;
-			a_y = hy - cy - a_h - 6 + p.y;
+			double tx = hx, ty = hy, tw = hw, th = hh;   // the title row; the header box if the title cannot be measured
+			if (auto* title = container::FindWidget(content, "inv_cont_title"); !title || !ui::Measure(title, tx, ty, tw, th) || th < 1) { ty = hy; th = hh; }
+			a_w = c.inventoryBar.w;
+			a_h = c.inventoryBar.h;
+			a_x = hx + hw - kSideBarRightInset - a_w + kSideBarOwnerShift - cx + p.x;
+			a_y = ty + th * 0.5 - a_h * 0.5 - cy + p.y;
 			if (cw > 100) g_canvasW = cw;
 			if (a_log) {
 				logger::debug("own bar: {}{} - header at {:.0f},{:.0f} {:.0f}x{:.0f}, canvas at {:.0f},{:.0f} {:.0f}x{:.0f} -> bar at {:.0f},{:.0f} {:.0f}x{:.0f}", menus::Name(a_side), take ? " (its list alone)" : "", hx, hy, hw, hh, cx, cy, cw, ch, a_x, a_y, a_w, a_h);

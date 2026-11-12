@@ -174,12 +174,12 @@ namespace sorting::detail
 	void Picker::PaintStolen()
 	{
 		constexpr float mark[4]{ stolenfilter::kStolenFill[0], stolenfilter::kStolenFill[1], stolenfilter::kStolenFill[2], 1.0f };
-		PaintToggle(reflect::Get(stolenFrame), reflect::Get(stolenImage), kind == 0 && uistyle::SkinFor(mrconfig::Get().stylePreset).invertToggles, stolenOnly, stolenFocus, stolenfilter::kStolenFill, mark);
+		PaintToggle(reflect::Get(stolenFrame), reflect::Get(stolenImage), InventoryStrip() && uistyle::SkinFor(mrconfig::Get().stylePreset).invertToggles, stolenOnly, stolenFocus, stolenfilter::kStolenFill, mark);
 	}
 
 	void Picker::PaintEnchanted()
 	{
-		PaintToggle(reflect::Get(enchantedFrame), reflect::Get(enchantedImage), kind == 0 && uistyle::SkinFor(mrconfig::Get().stylePreset).invertToggles, enchantedOnly, enchantedFocus,
+		PaintToggle(reflect::Get(enchantedFrame), reflect::Get(enchantedImage), InventoryStrip() && uistyle::SkinFor(mrconfig::Get().stylePreset).invertToggles, enchantedOnly, enchantedFocus,
 			enchantedfilter::kEnchantedFill, filtertoggle::kEnchantedMark);
 	}
 

@@ -622,6 +622,80 @@
      "size": "questIconSize"
     }
    ]
+  },
+  "WBP_ModernMenu_ContainerInventory_MainContent": {
+   "asset": "UI/Modern/GameMenuLayer/Container_Inventory/WBP_ModernMenu_ContainerInventory_MainContent",
+   "note": "C.1 (owner 2026-11-12, every preset): the side/tab title keeps its own width when the header row widens the filter row (probe C1C: the Fill title slot fell to 0 and the name was not drawn). Title slot Fill -> Auto; Spacer_156 takes the slack (Fill). Shared: Inventory, Container, Barter, Spell Purchase. RMI-092 (owner 'Bake width 300'): the title also gets Min Desired Width 300 (wider than every tab name) so its width never moves the filter row.",
+   "floats": [],
+   "bytes": [
+    {
+     "widget": "HorizontalBoxSlot_2 (inv_cont_AnimationRetainerforText) Size.SizeRule",
+     "offset": 18872,
+     "stock": 1,
+     "value": 0
+    }
+   ],
+   "rewrites": [
+    {
+     "widget": "HorizontalBoxSlot_7 (Spacer_156) Size",
+     "export_start": 18901,
+     "export_size": 14,
+     "header_pos": 0,
+     "stock_fields": [
+      4,
+      5
+     ],
+     "stock_zeroes": [],
+     "add_bytes": [
+      [
+       0,
+       "010301"
+      ]
+     ],
+     "field_sizes": [
+      3,
+      0,
+      1,
+      1,
+      4,
+      4
+     ],
+     "stock_export_sha256": "56c47b2e80ead67480022d7d1e6065d95413ee2c824b553ba7dc73c46ccdf3d0"
+    },
+    {
+     "widget": "inv_cont_title (WBP_AltarTextBlock_C) Min Desired Width",
+     "export_start": 21270,
+     "export_size": 72,
+     "header_pos": 0,
+     "stock_fields": [
+      2,
+      3,
+      4,
+      40
+     ],
+     "stock_zeroes": [],
+     "add": [
+      [
+       13,
+       300.0
+      ]
+     ],
+     "field_sizes": [
+      0,
+      0,
+      18,
+      20,
+      22
+     ],
+     "sha_mask": [
+      [
+       6,
+       16
+      ]
+     ],
+     "stock_export_sha256": "b16a2152987ecf94a9697cd70e61a9d67fec2db43bafd3723a5387774d682bb0"
+    }
+   ]
   }
  }
 }

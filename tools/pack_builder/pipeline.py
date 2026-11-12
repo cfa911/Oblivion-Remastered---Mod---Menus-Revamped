@@ -99,7 +99,8 @@ LAYOUT_PACK = "MRLayout_P"   # sizes only (Step B, decision 46): installed by th
 
 
 def load_layout(folder=MENUS):
-    """{package: {"asset", "floats": [{widget, offset, stock, size|value, type?}], "rewrites": [...]}} from the data files'
+    """{package: {"asset", "floats": [{widget, offset, stock, size|value, type?}], "bytes": [{widget, offset, stock, value}],
+    "rewrites": [...]}} from the data files'
     "layout" sections (tools/menus/layout.json: today's compact rows, Step B decisions 29/45)."""
     layout = {}
     for path in Path(folder).glob("*.json"):
@@ -115,6 +116,26 @@ def load_layout(folder=MENUS):
 
 
 LAYOUT = load_layout()
+
+
+def load_literals(folder=MENUS):
+    """{package: [{offset, type: float|double, stock, value, widget}]} from the data files' "blueprint_literals": fixed
+    non-colour literals of a colour-patched blueprint, baked in the colour pack only (RMI-089: the Inventory details page
+    drop shadow UseShadow? 1.0 -> 0.0; Classic/Light and MRLayout_P keep the stock value)."""
+    literals = {}
+    for path in Path(folder).glob("*.json"):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError as error:
+            raise BuildError(f"{path.name}: not valid JSON ({error})")
+        for package, rows in data.get("blueprint_literals", {}).items():
+            if package in literals:
+                raise BuildError(f"blueprint_literals package {package} is listed twice in {folder}")
+            literals[package] = rows
+    return literals
+
+
+BLUEPRINT_LITERALS = load_literals()
 
 
 # ---- sizes: stock-checked floats (bp_float) and the package rewrite for values the cook did not store ----
@@ -134,6 +155,12 @@ def bp_float(uexp, package, sizes):
             raise SkipAsset(f"{package}: stock size {found} at byte {row['offset']} ({row['widget']}), expected {row['stock']} "
                             f"(game update? re-scan the asset)")
         struct.pack_into(fmt, out, row["offset"], float_value(row, sizes))
+    for row in LAYOUT[package].get("bytes", []):   # stored enum bytes (C.1: a HorizontalBoxSlot's Size rule, 0 Auto / 1 Fill)
+        found = uexp[row["offset"]] if len(uexp) > row["offset"] else None
+        if found != row["stock"]:
+            raise SkipAsset(f"{package}: stock byte {found} at {row['offset']} ({row['widget']}), expected {row['stock']} "
+                            f"(game update? re-scan the asset)")
+        out[row["offset"]] = row["value"]
     return bytes(out)
 
 
@@ -245,20 +272,31 @@ def replace_export(uasset, uexp, serial_offset, serial_size, new_export):
     return bytes(ua), new_uexp
 
 
+def masked_sha256(data, mask):
+    """SHA-256 of `data` with each [start, length] range of `mask` zeroed: a rewrite's stock check that ignores bytes another
+    recipe bakes first (RMI-092: the Custom colour of inv_cont_title sits in the export that gains its width)."""
+    data = bytearray(data)
+    for start, length in mask:
+        data[start:start + length] = bytes(length)
+    return hashlib.sha256(bytes(data)).hexdigest()
+
+
 def rewrite_package(uasset, uexp, rewrites):
     """The package with every rewrite applied (a stored value added to a struct of one export; KB techniques/
     unversioned-package-rewrite.md). Each export is checked against its stock bytes (SHA-256) and header first."""
     for r in sorted(rewrites, key=lambda r: -r["export_start"]):   # later exports first: earlier starts stay valid
         start, size = r["export_start"], r["export_size"]
         export = uexp[start:start + size]
-        if hashlib.sha256(export).hexdigest() != r["stock_export_sha256"]:
+        if masked_sha256(export, r.get("sha_mask", [])) != r["stock_export_sha256"]:
             raise SkipAsset(f"{r['widget']}: stock export differs from the verified game build (game update?)")
         fields, zeroes, _ = parse_header(export, r["header_pos"])
         if fields != r["stock_fields"] or sorted(zeroes) != r["stock_zeroes"]:
             raise SkipAsset(f"{r['widget']}: unexpected property header {fields} {sorted(zeroes)}")
         sizes = dict(enumerate(r["field_sizes"]))
-        for field, value in r["add"]:
+        for field, value in r.get("add", []):
             export = add_field(export, r["header_pos"], sizes, field, struct.pack("<f", value))
+        for field, value in r.get("add_bytes", []):   # a whole value as cooked bytes (C.1: an FSlateChildSize struct)
+            export = add_field(export, r["header_pos"], sizes, field, bytes.fromhex(value))
         uasset, uexp = replace_export(uasset, uexp, len(uasset) + start, size, export)
     return uasset, uexp
 
@@ -1016,6 +1054,14 @@ def bp_colour(uexp, package, values):
             raise SkipAsset(f"{package}: stock colour {found} at byte {offset}, expected {expected} (game update? re-scan the asset)")
         value = CONSTANT_COLOURS[name] if name in CONSTANT_COLOURS else values[name]
         struct.pack_into("<4f", out, offset, *literal_rgba(value)[:3], found[3])
+    for row in BLUEPRINT_LITERALS.get(package, []):   # fixed literals (RMI-089), stock-checked like the colours
+        fmt = "<d" if row.get("type") == "double" else "<f"
+        width = struct.calcsize(fmt)
+        found = struct.unpack_from(fmt, uexp, row["offset"])[0] if len(uexp) >= row["offset"] + width else None
+        if found is None or abs(found - row["stock"]) > 1e-6:
+            raise SkipAsset(f"{package}: stock value {found} at byte {row['offset']} ({row['widget']}), expected {row['stock']} "
+                            f"(game update? re-scan the asset)")
+        struct.pack_into(fmt, out, row["offset"], float(row["value"]))
     return bytes(out)
 
 

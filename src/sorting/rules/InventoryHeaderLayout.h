@@ -85,17 +85,19 @@ namespace inventoryheaders
 		return out;
 	}
 
+	inline constexpr double kValueRightInset=42;   // the Value column ends 42 inside the list (probe C1G, every tab)
 	inline Plan Arrange(int kind, Box list, double nameLeft, const std::array<Box,kCount>& columns,
 		const std::array<bool,kCount>& offered, int count, Box status = {}, double rowsBottom = 0)
 	{
 		Plan out;
 		if ((kind==1 || kind==6) && std::isfinite(list.x+list.y+list.w+list.h) && list.w>=200 && list.h>=80 && count>=0 && count<=3)
 			return ArrangeMagic(kind,list,nameLeft,columns,offered,count,rowsBottom);
-		if (kind!=0 || !std::isfinite(list.x+list.y+list.w+list.h) || list.w<200 || list.h<80 || count<1 || count>3) return out;
+		// Inventory (0) and both container/barter sides (3/4): the same rows and columns (owner, C.1 2026-11-12).
+		if ((kind!=0 && kind!=3 && kind!=4) || !std::isfinite(list.x+list.y+list.w+list.h) || list.w<200 || list.h<80 || count<1 || count>3) return out;
 		out.enabled=true; out.inset=kInset;
 		const auto& value=columns[int(itemsort::Key::Value)];
 		double right=value.w>0 && std::isfinite(value.x+value.w)
-			? value.x+value.w : list.x+list.w-22;
+			? value.x+value.w : list.x+list.w-kValueRightInset;   // RMI-092: measured 42 (was a 22 guess)
 		double statsLeft=right;
 		const double tableRight=right;
 		const double fullHeight=std::clamp(rowsBottom-list.y,kHeight,list.h);
@@ -119,13 +121,16 @@ namespace inventoryheaders
 		if (offered[int(itemsort::Key::Name)]) out.sorts[int(itemsort::Key::Name)]={nameX,list.y,kButton,kHeight};
 		const double statusRight=status.w>=60 && status.x+status.w<=statsLeft+2
 			? std::min(status.x+status.w,statsLeft) : statsLeft;
+		// count 3: enchanted, stolen, category; fewer = no stolen toggle (the container/barter other side, or the INI off):
+		// its cell and divider are left out (owner, C.1 2026-11-12).
+		const bool stolen=count>=3;
 		out.filters[0]={statusRight-32,list.y-kFilterLift,30,kHeight};
-		out.filters[1]={statusRight-68,list.y-kFilterLift,30,kHeight};
+		if (stolen) out.filters[1]={statusRight-68,list.y-kFilterLift,30,kHeight};
 		const double categoryX=std::max(list.x,(list.x+nameX-kButton)/2);
 		out.filters[2]={categoryX,list.y,kButton,kHeight};
 		divider(nameX-3);
 		divider(statsLeft);
-		divider(statusRight-70);
+		if (stolen) divider(statusRight-70);
 		divider(statusRight-35);
 		// The extended list guides stay subtle and begin below the lower rule.
 		const double rowsTop=list.y+kHeight+kRule;
@@ -171,6 +176,19 @@ namespace inventoryheaders
 			return std::nullopt;
 		}
 	};
+	// RMI-092 (owner 2026-11-12; probe C1G on ECA083A7): a row shows only its tab's numeric columns, packed right (Value 87
+	// wide ending kValueRightInset inside the list, the others 54 wide to its left), so another tab's measurement is the wrong
+	// layout for this tab: only the side's name place is kept from it. With nothing measured, the name sits at 86 (Inventory,
+	// player side) or 42 (container/merchant side: no status column).
+#define INVENTORYHEADERS_COLUMN_MODEL 1
+	inline Measure OtherTabEstimate(const Measure& measure)
+	{
+		Measure out;
+		out.list=measure.list;
+		out.nameX=measure.nameX;
+		return out;
+	}
+	inline double DefaultNameX(int kind, Box list) { return list.x+(kind==4 ? 42 : 86); }
 	// Bottom of the list guides: the laid-out rows; while a tab's new rows are not laid out yet, the height they had.
 	inline double RowsBottom(double measured, double held, int items)
 	{

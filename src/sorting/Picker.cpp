@@ -93,6 +93,7 @@ namespace sorting
 			auto wanted = picker.tab;
 			// Each side has its own page byte; unreadable or not a picker tab: the per-frame Tick decides.
 			if (itemtags::TabFromPage(ContainerPage(picker.kind), wanted)) RefreshTab(picker, wanted);
+			picker.CompensateInventorySlots();   // RMI-077: before this frame's paint arranges the game's A-Z resize
 		}
 	}
 
