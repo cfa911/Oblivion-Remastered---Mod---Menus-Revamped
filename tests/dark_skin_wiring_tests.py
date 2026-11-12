@@ -14,14 +14,11 @@ def check(ok, why):
 # Phase 7 (owner decision 18): the scrollbar colours are baked into the stock scrollbar materials; no run-time painter
 check("PaintScrollbarStyle" not in src, "the run-time scrollbar painter is removed (baked in the Custom pack)")
 details = source_paths.function(src, "void StyleDetails(")
-check("WidgetBarStyle" not in details, "the skill sub-tab ScrollBox bar is not painted at run time (baked)")
-page_case = details.split("case detailsskin::Role::Page:", 1)[1].split("case detailsskin::Role::Ornament:", 1)[0]
-check("PageTint(" in page_case and "SetBrushResourceObject" not in page_case, "the page keeps its stock material brush")
-check("PageTint(" in details, "the page is darkened by its widget tint")
-check("ClassifyWidget(" not in details and "ScaleTint(" not in details,
-      "sub-tab art is not tinted per widget (its animation resets the tint; the package darkens it)")
+check(not details and "WidgetBarStyle" not in src and "PageTint(" not in src,
+      "phase 28b (decision 28): the item details are baked in the Custom pack; no run-time details pass (page tint, scrollbar, sub-tab art)")
 rows = source_paths.function(src, "void StyleRow(")
-check("inv_entry_scribble" in rows, "the equipped pen scribble is hidden on every row (RMI-072)")
+# decision 28 (28a): the scribble (T_UI_Scribble cleared), row ink and row art are baked in the Custom pack: no Inventory row pass
+check(not rows and "inv_entry_scribble" not in src, "the equipped pen scribble is baked out, not hidden at run time (RMI-072, decision 28)")
 layout = source_paths.function(src, "bool Picker::LayoutInventoryHeaders(")
 check("menuskin::StyleTitle(" in layout and "UnclipTitle(" in source_paths.function(src, "void StyleTitle("),
       "the tab title is not clipped")
@@ -35,16 +32,16 @@ x, y, w = (float(ini["Inventory"][k]) for k in ("uX", "uY", "uWidth"))
 check(250 <= y <= 300 and x >= 390 and x + w <= 930, "the Inventory search bar sits in the title row, right of the title")
 check(x >= 430 and 910 <= x + w <= 920,
       "the search bar starts after the whole title and keeps its right edge (owner screenshot on a593c0f7: it covered the last s)")
-check("DisableTextColor" in src and "EnableTextColor" in src, "perk level entries get Inventory-only text colours")
+check("DisableTextColor" not in src and "EnableTextColor" not in src,
+      "phase 28b (decision 28): the item details are baked in the Custom pack; the perk line colours are the baked class defaults of WBP_ModernMenu_Stats_LevelDescription")
 headers = (source_paths.ROOT / "src/sorting/InventoryHeaders.cpp").read_text(encoding="utf-8-sig")
 check(not any(s in headers for s in ("kProbeInk", "detailsskin::k", "ruleInk", "0.65f,0.65f")),
       "the Inventory layout code holds no skin colours (styling separate from logic)")
-check(all("skin.recolor" in body for body in (rows, details)), "every recolour is gated by the preset's skin")
-check("StyleRowArt(" in rows and "SwapArt(" in source_paths.function(src, "void StyleRowArt("), "rows take the preset's art swaps (separators, equipped marker)")
-check("SwapArt(" in details, "the details view takes the preset's art swaps (bands, icons, ring centre)")
-button = source_paths.function(src, "void StyleDetailsButton(")
-check("SwapArt(" in button, "action buttons take the preset's art swaps (arrows, rules)")
-check('L"Color"' in details and "Role::Ring" in details, "the skill ring colour comes from the skin")
+check("skin.recolor" in source_paths.function(src, "void StyleMagicRow("), "every remaining recolour is gated by the preset's skin")
+check("SwapArt(" in source_paths.function(src, "void StyleRowArt("), "Magic rows take the remaining art swaps (row icons; separators and equipped band are baked)")
+check(not source_paths.function(src, "void StyleDetailsButton("),
+      "phase 28b (decision 28): the item details are baked in the Custom pack; the action button is the baked WBP_ModernPrefab_Button (RMI-087)")
+check('L"Color"' not in src and "Role::Ring" not in src, "phase 28b (decision 28): the item details are baked in the Custom pack; the skill ring colour is baked (MIC_UI_SkillCircularProgress)")
 unclip_body = source_paths.function(src, "void UnclipTitle(")
 check('"text_block"' in unclip_body,
       "the title's inner text (text_block in WBP_AltarTextBlock, log on a22c29b8) gets the width and no-scroll settings")
@@ -55,16 +52,13 @@ skin_h = (source_paths.ROOT / "src/core/UiTheme.h").read_text(encoding="utf-8")
 files = set(re.findall(r'L"([A-Za-z0-9]+\.png)"', skin_h))
 missing = [f for f in files if not (source_paths.ROOT / "assets/Skin" / f).is_file()]
 check(bool(files) and not missing, f"every Dark art file is shipped in assets/Skin (missing: {missing})")
-check('setSlate("DisableTextColor", skin.perkInk' in src, "locked and unlocked perk lines share the perk ink")
 popup = (source_paths.ROOT / "src/sorting/PickerPopup.cpp").read_text(encoding="utf-8-sig")
 check("SkinFor(" in popup, "the Inventory popup and toggle looks follow the preset")
-entry = source_paths.function(src, "void OnDetailsEntryEvent(")
-check("StyleDetailsEntry(" in entry and "SwapArt(" in source_paths.function(src, "void StyleDetailsEntry(") and "OnDetailsEntryEvent" in details,
-      "list entries the game rebuilds inside the details view (effect lines) are restyled when rebuilt")
-level = source_paths.function(src, "unsigned StyleLevelDescription(")
+check(not any(source_paths.function(src, f) for f in ("void OnDetailsEntryEvent(", "void StyleDetailsEntry(", "unsigned StyleLevelDescription(")),
+      "phase 28b (decision 28): the item details are baked in the Custom pack; no effect-line or perk-line pass")
 rebuild = source_paths.function(src, "bool RebuildEmphasis(")
-check("RebuildEmphasis(" in level and all(s in rebuild for s in ("SetTextStyleSet", "emphasisInk", "VisitRows(", "original")),
-      "perk emphasis rows are recoloured for the Inventory's widgets only, and the shared table restored")
+check(all(s in rebuild for s in ("SetTextStyleSet", "VisitRows(", "original")),
+      "the rich-text row rebuild stays for the Magic Spell Effectiveness line (28c)")
 try:
     from PIL import Image
     band = Image.open(source_paths.ROOT / "assets/Skin/RowEquipped.png").convert("RGBA")
@@ -80,14 +74,8 @@ check("OnTitleEvent" in src and "WatchPost" in source_paths.function(src, "void 
       "the title is re-kept after the prefab's own updates")
 check("SetRetainRendering" in unclip_body and "RetainerBox" in unclip_body,
       "the title's animation RetainerBox draws it directly (its effect mask cut the text at a fixed width; RMI-073)")
-lists = source_paths.function(src, "void StyleListEntries(")
-check("GetDisplayedEntryWidgets" in lists and "StyleDetailsEntry(" in lists and "WatchPost" in lists and "StyleListEntries(" in details,
-      "effect lines generated by a list inside the details view are restyled (they are not in its widget tree)")
+check(not source_paths.function(src, "void StyleListEntries("), "phase 28b (decision 28): the item details are baked in the Custom pack; effect lines are baked (WBP_LegacyMenu_AddedEffects)")
 check("IsEmphasisRow(" in rebuild and "perkInk" in rebuild, "bold rows take the emphasis gray, regular rows the light perk ink")
-entry_style = source_paths.function(src, "void StyleDetailsEntry(")
-check('"T_Property_1_"' in entry_style and "skin.ink" in entry_style,
-      "effect-line stat icons (incl. the _White variants the lines tint brown) take the light ink")
-details_body = source_paths.function(src, "void StyleDetails(")
 try:
     from PIL import Image
     line = Image.open(source_paths.ROOT / "assets/Skin/ButtonLine.png").convert("RGBA")
@@ -96,14 +84,8 @@ try:
           "action button rules are near-white neutral (170 gray read brownish over the laurels)")
 except ImportError:
     check(False, "Pillow is needed to check the button rule art")
-watch = source_paths.function(src, "void WatchDetails(")
-check("WBP_LegacyMenu_AddedEffects" in watch and "OnEffectLineEvent" in watch,
-      "effect lines (WBP_LegacyMenu_AddedEffects, created outside the widget tree) are hooked by class")
-check("ShownOnScreen" in source_paths.function(src, "void OnEffectLineEvent("),
-      "an effect line is restyled only while the Inventory details view is on screen (the class is shared)")
-brush_tint = source_paths.function(src, "bool ReadBrushTint(")
-check(bool(brush_tint) and "TintColor" in brush_tint and "SpecifiedColor" in brush_tint,
-      "the brush's own tint can be read (colour-only images draw their brush tint; ColorAndOpacity stayed white)")
+check(not source_paths.function(src, "void WatchDetails(") and "OnEffectLineEvent" not in src and "ReadBrushTint" not in src,
+      "phase 28b (decision 28): the item details are baked in the Custom pack; no details watch, effect-line hook or brush-tint reader")
 layout_fn = source_paths.function(src, "bool Picker::LayoutInventoryHeaders(")
 place_title = source_paths.function(src, "void PlaceTitleLabel(")
 check("PlaceTitleLabel(" in layout_fn, "the Inventory layout places our own tab title label (RMI-073)")
@@ -112,11 +94,8 @@ check(all(s in place_title for s in ("TitleLabel(", "/Script/UMG.TextBlock", "Se
 clear_fn = source_paths.function(src, "void Picker::ClearInventoryHeaderLayout(")
 check("titleLabel" in clear_fn and "RemoveFromParent" in clear_fn,
       "leaving the layout removes our title label and shows the native title again")
-button_style = source_paths.function(src, "void StyleDetailsButton(")
-check("IsButtonRule(" in button_style and "buttonRule" in button_style and "WriteBrushTint(" in button_style,
-      "the button rule middles (colour-only, brown brush tint) take the preset's light rule colour in their brush")
-check("NeutralBrush(" in details_body and "WriteBrushTint(" in details_body,
-      "the ornament lines' gold brush tint is neutralised before the gray tint")
+check("NeutralBrush(" not in src and "WriteBrushTint(" not in src,
+      "phase 28b (decision 28): the item details are baked in the Custom pack; the ornament and button rule brush tints are baked literals")
 theme = (source_paths.ROOT / "src/core/UiTheme.h").read_text(encoding="utf-8-sig")
 check("buttonRule" in theme, "the rule colour of the action button is per preset")
 title_event = source_paths.function(src, "void OnTitleEvent(")
@@ -126,25 +105,19 @@ check("KeepTitleLabel(" in title_event and "uix::SetText" in keep and "SetRender
 check("menuskin::SetTitleLabel(" in place_title, "the layout hands our title label to the skin")
 check("titleNative=reflect::Hold(title)" in place_title and 'ui::Float(title,L"SetRenderOpacity",0.0f)' in place_title,
       "suppress the complete native title prefab while the overlay is visible")
-check("SetBrushTintColor" in source_paths.function(src, "bool WriteBrushTint("),
-      "apply live button brush colour through the engine setter")
-check('"T_Line_02"' in details and "SigilStone" in details,
-      "the thin brown edge below Sigil Stone headings is neutralised only in that details widget")
+check('"T_Line_02"' not in src, "phase 28b (decision 28): the item details are baked in the Custom pack; T_Line_02 is baked (skin_flat, shared: Sigil Stone, Recharge, Training, Alchemy)")
 tick = source_paths.function(src, "void Picker::Tick(")
 check("menuskin::RefreshInventoryTitle(" in tick and tick.index("RefreshInventoryTitle(") < tick.index("now >= nextLayout"),
       "the displayed title follows native text even when the prefab bypasses the reflected SetText hook")
-check("menuskin::RefreshButtonRules(" in tick and "ReadBrushTint(" in source_paths.function(src, "void RefreshButtonRules("),
-      "the active Inventory checks known button rules again after native animation restores the stock tint")
-check("ui::TreeWidgets(button, 3000)" in button_style,
-      "button painting uses the same widget budget as the census that found the late unhovered rules")
+check("RefreshButtonRules" not in tick, "phase 28b (decision 28): the item details are baked in the Custom pack; no button rule refresh per tick")
 # ---- Phase 2: Dark Magic (owner 2026-11-10) ----
 skin_hdr = (source_paths.ROOT / "src/sorting/MenuSkin.h").read_text(encoding="utf-8-sig")
 check("WBP_ModernMenu_MagicDetails_C" in skin_hdr and "kMagic" in skin_hdr, "the skin has a Magic target (details class)")
 magic_row = source_paths.function(src, "void StyleMagicRow(")
 check(bool(magic_row) and "skin.recolor" in magic_row and "StyleRowArt(" in magic_row,
       "Magic rows take light ink and the row art swaps, gated by the preset")
-check("OnMagicRowBound" in layout and "menuskin::WatchDetails(a_menu, list, menuskin::kMagic)" in layout,
-      "the Magic header layout hooks its rows (generated, not in the menu tree) and its details view")
+check("OnMagicRowBound" in layout and "WatchDetails" not in layout,
+      "the Magic header layout hooks its rows (generated, not in the menu tree); its details are baked (phase 28b)")
 check("StyleListScrollbar" not in layout, "the Magic list scrollbar is not painted at run time (baked)")
 page = source_paths.function(src, "void StyleMagicPage(")
 check(bool(page) and "IsMagicPage(" in page and "SwapArt(" in page, "the Magic page takes its white-shape art in the panel colour, per widget")
@@ -156,8 +129,7 @@ check("PickerFor(uistyle::SkinnedKind(kind)" in popup and "const auto& cellFill 
       "Magic popups and their cells use the skinned popup look")
 hdr_src = (source_paths.ROOT / "src/sorting/PickerHeader.cpp").read_text(encoding="utf-8-sig")
 check("SkinnedKind(kind)" in hdr_src, "Magic header icons and the active-sort background use the dark art in Dark")
-check("IsDescriptionRule" in details and "T_Diamond_Brown_Separator" in (source_paths.ROOT / "src/sorting/rules/DetailsSkin.h").read_text(encoding="utf-8"),
-      "the Magic details separators are neutralised like the Inventory description rule")
+check("IsDescriptionRule" not in src, "phase 28b (decision 28): the item details are baked in the Custom pack; the description rules (T_Line_Brown, T_Diamond_Brown_Separator, T_Character_Line_Long) are baked")
 own_sort = (source_paths.ROOT / "src/sorting/OwnSort.cpp").read_text(encoding="utf-8-sig")
 check(own_sort.count("MagicHeaderOpacity(") >= 2, "both the Magic sort icons and the Effect/Type/School picker icons use the Dark Magic opacity")
 check("SpellEffectiveness" in page and "InkRich(" in page, "the Spell Effectiveness line (rich text) takes the light ink")
@@ -203,7 +175,7 @@ swap = source_paths.function(src, "bool SwapArt(")
 paint_swap = source_paths.function(src, "void PaintSwap(")
 check("PaintSwap(" in swap and "tint" in paint_swap and "darkstyle::" in paint_swap, "an art swap takes its colour from DarkStyle.h")
 row_art = source_paths.function(src, "void StyleRowArt(")
-check(bool(row_art) and "StyleRowArt(" in rows and "StyleRowArt(" in magic_row, "Inventory and Magic rows share one row art pass")
+check(bool(row_art) and "StyleRowArt(" in magic_row, "Magic rows keep the row art pass until 28c")
 check("darkstyle::" in hdr_src and "headerIcon" in hdr_src and "headerIcon" in popup, "the white sort icons are tinted by headerIcon")
 check("keepRows" in source_paths.function(src, "bool RebuildEmphasis(") and "keepRows" in source_paths.function(src, "bool InkRich("),
       "the Spell Effectiveness table (Magic only) keeps its light rows; restoring them left the text dark (4bb22392)")
@@ -286,7 +258,7 @@ check("void StyleListScrollbar(" not in src, "no list scrollbar painter is left 
 # it back on (render target released and rebuilt each time). Our own image takes the paper's slot in Infos_Overlay instead
 # (ReplaceChildAt: same place and size, behind the details content); the Magic details path runs only for the Magic details.
 check("SetRetainRendering" not in page + updated, "the game's details retainer is never switched on or off by the Magic skin (RMI-084)")
-check("detailsClass" in updated, "the Magic details path runs only for the Magic details widget (Inventory events after a Magic visit took it)")
+check(not updated, "phase 28b (decision 28): the item details are baked in the Custom pack; no details event hook")
 check("schoolArt" not in (source_paths.ROOT / "src/core/DarkStyle.h").read_text(encoding="utf-8"),
       "phase 3: no school-drawing strength (the game's paper material draws the school illustration itself)")
 unclip16 = source_paths.function(src, "void UnclipTitle(")

@@ -108,6 +108,9 @@
     ]
   },
   "assets": [
+    {"asset": "Art/UI/Common/T_List_Default", "recipe": "flat:rowSeparator", "colours": ["rowSeparator"], "shared_with": ["12 row blueprints: Inventory/Container/Barter, Magic rows and details, Alchemy, Enchanting, Spellmaking, Spell Purchase, Repair, Gear, Help, Quests, the effect lines"]},
+    {"asset": "Art/UI/Common/T_List_equip_V2", "recipe": "flat_alpha:rowEquipped:0.6", "colours": ["rowEquipped"], "shared_with": ["the Focusbox prefab in 15 row blueprints: Inventory/Container/Barter, Magic, Alchemy, Enchanting, Spellmaking, Spell Purchase, Gear, Recharge, the effect lines, Character overview/attributes/derived stats/skills/factions, Level Up"]},
+    {"asset": "UI/Modern/Prefabs/WBP_ModernPrefab_Focusbox", "recipe": "bp_colour:WBP_ModernPrefab_Focusbox", "colours": [], "shared_with": ["the Focusbox prefab in 15 row blueprints: Inventory/Container/Barter, Magic, Alchemy, Enchanting, Spellmaking, Spell Purchase, Gear, Recharge, the effect lines, Character overview/attributes/derived stats/skills/factions, Level Up"]},
     {
       "asset": "UI/Materials/Common/M_UI_Scrollbar_Vert_Reworked",
       "recipe": "material_colour:M_UI_Scrollbar_Vert_Reworked",
@@ -213,6 +216,7 @@
     }
   ],
   "blueprint_colours": {
+    "WBP_ModernPrefab_Focusbox": [{"offset": 5642, "stock": [0.491, 0.4287, 0.3663, 0.35], "colour": "white", "widget": "focusBox_equip_image (image tile tint; the equipped band)"}],
     "WBP_ModernPrefab_Button": [
       {
         "offset": 2332,

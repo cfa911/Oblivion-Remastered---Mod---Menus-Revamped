@@ -173,7 +173,6 @@ namespace sorting::detail
 			auto& picker=g_pickers[0];
 			if (picker.kind!=0 || !picker.active.load() || !picker.inventoryStatusReady ||
 				!params || pe::FunctionName(function)!="OnListItemObjectSet") return;
-			menuskin::StyleRow(row, menuskin::kInventory);
 			const int offset=reflect::Offset(function,"ListItemObject");
 			if (offset<0 || offset+int(sizeof(UE::UObject*))>function->parmsSize ||
 				ui::SizeOf(function,"ListItemObject")!=sizeof(UE::UObject*)) return;
@@ -621,22 +620,12 @@ namespace sorting::detail
 		if (!magic && !inventoryStatusReady && measureColumns && row &&   // Inventory row status and skin hooks only
 			pe::WatchPost(row->GetClass(),&OnInventoryRowBound)) {
 			for (auto* entry : displayed) {
-				menuskin::StyleRow(entry, menuskin::kInventory);
 				PlaceRowStatus(*this,entry,&plan.filters);
 			}
-			auto* mainPart = a_menu;
-			for (auto* owner = list; owner && reflect::Usable(owner); owner = owner->GetOuter()) {
-				if (pe::Utf8(owner->GetClass()->GetFName().ToString()).starts_with("WBP_OriginalMenu_InventoryMainPart")) {
-					mainPart = owner;
-					break;
-				}
-			}
-			menuskin::WatchFooters(mainPart, a_menu, menuskin::kInventory);
-			inventoryStatusReady=true;
-			menuskin::WatchDetails(a_menu, list, menuskin::kInventory);   // the scrollbar is baked in the Custom pack (Phase 7)
+			inventoryStatusReady=true;   // item details and scrollbar colours: baked in the Custom pack (decision 28, Phase 7)
 		}
 
-		if (magic) {   // Dark Magic (phase 2): the parchment page, rows and details (scrollbar: baked, Phase 7); nothing in Classic/Light
+		if (magic) {   // Dark Magic (phase 2): the parchment page and rows (details and scrollbar: baked, phase 28b / Phase 7); nothing in Classic/Light
 			menuskin::StyleMagicPage(a_menu,measureColumns);
 			if (menuskin::Current().recolor && !inventoryStatusReady && measureColumns && row &&
 				pe::WatchPost(row->GetClass(),&OnMagicRowBound)) {
@@ -644,7 +633,6 @@ namespace sorting::detail
 				if (!s_announced) { s_announced=true; logger::info("Menus Revamped MR-MAGIC-DARK-R11"); }
 				for (auto* entry : displayed) menuskin::StyleMagicRow(entry);
 				inventoryStatusReady=true;
-				menuskin::WatchDetails(a_menu, list, menuskin::kMagic);
 			}
 		}
 

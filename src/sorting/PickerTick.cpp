@@ -186,7 +186,6 @@ namespace sorting::detail
 		}
 		if (kind == 0) {
 			menuskin::RefreshInventoryTitle();
-			menuskin::RefreshButtonRules();
 		} else if (kind == 1 || kind == 6) SyncMagicTitle();
 		if (now >= nextLayout) {
 			nextLayout = now + 150;

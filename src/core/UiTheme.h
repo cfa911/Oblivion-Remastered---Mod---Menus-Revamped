@@ -122,7 +122,7 @@ namespace uistyle
 
 	struct Skin
 	{
-		bool           recolor, invertToggles, hideEquippedScribble;
+		bool           recolor, invertToggles;
 		Color          ink, perkInk, rule, guide;
 		const ArtSwap* artSwaps;          // made by tools/make_dark_skin_art.py from the stock textures (stock alpha kept)
 		int            artSwapCount;
@@ -135,19 +135,8 @@ namespace uistyle
 	};
 
 	inline constexpr ArtSwap kDarkArt[]{
-		{ "T_List_Default", L"RowSeparator.png" },        // row separator line: white
-		{ "T_List_equip_V2", L"RowEquipped.png" },        // equipped row: gold band (RMI-072; owner: stronger, gold)
-		{ "T_Property_1_magnitude", L"StatMagnitude.png" },
-		{ "T_Property_1_Range", L"StatRange.png" },
-		{ "T_Property_1_time", L"StatTime.png" },
-		{ "T_Property_1_cost", L"StatCost.png" },
-		{ "T_inv_details_effects_title_BG", L"TitleBand.png" },
-		{ "T_SigilStone_SubNameBG", L"SigilBand.png" },
-		{ "T_Category_Armor", L"SigilArmor.png" },
-		{ "T_Category_Weapons", L"SigilWeapons.png" },
-		{ "T_CircularProgress_bg", L"RingCentre.png" },
-		{ "T_Arrow_Empty", L"ButtonArrow.png" },
-		{ "T_Button_State_Hovered_LeftLineFade", L"ButtonLine.png" },
+		// T_List_Default (row separator) and T_List_equip_V2 (equipped band): baked in the Custom pack (decision 28 phase 28a);
+		// the item details art (stat icons, title and sigil bands, sigil icons, ring centre, button arrows and rules): phase 28b
 		// Magic row spell-type icons (brown art, shared with Sigil Stone and the effect lists, so not baked): white shapes drawn
 		// in rowIcon (tools/make_dark_row_icons.py). The school icons, details stat icons and tabs are baked into MRDark_P.
 		{ "T_MagicMenuIcon_Ability_ListSmall", L"MagicRow-T_MagicMenuIcon_Ability_ListSmall.png", &darkstyle::Style::rowIcon },
@@ -165,7 +154,7 @@ namespace uistyle
 	};
 
 	inline constexpr Skin kStockSkin{
-		false, false, false,
+		false, false,
 		{ 0, 0, 0, 1 }, { 0, 0, 0, 1 }, { 0.20f, 0.14f, 0.09f, 0.55f }, { 0.20f, 0.14f, 0.09f, 0.13f },
 		nullptr, 0, { 1, 1, 1, 1 }, 1.0f,
 		{ 1, 1, 1, 1 }, { 1, 1, 1, 1 }, { 1, 1, 1, 1 }, { 1, 1, 1, 1 },
@@ -178,7 +167,7 @@ namespace uistyle
 	inline Skin MakeDarkSkin(const darkstyle::Style& s)
 	{
 		return Skin{
-			true, true, true,
+			true, true,
 			darkstyle::Arr(s.rowText), darkstyle::Arr(s.rowText),   // row and perk ink
 			s.skin.rule, s.skin.guide,
 			kDarkArt, int(sizeof(kDarkArt) / sizeof(kDarkArt[0])), s.skin.ring,

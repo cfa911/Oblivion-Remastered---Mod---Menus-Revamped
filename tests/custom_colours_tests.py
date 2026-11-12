@@ -44,7 +44,7 @@ RGB = {n: [float(a), float(b), float(c)] for n, a, b, c in
 TAB = {n: float(v) for n, v in re.findall(r"float\s+(\w+)\s*=\s*([\d.]+)",
                                          re.search(r"struct Tab\s*\{(.*?)\}\s*tab;", style_text, re.S).group(1))}
 TODAY = RGB | {"detailsPage": 0.010} | TAB
-check(len(RGB) == 34 and len(TAB) == 6, f"DarkStyle.h has 34 Rgb values (Phase 7 adds 8 Enchanting/Spellmaking keys) and 6 tab greys ({len(RGB)}, {len(TAB)})")
+check(len(RGB) == 38 and len(TAB) == 6, f"DarkStyle.h has 38 Rgb values (Phase 7 adds 8 Enchanting/Spellmaking keys, 28a rowEquipped, decision 34 three tab keys) and 6 retained tab greys ({len(RGB)}, {len(TAB)})")
 
 cc = load_module("custom_colours")
 if cc is not None:
@@ -102,7 +102,7 @@ if mdp is not None:
         check(values("flat:frame", colours) == {"frame": [1.0, 2.0, 3.0]}, "a flat recipe takes its colour from the colour file")
         check(values("tab:0", colours).get("selected") == 50.0, "the tab recipes take the tab greys from the colour file")
         check(values("details_page", colours) == {"detailsPage": 0.010}, "details_page takes detailsPage from the colour file")
-        check(values("bp_colour:WBP_ModernMenu_FilterEffectEntry", colours) == {"filterRow": colours["filterRow"], "filterSelected": colours["filterSelected"]},
+        check(values("bp_colour:WBP_ModernMenu_FilterEffectEntry", colours) == {"filterRow": colours["filterRow"], "filterSelected": colours["filterSelected"], "rowText": colours["rowText"]},
               "a blueprint recipe takes its elements from the colour file")
     check(getattr(mdp, "panel_gray", lambda v: None)(0) == 16, "panel_gray's default frame is today's value without DarkStyle.h")
     # the pack name is a parameter

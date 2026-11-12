@@ -202,7 +202,6 @@ namespace alchemy
 		using FilterTab = alchemytabs::Tab;
 		inline FilterTab g_filterTab = FilterTab::All;
 		inline bool g_filterOpen = false, g_settingTab = false;
-		inline bool g_menuInked = false;   // Dark: the menu tree's brown text inked light once per opening (menuskin::InkTree)
 		inline std::atomic<int> g_tabRequest{ -1 }, g_tabCycle{ 0 };
 		inline std::atomic<bool> g_filtersVisible{ false };
 		inline std::array<reflect::Handle, 3> g_tabLabels, g_tabLeft, g_tabRight, g_tabDashLeft, g_tabDashRight, g_tabUpperLeft, g_tabUpperRight, g_tabLowerLeft, g_tabLowerRight;

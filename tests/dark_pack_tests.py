@@ -43,8 +43,8 @@ check("~mods" in switch_text and "MRDark_P" in switch_text and "Preset::Dark" in
 skin = source_paths.read("picker")
 page = source_paths.function(skin, "void StyleMagicPage(")
 check("PlaceMagicPage" not in skin, "the Magic details page is the game's own material on the baked parchment (phase 3: no overlay)")
-details = source_paths.function(skin, "void StyleDetails(")
-check("darkpack::Active()" in details, "with the pack active the Inventory details page tint is white (the parchment itself is dark)")
+check(not source_paths.function(skin, "void StyleDetails(") and "PageTint(" not in skin,
+      "phase 28b: no run-time details page tint (the parchment itself is dark in the pack)")
 
 # Phase 1 (owner 2026-11-10): the pack pipeline and the switch made release-grade.
 import hashlib
@@ -199,7 +199,7 @@ listed = dict(data_listed)
 check(all(listed.get(a) == "flat:rowIcon" for a in SCHOOLS), "phase 3: the six row school icons are baked flat rowIcon on the stock alpha")
 check(sorted(Path(a).name for a, r in listed.items() if r == "flat:rowIcon" and "T_MagicMenuIcon_" in a) == sorted(STATS),
       "phase 3: the ten details stat/type icons are baked flat rowIcon (Magic-only textures)")
-check([listed.get(a) for a in MAGIC_TABS] == [f"magic_tab:{i}" for i in range(5)], "phase 3: the five Magic tab atlases are baked (magic_tab:<i>)")
+check([listed.get(a) for a in MAGIC_TABS] == ["tab_paper"] * 5, "decision 34: the five Magic tab atlases are recoloured from stock (tab_paper)")
 # RMI-086 (owner screenshot on 9828be38): the table's Default row baked blue left the line tan: the details blueprint sets the
 # line's default colour itself (SetDefaultColorAndOpacity), which replaces the Default row. The colour is set at run time.
 check(TABLE not in listed, "RMI-086: DT_UI_MagicMenu is not in the pack (its Default row never reaches the cast-frequency line)")
@@ -266,19 +266,14 @@ ALCHEMY_PAGES = ["Art/UI/Modern/GameMenuLayer/Spellmaking/T_Spellmaking_LeftPape
                  "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_Right_apparatis",
                  "Art/UI/Common/Backgrounds/T_UI_MenuLeft"]
 check(set(ALCHEMY_PAGES) <= baked, "Alchemy: the shipped pack holds the four parchments (rebuilt with make_dark_pack.py)")
-check(not any(Path(a).name in ("T_LevelUp_Frame_Light", "T_InventorySeparator", "T_Line_02")
+check(not any(Path(a).name in ("T_LevelUp_Frame_Light", "T_InventorySeparator")
               for a in listed), "Alchemy: frames, lines and the right frame stay stock (owner 2026-11-11)")
-ink_tree = source_paths.function(menu_skin, "void InkTree(")
-check("recolor" in ink_tree and "IsDarkInk" in ink_tree and "IsWarmInk" in ink_tree and "TextBlock" in ink_tree,
-      "menuskin::InkTree inks a tree's parchment-dark text with the preset ink (Dark only; coloured text kept)")
+# decision 28 (bake shared assets anyway, 28b): T_Line_02, the Sigil Stone details rule, is baked; it also reaches Alchemy
+check(any(Path(a).name == "T_Line_02" for a in listed), "28b: T_Line_02 is baked (Sigil Stone details; shared with Alchemy)")
+# decision 28 (28a, owner 2026-11-12): the Alchemy texts are baked (alchemy.json blueprint_colours); the run-time ink pass is gone
 alchemy = source_paths.read("alchemy")
-check("menuskin::InkTree(" in source_paths.function(alchemy, "void DecorateIngredientRow("),
-      "Alchemy: every generated ingredient row is inked")
-check("menuskin::InkTree(" in source_paths.function(alchemy, "void DecorateRow("),
-      "Alchemy: the Filters panel rows are inked (on each bind and in the existing row pass: hover re-darkening heals)")
-tick = source_paths.function(alchemy, "void Tick(")
-check("menuskin::InkTree(menu" in tick and "g_menuInked" in tick and "menuskin::InkTree(filters" in tick,
-      "Alchemy: the menu tree is inked once per opening, the Filters panel each time it opens")
+check(not source_paths.function(menu_skin, "void InkTree(") and "menuskin::InkTree(" not in alchemy,
+      "Alchemy: no run-time ink pass (menuskin::InkTree removed; the texts are baked)")
 check("menuskin::InkTree(" not in source_paths.function(alchemy, "void Layout("), "Alchemy: no ink walk in the 100 ms layout pass")
 
 # Alchemy round 2 (owner screenshots 2026-11-11): the multiplied parchment came out green and noisy (BC 565 rounding of a
@@ -328,9 +323,11 @@ for asset, recipe_name in BP.items():
     check(listed.get(asset) == recipe_name and asset in baked, f"Alchemy r4: {Path(asset).name} colours baked ({recipe_name})")
 if mdp is not None:
     table = getattr(mdp, "BLUEPRINT_COLOURS", {})
-    check(table.get("WBP_ModernMenu_FilterEffectEntry") == [(2893, (0.5395, 0.4969, 0.4452, 1.0), "filterRow"),
+    check(table.get("WBP_ModernMenu_FilterEffectEntry") == [(2617, (0.0723, 0.0382, 0.0284, 1.0), "rowText"),   # 28a: EffectText
+                                                            (2893, (0.5395, 0.4969, 0.4452, 1.0), "filterRow"),
                                                             (3002, (0.3968, 0.3325, 0.2831, 1.0), "filterSelected")]
-          and table.get("WBP_ModernPrefab_SelectableButton") == [(1734, (0.5395, 0.4969, 0.4452, 1.0), "filterRow"),
+          and table.get("WBP_ModernPrefab_SelectableButton") == [(1494, (0.0723, 0.0382, 0.0284, 1.0), "rowText"),   # 28a: focus_text
+                                                               (1734, (0.5395, 0.4969, 0.4452, 1.0), "filterRow"),
                                                                (1813, (0.3968, 0.3325, 0.2831, 1.0), "filterSelected")]
           and table.get("WBP_ModernMenu_ItemEffect") == [(1856, (0.0723, 0.0382, 0.0284, 1.0), "rowText")]
           and table.get("WBP_ModernPrefab_EditableText") == [(258, (0.0723, 0.0382, 0.0284, 1.0), "nameBox"), (13364, (0.995, 0.995, 0.995, 1.0), "listHighlight")],
@@ -339,10 +336,11 @@ if mdp is not None:
     check(patch is not None, "make_dark_pack.py has the blueprint colour patch")
     if patch:
         uexp = bytearray(3100)
+        struct.pack_into("<4f", uexp, 2617, 0.0723, 0.0382, 0.0284, 1.0)
         struct.pack_into("<4f", uexp, 2893, 0.5395, 0.4969, 0.4452, 1.0)
         struct.pack_into("<4f", uexp, 3002, 0.3968, 0.3325, 0.2831, 1.0)
-        out = patch(bytes(uexp), "WBP_ModernMenu_FilterEffectEntry", {"filterRow": [66, 66, 66], "filterSelected": [14, 22, 42]})
-        check(len(out) == len(uexp) and out[:2893] == bytes(uexp[:2893]) and out[2909:3002] == bytes(uexp[2909:3002]),
+        out = patch(bytes(uexp), "WBP_ModernMenu_FilterEffectEntry", {"filterRow": [66, 66, 66], "filterSelected": [14, 22, 42], "rowText": [239, 239, 239]})
+        check(len(out) == len(uexp) and out[:2617] == bytes(uexp[:2617]) and out[2633:2893] == bytes(uexp[2633:2893]) and out[2909:3002] == bytes(uexp[2909:3002]),
               "the blueprint patch changes only the colours' 16 bytes")
         check(abs(struct.unpack_from("<f", out, 2893)[0] - mdp.linear(66)) < 1e-6 and struct.unpack_from("<f", out, 3002 + 12)[0] == 1.0,
               "the blueprint patch writes DarkStyle.h sRGB as linear floats, alpha 1")
@@ -374,7 +372,7 @@ check(listed.get("UI/Legacy/GameMenuLayer/Commun/WBP_LegacyMenu_AddedEffects") =
       "Alchemy r5: the effect line blueprint's brown ink is baked white")
 if mdp is not None:
     check([o for o, _, n in getattr(mdp, "BLUEPRINT_COLOURS", {}).get("WBP_LegacyMenu_AddedEffects", []) if n == "rowText"]
-          == [18182, 18251, 18320, 18409, 18554], "Alchemy r5: the five brown ink literals of the effect line (census offsets)")
+          == [18182, 18251, 18320, 18409, 18478, 18554], "Alchemy r5 + 28a: the six brown ink literals of the effect line (MagicTypeName added)")
 for asset in ("Art/UI/Icons/Icon_Stats/T_Property_1_magnitude", "Art/UI/Icons/Icon_Stats/T_Property_1_time"):
     check(listed.get(asset) == "flat:headerIcon" and asset in baked, f"Alchemy r5: {Path(asset).name} baked white")
 

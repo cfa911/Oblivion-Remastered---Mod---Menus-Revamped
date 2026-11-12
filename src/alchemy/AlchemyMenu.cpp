@@ -182,7 +182,6 @@ namespace alchemy
 				g_hoverIcon = -1;
 				g_dirtySort = g_dirtyCounts = true;
 				g_nextLayout = {};
-				g_menuInked = false;
 			} else {
 				g_filtersVisible = false;
 				g_tabRequest = -1;
@@ -214,11 +213,6 @@ namespace alchemy
 		}
 		auto* filters = Field(menu, "Alchemy_Filters");
 		const bool filtersOpen = filters && Active(filters);
-		if (!g_menuInked && g_framePlaced) {   // Dark: once per opening, after the menu is built
-			menuskin::InkTree(menu, 3000);
-			g_menuInked = true;
-		}
-		if (filtersOpen && !g_filterOpen) menuskin::InkTree(filters, 400);   // the Filters panel each time it opens
 		g_filtersVisible = filtersOpen;
 		const auto effectQuery = searchcfg::Get().alchemy && searchcfg::Get().ownFilter ? search::GetText(menus::Menu::kAlchemyFilters) : std::string();
 		const bool effectQueryChanged = effectQuery != g_effectSearchQuery;

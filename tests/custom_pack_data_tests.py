@@ -50,7 +50,7 @@ for menu in MENUS:
         check(isinstance(row.get("shared_with"), list), f"{name}: has a shared-with list (empty when the menu owns it alone)")
 
 assets = [row.get("asset") for row in rows]
-check(len(assets) == 107, f"the data files describe 107 assets (Phase 7: 69 + 2 scrollbar materials + 4 shared icons + 13 Enchanting + 2 Spellmaking; RMI-087: 8 Enchanting + 5 Spellmaking + 4 shared button; found {len(assets)})")
+check(len(assets) == 142, f"the data files describe 142 assets (Phase 7: 69 + 2 scrollbar materials + 4 shared icons + 13 Enchanting + 2 Spellmaking; RMI-087: 8 Enchanting + 5 Spellmaking + 4 shared button; 28a: 3 shared + 5 Inventory + 5 Alchemy; 28b: 18 Inventory + 3 Magic + 1 Alchemy; found {len(assets)})")
 check(len(set(assets)) == len(assets), "no asset is listed twice across the data files")
 check(set(assets) == set(shipped), "the data files list exactly the assets of the shipped MRCustom_P")
 check(assets == list(shipped), "the data files keep the build order (inventory, magic, alchemy, common, enchanting, spellmaking)")
@@ -73,8 +73,10 @@ check(rich.get("Default") == {"offset": 69, "stock": [0.0723, 0.0382, 0.0284, 1.
       "magic.json keeps the rich-text row stock checks (offset + expected float4)")
 bps = alchemy.get("blueprint_colours", {})
 check(sorted(bps) == sorted(["WBP_ModernMenu_FilterEffectEntry", "WBP_ModernPrefab_SelectableButton", "WBP_ModernMenu_ItemEffect",
-                             "WBP_ModernPrefab_EditableText", "WBP_LegacyMenu_AddedEffects"]),
-      "alchemy.json holds the five blueprint colour packages")
+                             "WBP_ModernPrefab_EditableText", "WBP_LegacyMenu_AddedEffects", "WBP_ModernMenu_AlchemyMenu",
+                             "WBP_ModernMenu_AlchemyFilters", "WBP_ModernMenu_Alchemy_FilterEffectButton", "WBP_ModernMenu_UstensilEntry",
+                             "WBP_ModernMenu_AlchemyItemEntry"]),
+      "alchemy.json holds the ten blueprint colour packages (28a: the Alchemy texts the run-time ink pass coloured)")
 check(all(isinstance(e.get("offset"), int) and len(e.get("stock", [])) == 4 and isinstance(e.get("colour"), str)
           for entries in bps.values() for e in entries) and bps,
       "each blueprint colour has its stock check (offset + expected float4) and a colour element")

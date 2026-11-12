@@ -69,18 +69,18 @@ int main(){
  Check(!classic.recolor&&!light.recolor,"Classic and Light keep the game's colours");
  Check(dark.recolor,"Dark recolours the menu");
  Check(!classic.invertToggles&&dark.invertToggles,"inverted filter toggles are a Dark look");
- Check(!classic.hideEquippedScribble&&dark.hideEquippedScribble,"the equipped scribble stays in the parchment presets");
+ // decision 28 (28a): the equipped scribble is cleared in the Custom pack (T_UI_Scribble), no run-time flag
 #ifdef UISTYLE_SKIN_ART
  const auto swaps=[](const Skin& s,std::string_view stock){for(int i=0;i<s.artSwapCount;++i)if(stock==s.artSwaps[i].stock&&s.artSwaps[i].file)return true;return false;};
  Check(classic.artSwapCount==0,"the parchment presets keep the game's art");
- Check(swaps(dark,"T_List_Default"),"Dark rows get white separators");
- Check(swaps(dark,"T_List_equip_V2"),"Dark equipped rows get a neutral marker, not the parchment band (RMI-072)");
- Check(swaps(dark,"T_Property_1_magnitude")&&swaps(dark,"T_Property_1_Range")&&swaps(dark,"T_Property_1_time")&&swaps(dark,"T_Property_1_cost"),
-  "effect stat icons are neutral in Dark");
- Check(swaps(dark,"T_inv_details_effects_title_BG")&&swaps(dark,"T_SigilStone_SubNameBG"),"title and sigil header bands are neutral in Dark");
- Check(swaps(dark,"T_Category_Armor")&&swaps(dark,"T_Category_Weapons"),"sigil header icons are neutral in Dark");
- Check(swaps(dark,"T_Arrow_Empty")&&swaps(dark,"T_Button_State_Hovered_LeftLineFade"),"action button arrows and rules are neutral in Dark");
- Check(swaps(dark,"T_CircularProgress_bg"),"skill ring centre is neutral in Dark");
+ Check(!swaps(dark,"T_List_Default")&&!swaps(dark,"T_List_equip_V2"),"row separators and the equipped band are baked in the Custom pack, not swapped (decision 28)");
+ // decision 28 (28b): the item details art is baked in the Custom pack (stat icons, bands, sigil icons, button art, ring centre)
+ Check(!swaps(dark,"T_Property_1_magnitude")&&!swaps(dark,"T_Property_1_Range")&&!swaps(dark,"T_Property_1_time")&&!swaps(dark,"T_Property_1_cost"),
+  "effect stat icons are baked, not swapped");
+ Check(!swaps(dark,"T_inv_details_effects_title_BG")&&!swaps(dark,"T_SigilStone_SubNameBG"),"title and sigil header bands are baked, not swapped");
+ Check(!swaps(dark,"T_Category_Armor")&&!swaps(dark,"T_Category_Weapons"),"sigil header icons are baked, not swapped");
+ Check(!swaps(dark,"T_Arrow_Empty")&&!swaps(dark,"T_Button_State_Hovered_LeftLineFade"),"action button arrows and rules are baked (RMI-087), not swapped");
+ Check(!swaps(dark,"T_CircularProgress_bg"),"skill ring centre is baked, not swapped");
  Check(dark.ring[0]==dark.ring[1]&&dark.ring[1]==dark.ring[2]&&dark.ring[0]>0.3f,"skill ring is a light neutral gray in Dark");
 #ifdef UISTYLE_SKIN_EMPHASIS
  // owner swatch 2026-11-09: sRGB 99 97 99, the highlighted sub-tab disc (linear about 0.125 0.120 0.125)

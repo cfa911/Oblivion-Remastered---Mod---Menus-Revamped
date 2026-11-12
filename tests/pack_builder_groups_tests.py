@@ -27,16 +27,19 @@ with tempfile.TemporaryDirectory() as temp:
     m = model.ColourModel(Path(temp) / "none.ini")
     pages = m.pages() if hasattr(m, "pages") else []
     labels = [label for label, _ in pages]
-    check(len(labels) == 3 and labels[0].startswith("Colours") and labels[1].startswith("Tabs") and labels[2].startswith("Skin"),
-          f"three tabs: baked colours, baked tabs, run-time skin ({labels})")
+    check(len(labels) == 2 and labels[0].startswith("Colours") and labels[1].startswith("Skin"),
+          f"two tabs: baked colours, run-time skin; the retired [Tab] greys are not shown (decision 34) ({labels})")
     shown = {}
     for label, groups in pages:
         for group, entries in groups:
             check(bool(group) and bool(entries), f"{label}: group {group!r} has a heading and entries")
             for e in entries:
                 shown.setdefault((e.section, e.name), []).append((label, group))
-    check(all(len(v) == 1 for v in shown.values()) and len(shown) == len(m.entries), "every entry appears exactly once")
-    runtime = [e for _, groups in pages[2:3] for _, entries in groups for e in entries]
+    retired = set(getattr(cc, "RETIRED_SKIN", ()))
+    check(all(len(v) == 1 for v in shown.values()) and
+          len(shown) == len([e for e in m.entries if e.section != "Tab" and not (e.section == "Skin" and e.name in retired)]),
+          "every entry except the retired [Tab] greys and [Skin] tints (phase 28b) appears exactly once")
+    runtime = [e for _, groups in pages[1:2] for _, entries in groups for e in entries]
     check(runtime and all(e.applies == "Restart game" for e in runtime), "the run-time tab holds only run-time entries")
     baked_skin = [e for _, groups in pages[:1] for _, entries in groups for e in entries if e.section == "Skin"]
     check(sorted(e.name for e in baked_skin) == sorted(cc.BAKED_SKIN), f"the baked [Skin] values are on the baked colours tab ({[e.name for e in baked_skin]})")
@@ -45,8 +48,9 @@ with tempfile.TemporaryDirectory() as temp:
         check(any(g in name for name in groups), f"a {g} group exists ({sorted(groups)})")
     scroll = [g for (s, n), [(label, g)] in shown.items() if n == "scrollTrack"]
     check(scroll and "all menus" in scroll[0].lower(), f"the scrollbar sits in an all-menus group ({scroll})")
-    check(all(e.name in cc.GROUPS or ("Skin." + e.name) in cc.GROUPS for e in m.entries) if hasattr(cc, "GROUPS") else False,
-          "custom_colours.GROUPS names a group for every entry")
+    check(all(e.name in cc.GROUPS or ("Skin." + e.name) in cc.GROUPS for e in m.entries
+              if not (e.section == "Skin" and e.name in retired)) if hasattr(cc, "GROUPS") else False,
+          "custom_colours.GROUPS names a group for every shown entry")
 
 window = (root / "tools/pack_builder/window.py").read_text(encoding="utf-8")
 check("pages()" in window and "heading" in window.lower(), "the window draws the model's pages with a heading per group")

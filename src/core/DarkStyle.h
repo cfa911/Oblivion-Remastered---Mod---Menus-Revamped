@@ -21,7 +21,8 @@ namespace darkstyle
 		// completely). The Inventory page (M_MaskedPage) and the Magic page image use the same value.
 		float detailsPage = 0.010f;
 		Rgb rowText{ 239, 239, 239 };     // row names and values, details text (linear 0.86)
-		Rgb rowSeparator{ 255, 255, 255 };// times RowSeparator.png (its own gray 235)
+		Rgb rowSeparator{ 255, 255, 255 };// baked into T_List_Default (decision 28)
+		Rgb rowEquipped{ 212, 170, 78 };  // baked into T_List_equip_V2, alpha x 0.6 (decision 28; the run-time RowEquipped.png gold)
 		Rgb columnLine{ 99, 99, 99 };     // row column lines T_Line_V (the Inventory pak's gray)
 		Rgb rowIcon{ 239, 239, 239 };     // row icons drawn white and tinted brown by the game (school, stat icons)
 		Rgb headerIcon{ 247, 247, 247 };  // header sort icons and the Magic School/Type All icons (the Inventory pak's white)
@@ -80,6 +81,9 @@ namespace darkstyle
 		Rgb spellmakingEye{ 86, 127, 181 };
 		Rgb enchantingTabPaper{ 27, 27, 29 };
 		Rgb enchantingTabIcon{ 255, 255, 255 };
+		Rgb tabPaperDark{ 17, 17, 17 };   // baked: Inventory/Magic category tab paper at stock luminance 80 (decision 34)
+		Rgb tabPaperLight{ 30, 30, 30 };  // baked: the same at stock luminance 210
+		Rgb tabGlyph{ 255, 255, 255 };    // baked: category tab icons and arrows (decision 35)
 		// Run-time tints of the Dark skin (uistyle::kDarkSkin): linear 0-1 as Slate takes them, alpha last.
 		struct SkinTints
 		{

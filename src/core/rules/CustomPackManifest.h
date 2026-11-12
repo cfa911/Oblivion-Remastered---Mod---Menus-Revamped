@@ -23,8 +23,10 @@ namespace custompack
 
 	inline constexpr std::string_view kLaurelTint = "Skin.pattern";
 	// [Skin] values the builder bakes (manifest key "Skin.<name>"): the laurel tint (Phase 5) and the scrollbar materials
-	// (Phase 7, owner decision 18). The other [Skin] tints stay run-time and never make a pack stale.
-	inline constexpr std::string_view kBakedSkin[] = { "pattern", "scrollTrack", "scrollBorder", "scrollInside" };
+	// (Phase 7, owner decision 18), the item details ornament, ring and perk emphasis (decision 28 phase 28b). The other [Skin]
+	// tints stay run-time (or are retired) and never make a pack stale.
+	inline constexpr std::string_view kBakedSkin[] = { "pattern", "scrollTrack", "scrollBorder", "scrollInside", "ornament", "ring",
+		"emphasisInk" };
 
 	inline bool HasBakedLaurelTint(const Manifest& m)
 	{

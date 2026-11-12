@@ -73,7 +73,8 @@ for package, colours in ((TRACK, ["Skin.scrollTrack"]), (THUMB, ["Skin.scrollBor
         for (o, s, c), (eo, es, ec) in zip(entries, EXPECTED[package])), f"{package}: the probed offsets and stock values ({entries})")
     check(pipe.BLUEPRINT_COLOURS.get(package) is not None, f"{package}: the pipeline loads its literals")
 material_rows = [a for a, (_, r) in rows.items() if r["recipe"].startswith("material_colour")]
-check(sorted(material_rows) == sorted(f"UI/Materials/Common/{p}" for p in EXPECTED), f"only the two scrollbar materials use material_colour ({material_rows})")
+check(sorted(material_rows) == sorted([f"UI/Materials/Common/{p}" for p in EXPECTED] + ["UI/Materials/Instances/MIC_UI_SkillCircularProgress"]),
+      f"material_colour: the two scrollbar materials and (phase 28b) the skill ring instance ({material_rows})")
 for name in ("MIC_UI_Scrollbar_Vert_Dark", "MIC_UI_ScrollbarVert_Handle_Dark"):
     check(not any(Path(a).name == name for a in rows), f"{name} is not shipped (it holds no colour)")
 
@@ -178,8 +179,8 @@ REAL = pipe.recipe
 
 def fake_recipe(name):
     floats, rgbs, real = REAL(name)
-    if name.startswith("material_colour"):
-        return floats, rgbs, real   # the real patch on the synthetic stock
+    if name in {f"material_colour:{p}" for p in EXPECTED}:
+        return floats, rgbs, real   # the real patch on the synthetic stock (the scrollbar materials this suite fakes)
     return floats, rgbs, lambda data, values, work, stock: data.read_bytes() if hasattr(data, "read_bytes") else data
 
 

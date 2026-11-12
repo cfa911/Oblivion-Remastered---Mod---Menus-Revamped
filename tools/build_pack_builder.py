@@ -34,8 +34,8 @@ Run MenusRevampedPackBuilder.exe from this folder (Plugins/MenusRevamped/PackBui
 - Pick colours by menu and visible element. Each entry corresponds to a key in ../CustomColours.ini.
 - Build pack: applies the marked baked colours, including both Inventory laurel controls. A Phase 4 pack still uses the
   runtime laurel tint until you rebuild. A new pack uses the tint from its last build.
-- Restart game: choose Save, then restart to apply these runtime colours. The Effects heading tint only applies when
-  the replacement art is unavailable. The inactive row divider and sort picker keys are kept for existing INI files.
+- Restart game: choose Save, then restart to apply these runtime colours. The inactive keys (sort picker, old tab greys,
+  details band and action button tints) are kept for existing INI files.
 - Build: writes ../CustomPack/MRCustom_P.* (the previous pack is kept as .bak). The plugin installs the pack at the next game
   start when [Style] uPreset=2 in MenusRevamped.ini. An asset that fails its check is skipped and listed.
 - Reset to Dark: the default colours. Open log: the last build's log (PackBuilder.log).
