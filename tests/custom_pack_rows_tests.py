@@ -83,7 +83,7 @@ check("rowSeparator and pickerIcon are retained" not in custom_colours.render(cu
 check("rowSeparator and pickerIcon are retained" not in reader, "the plugin's default file agrees")
 check((root / "config/CustomColours.ini").read_text(encoding="utf-8") == custom_colours.render(custom_colours.DEFAULTS),
       "config/CustomColours.ini is the rendered default file")
-check(custom_colours.GROUPS.get("rowEquipped") == "Inventory and Magic lists", "rowEquipped is in the lists group")
+check(custom_colours.ROLES["equipped"]["members"] == ["rowEquipped"], "rowEquipped is the Equipped item band role")
 
 # ---- 2. the data rows ----
 for asset, (menu, recipe, colours) in TEXTURES.items():

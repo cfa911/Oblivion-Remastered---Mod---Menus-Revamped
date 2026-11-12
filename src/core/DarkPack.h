@@ -10,4 +10,5 @@ namespace darkpack
 	void Apply(std::string_view a_gameBuild);   // at OBSE_PLUGIN_LOAD, after the INI is read (a_gameBuild: "1.512.105.0")
 	bool BakedLaurelTint();                      // the installed pack includes the Inventory laurel tint
 	bool Active();                              // the pack is in ~mods for this launch (Custom): code that the pack replaces steps aside
+	bool LayoutBaked();                         // the sizes are baked this launch (MRLayout_P, or MRCustom_P with sizes, in ~mods)
 }

@@ -33,8 +33,8 @@ for menu in MENUS:
             data[menu] = json.loads(path.read_text(encoding="utf-8"))
         except ValueError as error:
             check(False, f"tools/menus/{menu}.json is valid JSON ({error})")
-check(sorted(p.stem for p in menus_dir.glob("*.json")) == sorted(MENUS) if menus_dir.is_dir() else False,
-      "tools/menus holds exactly the inventory, magic and alchemy data files")
+check(sorted(p.stem for p in menus_dir.glob("*.json")) == sorted(MENUS + ("layout",)) if menus_dir.is_dir() else False,
+      "tools/menus holds exactly the menu colour data files and the layout sizes (layout.json, Step B)")
 
 rows = []
 for menu in MENUS:

@@ -13,7 +13,7 @@ namespace mrconfig
 		smoothcfg::Values smooth;
 		kbcfg::Values keyboard;
 		bool returnToListAfterFilter = true;
-		bool compactRows = true;              // [Layout] bCompactRows: FuzzUI-style compact rows (owner 2026-11-11: on by default)
+		bool layoutPack = true;               // [Layout] bLayoutPack: the baked sizes pack MRLayout_P (Step B, decision 44)
 		int  stickDeadzone = 16000;          // [Controller] uStickDeadzone: left stick travel (of 32767) before it counts as a push
 		struct Picker
 		{

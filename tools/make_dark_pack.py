@@ -30,7 +30,7 @@ from pack_builder import app, paths, pipeline  # noqa: E402
 from pack_builder.pipeline import *  # noqa: E402,F401,F403  (the recipes and tables, for the tests and old callers)
 from pack_builder.pipeline import DEFAULT_PACK, pack_name, sha256  # noqa: E402
 
-COMPARED = ("pack", "game_build", "style", "textures")   # --check: what a pack was baked from and what it holds
+COMPARED = ("pack", "game_build", "style", "textures", "sizes")   # --check: what a pack was baked from and what it holds
 
 
 def comparable(manifest):
@@ -67,10 +67,19 @@ def main(argv=None):
     if not result.ok:
         print(result.message)
         sys.exit(1)
-    current = json.loads((args.out / f"{pack}.json").read_text(encoding="utf-8"))
-    files = current.get("files", {})
-    same = comparable(result.manifest) == comparable(current) and all(
-        (args.out / n).is_file() and sha256(args.out / n) == digest for n, digest in files.items())
+    layout = getattr(result, "layout_manifest", None)
+    built = [(pack, result.manifest)] + ([(pipeline.LAYOUT_PACK, layout)] if layout else [])
+    same = True
+    for name, manifest in built:   # the colour pack and, with bLayoutPack=1, the sizes pack (Step B)
+        try:
+            current = json.loads((args.out / f"{name}.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            current = {}
+        files = current.get("files", {})
+        ok = bool(current) and comparable(manifest) == comparable(current) and all(
+            (args.out / n).is_file() and sha256(args.out / n) == digest for n, digest in files.items())
+        print(f"{name}: " + ("up to date (same baked assets)" if ok else "STALE"))
+        same = same and ok
     print("pack is up to date (same baked textures)" if same else "pack is STALE: run without --check to rebuild")
     sys.exit(0 if same else 1)
 

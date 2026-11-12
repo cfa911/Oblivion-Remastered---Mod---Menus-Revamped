@@ -1,0 +1,627 @@
+{
+ "menu": "Layout",
+ "order": 0,
+ "about": "Step B (owner 2026-11-12, decisions 29, 45, 46): the compact-row sizes baked into MRLayout_P and MRCustom_P. Each float/double is checked against its stock value (game 1.512.105.0) before it is written; 'size' names the [Sizes] key (CustomColours.ini), 'value' is fixed layout. Rewrites add the three values the cook did not store (KB techniques/unversioned-package-rewrite.md).",
+ "layout": {
+  "WBP_ModernMenu_MagicEntry": {
+   "asset": "UI/Modern/GameMenuLayer/magic/WBP_ModernMenu_MagicEntry",
+   "floats": [
+    {
+     "widget": "SizeBox_0",
+     "offset": 6045,
+     "stock": 54.0,
+     "size": "magicRowHeight"
+    },
+    {
+     "widget": "SizeBox_1",
+     "offset": 6069,
+     "stock": 48.0,
+     "size": "magicIconSize"
+    },
+    {
+     "widget": "SizeBox_1",
+     "offset": 6073,
+     "stock": 48.0,
+     "size": "magicIconSize"
+    }
+   ]
+  },
+  "WBP_ModernMenu_MagicMenu": {
+   "asset": "UI/Modern/GameMenuLayer/magic/WBP_ModernMenu_MagicMenu",
+   "floats": [
+    {
+     "widget": "CanvasPanelSlot_1",
+     "offset": 511,
+     "stock": 550.0,
+     "value": 500.0
+    },
+    {
+     "widget": "CanvasPanelSlot_2",
+     "offset": 679,
+     "stock": 909.0,
+     "value": 900.0
+    },
+    {
+     "widget": "CanvasPanelSlot_4",
+     "offset": 441,
+     "stock": -282.829,
+     "value": -289.829
+    },
+    {
+     "widget": "CanvasPanelSlot_4",
+     "offset": 449,
+     "stock": 688.74,
+     "value": 702.74
+    },
+    {
+     "widget": "SizeBox_2",
+     "offset": 72956,
+     "stock": 206.0,
+     "value": 207.0
+    },
+    {
+     "widget": "VerticalBoxSlot_0",
+     "offset": 73426,
+     "stock": 20.0,
+     "value": 0.0
+    },
+    {
+     "widget": "VerticalBoxSlot_3",
+     "offset": 73401,
+     "stock": 20.0,
+     "value": 4.0
+    },
+    {
+     "widget": "VerticalBoxSlot_3",
+     "offset": 73405,
+     "stock": 30.0,
+     "value": 10.0
+    },
+    {
+     "widget": "Magic_SpellEffectivenes_Value",
+     "offset": 73968,
+     "stock": 21.0,
+     "size": "font.MagicMenu.Magic_SpellEffectivenes_Value"
+    }
+   ]
+  },
+  "WBP_OriginalMenu_InventoryIconEntry": {
+   "asset": "UI/Original/GameMenuLayer/Inventory/MainPart/WBP_OriginalMenu_InventoryIconEntry",
+   "floats": [
+    {
+     "widget": "SizeBox_60",
+     "offset": 3992,
+     "stock": 48.0,
+     "size": "inventoryIconSize"
+    },
+    {
+     "widget": "SizeBox_60",
+     "offset": 3996,
+     "stock": 48.0,
+     "size": "inventoryIconSize"
+    },
+    {
+     "widget": "inv_entry_icon_count",
+     "offset": 4090,
+     "stock": 12.0,
+     "size": "inventoryCountFont"
+    }
+   ]
+  },
+  "WBP_OriginalMenu_InventoryEntry": {
+   "asset": "UI/Original/GameMenuLayer/Inventory/MainPart/WBP_OriginalMenu_InventoryEntry",
+   "floats": [
+    {
+     "widget": "SizeBox_0",
+     "offset": 11871,
+     "stock": 54.0,
+     "size": "inventoryRowHeight"
+    }
+   ]
+  },
+  "WBP_OriginalMenu_InventoryMainPart": {
+   "asset": "UI/Original/GameMenuLayer/Inventory/MainPart/WBP_OriginalMenu_InventoryMainPart",
+   "floats": [
+    {
+     "widget": "CanvasPanelSlot_2",
+     "offset": 156,
+     "stock": 138.0,
+     "value": 131.0
+    },
+    {
+     "widget": "CanvasPanelSlot_2",
+     "offset": 164,
+     "stock": 52.0,
+     "value": 22.0
+    },
+    {
+     "widget": "inv_armor",
+     "offset": 19253,
+     "stock": 16.5,
+     "size": "font.InventoryMainPart.inv_armor"
+    },
+    {
+     "widget": "inv_money",
+     "offset": 19375,
+     "stock": 16.5,
+     "size": "font.InventoryMainPart.inv_money"
+    },
+    {
+     "widget": "inv_weight",
+     "offset": 19492,
+     "stock": 16.5,
+     "size": "font.InventoryMainPart.inv_weight"
+    },
+    {
+     "widget": "Spacer_2",
+     "offset": 18888,
+     "stock": 21.0,
+     "type": "double",
+     "value": 0.0
+    },
+    {
+     "widget": "Spacer_3",
+     "offset": 18914,
+     "stock": 33.0,
+     "type": "double",
+     "value": 0.0
+    }
+   ]
+  },
+  "WBP_ModernMenu_AlchemyItemEntry": {
+   "asset": "UI/Modern/GameMenuLayer/Alchemy/WBP_ModernMenu_AlchemyItemEntry",
+   "floats": [
+    {
+     "widget": "SizeBox_0",
+     "offset": 5898,
+     "stock": 54.0,
+     "size": "alchemyRowHeight"
+    },
+    {
+     "widget": "Icon_SizeBox",
+     "offset": 5862,
+     "stock": 48.0,
+     "size": "alchemyIconSize"
+    },
+    {
+     "widget": "Icon_SizeBox",
+     "offset": 5866,
+     "stock": 48.0,
+     "size": "alchemyIconSize"
+    },
+    {
+     "widget": "CanvasPanelSlot_4",
+     "offset": 290,
+     "stock": 2.0,
+     "value": 26.0
+    },
+    {
+     "widget": "CanvasPanelSlot_4",
+     "offset": 294,
+     "stock": 48.0,
+     "size": "alchemyIconSize"
+    },
+    {
+     "widget": "CanvasPanelSlot_4",
+     "offset": 298,
+     "stock": 48.0,
+     "size": "alchemyIconSize"
+    },
+    {
+     "widget": "CanvasPanelSlot_1",
+     "offset": 214,
+     "stock": 20.0,
+     "value": 18.0
+    }
+   ]
+  },
+  "WBP_ModernMenu_AlchemyMenu": {
+   "asset": "UI/Modern/GameMenuLayer/Alchemy/WBP_ModernMenu_AlchemyMenu",
+   "floats": [
+    {
+     "widget": "CanvasPanelSlot_0",
+     "offset": 142,
+     "stock": 60.7868,
+     "value": -32.9132
+    },
+    {
+     "widget": "CanvasPanelSlot_0",
+     "offset": 150,
+     "stock": 809.418,
+     "value": 1013.118
+    },
+    {
+     "widget": "CanvasPanelSlot_1",
+     "offset": 186,
+     "stock": 712.043,
+     "value": 812.043
+    },
+    {
+     "widget": "OverlaySlot_2",
+     "offset": 66235,
+     "stock": 570.0,
+     "value": 665.0
+    }
+   ]
+  },
+  "WBP_ModernMenu_AlchemyFilters": {
+   "asset": "UI/Modern/GameMenuLayer/Alchemy/Filters/WBP_ModernMenu_AlchemyFilters",
+   "floats": [
+    {
+     "widget": "CanvasPanelSlot_0",
+     "offset": 46,
+     "stock": 744.831,
+     "value": 755.831
+    },
+    {
+     "widget": "CanvasPanelSlot_2",
+     "offset": 82,
+     "stock": 64.0,
+     "value": 30.0
+    }
+   ],
+   "rewrites": [
+    {
+     "widget": "OverlaySlot_0",
+     "export_start": 14039,
+     "export_size": 27,
+     "header_pos": 3,
+     "stock_fields": [
+      0,
+      2
+     ],
+     "stock_zeroes": [],
+     "add": [
+      [
+       3,
+       -75.0
+      ]
+     ],
+     "field_sizes": [
+      4,
+      4,
+      4,
+      4
+     ],
+     "stock_export_sha256": "b821f4f48f3f1d0f1ddec0109d973fbeaf8f67e70cc8332659ac6daf01f99003"
+    }
+   ]
+  },
+  "WBP_ModernMenu_FilterEffectEntry": {
+   "asset": "UI/Modern/GameMenuLayer/Alchemy/Filters/WBP_ModernMenu_FilterEffectEntry",
+   "floats": [
+    {
+     "widget": "SizeBox",
+     "offset": 2576,
+     "stock": 58.0,
+     "size": "alchemyFilterRowHeight"
+    },
+    {
+     "widget": "EffectText",
+     "offset": 2649,
+     "stock": 20.0,
+     "size": "font.FilterEffectEntry.EffectText"
+    },
+    {
+     "widget": "OverlaySlot_0",
+     "offset": 2429,
+     "stock": 5.0,
+     "value": 2.0
+    },
+    {
+     "widget": "OverlaySlot_0",
+     "offset": 2433,
+     "stock": 5.0,
+     "value": 2.0
+    },
+    {
+     "widget": "OverlaySlot_0",
+     "offset": 2437,
+     "stock": 5.0,
+     "value": 2.0
+    },
+    {
+     "widget": "OverlaySlot_0",
+     "offset": 2441,
+     "stock": 5.0,
+     "value": 2.0
+    },
+    {
+     "widget": "OverlaySlot_4",
+     "offset": 2505,
+     "stock": 5.0,
+     "value": 2.0
+    },
+    {
+     "widget": "OverlaySlot_4",
+     "offset": 2509,
+     "stock": 5.0,
+     "value": 2.0
+    },
+    {
+     "widget": "OverlaySlot_4",
+     "offset": 2513,
+     "stock": 5.0,
+     "value": 2.0
+    },
+    {
+     "widget": "OverlaySlot_4",
+     "offset": 2517,
+     "stock": 5.0,
+     "value": 2.0
+    },
+    {
+     "widget": "OverlaySlot_5",
+     "offset": 2538,
+     "stock": 5.0,
+     "value": 2.0
+    },
+    {
+     "widget": "OverlaySlot_5",
+     "offset": 2542,
+     "stock": 5.0,
+     "value": 2.0
+    },
+    {
+     "widget": "OverlaySlot_5",
+     "offset": 2546,
+     "stock": 5.0,
+     "value": 2.0
+    },
+    {
+     "widget": "OverlaySlot_5",
+     "offset": 2550,
+     "stock": 5.0,
+     "value": 2.0
+    }
+   ]
+  },
+  "WBP_ModernMenu_ItemEffect": {
+   "asset": "UI/Modern/GameMenuLayer/Alchemy/WBP_ModernMenu_ItemEffect",
+   "floats": [
+    {
+     "widget": "EffectText",
+     "offset": 1888,
+     "stock": 18.0,
+     "size": "font.ItemEffect.EffectText"
+    }
+   ]
+  },
+  "WBP_ModernMenu_AlchemyItemsListView": {
+   "asset": "UI/Modern/GameMenuLayer/Alchemy/WBP_ModernMenu_AlchemyItemsListView",
+   "floats": [],
+   "rewrites": [
+    {
+     "widget": "CanvasPanelSlot_0",
+     "export_start": 14,
+     "export_size": 39,
+     "header_pos": 6,
+     "stock_fields": [
+      2,
+      3
+     ],
+     "stock_zeroes": [
+      2,
+      3
+     ],
+     "add": [
+      [
+       2,
+       -5.0
+      ],
+      [
+       3,
+       -81.0
+      ]
+     ],
+     "field_sizes": [
+      4,
+      4,
+      4,
+      4
+     ],
+     "stock_export_sha256": "c7741ba77ddb43144edba1e197ba621c92909b0916efbec5f1b6ac2965df90ae"
+    }
+   ]
+  },
+  "WBP_ModernMenu_EnchantmentEntry": {
+   "asset": "UI/Modern/GameMenuLayer/enchantment/WBP_ModernMenu_EnchantmentEntry",
+   "floats": [
+    {
+     "widget": "SizeBox_0",
+     "offset": 4959,
+     "stock": 54.0,
+     "size": "enchantingRowHeight"
+    }
+   ]
+  },
+  "WBP_ModernMenu_EnchantmentMenu": {
+   "asset": "UI/Modern/GameMenuLayer/enchantment/WBP_ModernMenu_EnchantmentMenu",
+   "floats": [
+    {
+     "widget": "ListView_SizeBox",
+     "offset": 72331,
+     "stock": 540.0,
+     "value": 590.0
+    }
+   ]
+  },
+  "WBP_ModernMenu_SpellmakingEntry": {
+   "asset": "UI/Modern/GameMenuLayer/Spellmaking/WBP_ModernMenu_SpellmakingEntry",
+   "floats": [
+    {
+     "widget": "SizeBox_0",
+     "offset": 4621,
+     "stock": 54.0,
+     "size": "spellmakingRowHeight"
+    }
+   ]
+  },
+  "WBP_ModernMenu_SpellMakingMenu": {
+   "asset": "UI/Modern/GameMenuLayer/Spellmaking/WBP_ModernMenu_SpellMakingMenu",
+   "floats": [
+    {
+     "widget": "CanvasPanelSlot_1",
+     "offset": 1658,
+     "stock": 709.684,
+     "value": 735.0
+    }
+   ]
+  },
+  "WBP_ModernMenu_SpellPurchaseItem": {
+   "asset": "UI/Modern/GameMenuLayer/SpellPurchase/WBP_ModernMenu_SpellPurchaseItem",
+   "floats": [
+    {
+     "widget": "SizeBox_0",
+     "offset": 2840,
+     "stock": 54.0,
+     "size": "spellPurchaseRowHeight"
+    },
+    {
+     "widget": "effect_icon_sizebox",
+     "offset": 2804,
+     "stock": 48.0,
+     "size": "spellPurchaseIconSize"
+    },
+    {
+     "widget": "effect_icon_sizebox",
+     "offset": 2808,
+     "stock": 48.0,
+     "size": "spellPurchaseIconSize"
+    }
+   ]
+  },
+  "WBP_ModernMenu_SpellPurchase": {
+   "asset": "UI/Modern/GameMenuLayer/SpellPurchase/WBP_ModernMenu_SpellPurchase",
+   "floats": [
+    {
+     "widget": "CanvasPanelSlot_5",
+     "offset": 775,
+     "stock": 320.0,
+     "value": 355.0
+    }
+   ]
+  },
+  "WBP_ModernMenu_StatsSkillEntry": {
+   "asset": "UI/Modern/GameMenuLayer/stats/Page3_Skills/WBP_ModernMenu_StatsSkillEntry",
+   "floats": [
+    {
+     "widget": "CanvasPanelSlot_5",
+     "offset": 56,
+     "stock": 54.0,
+     "size": "skillRowHeight"
+    },
+    {
+     "widget": "SizeBox_1",
+     "offset": 4548,
+     "stock": 54.0,
+     "size": "skillIconSize"
+    },
+    {
+     "widget": "SizeBox_1",
+     "offset": 4552,
+     "stock": 64.0,
+     "size": "skillIconSize"
+    },
+    {
+     "widget": "stat_skillentry_icon_sizebox",
+     "offset": 4580,
+     "stock": 64.0,
+     "size": "skillIconSize"
+    },
+    {
+     "widget": "stat_skillentry_icon_sizebox",
+     "offset": 4584,
+     "stock": 64.0,
+     "size": "skillIconSize"
+    },
+    {
+     "widget": "stat_skillentry_label",
+     "offset": 4963,
+     "stock": 25.5,
+     "size": "font.StatsSkillEntry.stat_skillentry_label"
+    },
+    {
+     "widget": "stat_skillentry_value",
+     "offset": 5032,
+     "stock": 18.0,
+     "size": "font.StatsSkillEntry.stat_skillentry_value"
+    }
+   ]
+  },
+  "WBP_ModernMenu_Stats_LevelDescription": {
+   "asset": "UI/Modern/GameMenuLayer/stats/Page3_Skills/WBP_ModernMenu_Stats_LevelDescription",
+   "floats": [
+    {
+     "widget": "stat_level_description",
+     "offset": 5384,
+     "stock": 18.0,
+     "size": "font.Stats_LevelDescription.stat_level_description"
+    },
+    {
+     "widget": "stat_level_name",
+     "offset": 5447,
+     "stock": 25.5,
+     "size": "font.Stats_LevelDescription.stat_level_name"
+    },
+    {
+     "widget": "stat_level_value",
+     "offset": 5517,
+     "stock": 18.0,
+     "size": "font.Stats_LevelDescription.stat_level_value"
+    }
+   ]
+  },
+  "WBP_ModernMenu_StatsPage3": {
+   "asset": "UI/Modern/GameMenuLayer/stats/Page3_Skills/WBP_ModernMenu_StatsPage3",
+   "floats": [
+    {
+     "widget": "CanvasPanelSlot_6",
+     "offset": 224,
+     "stock": -21.798,
+     "value": 0.798018
+    },
+    {
+     "widget": "CanvasPanelSlot_6",
+     "offset": 232,
+     "stock": 659.944,
+     "value": 710.944
+    }
+   ]
+  },
+  "WBP_ModernMenu_StatsPage3_Details": {
+   "asset": "UI/Modern/GameMenuLayer/stats/Page3_Skills/WBP_ModernMenu_StatsPage3_Details",
+   "floats": [
+    {
+     "widget": "stat_detailsp3_skillbase",
+     "offset": 23934,
+     "stock": 21.0,
+     "size": "font.StatsPage3_Details.stat_detailsp3_skillbase"
+    }
+   ]
+  },
+  "WBP_Modern_QuestEntry": {
+   "asset": "UI/Original/GameMenuLayer/Quest/Prefabs/WBP_Modern_QuestEntry",
+   "floats": [
+    {
+     "widget": "SizeBox_0",
+     "offset": 6687,
+     "stock": 54.0,
+     "size": "questRowHeight"
+    },
+    {
+     "widget": "CanvasPanelSlot_4",
+     "offset": 190,
+     "stock": 48.0,
+     "size": "questIconSize"
+    },
+    {
+     "widget": "CanvasPanelSlot_4",
+     "offset": 194,
+     "stock": 48.0,
+     "size": "questIconSize"
+    }
+   ]
+  }
+ }
+}

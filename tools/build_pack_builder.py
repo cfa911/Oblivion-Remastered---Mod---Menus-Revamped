@@ -31,14 +31,16 @@ README = """Menus Revamped - Custom Pack Builder
 
 Run MenusRevampedPackBuilder.exe from this folder (Plugins/MenusRevamped/PackBuilder). It finds the game by itself.
 
-- Pick colours by menu and visible element. Each entry corresponds to a key in ../CustomColours.ini.
-- Build pack: applies the marked baked colours, including both Inventory laurel controls. A Phase 4 pack still uses the
-  runtime laurel tint until you rebuild. A new pack uses the tint from its last build.
-- Restart game: choose Save, then restart to apply these runtime colours. The inactive keys (sort picker, old tab greys,
-  details band and action button tints) are kept for existing INI files.
-- Build: writes ../CustomPack/MRCustom_P.* (the previous pack is kept as .bak). The plugin installs the pack at the next game
-  start when [Style] uPreset=2 in MenusRevamped.ini. An asset that fails its check is skipped and listed.
-- Reset to Dark: the default colours. Open log: the last build's log (PackBuilder.log).
+- Colours tab: one colour per role (body text, page paper, icons, ...); a role moves every element under it and keeps each
+  element's own tint. Tick "Advanced" to set one element on its own ("own value" until Reset). Each entry is a key in
+  ../CustomColours.ini ([Roles], [Colours], [Skin]).
+- Text tab: text sizes per role in percent of today's size (Advanced: each text's own size). Rows tab: row height, icon size
+  and count font per list. Both go into [Sizes]. Runtime tab: our own Inventory/Magic header lines (Save, restart the game).
+- Build: writes ../CustomPack/MRCustom_P.* (colours and sizes) and ../CustomPack/MRLayout_P.* (sizes only); the previous
+  packs are kept as .bak. At the next game start the plugin installs MRCustom_P when [Style] uPreset=2 in MenusRevamped.ini,
+  otherwise MRLayout_P ([Layout] bLayoutPack=0: no sizes pack). An asset that fails its check is skipped and listed.
+- Vanilla colours: removes only the colour pack (kept as .bak): the game's own colours show and the sizes stay.
+- Reset to Dark: the default colours and sizes. Open log: the last build's log (PackBuilder.log).
 
 The first build needs internet: retoc downloads Oodle (oo2core_9_win64.dll, Epic Games' decompressor, not included) into
 the retoc folder to read the game's files.

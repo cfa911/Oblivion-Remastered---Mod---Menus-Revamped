@@ -81,6 +81,9 @@ namespace customcolours
 	}
 
 	inline bool KnownSection(std::string_view s) { return s == "Colours" || s == "Tab" || s == "Skin"; }
+	// the Pack Builder's own sections (Step B, owner 2026-11-12): role colours and layout sizes, baked by the builder; the plugin
+	// reads neither and skips them without a note
+	inline bool BuilderSection(std::string_view s) { return s == "Roles" || s == "Sizes"; }
 
 	inline const Entry* Find(std::string_view section, std::string_view name)
 	{
@@ -123,7 +126,8 @@ namespace customcolours
 				const auto close = line.find(']');
 				section = std::string(line.substr(1, close == std::string_view::npos ? std::string_view::npos : close - 1));
 				sectionKnown = KnownSection(section);
-				if (!sectionKnown) out.notes.push_back({ false, "[" + section + "] is not a known section, ignored" });
+				if (!sectionKnown && !BuilderSection(section))
+					out.notes.push_back({ false, "[" + section + "] is not a known section, ignored" });
 				continue;
 			}
 			const auto equals = line.find('=');

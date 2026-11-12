@@ -105,7 +105,7 @@ rows = {row["asset"]: (menu, row) for menu, data in menus.items() for row in dat
 # ---- 1. the colour keys: three [Skin] tints baked, three retired ----
 for name in ("ornament", "ring", "emphasisInk"):
     check(custom_colours.BAKED_SKIN.get(name) == f"Skin.{name}", f"[Skin] {name} is baked (Skin.{name})")
-    check(custom_colours.GROUPS.get(f"Skin.{name}") == "Inventory details", f"Skin.{name} in the Inventory details group")
+    check(any(f"Skin.{name}" in r["members"] for r in custom_colours.ROLES.values()), f"Skin.{name} is fed by a builder role")
 retired = getattr(custom_colours, "RETIRED_SKIN", ())
 check(tuple(retired) == ("band", "buttonFill", "buttonRule"), f"retired [Skin] keys ({retired})")
 values = custom_colours.pack_values()
@@ -122,9 +122,9 @@ try:
         check(m.entry("Skin", name).applies == "Inactive", f"model: [Skin] {name} Inactive ({m.entry('Skin', name).applies})")
     for name in ("ornament", "ring", "emphasisInk"):
         check(m.entry("Skin", name).applies == "Build pack", f"model: [Skin] {name} needs a Build ({m.entry('Skin', name).applies})")
-    shown = {e.name for _, groups in m.pages() for _, entries in groups for e in entries}
+    shown = {e.key.split(".")[-1] for label, groups in m.pages() if label in ("Colours", "Runtime") for _, entries in groups for e in entries}
     check(not shown & {"band", "buttonFill", "buttonRule"}, f"window: the retired keys are not shown ({shown & {'band', 'buttonFill', 'buttonRule'}})")
-    run_time = [entries for label, groups in m.pages() if "run time" in label for _, entries in groups]
+    run_time = [entries for label, groups in m.pages() if label == "Runtime" for _, entries in groups]
     check(sorted(e.name for entries in run_time for e in entries) == ["guide", "rule"], "window: only rule and guide stay run time")
     check({"Skin.ornament", "Skin.ring", "Skin.emphasisInk"} <= set(m.needs_build({})), "an older pack without the baked tints needs a Build")
 except Exception as error:   # noqa: BLE001

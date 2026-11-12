@@ -171,8 +171,9 @@ with tempfile.TemporaryDirectory() as temp:
         check(m.value("Colours", "rowText") == [239.0, 239.0, 239.0] and m.value("Skin", "rule") == [0.65, 0.65, 0.65, 0.55],
               "Reset to Dark restores today's values")
         m.save(target)
-        check(target.read_text(encoding="utf-8") == custom_colours.render(custom_colours.DEFAULTS),
-              "a reset and saved file is the default file")
+        check(target.read_text(encoding="utf-8") == custom_colours.render(custom_colours.DEFAULTS, None, m.roles, custom_colours.SIZES)
+              and target.read_text(encoding="utf-8").startswith(custom_colours.render(custom_colours.DEFAULTS).rstrip("\n")),
+              "a reset and saved file is the default file plus the builder's default [Roles] and [Sizes] (Step B)")
 
         # a broken file
         broken = temp / "broken.ini"

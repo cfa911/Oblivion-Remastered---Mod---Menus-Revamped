@@ -36,8 +36,8 @@ check("MakeStrip" not in src and "kStripFile" not in src and "Alchemy-TopParchme
       "no strip image code (owner 2026-11-11: the parchment itself is taller)")
 check(not (root / "assets/Alchemy/Alchemy-TopParchment.png").exists(), "the strip image is not shipped")
 check("PlaceStrip" not in (root / "src/sorting/rules/AlchemyRules.h").read_text(encoding="utf-8"), "no strip placement rule")
-check("ChipsInParchment(pb)" in src and "mrconfig::Get().compactRows" in src,
-      "buttons follow the parchment top only with compact rows (else their own line under the title row)")
+check("ChipsInParchment(pb)" in src and "darkpack::LayoutBaked()" in src,
+      "buttons follow the parchment top only with the baked sizes (else their own line under the title row)")
 # owner 2026-11-04: a "Selected filters" title over two rows of slightly smaller buttons
 check('"Selected Filters"' in src, "the active-filter area has a Selected Filters title")
 check("CopyIngredientsFont(chipTitle, title)" in src, "title uses Ingredients font")

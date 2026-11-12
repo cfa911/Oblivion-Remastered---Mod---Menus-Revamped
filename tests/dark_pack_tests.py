@@ -72,7 +72,7 @@ check(set(manifest.get("textures", {})) == set(data_listed) and manifest.get("te
       "the manifest lists exactly the textures make_dark_pack.py bakes")
 
 dp_rules = root / "src/core/rules/DarkPackSwitch.h"
-check(dp_rules.is_file() and "darkpackswitch::SwitchCustom(" in dp, "DarkPack.cpp uses the tested switch (src/core/rules/DarkPackSwitch.h)")
+check(dp_rules.is_file() and "layoutpack::Switch(" in dp, "DarkPack.cpp uses the tested switch (src/core/rules/DarkPackSwitch.h through LayoutPack.h, Step B decision 46)")
 check("MR-PAK-PROBE" not in plugin and "PakMountProbe" not in plugin, "the pak mount probe (TEMP-DIAG, recorded in the KB) is removed")
 
 files_tool = root / "tools/plugin_files.py"

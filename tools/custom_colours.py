@@ -7,8 +7,9 @@ Usage:
 load(path) returns {element: value}: [r, g, b] (sRGB 0-255) for the [Colours] entries, a number for detailsPage and the [Tab]
 greys. A missing file or key gives the built-in default (DEFAULTS, today's Dark values); an unknown key is ignored with a note;
 a broken value stops with a message that names the key. [Skin] holds the plugin's run-time tints (linear 0-1, red, green,
-blue, alpha; load_skin(path)). The builder also bakes [Skin] pattern, the scrollbar, ornament, ring and emphasisInk. Colours are per element for now; merging them into roles is a later,
-owner-reviewed step (KB mods/menus-revamped/evidence/custom-pack-builder-plan.md).
+blue, alpha; load_skin(path)). The builder also bakes [Skin] pattern, the scrollbar, ornament, ring and emphasisInk. The builder
+groups the elements into roles ([Roles], decision 39) and writes the layout sizes ([Sizes], load_sizes(path)); the plugin reads
+neither (KB mods/menus-revamped/evidence/custom-pack-builder-plan.md).
 """
 import configparser
 import re
@@ -124,24 +125,77 @@ TAB_HELP = {
 }
 
 
-# the builder window's subgroups (owner decision 26): every entry -> the menu it changes; baked [Skin] values as "Skin.<name>"
-GROUP_ORDER = ("All menus", "Inventory and Magic lists", "Inventory and Magic category tabs", "Inventory details", "Alchemy",
-               "Enchanting", "Spellmaking", "Enchanting and Spellmaking", "Inventory and Magic header (run time)")
-GROUPS = {
-    **{k: "All menus" for k in ("Skin.scrollTrack", "Skin.scrollBorder", "Skin.scrollInside", "parchmentDark", "parchmentLight", "nameBox")},
-    **{k: "Inventory and Magic lists" for k in ("panel", "frame", "rowText", "rowSeparator", "rowEquipped", "columnLine", "rowIcon", "headerIcon",
-                                                 "pickerIcon", "listHighlight")},
-    **{k: "Inventory and Magic category tabs" for k in ("tabPaperDark", "tabPaperLight", "tabGlyph", "selected", "unselected", "gap",
-                                                         "outline", "glyph", "glyphDim")},
-    **{k: "Inventory details" for k in ("subTabDisc", "subTabCircle", "subTabIcon", "pattern", "Skin.pattern", "enchantedDot",
-                                         "previewFrameLight", "previewFrameDark", "detailsPage", "Skin.ornament", "Skin.ring",
-                                         "Skin.emphasisInk")},
-    **{k: "Alchemy" for k in ("effectBox", "filterRow", "filterHover", "filterSelected", "filterMark", "alchemyMetal", "alchemyStone")},
-    **{k: "Enchanting" for k in ("enchantingFrame", "enchantingCrystal", "enchantingOrnament", "enchantingTabPaper", "enchantingTabIcon")},
-    **{k: "Spellmaking" for k in ("spellmakingFrame", "spellmakingEye")},
-    "altarPaper": "Enchanting and Spellmaking",
-    **{k: "Inventory and Magic header (run time)" for k in ("rule", "guide")},
+# ---- Step B (owner 2026-11-12, decisions 38-45): roles, [Roles] and [Sizes] ----
+# A role feeds its elements (keys: [Colours] names, baked [Skin] values as "Skin.<name>"). Its default is the sRGB colour of
+# its first element's Dark value; a role change shifts every element by the same per-channel amount (decision 43: each
+# element's tint kept); an element set by hand is an "own value". [Roles] holds the role colours (sRGB 0-255) the builder
+# writes; the plugin ignores the section. [Colours]/[Skin] stay written in full: the recipes and the plugin read only them.
+ROLES = {
+    "bodyText": {"label": "Body text (all menus)", "members": ["rowText", "nameBox"]},
+    "emphasis": {"label": "Highlighted words (perk descriptions in the item details)", "members": ["Skin.emphasisInk"]},
+    "paperShadow": {"label": "Page paper - shadows (all menus with paper: details pages, Alchemy, Enchanting, Spellmaking, "
+                             "Container, Repair, Recharge, Training, Sigil Stone, Help)",
+                    "members": ["parchmentDark", "altarPaper", "enchantingTabPaper", "detailsPage"]},
+    "paperLight": {"label": "Page paper - highlights (all menus with paper)", "members": ["parchmentLight"]},
+    "tabShadow": {"label": "Category tabs paper - shadows (Inventory, Magic)", "members": ["tabPaperDark"]},
+    "tabLight": {"label": "Category tabs paper - highlights (Inventory, Magic)", "members": ["tabPaperLight"]},
+    "listPanel": {"label": "List background and frame (Inventory, Magic, Container, Barter)", "members": ["panel", "frame"]},
+    "lines": {"label": "Lines and separators (all menus)", "members": ["rowSeparator", "columnLine", "Skin.ornament"]},
+    "icons": {"label": "Icons (all menus)", "members": ["rowIcon", "headerIcon", "subTabIcon", "tabGlyph", "enchantingTabIcon"]},
+    "highlight": {"label": "Highlighted row and hover (all menus)",
+                  "members": ["listHighlight", "filterHover", "subTabDisc", "subTabCircle"]},
+    "equipped": {"label": "Equipped item band (all lists)", "members": ["rowEquipped"]},
+    "accent": {"label": "Accent blue (enchanted dot, Alchemy effect boxes and selected filters)",
+               "members": ["enchantedDot", "effectBox", "filterSelected", "filterMark", "filterRow"]},
+    "metal": {"label": "Metal frames and ornaments (Alchemy, Enchanting, Spellmaking)",
+              "members": ["alchemyMetal", "alchemyStone", "enchantingFrame", "spellmakingFrame", "enchantingOrnament",
+                          "spellmakingEye", "enchantingCrystal"]},
+    "preview": {"label": "Item preview frame and button laurels (Inventory details)",
+                "members": ["previewFrameDark", "previewFrameLight", "pattern", "Skin.pattern"]},
+    "ring": {"label": "Skill level ring (Inventory details, Character skills)", "members": ["Skin.ring"]},
+    "scrollbars": {"label": "Scrollbars (all menus but Settings)",
+                   "members": ["Skin.scrollTrack", "Skin.scrollBorder", "Skin.scrollInside"]},
 }
+RUNTIME_SKIN = ("rule", "guide")   # our own widgets (decision 38: the Runtime tab)
+
+# [Sizes] (decisions 29, 33, 42, 45). Rows tab: per list, defaults = the compact rows (tools/menus/layout.json).
+ROW_LISTS = (
+    ("Inventory, Container and Barter rows", (("inventoryRowHeight", "Row height", 36), ("inventoryIconSize", "Icon size", 32),
+                                              ("inventoryCountFont", "Item count font size (on the icon)", 11))),
+    ("Magic rows", (("magicRowHeight", "Row height", 36), ("magicIconSize", "Icon size", 32))),
+    ("Alchemy ingredient rows", (("alchemyRowHeight", "Row height", 27), ("alchemyIconSize", "Icon size", 26))),
+    ("Alchemy effect filter rows", (("alchemyFilterRowHeight", "Row height", 34),)),
+    ("Enchanting rows", (("enchantingRowHeight", "Row height", 36),)),
+    ("Spellmaking rows", (("spellmakingRowHeight", "Row height", 36),)),
+    ("Spell Purchase rows", (("spellPurchaseRowHeight", "Row height", 36), ("spellPurchaseIconSize", "Icon size", 32))),
+    ("Quest rows", (("questRowHeight", "Row height", 36), ("questIconSize", "Icon size", 32))),
+    ("Character skill rows", (("skillRowHeight", "Row height", 36), ("skillIconSize", "Icon size", 48))),
+)
+# Text tab (decision 42): a role is a scale in percent of today's size; its members are "<blueprint>.<widget>" font sizes
+# (blueprint without its WBP_ModernMenu_/WBP_OriginalMenu_ prefix), defaults = today's compact values. Step C adds members
+# menu by menu.
+FONT_SIZES = {
+    "ItemEffect.EffectText": 22.0, "Stats_LevelDescription.stat_level_description": 16.0,
+    "Stats_LevelDescription.stat_level_name": 23.5,
+    "InventoryMainPart.inv_armor": 14.0, "InventoryMainPart.inv_money": 14.0, "InventoryMainPart.inv_weight": 14.0,
+    "MagicMenu.Magic_SpellEffectivenes_Value": 18.0, "StatsSkillEntry.stat_skillentry_value": 16.0,
+    "Stats_LevelDescription.stat_level_value": 16.0, "StatsPage3_Details.stat_detailsp3_skillbase": 18.0,
+    "StatsSkillEntry.stat_skillentry_label": 22.5, "FilterEffectEntry.EffectText": 16.0,
+}
+TEXT_ROLES = {
+    "textBodyScale": {"label": "Body text size (Alchemy ingredient effects, Character level description)",
+                      "members": ["ItemEffect.EffectText", "Stats_LevelDescription.stat_level_description"]},
+    "textTitleScale": {"label": "Title size (Character level name)", "members": ["Stats_LevelDescription.stat_level_name"]},
+    "textValueScale": {"label": "Number size (Inventory armour, gold and weight; Magic spell effectiveness; Character skill values)",
+                       "members": ["InventoryMainPart.inv_armor", "InventoryMainPart.inv_money", "InventoryMainPart.inv_weight",
+                                   "MagicMenu.Magic_SpellEffectivenes_Value", "StatsSkillEntry.stat_skillentry_value",
+                                   "Stats_LevelDescription.stat_level_value", "StatsPage3_Details.stat_detailsp3_skillbase"]},
+    "textRowNameScale": {"label": "List row name size (Character skills, Alchemy effect filters)",
+                         "members": ["StatsSkillEntry.stat_skillentry_label", "FilterEffectEntry.EffectText"]},
+}
+SIZES = ({k: 100 for k in TEXT_ROLES} | {k: v for _, rows in ROW_LISTS for k, _, v in rows}
+         | {f"font.{k}": v for k, v in FONT_SIZES.items()})
+SCALE_RANGE, SIZE_RANGE = (50, 200), (1, 400)
 
 
 def from_darkstyle(text):
@@ -174,8 +228,9 @@ def number(v):
     return str(int(v)) if float(v).is_integer() else repr(float(v))
 
 
-def render(values, skin=None):
-    """The text of a CustomColours.ini holding these values (skin: the [Skin] tints, default SKIN)."""
+def render(values, skin=None, roles=None, sizes=None):
+    """The text of a CustomColours.ini holding these values (skin: the [Skin] tints, default SKIN). roles/sizes: the builder's
+    [Roles] and [Sizes] sections (the plugin's default file has neither: a missing section = the defaults)."""
     skin = SKIN if skin is None else skin
     lines = ["; Menus Revamped - Custom colours.",
              "; [Colours]: red, green, blue (0-255) per element; detailsPage is one number. [Tab]: tab strip greys (0-255).",
@@ -197,11 +252,28 @@ def render(values, skin=None):
         value = skin[name]
         text = ", ".join(number(c) for c in value) if isinstance(value, list) else number(value)
         lines.append(f"{name} = {text}".ljust(36) + f"; {SKIN_HELP[name]}")
+    if roles is not None:
+        lines += ["", "[Roles]", "; The builder's role colours (sRGB 0-255); the elements above hold the values in use."]
+        for name in ROLES:
+            lines.append(f"{name} = " + ", ".join(number(c) for c in roles[name]))
+    if sizes is not None:
+        lines += ["", "[Sizes]", "; Text role scales in percent; row sizes and font sizes in points. Baked into MRLayout_P by Build."]
+        for name in SIZES:
+            lines.append(f"{name} = {number(sizes[name])}")
     return "\n".join(lines) + "\n"
 
 
 def parse(name, raw, section="Colours"):
     raw = raw.split(";", 1)[0].strip()
+    if section == "Sizes":
+        try:
+            v = float(raw)
+        except ValueError:
+            sys.exit(f"CustomColours.ini: [Sizes] {name} = {raw!r} is not a number")
+        low, high = SCALE_RANGE if name in TEXT_ROLES else SIZE_RANGE
+        if not low <= v <= high:
+            sys.exit(f"CustomColours.ini: [Sizes] {name} needs a number from {low} to {high}, found {raw!r}")
+        return v
     try:
         parts = [float(p) for p in raw.split(",")]
     except ValueError:
@@ -211,9 +283,10 @@ def parse(name, raw, section="Colours"):
         if len(parts) != size or not all(0 <= p <= 1 for p in parts):
             sys.exit(f"CustomColours.ini: [Skin] {name} needs {size} number(s) from 0 to 1, found {raw!r}")
         return parts if size == 4 else parts[0]
-    if name in COLOURS:
+    if section == "Roles" or name in COLOURS:
+        what = "[Roles] " + name if section == "Roles" else name
         if len(parts) != 3 or not all(0 <= p <= 255 for p in parts):
-            sys.exit(f"CustomColours.ini: {name} needs three numbers from 0 to 255 (red, green, blue), found {raw!r}")
+            sys.exit(f"CustomColours.ini: {what} needs three numbers from 0 to 255 (red, green, blue), found {raw!r}")
         return parts
     top = 1.0 if name in NUMBERS else 255.0
     if len(parts) != 1 or not 0 <= parts[0] <= top:
@@ -221,7 +294,7 @@ def parse(name, raw, section="Colours"):
     return parts[0]
 
 
-SECTIONS = {"Colours": set(COLOURS) | set(NUMBERS), "Tab": set(TAB), "Skin": set(SKIN)}
+SECTIONS = {"Colours": set(COLOURS) | set(NUMBERS), "Tab": set(TAB), "Skin": set(SKIN), "Roles": set(ROLES), "Sizes": set(SIZES)}
 
 
 def read_entries(path):
@@ -245,7 +318,7 @@ def read_entries(path):
 def load(path=DEFAULT_PATH):
     """The baked colour values: the file's [Colours] and [Tab] entries over DEFAULTS (a missing file = DEFAULTS)."""
     values = {k: (list(v) if isinstance(v, list) else v) for k, v in DEFAULTS.items()}
-    values |= {name: value for section, name, value in read_entries(path) if section != "Skin"}
+    values |= {name: value for section, name, value in read_entries(path) if section in ("Colours", "Tab")}
     return values
 
 
@@ -254,6 +327,16 @@ def load_skin(path=DEFAULT_PATH):
     values = {k: (list(v) if isinstance(v, list) else v) for k, v in SKIN.items()}
     values |= {name: value for section, name, value in read_entries(path) if section == "Skin"}
     return values
+
+
+def load_sizes(path=DEFAULT_PATH):
+    """The [Sizes] values over SIZES (a missing file or key = today's sizes)."""
+    return dict(SIZES) | {name: value for section, name, value in read_entries(path) if section == "Sizes"}
+
+
+def load_roles(path=DEFAULT_PATH):
+    """The [Roles] colours the file names (a missing role is absent: the model uses the role default)."""
+    return {name: value for section, name, value in read_entries(path) if section == "Roles"}
 
 
 def pack_values(path=None):
