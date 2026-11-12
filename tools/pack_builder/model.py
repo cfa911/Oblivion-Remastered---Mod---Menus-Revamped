@@ -44,7 +44,11 @@ class Entry:
     @property
     def applies(self):
         if self.section == "Skin":
+            if self.name in cc.RETIRED_SKIN:
+                return "Inactive"   # retired by phase 28b: the band art and the button prefab are baked
             return "Build pack" if self.name in cc.BAKED_SKIN else "Restart game"
+        if self.section == "Tab":
+            return "Inactive"   # retired by decision 34: the tabs bake from tabPaperDark/tabPaperLight/tabGlyph
         return "Inactive" if self.name in ("rowSeparator", "pickerIcon") else "Build pack"
 
     @property
@@ -79,10 +83,11 @@ class ColourModel:
 
     def pages(self):
         """The window's tabs (owner decision 26): [(label, [(group, [entries])])]. Baked colours (with the baked [Skin] values),
-        baked tab greys, then the run-time [Skin] tints only; each tab split into menu groups in cc.GROUP_ORDER."""
+        then the run-time [Skin] tints only; each tab split into menu groups in cc.GROUP_ORDER. The retired [Tab] greys
+        (decision 34) and [Skin] tints (phase 28b) are kept in the file but not shown."""
         baked_skin = [e for e in self.section("Skin") if e.name in cc.BAKED_SKIN]
-        tabs = (("Colours (baked)", self.section("Colours") + baked_skin), ("Tabs (baked)", self.section("Tab")),
-                ("Skin (run time)", [e for e in self.section("Skin") if e.name not in cc.BAKED_SKIN]))
+        tabs = (("Colours (baked)", self.section("Colours") + baked_skin),
+                ("Skin (run time)", [e for e in self.section("Skin") if e.name not in cc.BAKED_SKIN and e.name not in cc.RETIRED_SKIN]))
 
         def group(e):
             return cc.GROUPS.get(f"Skin.{e.name}" if e.section == "Skin" and e.name in cc.BAKED_SKIN else e.name, "Other")

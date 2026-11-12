@@ -163,6 +163,41 @@ def flat_blocks(data, rgb):
     return bytes(out)
 
 
+def bc3_alpha_block(values):
+    """16 alpha values (0-255, row order) as one BC3 alpha block in the 8-value mode (alpha0 > alpha1; all equal: one value)."""
+    hi, lo = max(values), min(values)
+    if hi == lo:
+        return bytes((hi, lo)) + bytes(6)
+    palette = [hi, lo] + [((7 - k) * hi + k * lo) / 7 for k in range(1, 7)]
+    bits = 0
+    for i, v in enumerate(values):
+        bits |= min(range(8), key=lambda c: abs(palette[c] - v)) << (3 * i)
+    return bytes((hi, lo)) + bits.to_bytes(6, "little")
+
+
+def flat_alpha(data, rgb, scale, dds):
+    """flat_blocks (one colour) with the alpha times scale: the BC3 alpha blocks re-encoded from the decoded stock alpha
+    (the run-time RowEquipped.png: gold, alpha x 0.6, decision 28)."""
+    out = bytearray(flat_blocks(data, rgb))
+    alpha = Image.open(dds).convert("RGBA").getchannel("A")
+    width, height = alpha.size
+    at = header_size(data)
+    for by in range(0, height, 4):
+        for bx in range(0, width, 4):
+            values = [round(alpha.getpixel((min(bx + x, width - 1), min(by + y, height - 1))) * scale) for y in range(4) for x in range(4)]
+            out[at:at + 8] = bc3_alpha_block(values)
+            at += 16
+    return bytes(out)
+
+
+def clear_alpha(data):
+    """Every BC3 alpha block fully transparent, the colour blocks kept (the run-time hidden equipped scribble, decision 28)."""
+    out = bytearray(data)
+    for offset in range(header_size(data), len(out), 16):
+        out[offset:offset + 8] = bytes(8)
+    return bytes(out)
+
+
 def laurels(stock, rgb, tint):
     """Phase 4 flat laurel colour multiplied by the linear widget tint, including opacity."""
     if tuple(tint[:3]) != (1, 1, 1):
@@ -583,6 +618,78 @@ def magic_tab_atlas(stock_dds, active, v, work, stock):
     return opaque_rows(spliced, (work / "colour.dds").read_bytes(), tabs.STRIP + 4)
 
 
+# tab_paper (owner decisions 34-35, 2026-11-12; fitted to the owner's Near Black reference, KB custom-pack-builder-plan.md
+# "Owner style requests during 28a"): the stock Inventory/Magic tab atlas recoloured, stock alpha kept.
+TAB_PAPER_LUM = (80.0, 210.0)            # stock Rec. 601 luminance that maps to tabPaperDark / tabPaperLight (line extended)
+TAB_ICON, TAB_ICON_TOP, TAB_ICON_SHIFT = 76, 12, -2   # the clean T_Category_* icon over each stock tab icon
+TAB_GLYPH_BOX = (-42, 36, 12, 88)        # glyph box around each centre: x from, x to, y from, y to
+TAB_ARROW_BOX = (16, 36, 63)             # arrow box: |dx| <= 16 from each arrow centre, y from, y to
+TAB_WARMTH_INSIDE, TAB_WARMTH_NEAR, TAB_WARMTH_RAMP, TAB_NEAR = 0.22, 0.24, 0.06, 3
+
+
+def lum601(p):
+    return 0.299 * p[0] + 0.587 * p[1] + 0.114 * p[2]
+
+
+# RMI-088: BC3 stores colour as RGB565 and PIL's encoder truncates (red/blue keep v >> 3, green v >> 2), so a dark grey between
+# the red/blue levels decodes green ((24, 28, 24) for 29). Every channel goes on the 5-bit levels (green too, so a grey stays
+# grey), dithered 4x4 between the two nearest levels to keep the mean and the gradient.
+LEVELS5 = [(k << 3) | (k >> 2) for k in range(32)]
+BAYER4 = (0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5)
+
+
+def dither565(value, x, y):
+    v = max(0.0, min(255.0, value))
+    k = min(30, max(0, int(v // 8.2258)))
+    while k < 30 and LEVELS5[k + 1] <= v:
+        k += 1
+    while k > 0 and LEVELS5[k] > v:
+        k -= 1
+    low, high = LEVELS5[k], LEVELS5[k + 1]
+    return high if (v - low) / (high - low) > (BAYER4[(y % 4) * 4 + x % 4] + 0.5) / 16 else low
+
+
+def tab_paper(stock_dds, v, work, stock):
+    """Paper = tabPaperDark..tabPaperLight along the stock luminance; brown strokes (warmth (R - B) / luminance over a ramp)
+    become tabGlyph inside the clean icon outline (start 0.22), within 3 px of it and in the arrow boxes (start 0.24), nowhere
+    else. stock(name) gives the clean T_Category_* masks (Inventory for T_Tab_*, Magic for T_Magic_Tabs_*)."""
+    from PIL import ImageFilter
+    image = Image.open(stock_dds).convert("RGBA")
+    width, height = image.size
+    names = MAGIC_TAB_MASKS if Path(stock_dds).stem.lower().startswith("t_magic_tabs") else TAB_MASKS
+    if stock is None or len(names) != len(tabs.CENTERS):
+        raise SkipAsset("tab_paper needs the five clean category masks")
+    inside = Image.new("L", (width, height))
+    for centre, name in zip(tabs.CENTERS, names):
+        mask = Image.open(stock(name)).convert("RGBA").getchannel("A").resize((TAB_ICON, TAB_ICON), Image.BILINEAR)
+        inside.paste(mask.point(lambda a: 255 if a > 128 else 0), (centre + TAB_ICON_SHIFT - TAB_ICON // 2, TAB_ICON_TOP))
+    near = inside.filter(ImageFilter.MaxFilter(2 * TAB_NEAR + 1))
+    inside_px, near_px = inside.load(), near.load()
+    dark, light = v["tabPaperDark"], v["tabPaperLight"]
+    glyph = v["tabGlyph"]
+    low, high = TAB_PAPER_LUM
+    gx0, gx1, gy0, gy1 = TAB_GLYPH_BOX
+    adx, ay0, ay1 = TAB_ARROW_BOX
+    src, out = image.load(), Image.new("RGBA", image.size)
+    dst = out.load()
+    for y in range(height):
+        for x in range(width):
+            p = src[x, y]
+            l = lum601(p)
+            t = (l - low) / (high - low)
+            paper = [dark[i] + (light[i] - dark[i]) * t for i in range(3)]
+            start = None
+            if gy0 <= y <= gy1 and any(gx0 <= x - c <= gx1 for c in tabs.CENTERS):
+                start = TAB_WARMTH_INSIDE if inside_px[x, y] else (TAB_WARMTH_NEAR if near_px[x, y] else None)
+            if start is None and ay0 <= y <= ay1 and any(abs(x - c) <= adx for c in tabs.ARROWS):
+                start = TAB_WARMTH_NEAR
+            w = 0.0
+            if start is not None and l > 0:
+                w = min(1.0, max(0.0, ((p[0] - p[2]) / l - start) / TAB_WARMTH_RAMP))
+            dst[x, y] = (*(dither565(paper[i] + (glyph[i] - paper[i]) * w, x, y) for i in range(3)), 255)
+    return splice_colour(stock_dds, out, work)
+
+
 def rich_row_colour(uexp, row, rgb, table="DT_UI_MagicMenu"):
     """A RichTextStyleRow's colour set to an sRGB colour (linear floats, alpha 1); refuses an unexpected stock value."""
     offset, expected = RICH_ROWS[table][row]
@@ -695,10 +802,33 @@ def colour_keep_alpha(stock_dds, art, work):
 
 
 def literal_rgba(value):
-    """A colour-file value as a linear RGBA float4: one number = a linear grey ([Skin] scrollbar entries), three = sRGB 0-255."""
+    """A colour-file value as a linear RGBA float4: one number = a linear grey ([Skin] scrollbar entries), four = a linear
+    [Skin] tint (phase 28b: ornament, ring, emphasisInk), three = sRGB 0-255."""
     if isinstance(value, (int, float)):
         return (float(value),) * 3 + (1.0,)
+    if len(value) == 4:
+        return tuple(float(c) for c in value)
     return (*(linear(c) for c in value), 1.0)
+
+
+def grey_scale(data, k):
+    """The art's own brightness as a neutral grey times k (clamped at white): the run-time swap art of make_dark_skin_art.py
+    gray(k) (the Effects/skill title band 0.45, sigil band 0.45, sigil icons 2.2/1.8, ring centre 1.0; decision 28 phase 28b).
+    BC3/BC1 colour blocks re-encoded in neutral greys (grey_blocks), an uncompressed texture per pixel; alpha kept."""
+    if bgra_layout(data):
+        return map_colours(data, lambda c: (min(255.0, lum(c) * k),) * 3)
+    return grey_blocks(data, lambda v: min(255.0, v * k))
+
+
+def skin_flat(data, base, tint):
+    """One flat colour = the sRGB grey base times a linear [Skin] tint (the description rules: the white RowSeparator art, 235,
+    drawn in the ornament tint at run time before phase 28b); alpha kept (BC3 or uncompressed)."""
+    return flat_blocks(data, [srgb(linear(base) * t) for t in tint[:3]])
+
+
+# fixed literal colours a data row can name instead of a colour-file key (the Focusbox equip tint: white, as the run-time
+# swap drew it; decision 28)
+CONSTANT_COLOURS = {"white": [255.0, 255.0, 255.0]}
 
 
 def bp_colour(uexp, package, values):
@@ -710,7 +840,8 @@ def bp_colour(uexp, package, values):
         found = struct.unpack_from("<4f", uexp, offset) if len(uexp) >= offset + 16 else ()
         if len(found) != 4 or any(abs(a - b) > 5e-4 for a, b in zip(found, expected)):
             raise SkipAsset(f"{package}: stock colour {found} at byte {offset}, expected {expected} (game update? re-scan the asset)")
-        struct.pack_into("<4f", out, offset, *literal_rgba(values[name])[:3], found[3])
+        value = CONSTANT_COLOURS[name] if name in CONSTANT_COLOURS else values[name]
+        struct.pack_into("<4f", out, offset, *literal_rgba(value)[:3], found[3])
     return bytes(out)
 
 
@@ -726,10 +857,20 @@ def recipe(name):
     kind, _, arg = name.partition(":")
     if kind == "flat":
         return (), (arg,), lambda dds, v, work, stock: flat_blocks(dds.read_bytes(), v[arg])
+    if kind == "flat_alpha":   # flat_alpha:<key>:<alpha scale>
+        key, _, scale = arg.partition(":")
+        return (), (key,), lambda dds, v, work, stock: flat_alpha(dds.read_bytes(), v[key], float(scale), dds)
+    if name == "clear":
+        return (), (), lambda dds, v, work, stock: clear_alpha(dds.read_bytes())
+    if kind == "grey_scale":   # grey_scale:<factor>
+        return (), (), lambda dds, v, work, stock: grey_scale(dds.read_bytes(), float(arg))
+    if kind == "skin_flat":   # skin_flat:<[Skin] name>:<sRGB grey base>
+        key, _, base = arg.partition(":")
+        return (), (f"Skin.{key}",), lambda dds, v, work, stock: skin_flat(dds.read_bytes(), float(base), v[f"Skin.{key}"])
     if kind == "tone":
         return (), (arg,), lambda dds, v, work, stock: tone(dds.read_bytes(), v[arg])
     if kind in ("bp_colour", "material_colour"):   # a widget blueprint or a material: build() patches its .uexp (no DDS)
-        names = tuple(sorted({name for _, _, name in BLUEPRINT_COLOURS[arg]}))
+        names = tuple(sorted({name for _, _, name in BLUEPRINT_COLOURS[arg]} - set(CONSTANT_COLOURS)))
         return (), names, lambda uexp, v, work, stock: bp_colour(uexp, arg, v)
     if kind == "tab":
         return TAB_STYLE, (), lambda dds, v, work, stock: tab_atlas(dds, int(arg), v, work, stock)
@@ -763,6 +904,7 @@ def recipe(name):
             dds, v["alchemyMetal"], v["alchemyStone"])),
         "tab_strip": ((), ("enchantingTabIcon", "enchantingTabPaper"), lambda dds, v, work, stock: tab_strip_texture(
             dds, v["enchantingTabIcon"], v["enchantingTabPaper"], work, stock)),
+        "tab_paper": ((), ("tabPaperDark", "tabPaperLight", "tabGlyph"), tab_paper),
         "png": ((), (), lambda dds, v, work, stock: owner_png(dds, dds.stem, work)),   # development only (owner art)
         "enchanted_dot": ((), ("enchantedDot",), lambda dds, v, work, stock: enchanted_dot(dds.read_bytes(), v["enchantedDot"])),
         # the preview background: the stock brightness without its brown cast
@@ -876,9 +1018,9 @@ def format_supported(kind, stock):
         return True
     except AssertionError:
         pass
-    if kind in ("parchment", "altar_metal", "altar_panel", "tab_strip"):
+    if kind in ("parchment", "altar_metal", "altar_panel", "tab_strip", "grey_scale"):
         return bool(bc1_header_size(stock) or bgra_layout(stock))
-    return kind == "flat" and bool(bgra_layout(stock))
+    return kind in ("flat", "skin_flat") and bool(bgra_layout(stock))
 
 
 def bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, inject):

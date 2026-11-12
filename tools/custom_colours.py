@@ -7,7 +7,7 @@ Usage:
 load(path) returns {element: value}: [r, g, b] (sRGB 0-255) for the [Colours] entries, a number for detailsPage and the [Tab]
 greys. A missing file or key gives the built-in default (DEFAULTS, today's Dark values); an unknown key is ignored with a note;
 a broken value stops with a message that names the key. [Skin] holds the plugin's run-time tints (linear 0-1, red, green,
-blue, alpha; load_skin(path)). The builder also bakes [Skin] pattern. Colours are per element for now; merging them into roles is a later,
+blue, alpha; load_skin(path)). The builder also bakes [Skin] pattern, the scrollbar, ornament, ring and emphasisInk. Colours are per element for now; merging them into roles is a later,
 owner-reviewed step (KB mods/menus-revamped/evidence/custom-pack-builder-plan.md).
 """
 import configparser
@@ -21,7 +21,7 @@ DEFAULT_PATH = ROOT / "config/CustomColours.ini"
 # today's Dark values (src/core/DarkStyle.h; tests/custom_colours_tests.py keeps them equal)
 COLOURS = {
     "panel": [41.0, 41.0, 41.0], "frame": [16.0, 16.0, 16.0], "rowText": [239.0, 239.0, 239.0],
-    "rowSeparator": [255.0, 255.0, 255.0], "columnLine": [99.0, 99.0, 99.0], "rowIcon": [239.0, 239.0, 239.0],
+    "rowSeparator": [255.0, 255.0, 255.0], "rowEquipped": [212.0, 170.0, 78.0], "columnLine": [99.0, 99.0, 99.0], "rowIcon": [239.0, 239.0, 239.0],
     "headerIcon": [247.0, 247.0, 247.0], "pickerIcon": [245.0, 245.0, 245.0], "listHighlight": [91.0, 91.0, 91.0],
     "subTabDisc": [96.0, 96.0, 96.0], "subTabCircle": [72.0, 72.0, 72.0], "subTabIcon": [228.0, 228.0, 228.0],
     "pattern": [150.0, 150.0, 150.0], "enchantedDot": [66.0, 99.0, 153.0], "previewFrameLight": [150.0, 150.0, 150.0],
@@ -37,6 +37,7 @@ COLOURS = {
     "spellmakingEye": [86.0, 127.0, 181.0],
     "enchantingTabPaper": [27.0, 27.0, 29.0],
     "enchantingTabIcon": [255.0, 255.0, 255.0],
+    "tabPaperDark": [17.0, 17.0, 17.0], "tabPaperLight": [30.0, 30.0, 30.0], "tabGlyph": [255.0, 255.0, 255.0],
 }
 NUMBERS = {"detailsPage": 0.010}   # [Colours] entries that are one number (detailsPage: a linear multiply, 0..1)
 TAB = {"selected": 41.0, "unselected": 33.0, "gap": 24.0, "outline": 134.0, "glyph": 242.0, "glyphDim": 162.0}
@@ -51,7 +52,12 @@ SKIN = {
 # namespaced so the [Colours] base and [Skin] tint stay independent; the scrollbar values are baked into the stock
 # scrollbar materials (Phase 7, owner decision 18)
 BAKED_SKIN = {"pattern": "Skin.pattern", "scrollTrack": "Skin.scrollTrack", "scrollBorder": "Skin.scrollBorder",
-              "scrollInside": "Skin.scrollInside"}
+              "scrollInside": "Skin.scrollInside",
+              # decision 28 phase 28b: the item details ornament lines and description rules, the skill level ring, the perk
+              # table's emphasis row
+              "ornament": "Skin.ornament", "ring": "Skin.ring", "emphasisInk": "Skin.emphasisInk"}
+# retired by phase 28b: kept in the file, no effect (the Effects/skill band art and the WBP_ModernPrefab_Button colours are baked)
+RETIRED_SKIN = ("band", "buttonFill", "buttonRule")
 SKIN_HELP = {
     "rule": "Inventory and Magic header horizontal lines",
     "guide": "Inventory and Magic header column guides",
@@ -71,7 +77,8 @@ HELP = {
     "panel": "Inventory and Magic list backgrounds",
     "frame": "Inventory and Magic list edges and shared scrollbar frame",
     "rowText": "Inventory and Magic list and details text",
-    "rowSeparator": "Inventory list row divider (inactive)",
+    "rowSeparator": "List row divider in every list (baked)",
+    "rowEquipped": "Equipped item band in every list (baked)",
     "columnLine": "Inventory and Magic list column dividers",
     "rowIcon": "Magic school, spell type and detail icons",
     "headerIcon": "Inventory and Magic header stat icons",
@@ -102,6 +109,9 @@ HELP = {
     "spellmakingEye": "Spellmaking eye ornament under the right panel",
     "enchantingTabPaper": "Enchanting tab strip background",
     "enchantingTabIcon": "Enchanting tab strip icons and arrows",
+    "tabPaperDark": "Inventory and Magic category tabs - paper shadows",
+    "tabPaperLight": "Inventory and Magic category tabs - paper highlights",
+    "tabGlyph": "Inventory and Magic category tab icons and arrows",
     "detailsPage": "Inventory, Magic and shared details page brightness",
 }
 TAB_HELP = {
@@ -116,21 +126,21 @@ TAB_HELP = {
 
 # the builder window's subgroups (owner decision 26): every entry -> the menu it changes; baked [Skin] values as "Skin.<name>"
 GROUP_ORDER = ("All menus", "Inventory and Magic lists", "Inventory and Magic category tabs", "Inventory details", "Alchemy",
-               "Enchanting", "Spellmaking", "Enchanting and Spellmaking", "Inventory and Magic header (run time)",
-               "Inventory and Magic details (run time)")
+               "Enchanting", "Spellmaking", "Enchanting and Spellmaking", "Inventory and Magic header (run time)")
 GROUPS = {
     **{k: "All menus" for k in ("Skin.scrollTrack", "Skin.scrollBorder", "Skin.scrollInside", "parchmentDark", "parchmentLight", "nameBox")},
-    **{k: "Inventory and Magic lists" for k in ("panel", "frame", "rowText", "rowSeparator", "columnLine", "rowIcon", "headerIcon",
+    **{k: "Inventory and Magic lists" for k in ("panel", "frame", "rowText", "rowSeparator", "rowEquipped", "columnLine", "rowIcon", "headerIcon",
                                                  "pickerIcon", "listHighlight")},
-    **{k: "Inventory and Magic category tabs" for k in ("selected", "unselected", "gap", "outline", "glyph", "glyphDim")},
+    **{k: "Inventory and Magic category tabs" for k in ("tabPaperDark", "tabPaperLight", "tabGlyph", "selected", "unselected", "gap",
+                                                         "outline", "glyph", "glyphDim")},
     **{k: "Inventory details" for k in ("subTabDisc", "subTabCircle", "subTabIcon", "pattern", "Skin.pattern", "enchantedDot",
-                                         "previewFrameLight", "previewFrameDark", "detailsPage")},
+                                         "previewFrameLight", "previewFrameDark", "detailsPage", "Skin.ornament", "Skin.ring",
+                                         "Skin.emphasisInk")},
     **{k: "Alchemy" for k in ("effectBox", "filterRow", "filterHover", "filterSelected", "filterMark", "alchemyMetal", "alchemyStone")},
     **{k: "Enchanting" for k in ("enchantingFrame", "enchantingCrystal", "enchantingOrnament", "enchantingTabPaper", "enchantingTabIcon")},
     **{k: "Spellmaking" for k in ("spellmakingFrame", "spellmakingEye")},
     "altarPaper": "Enchanting and Spellmaking",
     **{k: "Inventory and Magic header (run time)" for k in ("rule", "guide")},
-    **{k: "Inventory and Magic details (run time)" for k in ("ring", "ornament", "band", "buttonFill", "emphasisInk", "buttonRule")},
 }
 
 
@@ -170,9 +180,10 @@ def render(values, skin=None):
     lines = ["; Menus Revamped - Custom colours.",
              "; [Colours]: red, green, blue (0-255) per element; detailsPage is one number. [Tab]: tab strip greys (0-255).",
              "; [Skin]: linear red, green, blue, alpha (0-1); the three scrollbar entries are single numbers.",
-             "; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern and the scrollbar.",
-             "; Other active [Skin] edits need a restart. The Effects heading tint is used only when replacement art is unavailable.",
-             "; [Colours] rowSeparator and pickerIcon are retained keys with no effect in this build.",
+             "; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern, ornament, ring, emphasisInk and the scrollbar.",
+             "; Other active [Skin] edits need a restart.",
+             "; [Colours] pickerIcon and the [Tab] entries are retained with no effect in this build (tabs: tabPaperDark, tabPaperLight, tabGlyph).",
+             "; [Skin] band, buttonFill and buttonRule are retained with no effect in this build (baked into the game's art).",
              "", "[Colours]"]
     for name in list(COLOURS) + list(NUMBERS):
         value = values[name]

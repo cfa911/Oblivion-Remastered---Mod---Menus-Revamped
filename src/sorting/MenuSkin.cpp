@@ -25,47 +25,6 @@ namespace menuskin
 			return true;
 		}
 
-		// A brush's own tint (FSlateBrush::TintColor.SpecifiedColor). A colour-only image draws this colour times
-		// ColorAndOpacity; every census so far read only ColorAndOpacity (white), so a brown brush tint stayed invisible.
-		bool ReadBrushTint(UE::UObject* widget, float* rgba)
-		{
-			static auto* brushStruct = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateBrush");
-			static auto* colorStruct = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateColor");
-			if (!widget || !brushStruct || !colorStruct) return false;
-			static const int tint = reflect::Offset(brushStruct, "TintColor");
-			static const int spec = reflect::Offset(colorStruct, "SpecifiedColor");
-			const int brush = reflect::Offset(widget->GetClass(), "Brush");
-			if (brush < 0 || tint < 0 || spec < 0) return false;
-			const auto* at = reflect::At<float>(widget, brush + tint + spec);
-			if (!at) return false;
-			std::copy_n(at, 4, rgba);
-			return true;
-		}
-
-		// writes the brush's own tint (UImage hands Slate a pointer to its Brush, so the write is live)
-		bool WriteBrushTint(UE::UObject* widget, const float* rgba)
-		{
-			struct SlateColor
-			{
-				float rgba[4];
-				std::uint8_t rule;
-				std::uint8_t padding[7];
-			} tintColor{ { rgba[0], rgba[1], rgba[2], rgba[3] }, 0, {} };
-			ui::Call set(widget, L"SetBrushTintColor");
-			if (set.Size("TintColor") == sizeof(tintColor) && set.Set("TintColor", tintColor) && set.RunGuarded()) return true;
-			static auto* brushStruct = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateBrush");
-			static auto* colorStruct = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.SlateColor");
-			if (!widget || !brushStruct || !colorStruct) return false;
-			static const int tint = reflect::Offset(brushStruct, "TintColor");
-			static const int spec = reflect::Offset(colorStruct, "SpecifiedColor");
-			const int brush = reflect::Offset(widget->GetClass(), "Brush");
-			if (brush < 0 || tint < 0 || spec < 0) return false;
-			auto* at = reflect::At<float>(widget, brush + tint + spec);
-			if (!at) return false;
-			std::copy_n(rgba, 4, at);
-			return true;
-		}
-
 		std::array<float, 4> WithAlpha(const uistyle::Color& c, float alpha) { return { c[0], c[1], c[2], alpha }; }
 
 		std::string NameOf(UE::UObject* object) { return object ? pe::Utf8(object->GetFName().ToString()) : std::string("-"); }
@@ -149,22 +108,6 @@ namespace menuskin
 			}
 		}
 
-		UE::UObject* RowColumn(UE::UObject* row, std::string_view name)
-		{
-			auto* horizontal = ui::FindInTree(row, "inv_entry_horizontal");
-			ui::Call count(horizontal, L"GetChildrenCount");
-			if (!count || !count.RunGuarded()) return nullptr;
-			const int n = count.Get<int>("ReturnValue");
-			if (n < 0 || n > 32) return nullptr;
-			for (int i = 0; i < n; ++i) {
-				ui::Call get(horizontal, L"GetChildAt");
-				if (!get.Set("Index", i) || !get.RunGuarded()) return nullptr;
-				auto* child = get.Get<UE::UObject*>("ReturnValue");
-				if (child && NameOf(child) == name) return child;
-			}
-			return nullptr;
-		}
-
 		// RMI-073: Slate cuts text at its widget's box, and the title box kept the width of a shorter name (156, the width of
 		// "Weapons"; log on 2cdd2c68). A minimum width that fits "Miscellaneous" (about 228) and a fresh layout pass keep
 		// every tab name whole. The title may be a prefab text widget: its inner "text" then. Layout: every preset.
@@ -220,120 +163,6 @@ namespace menuskin
 			}
 			for (auto* widget : { label, title })
 				if (ui::Call prepass(widget, L"ForceLayoutPrepass"); widget && prepass) prepass.Run();
-		}
-
-		// ---- item details ----
-		reflect::Handle g_details;
-		std::vector<reflect::Handle> g_unhoveredRules;
-		const Target* g_detailsTarget = &kInventory;
-
-		// the action button (Equip, Use...): its fill and arrows gray, its label light; alpha stays the game's (hover fades)
-		void StyleDetailsButton(UE::UObject* button)
-		{
-			const auto& skin = Current();
-			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
-			static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
-			if (!skin.recolor || !imageClass || !textClass) return;
-			for (auto* widget : ui::TreeWidgets(button, 3000)) {
-				if (!reflect::Usable(widget)) continue;
-				float rgba[4];
-				if (!ReadColor(widget, rgba)) continue;
-				if (widget->GetClass()->IsChildOf(imageClass)) {
-					if (SwapArt(widget, skin)) continue;   // arrows and rules
-					// the rules' middle stretch: colour-only, the stock brown in its brush (census on a593c0f7)
-					float brush[4];
-					if (skin.buttonRule[3] > 0 && !ui::BrushResource(widget) && ReadBrushTint(widget, brush) && detailsskin::IsButtonRule(brush, skin.buttonRule.data())) {
-						if (brush[3] > 0.60f && brush[3] < 0.65f &&
-							std::none_of(g_unhoveredRules.begin(), g_unhoveredRules.end(),
-								[&](const auto& rule) { return reflect::Get(rule) == widget; }))
-							g_unhoveredRules.push_back(reflect::Hold(widget));
-						const float line[4]{ skin.buttonRule[0], skin.buttonRule[1], skin.buttonRule[2], brush[3] };
-						WriteBrushTint(widget, line);
-						ui::Colour(widget, 1, 1, 1, rgba[3]);
-						continue;
-					}
-					const auto fill = WithAlpha(skin.buttonFill, rgba[3]);
-					ui::Colour(widget, fill[0], fill[1], fill[2], fill[3]);
-				} else if (widget->GetClass()->IsChildOf(textClass)) {
-					const auto ink = WithAlpha(skin.ink, rgba[3]);
-					uix::Ink(widget, ink.data());
-				}
-			}
-		}
-
-		void OnDetailsButtonEvent(UE::UObject* button, UE::UFunction*, void*)
-		{
-			auto* details = reflect::Get(g_details);
-			if (!details || !reflect::Usable(button) || !ui::IsWithin(button, details)) return;
-			StyleDetailsButton(button);
-		}
-
-		// A list entry inside the details view (an effect line): the game rebuilds it for each item after the details pass,
-		// with the stock art and ink (owner screenshot on a22c29b8: the first effect's stat icons brown). Restyled when rebuilt.
-		void StyleDetailsEntry(UE::UObject* entry)
-		{
-			const auto& skin = Current();
-			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
-			static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
-			if (!skin.recolor || !imageClass || !textClass) return;
-			for (auto* widget : ui::TreeWidgets(entry, 120)) {
-				if (!reflect::Usable(widget)) continue;
-				if (widget->GetClass()->IsChildOf(imageClass)) {
-					if (SwapArt(widget, skin)) continue;
-					// the lines draw the white stat icons (T_Property_1_*_White) tinted brown themselves: light ink instead
-					if (NameOf(ui::BrushResource(widget)).starts_with("T_Property_1_")) {
-						float rgba[4];
-						if (ReadColor(widget, rgba)) ui::Colour(widget, skin.ink[0], skin.ink[1], skin.ink[2], rgba[3]);
-					}
-				}
-				else if (widget->GetClass()->IsChildOf(textClass)) {
-					float rgba[4];
-					if (!ReadColor(widget, rgba) || !detailsskin::IsDarkInk(rgba)) continue;
-					const auto ink = WithAlpha(skin.ink, rgba[3]);
-					uix::Ink(widget, ink.data());
-				}
-			}
-		}
-
-		// Effect lines: WBP_LegacyMenu_AddedEffects entries the legacy effects list creates into its VNavigableScrollBox, outside
-		// the widget tree (no census line for them on 0d025571). The class is shared with other menus, so only while the
-		// Inventory details view is on screen.
-		void OnEffectLineEvent(UE::UObject* line, UE::UFunction* function, void*);
-
-		std::set<UE::UClass*> g_listEntryClasses;   // entry classes generated by lists inside the details view
-
-		void OnDetailsEntryEvent(UE::UObject* entry, UE::UFunction* function, void*)
-		{
-			const auto name = pe::FunctionName(function);
-			if (name != "OnListItemObjectSet" && name != "Construct" && !name.starts_with("Set") && !name.starts_with("Update")) return;
-			if (!reflect::Usable(entry)) return;
-			auto* details = reflect::Get(g_details);
-			if (g_listEntryClasses.contains(entry->GetClass()) || (details && ui::IsWithin(entry, details))) StyleDetailsEntry(entry);
-		}
-
-		void OnEffectLineEvent(UE::UObject* line, UE::UFunction* function, void*)
-		{
-			const auto name = pe::FunctionName(function);
-			if (name != "OnListItemObjectSet" && name != "Construct" && !name.starts_with("Set") && !name.starts_with("Update")) return;
-			auto* details = reflect::Get(g_details);
-			if (details && reflect::Usable(line) && ui::ShownOnScreen(details)) StyleDetailsEntry(line);
-		}
-
-		// The effect lines are entries a list view generates (owner screenshot on 76e583e0: every line's stat icons brown).
-		// Generated entries are not in the details widget tree, so they are asked from the list and re-styled when rebound.
-		void StyleListEntries(UE::UObject* list)
-		{
-			ui::Call entries(list, L"GetDisplayedEntryWidgets");
-			if (!entries || entries.Size("ReturnValue") != 16 || !entries.RunGuarded()) return;
-			struct Array { UE::UObject** data; std::int32_t count, capacity; };
-			const auto array = entries.Get<Array>("ReturnValue");
-			for (int i = 0; array.data && i < std::min<int>(array.count, 64); ++i) {
-				auto* entry = array.data[i];
-				if (!reflect::Usable(entry)) continue;
-				if (g_listEntryClasses.insert(entry->GetClass()).second) pe::WatchPost(entry->GetClass(), &OnDetailsEntryEvent);
-				StyleDetailsEntry(entry);
-			}
-			if (array.data) UE::FMemory::Free(array.data);
 		}
 
 		bool Readable(const void* a_ptr, std::size_t a_bytes)
@@ -396,54 +225,6 @@ namespace menuskin
 			return true;
 		}
 
-		// One perk level line of the skill sub-tab (WBP_ModernMenu_Stats_LevelDescription). Every line draws the same
-		// brown (0.072 0.038 0.028, log on 2cdd2c68); the game dims locked lines through their render opacity, so all of
-		// them take the perk ink. Its own EnableTextColor/DisableTextColor (this instance only) feed its UpdateState.
-		unsigned StyleLevelDescription(UE::UObject* entry)
-		{
-			const auto& skin = Current();
-			static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
-			static auto* richClass = ui::Class(L"/Script/UMG.RichTextBlock");
-			static auto* textStyle = UE::StaticFindObject<UE::UStruct>(nullptr, nullptr, L"/Script/SlateCore.TextBlockStyle");
-			if (!skin.recolor) return 0;
-			const auto setSlate = [&](const char* name, const uistyle::Color& c) {
-				const int offset = reflect::Offset(entry->GetClass(), name);
-				if (offset < 0 || ui::SizeOf(entry->GetClass(), name) < 20) return;
-				if (auto* at = reflect::At<float>(entry, offset)) std::copy_n(c.data(), 3, at);   // FSlateColor.SpecifiedColor
-			};
-			setSlate("EnableTextColor", skin.perkInk);
-			setSlate("DisableTextColor", skin.perkInk);
-			unsigned inked = 0;
-			for (auto* widget : ui::TreeWidgets(entry, 80)) {
-				if (!reflect::Usable(widget)) continue;
-				auto* type = widget->GetClass();
-				if (textClass && type->IsChildOf(textClass)) {
-					float rgba[4];
-					if (!ReadColor(widget, rgba) || !(detailsskin::IsWarmInk(rgba) || detailsskin::IsDarkInk(rgba))) continue;
-					const auto ink = WithAlpha(skin.perkInk, rgba[3]);
-					uix::Ink(widget, ink.data()); ++inked;
-				} else if (richClass && textStyle && type->IsChildOf(richClass)) {
-					const int overrideOffset = reflect::Offset(type, "bOverrideDefaultStyle");
-					const int styleOffset = reflect::Offset(type, "DefaultTextStyleOverride");
-					const int colorOffset = reflect::Offset(textStyle, "ColorAndOpacity");
-					if (overrideOffset < 0 || styleOffset < 0 || colorOffset < 0) continue;
-					const auto* overriding = reflect::At<bool>(widget, overrideOffset);
-					const auto* rgba = reflect::At<float>(widget, styleOffset + colorOffset);
-					if (!overriding || !rgba) continue;
-					RebuildEmphasis(widget, skin);
-					if (*overriding && !(detailsskin::IsWarmInk(rgba) || detailsskin::IsDarkInk(rgba))) continue;
-					ui::Call set(widget, L"SetDefaultColorAndOpacity");
-					auto* color = static_cast<std::uint8_t*>(set.At("InColorAndOpacity"));
-					if (!color || set.Size("InColorAndOpacity") < 20) continue;
-					const float value[4]{ skin.perkInk[0], skin.perkInk[1], skin.perkInk[2], *overriding ? rgba[3] : 1.0f };
-					std::memcpy(color, value, sizeof(value));
-					color[16] = 0;   // ESlateColorStylingMode::UseColor_Specified
-					if (set.RunGuarded()) ++inked;
-				}
-			}
-			return inked;
-		}
-
 		// A rich text line of the Magic page (Spell Effectiveness): its warm table rows and its default colour take the light ink.
 		bool InkRich(UE::UObject* rich, const uistyle::Skin& skin)
 		{
@@ -471,159 +252,6 @@ namespace menuskin
 				}
 			}
 			return inked;
-		}
-
-		void StyleDetails(UE::UObject* details)
-		{
-			const auto& skin = Current();
-			static auto* imageClass = ui::Class(L"/Script/UMG.Image");
-			static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
-			static auto* instanceClass = ui::Class(L"/Script/Engine.MaterialInstance");
-			static auto* listViewClass = ui::Class(L"/Script/UMG.ListViewBase");
-			if (!skin.recolor || !imageClass || !textClass || !reflect::Usable(details)) return;
-			static const int colorOffset = reflect::Offset(textClass, "ColorAndOpacity");
-			static const int parentOffset = instanceClass ? reflect::Offset(instanceClass, "Parent") : -1;
-			const auto tint = [&](UE::UObject* widget, const float* c) { ui::Colour(widget, c[0], c[1], c[2], c[3]); };
-			UE::UObject* sigil = nullptr;
-			for (auto* widget : ui::TreeWidgets(details, 3000)) {
-				if (!reflect::Usable(widget)) continue;
-				auto* type = widget->GetClass();
-				const auto typeName = NameOf(type);
-				if (typeName == "WBP_OriginalMenu_InventoryItemSpecificContentSigilStone_C") sigil = widget;
-				if (typeName.find("Button") != std::string::npos && typeName.starts_with("WBP_ModernPrefab")) {
-					pe::WatchPost(type, &OnDetailsButtonEvent);
-					StyleDetailsButton(widget);
-					continue;
-				}
-				if (typeName.find("Entry") != std::string::npos && typeName.ends_with("_C")) {   // effect lines and other entries
-					pe::WatchPost(type, &OnDetailsEntryEvent);
-					StyleDetailsEntry(widget);
-					continue;
-				}
-				if (typeName.starts_with("WBP_ModernMenu_Stats_LevelDescription")) {
-					StyleLevelDescription(widget);
-					continue;
-				}
-				if (listViewClass && type->IsChildOf(listViewClass)) {   // effect lines and other generated entries
-					StyleListEntries(widget);
-					continue;
-				}
-				if (type->IsChildOf(imageClass)) {
-					if (g_detailsTarget == &kMagic) {
-						static std::set<std::string> s_brushes;   // TEMP-DIAG: what each Magic details image draws (record in the KB)
-						const auto brush = NameOf(widget) + " " + NameOf(ui::BrushResource(widget));
-						if (s_brushes.size() < 40 && s_brushes.insert(brush).second) logger::warn("TEMP-DIAG MRMAGICDARK details image {}", brush);
-					}
-					if (SwapArt(widget, skin)) continue;
-					auto* resource = ui::BrushResource(widget);
-					if (!resource || !reflect::Usable(resource)) continue;
-					std::string parent;
-					if (parentOffset >= 0 && resource->GetClass()->IsChildOf(instanceClass))
-						if (auto** at = reflect::At<UE::UObject*>(resource, parentOffset); at && *at && reflect::Usable(*at))
-							parent = NameOf(*at);
-					const auto resourceName = NameOf(resource);
-					if (LightIcon(widget, resourceName, skin)) continue;
-					if (detailsskin::IsDescriptionRule(resourceName) ||
-						(resourceName == "T_Line_02" && sigil && ui::IsWithin(widget, sigil))) {
-						if (auto* art = SkinArt(L"RowSeparator.png")) {
-							ui::Call set(widget, L"SetBrushResourceObject");
-							if (set.Set("ResourceObject", art) && set.RunGuarded()) {
-								float rgba[4];
-								if (ReadColor(widget, rgba)) tint(widget, WithAlpha(skin.ornament, rgba[3]).data());
-								if (float brush[4]; ReadBrushTint(widget, brush)) {
-									detailsskin::NeutralBrush(brush, 1.0f);
-									WriteBrushTint(widget, brush);
-								}
-							}
-						}
-						continue;
-					}
-					switch (detailsskin::Classify(resourceName, parent)) {
-					case detailsskin::Role::Page: {
-						// keeps M_MaskedPage (its shape leaves the 3D preview open); the preset's gray hides the parchment
-						float rgba[4];
-						if (!ReadColor(widget, rgba)) break;
-						// the Dark pack bakes the parchment to this colour already: white then (no double darkening)
-						detailsskin::PageTint(rgba, darkpack::Active() ? 1.0f : skin.pageGray);
-						tint(widget, rgba);
-						break;
-					}
-					case detailsskin::Role::Ornament: {
-						if (float brush[4]; ReadBrushTint(widget, brush)) {   // the art is white; its brush carries a gold 0.25/0.18/0.11
-							detailsskin::NeutralBrush(brush, 1.0f);
-							WriteBrushTint(widget, brush);
-						}
-						tint(widget, skin.ornament.data());
-						break;
-					}
-					case detailsskin::Role::Pattern:
-						if (darkpack::BakedLaurelTint()) {
-							static constexpr float neutral[]{ 1, 1, 1, 1 };
-							tint(widget, neutral);
-						} else {
-							tint(widget, skin.pattern.data());   // Phase 4 packs and stock fallback
-						}
-						break;
-					case detailsskin::Role::Band: tint(widget, skin.band.data()); break;
-					case detailsskin::Role::Ring: {   // the level ring: a dynamic instance of M_UI_CircularProgess
-						ui::Call set(resource, L"SetVectorParameterValue");
-						if (set.Set("ParameterName", UE::FName(L"Color", UE::EFindName::Add)) && set.Set("Value", skin.ring))
-							set.RunGuarded();
-						break;
-					}
-					default: break;
-					}
-				} else if (colorOffset >= 0 && type->IsChildOf(textClass)) {
-					const auto* rgba = reflect::At<float>(widget, colorOffset);
-					if (!rgba || (!detailsskin::IsDarkInk(rgba) && !detailsskin::IsDescriptionHeading(rgba))) continue;
-					const auto ink = WithAlpha(skin.ink, rgba[3]);
-					uix::Ink(widget, ink.data());
-				}
-			}
-		}
-
-		void OnDetailsUpdated(UE::UObject* details, UE::UFunction* function, void*)
-		{
-			// the Magic path only for the Magic details (after a Magic visit the target stayed Magic for the Inventory's details)
-			if (g_detailsTarget == &kMagic && NameOf(details->GetClass()) == kMagic.detailsClass) {
-				// Magic details events are not known yet: restyle after any of its own events except per-frame ones, once a frame.
-				const auto event = pe::FunctionName(function);
-				if (event == "Tick" || event.find("Anim") != std::string_view::npos) return;
-				static std::set<std::string> s_seen;   // TEMP-DIAG: the Magic details event names (record in the KB)
-				if (s_seen.size() < 40 && s_seen.insert(std::string(event)).second)
-					logger::warn("TEMP-DIAG MRMAGICDARK details event {}", event);
-				static double s_last = -1;
-				const double now = ui::RealTimeSeconds();
-				if (now >= 0 && now == s_last) return;
-				s_last = now;
-				StyleDetails(details);
-				return;
-			}
-			static constexpr std::string_view kEvents[]{ "Construct", "ToggleDetails", "ChangeVisibilityItemDetailsPanel",
-				"UpdateHoveredItemProperties", "ChangeSpecificDetailsForHoveredItem", "ChangeSpecificDetailsWithFormID",
-				"ChangeSpecificDetailsWithFormType", "SwitchSubTabs", "SwitchPreview", "UpdateDescription" };
-			const auto name = pe::FunctionName(function);
-			if (std::find(std::begin(kEvents), std::end(kEvents), name) != std::end(kEvents)) StyleDetails(details);
-		}
-
-		// ---- footers ----
-		std::array<reflect::Handle, 4> g_footers;
-
-		void InkFooter(UE::UObject* footer)
-		{
-			const auto& skin = Current();
-			if (!skin.recolor) return;
-			auto* label = ui::FindInTree(footer, "text");
-			if (!label) label = ui::FindByClassPrefix(footer, "WBP_AltarTextBlock");
-			if (label) uix::Ink(label, skin.ink.data());
-		}
-
-		void OnFooterUpdated(UE::UObject* footer, UE::UFunction* function, void*)
-		{
-			const auto name = pe::FunctionName(function);
-			if (name != "UpdateText" && name != "UpdateTextApperance") return;
-			if (std::any_of(g_footers.begin(), g_footers.end(), [footer](const auto& handle) { return reflect::Get(handle) == footer; }))
-				InkFooter(footer);
 		}
 	}
 
@@ -679,9 +307,7 @@ namespace menuskin
 		g_title = reflect::Hold(title);
 		static UE::UClass* watched = nullptr;
 		if (watched != title->GetClass() && pe::WatchPost(title->GetClass(), &OnTitleEvent)) watched = title->GetClass();
-		const auto& skin = Current();
-		if (skin.recolor) uix::Ink(title, skin.ink.data());
-		UnclipTitle(title);
+		UnclipTitle(title);   // decision 28: the title colour is baked (inv_cont_title, ContainerInventory_MainContent)
 	}
 
 
@@ -698,40 +324,10 @@ namespace menuskin
 		if (ui::RenderOpacity(title) > 0) ui::Float(title, L"SetRenderOpacity", 0.0f);
 	}
 
-	void RefreshButtonRules()
-	{
-		const auto& skin = Current();
-		if (skin.buttonRule[3] <= 0 || !reflect::Get(g_details)) return;
-		std::erase_if(g_unhoveredRules, [](const auto& rule) { return !reflect::Get(rule); });
-		for (const auto& rule : g_unhoveredRules) {
-			auto* widget = reflect::Get(rule);
-			float brush[4];
-			if (!ReadBrushTint(widget, brush) || !detailsskin::IsBrushRule(brush)) continue;
-			const float line[4]{ skin.buttonRule[0], skin.buttonRule[1], skin.buttonRule[2], brush[3] };
-			WriteBrushTint(widget, line);
-		}
-	}
-
 	void InkText(UE::UObject* label)
 	{
 		const auto& skin = Current();
 		if (skin.recolor && reflect::Usable(label)) uix::Ink(label, skin.ink.data());
-	}
-
-	void StyleRow(UE::UObject* row, const Target& target)
-	{
-		const auto& skin = Current();
-		if (!reflect::Usable(row)) return;
-		if (!skin.recolor) return;
-		if (auto* name = RowColumn(row, target.rowName)) uix::Ink(name, skin.ink.data());
-		for (int i = 0; i < target.rowValueCount; ++i)
-			if (auto* label = ui::FindInTree(RowColumn(row, target.rowValues[i]), "inv_entry_value")) uix::Ink(label, skin.ink.data());
-		// the row's art (separator T_List_Default, equipped band T_List_equip_V2, column lines T_Line_V) swapped for the
-		// preset's on this row only, shared with the Magic rows (Slate tints cannot brighten or neutralise baked brown)
-		StyleRowArt(row, skin);
-		// the equipped pen scribble (M_UI_Scribble) on dark rows
-		if (skin.hideEquippedScribble)
-			if (auto* scribble = ui::FindInTree(row, "inv_entry_scribble")) ui::Colour(scribble, 1.0f, 1.0f, 1.0f, 0.0f);
 	}
 
 	void StyleMagicRow(UE::UObject* row)
@@ -746,18 +342,6 @@ namespace menuskin
 			if (detailsskin::IsDarkInk(rgba) || detailsskin::IsWarmInk(rgba)) uix::Ink(widget, WithAlpha(skin.ink, rgba[3]).data());
 		}
 		StyleRowArt(row, skin);
-	}
-
-	void InkTree(UE::UObject* root, int a_limit)
-	{
-		const auto& skin = Current();
-		static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
-		if (!skin.recolor || !textClass || !reflect::Usable(root)) return;
-		for (auto* widget : ui::TreeWidgets(root, a_limit)) {
-			float rgba[4];
-			if (!reflect::Usable(widget) || !widget->GetClass()->IsChildOf(textClass) || !ReadColor(widget, rgba)) continue;
-			if (detailsskin::IsDarkInk(rgba) || detailsskin::IsWarmInk(rgba)) uix::Ink(widget, WithAlpha(skin.ink, rgba[3]).data());
-		}
 	}
 
 	namespace
@@ -815,40 +399,5 @@ namespace menuskin
 		}
 		for (const auto& page : g_magicPages)
 			if (auto* widget = reflect::Get(page)) SwapArt(widget, skin);   // MagicPage.png in DarkStyle.h panel
-	}
-
-	void WatchFooters(UE::UObject* mainPart, UE::UObject* menu, const Target& target)
-	{
-		for (int i = 0; i < target.footerCount && i < int(g_footers.size()); ++i) {
-			auto* footer = ui::FindInTree(mainPart, target.footers[i]);
-			if (!footer && mainPart != menu) footer = ui::FindInTree(menu, target.footers[i]);
-			g_footers[i] = reflect::Hold(footer);
-			if (!footer) continue;
-			pe::WatchPost(footer->GetClass(), &OnFooterUpdated);
-			InkFooter(footer);
-		}
-	}
-
-	void WatchDetails(UE::UObject* menu, UE::UObject* list, const Target& target)
-	{
-		const std::string_view kDetails = target.detailsClass;
-		auto* details = ui::FindByClassPrefix(menu, kDetails, 3000);
-		UE::UObject* root = list;
-		for (auto* owner = list; owner && reflect::Usable(owner); owner = owner->GetOuter())
-			if (owner->GetClass()->IsChildOf(ui::Class(L"/Script/UMG.UserWidget"))) root = owner;
-		if (!details && root && root != menu) details = ui::FindByClassPrefix(root, kDetails, 3000);
-		if (!details) return;
-		if (details != reflect::Get(g_details)) g_unhoveredRules.clear();
-		g_details = reflect::Hold(details);
-		g_detailsTarget = &target;
-		static UE::UClass* effectLines = nullptr;
-		if (!effectLines) {
-			effectLines = ui::Class(L"/Game/UI/Legacy/GameMenuLayer/Commun/WBP_LegacyMenu_AddedEffects.WBP_LegacyMenu_AddedEffects_C");
-			if (effectLines && !pe::WatchPost(effectLines, &OnEffectLineEvent)) effectLines = nullptr;
-		}
-		static UE::UClass* watched = nullptr;
-		if (watched != details->GetClass() && pe::WatchPost(details->GetClass(), &OnDetailsUpdated))
-			watched = details->GetClass();
-		StyleDetails(details);
 	}
 }

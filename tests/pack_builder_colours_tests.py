@@ -62,8 +62,8 @@ with tempfile.TemporaryDirectory() as temp:
     if ColourModel:
         m = ColourModel(temp / "missing/CustomColours.ini")
         sizes = {s: len(m.section(s)) for s in ("Colours", "Tab", "Skin")}
-        check(sizes == {"Colours": 35, "Tab": 6, "Skin": 12}, f"one entry per colour-file entry, by section ({sizes})")
-        check(len(m.entries) == 53, f"53 entries in all (Phase 7: +8 Enchanting/Spellmaking) ({len(m.entries)})")
+        check(sizes == {"Colours": 39, "Tab": 6, "Skin": 12}, f"one entry per colour-file entry, by section ({sizes})")
+        check(len(m.entries) == 57, f"57 entries in all (Phase 7: +8 Enchanting/Spellmaking; 28a: rowEquipped; decision 34: 3 tab keys) ({len(m.entries)})")
         check(all(e.help for e in m.entries), "every entry has its help text (the window's label)")
         check([e.name for e in m.section("Colours")] == list(custom_colours.COLOURS) + list(custom_colours.NUMBERS)
               and [e.name for e in m.section("Skin")] == list(custom_colours.SKIN), "entries keep the colour file's order")
@@ -99,12 +99,14 @@ with tempfile.TemporaryDirectory() as temp:
         # a Build is needed for baked values only
         manifest = json.loads((root / "assets/CustomPack/MRCustom_P.json").read_text(encoding="utf-8"))
         fresh = ColourModel(temp / "none.ini")
-        fresh.set_text("Skin", "band", "1, 0, 0, 1")
-        check(fresh.needs_build(manifest["style"]) == [], "a [Skin] change needs no Build (run-time tint)")
+        fresh.set_text("Skin", "rule", "1, 0, 0, 1")
+        fresh.set_text("Skin", "band", "1, 0, 0, 1")   # retired by phase 28b: no effect
+        check(fresh.needs_build(manifest["style"]) == [], "a run-time or retired [Skin] change needs no Build")
         fresh.set_text("Colours", "rowText", "255, 80, 80")
-        fresh.set_text("Tab", "glyph", "200")
-        check(sorted(fresh.needs_build(manifest["style"])) == ["glyph", "rowText"],
-              f"[Colours] and [Tab] changes need a Build ({fresh.needs_build(manifest['style'])})")
+        fresh.set_text("Tab", "glyph", "200")   # retired by decision 34: no baked asset reads it
+        fresh.set_text("Colours", "tabGlyph", "200, 200, 200")
+        check(sorted(fresh.needs_build(manifest["style"])) == ["rowText", "tabGlyph"],
+              f"[Colours] changes need a Build, the retired [Tab] greys do not ({fresh.needs_build(manifest['style'])})")
         note = getattr(model, "BUILD_NOTE", "")
         check("restart" in note and "Build" in note and "Save" in note,
               "the window explains saving runtime colours and rebuilding baked colours")
@@ -121,8 +123,8 @@ with tempfile.TemporaryDirectory() as temp:
         laurels.set_text("Skin", "buttonFill", "0, 1, 0, 1")
         check(laurels.needs_build(new_style) == [], "a runtime button fill change does not stale the pack")
         check(laurels.entry("Skin", "pattern").applies == "Build pack" and
-              laurels.entry("Skin", "buttonFill").applies == "Restart game",
-              "the two Skin entries have distinct application instructions")
+              laurels.entry("Skin", "rule").applies == "Restart game" and laurels.entry("Skin", "buttonFill").applies == "Inactive",
+              "baked, run-time and retired [Skin] entries have distinct application instructions")
         from pack_builder import pipeline
         recipes = [r for a, r in pipeline.TEXTURES.items() if a.endswith("/T_Inventory_pattern")]
         check(len(recipes) == 1 and "Skin.pattern" in pipeline.recipe_values(recipes[0], custom_colours.DEFAULTS | {"Skin.pattern": [1, 1, 1, 1]}),

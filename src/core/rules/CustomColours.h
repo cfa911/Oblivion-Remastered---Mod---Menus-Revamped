@@ -44,7 +44,7 @@ namespace customcolours
 	// file order (tools/custom_colours.py COLOURS, NUMBERS, TAB, SKIN)
 	inline const Entry kEntries[]{
 		MR_CC_RGB(panel, "Inventory and Magic list backgrounds"), MR_CC_RGB(frame, "Inventory and Magic list edges and shared scrollbar frame"), MR_CC_RGB(rowText, "Inventory and Magic list and details text"),
-		MR_CC_RGB(rowSeparator, "Inventory list row divider (inactive)"), MR_CC_RGB(columnLine, "Inventory and Magic list column dividers"), MR_CC_RGB(rowIcon, "Magic school, spell type and detail icons"),
+		MR_CC_RGB(rowSeparator, "List row divider in every list (baked)"), MR_CC_RGB(rowEquipped, "Equipped item band in every list (baked)"), MR_CC_RGB(columnLine, "Inventory and Magic list column dividers"), MR_CC_RGB(rowIcon, "Magic school, spell type and detail icons"),
 		MR_CC_RGB(headerIcon, "Inventory and Magic header stat icons"), MR_CC_RGB(pickerIcon, "Inventory and Magic sort picker icons (inactive)"), MR_CC_RGB(listHighlight, "Inventory and Magic highlighted row background"),
 		MR_CC_RGB(subTabDisc, "Inventory selected details tab background"), MR_CC_RGB(subTabCircle, "Inventory details tab circle"),
 		MR_CC_RGB(subTabIcon, "Inventory details tab icons"), MR_CC_RGB(pattern, "Inventory action button laurels - base colour"),
@@ -56,6 +56,7 @@ namespace customcolours
 		MR_CC_RGB(filterMark, "Alchemy filter row diamond"),
 		MR_CC_RGB(alchemyMetal, "Alchemy frame, ingredient slots and pot - metal"), MR_CC_RGB(alchemyStone, "Alchemy frame, ingredient slots and pot - stone"),
 		MR_CC_RGB(enchantingFrame, "Enchanting right panel frame - metal"), MR_CC_RGB(spellmakingFrame, "Spellmaking right panel frame - metal"), MR_CC_RGB(altarPaper, "Enchanting and Spellmaking right panel paper"), MR_CC_RGB(enchantingCrystal, "Enchanting crystal under the right panel"), MR_CC_RGB(enchantingOrnament, "Enchanting ornament under the right panel"), MR_CC_RGB(spellmakingEye, "Spellmaking eye ornament under the right panel"), MR_CC_RGB(enchantingTabPaper, "Enchanting tab strip background"), MR_CC_RGB(enchantingTabIcon, "Enchanting tab strip icons and arrows"),
+		MR_CC_RGB(tabPaperDark, "Inventory and Magic category tabs - paper shadows"), MR_CC_RGB(tabPaperLight, "Inventory and Magic category tabs - paper highlights"), MR_CC_RGB(tabGlyph, "Inventory and Magic category tab icons and arrows"),
 		Entry{ "Colours", "detailsPage", Kind::Unit, [](darkstyle::Style& s) -> float* { return &s.detailsPage; }, "Inventory, Magic and shared details page brightness" },
 		MR_CC_TAB(selected, "Inventory and Magic selected category tab fill"), MR_CC_TAB(unselected, "Inventory and Magic unselected category tab fill"), MR_CC_TAB(gap, "Inventory and Magic gaps between category tabs"), MR_CC_TAB(outline, "Inventory and Magic category tab outlines"), MR_CC_TAB(glyph, "Inventory and Magic selected category tab icons"), MR_CC_TAB(glyphDim, "Inventory and Magic unselected category tab icons"),
 		MR_CC_TINT(rule, "Inventory and Magic header horizontal lines"), MR_CC_TINT(guide, "Inventory and Magic header column guides"), MR_CC_TINT(ring, "Inventory and Magic details skill level ring"),
@@ -167,9 +168,10 @@ namespace customcolours
 			"; Menus Revamped - Custom colours.\n"
 			"; [Colours]: red, green, blue (0-255) per element; detailsPage is one number. [Tab]: tab strip greys (0-255).\n"
 			"; [Skin]: linear red, green, blue, alpha (0-1); the three scrollbar entries are single numbers.\n"
-			"; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern and the scrollbar.\n"
-			"; Other active [Skin] edits need a restart. The Effects heading tint is used only when replacement art is unavailable.\n"
-			"; [Colours] rowSeparator and pickerIcon are retained keys with no effect in this build.\n";
+			"; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern, ornament, ring, emphasisInk and the scrollbar.\n"
+			"; Other active [Skin] edits need a restart.\n"
+			"; [Colours] pickerIcon and the [Tab] entries are retained with no effect in this build (tabs: tabPaperDark, tabPaperLight, tabGlyph).\n"
+			"; [Skin] band, buttonFill and buttonRule are retained with no effect in this build (baked into the game's art).\n";
 		std::string_view section;
 		for (const auto& e : kEntries) {
 			if (section != e.section) {
