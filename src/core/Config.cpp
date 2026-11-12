@@ -40,7 +40,7 @@ namespace mrconfig
 				logger::warn("config: [Alchemy] sMarkerColors needs 8 or 12 colours like #DC3730, comma-separated; default colours in use");
 			alchemyrules::g_markerPalette = palette;
 		}
-		g_values.compactRows = ReadInt(ini, L"Layout", L"bCompactRows", 1, 0, 1) != 0;
+		g_values.layoutPack = ReadInt(ini, L"Layout", L"bLayoutPack", 1, 0, 1) != 0;
 		g_values.stickDeadzone = ReadInt(ini, L"Controller", L"uStickDeadzone", 16000, 4000, 30000);
 		pickerpad::Deadzone = g_values.stickDeadzone;
 		g_values.picker.inventory = ReadInt(ini, L"Picker", L"bInventory", 1, 0, 1) != 0;

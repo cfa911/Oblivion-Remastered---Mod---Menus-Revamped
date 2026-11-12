@@ -1,5 +1,6 @@
 #include "alchemy/AlchemyInternal.h"
 #include "sorting/Icons.h"
+#include "core/DarkPack.h"
 
 namespace alchemy
 {
@@ -821,11 +822,11 @@ namespace alchemy
 			}
 			const auto iconRects = LayoutHeader(canvas, a_menu, scale);
 
-			// the active-filter buttons: in the space the taller parchment adds at its top (compact rows make
-			// Alchemy_IngredientsListBG reach the screen top, owner 2026-11-11); without compact rows the parchment is stock and
-			// the buttons get their own line under the title row
+			// the active-filter buttons: in the space the taller parchment adds at its top (the baked sizes make
+			// Alchemy_IngredientsListBG reach the screen top, owner 2026-11-11); without them the parchment is stock and the
+			// buttons get their own line under the title row
 			double chipsY = row.chipsY;
-			if (mrconfig::Get().compactRows) {
+			if (darkpack::LayoutBaked()) {
 				Box pb;
 				if (auto* panel = Field(a_menu, "Alchemy_IngredientsListBG"); panel && ui::Measure(panel, pb.x, pb.y, pb.w, pb.h) && pb.w > 0)
 					chipsY = ChipsInParchment(pb);

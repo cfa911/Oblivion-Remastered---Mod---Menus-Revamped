@@ -54,6 +54,13 @@ int main()
 	p = Parse("[Colours]\nnotAColour = 1, 2, 3\n[Nope]\nx = 1\n");
 	Check(p.notes.size() == 2 && Warnings(p) == 0, "an unknown key or section is ignored with one (non-warning) note each");
 
+	// Step B (owner 2026-11-12): the builder's own [Roles] and [Sizes] sections are skipped without a note or a value change
+	p = Parse("[Colours]\npanel = 10, 20, 30\n[Roles]\nbodyText = 200, 200, 200\n[Sizes]\ninventoryRowHeight = 40\n"
+		"font.InventoryMainPart.inv_armor = 14\n[Skin]\nscrollTrack = 0.5\n");
+	Check(p.notes.empty() && Same(p.style.panel, 10, 20, 30) && p.style.skin.scrollTrack == 0.5f &&
+			Same(p.style.rowText, d.rowText.r, d.rowText.g, d.rowText.b),
+		"the builder's [Roles] and [Sizes] sections are skipped silently; the sections after them are still read");
+
 	const char* broken[]{ "[Colours]\npanel = 1, 2\n", "[Colours]\npanel = 300, 0, 0\n", "[Colours]\npanel = red\n",
 		"[Colours]\npanel = 1, 2, 3, 4\n", "[Tab]\nglyph = -4\n", "[Colours]\ndetailsPage = 2\n", "[Skin]\nrule = 0.5, 0.5, 0.5\n",
 		"[Skin]\nband = 1.5, 0, 0, 1\n", "[Colours]\npanel = \n" };

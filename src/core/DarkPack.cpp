@@ -4,6 +4,7 @@
 #include "core/rules/CustomColours.h"
 #include "core/rules/CustomPackManifest.h"
 #include "core/rules/DarkPackSwitch.h"
+#include "core/rules/LayoutPack.h"
 #include <fstream>
 #include <iterator>
 
@@ -12,6 +13,7 @@ namespace darkpack
 	namespace
 	{
 		bool g_active = false;
+		bool g_layoutBaked = false;
 		bool g_bakedLaurelTint = false;
 
 		const char* Describe(darkpackswitch::Outcome outcome)
@@ -100,15 +102,34 @@ namespace darkpack
 			default: break;
 			}
 		}
-		const auto outcome = darkpackswitch::SwitchCustom(source, mods, custom, installable);
-		g_active = darkpackswitch::Active(outcome);
-		const bool problem = outcome == darkpackswitch::Outcome::Incomplete || outcome == darkpackswitch::Outcome::Failed;
+		// Step B (decision 46): MRCustom_P carries the sizes too, so exactly one of the two packs goes into ~mods
+		std::string customJson, layoutJson;
+		const bool customSizes = ReadText(source / L"MRCustom_P.json", customJson) && layoutpack::HasSizes(customJson);
+		const bool layoutAllowed = ReadText(source / L"MRLayout_P.json", layoutJson) && layoutpack::LayoutManifestOk(layoutJson, a_gameBuild);
+		const bool layoutOn = mrconfig::Get().layoutPack;
+		const auto outcomes = layoutpack::Switch(source, mods, custom, installable, layoutOn, layoutAllowed);
+		g_active = darkpackswitch::Active(outcomes.custom);
+		g_layoutBaked = (g_active && customSizes) || darkpackswitch::Active(outcomes.layout);
+		const bool problem = outcomes.custom == darkpackswitch::Outcome::Incomplete || outcomes.custom == darkpackswitch::Outcome::Failed;
 		if (problem)
-			logger::warn("Menus Revamped: Custom UI pack {}", Describe(outcome));
+			logger::warn("Menus Revamped: Custom UI pack {}", Describe(outcomes.custom));
 		else
-			logger::info("Menus Revamped: Custom UI pack {}", Describe(outcome));
+			logger::info("Menus Revamped: Custom UI pack {}", Describe(outcomes.custom));
+		if (g_active && layoutOn && !customSizes)
+			logger::info("Menus Revamped: Custom pack has no baked sizes (built before Step B or with bLayoutPack=0); rebuild it to bake them");
+		if (outcomes.layout == darkpackswitch::Outcome::Failed)
+			logger::warn("Menus Revamped: sizes pack MRLayout_P could not be copied into ~mods; nothing of it is left there");
+		else if (darkpackswitch::Active(outcomes.layout))
+			logger::info("Menus Revamped: sizes pack MRLayout_P {}", Describe(outcomes.layout));
+		else if (layoutOn && !g_active && !layoutAllowed)
+			logger::info("Menus Revamped: sizes pack MRLayout_P not installed (not built for game {} yet: run the Pack Builder)", a_gameBuild);
+		else
+			logger::info("Menus Revamped: sizes pack MRLayout_P not in ~mods ({})", g_active ? "the Custom pack carries the sizes" :
+				layoutOn ? "not built" : "[Layout] bLayoutPack=0");
+		logger::info("Menus Revamped: sizes {}", g_layoutBaked ? "baked in the installed pack" : "not baked (the game's own layout)");
 	}
 
 	bool Active() { return g_active; }
+	bool LayoutBaked() { return g_layoutBaked; }
 	bool BakedLaurelTint() { return g_active && g_bakedLaurelTint; }
 }

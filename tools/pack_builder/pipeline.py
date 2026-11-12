@@ -95,6 +95,180 @@ def load_menus(folder=MENUS):
 # 1.512.105.0; KB dark-mode-ui.md and docs/alchemy/internals.md): all in tools/menus/<menu>.json
 TEXTURES, GLYPH_MASKS, RICH_ROWS, BLUEPRINT_COLOURS = load_menus()
 TAB_MASKS, MAGIC_TAB_MASKS = GLYPH_MASKS.get("tab", ()), GLYPH_MASKS.get("magic_tab", ())
+LAYOUT_PACK = "MRLayout_P"   # sizes only (Step B, decision 46): installed by the plugin when MRCustom_P is not
+
+
+def load_layout(folder=MENUS):
+    """{package: {"asset", "floats": [{widget, offset, stock, size|value, type?}], "rewrites": [...]}} from the data files'
+    "layout" sections (tools/menus/layout.json: today's compact rows, Step B decisions 29/45)."""
+    layout = {}
+    for path in Path(folder).glob("*.json"):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError as error:
+            raise BuildError(f"{path.name}: not valid JSON ({error})")
+        for package, row in data.get("layout", {}).items():
+            if package in layout:
+                raise BuildError(f"layout package {package} is listed twice in {folder}")
+            layout[package] = row
+    return layout
+
+
+LAYOUT = load_layout()
+
+
+# ---- sizes: stock-checked floats (bp_float) and the package rewrite for values the cook did not store ----
+def float_value(row, sizes):
+    return float(sizes[row["size"]]) if "size" in row else float(row["value"])
+
+
+def bp_float(uexp, package, sizes):
+    """A blueprint's layout values (floats; doubles for Spacer sizes) set from [Sizes] or fixed; refuses an unexpected stock
+    value (a game update moved it): nothing is patched then."""
+    out = bytearray(uexp)
+    for row in LAYOUT[package].get("floats", []):
+        fmt = "<d" if row.get("type") == "double" else "<f"
+        width = struct.calcsize(fmt)
+        found = struct.unpack_from(fmt, uexp, row["offset"])[0] if len(uexp) >= row["offset"] + width else None
+        if found is None or abs(found - row["stock"]) > 1e-3:
+            raise SkipAsset(f"{package}: stock size {found} at byte {row['offset']} ({row['widget']}), expected {row['stock']} "
+                            f"(game update? re-scan the asset)")
+        struct.pack_into(fmt, out, row["offset"], float_value(row, sizes))
+    return bytes(out)
+
+
+SKIP_MASK, ZERO_BIT, LAST_BIT, VALUE_SHIFT = 0x7F, 0x80, 0x100, 9
+
+
+def parse_header(data, pos):
+    """An unversioned property header (UE 5.3) -> (fields, zeroed fields, position after it). KB techniques/
+    unversioned-package-rewrite.md: uint16 fragments (bits 0-6 SkipNum, 7 bHasAnyZeroes, 8 bIsLast, 9-15 ValueNum), then a
+    zero mask over the values of the flagged fragments."""
+    frags = []
+    while True:
+        (packed,) = struct.unpack_from("<H", data, pos)
+        pos += 2
+        frags.append((packed & SKIP_MASK, bool(packed & ZERO_BIT), packed >> VALUE_SHIFT))
+        if packed & LAST_BIT:
+            break
+    fields, flags, index = [], [], 0
+    for skip, zeroes, values in frags:
+        index += skip
+        for _ in range(values):
+            fields.append(index)
+            flags.append(zeroes)
+            index += 1
+    masked = [f for f, z in zip(fields, flags) if z]
+    zeroed = set()
+    if masked:
+        n = len(masked)
+        size = 1 if n <= 8 else 2 if n <= 16 else 4 * ((n + 31) // 32)
+        bits = int.from_bytes(data[pos:pos + size], "little")
+        pos += size
+        zeroed = {f for i, f in enumerate(masked) if bits >> i & 1}
+    return fields, zeroed, pos
+
+
+def build_header(fields, zeroes=()):
+    """The inverse of parse_header (written like the engine: a fragment is flagged only when one of its own values is zero)."""
+    fields, zeroes = sorted(fields), set(zeroes)
+    if not fields:
+        return struct.pack("<H", LAST_BIT)
+    frags, prev = [], -1
+    for f in fields:
+        if frags and f == prev + 1 and len(frags[-1][1]) < 127:
+            frags[-1][1].append(f)
+        else:
+            skip = f - prev - 1
+            while skip > 127:
+                frags.append([127, []])
+                skip -= 127
+            frags.append([skip, [f]])
+        prev = f
+    out, masked = b"", []
+    for i, (skip, values) in enumerate(frags):
+        flagged = any(v in zeroes for v in values)
+        masked += values if flagged else []
+        out += struct.pack("<H", skip | (ZERO_BIT if flagged else 0) | (len(values) << VALUE_SHIFT)
+                           | (LAST_BIT if i == len(frags) - 1 else 0))
+    if masked:
+        bits = sum(1 << i for i, f in enumerate(masked) if f in zeroes)
+        n = len(masked)
+        out += bits.to_bytes(1 if n <= 8 else 2 if n <= 16 else 4 * ((n + 31) // 32), "little")
+    return out
+
+
+def add_field(export, header_pos, field_sizes, field, value):
+    """The export with `value` (bytes) stored for struct field `field` (skipped or zero-masked before)."""
+    fields, zeroes, values_pos = parse_header(export, header_pos)
+    if field in fields and field not in zeroes:
+        raise SkipAsset(f"field {field} is already stored")
+    header = build_header(sorted(set(fields) | {field}), set(zeroes) - {field})
+    at = values_pos + sum(field_sizes[f] for f in fields if f < field and f not in zeroes)
+    return export[:header_pos] + header + export[values_pos:at] + value + export[at:]
+
+
+def replace_export(uasset, uexp, serial_offset, serial_size, new_export):
+    """One export's bytes swapped: its SerialSize, every later SerialOffset and BulkDataStartOffset follow (offsets count
+    from the .uasset start). Refuses anything ambiguous."""
+    base = len(uasset)
+    start = serial_offset - base
+    if start < 0 or start + serial_size > len(uexp):
+        raise SkipAsset("export outside the .uexp")
+    delta = len(new_export) - serial_size
+    new_uexp = uexp[:start] + new_export + uexp[start + serial_size:]
+    ua = bytearray(uasset)
+    end = base + len(uexp) - 4
+    hits = [q for q in range(0, min(1024, base - 7)) if struct.unpack_from("<q", ua, q)[0] == end]
+    if len(hits) != 1:
+        raise SkipAsset(f"BulkDataStartOffset not found once ({hits})")
+    struct.pack_into("<q", ua, hits[0], end + delta)
+    rows = {}
+    for q in range(0, base - 15):
+        size, off = struct.unpack_from("<qq", ua, q)
+        if base <= off and 0 < size and off + size <= end:
+            rows.setdefault(off, []).append((q, size))
+    chain, off = [], base
+    while off < end:
+        nxt = [(q, size) for q, size in rows.get(off, []) if off + size == end or off + size in rows]
+        if len(nxt) != 1:
+            raise SkipAsset(f"export table chain broken at {off}")
+        chain.append((off, *nxt[0]))
+        off += nxt[0][1]
+    target = [c for c in chain if c[0] == serial_offset and c[2] == serial_size]
+    if len(target) != 1:
+        raise SkipAsset("export row not found in the export table")
+    struct.pack_into("<q", ua, target[0][1], serial_size + delta)
+    for off, q, size in chain:
+        if off > serial_offset:
+            struct.pack_into("<q", ua, q + 8, off + delta)
+    return bytes(ua), new_uexp
+
+
+def rewrite_package(uasset, uexp, rewrites):
+    """The package with every rewrite applied (a stored value added to a struct of one export; KB techniques/
+    unversioned-package-rewrite.md). Each export is checked against its stock bytes (SHA-256) and header first."""
+    for r in sorted(rewrites, key=lambda r: -r["export_start"]):   # later exports first: earlier starts stay valid
+        start, size = r["export_start"], r["export_size"]
+        export = uexp[start:start + size]
+        if hashlib.sha256(export).hexdigest() != r["stock_export_sha256"]:
+            raise SkipAsset(f"{r['widget']}: stock export differs from the verified game build (game update?)")
+        fields, zeroes, _ = parse_header(export, r["header_pos"])
+        if fields != r["stock_fields"] or sorted(zeroes) != r["stock_zeroes"]:
+            raise SkipAsset(f"{r['widget']}: unexpected property header {fields} {sorted(zeroes)}")
+        sizes = dict(enumerate(r["field_sizes"]))
+        for field, value in r["add"]:
+            export = add_field(export, r["header_pos"], sizes, field, struct.pack("<f", value))
+        uasset, uexp = replace_export(uasset, uexp, len(uasset) + start, size, export)
+    return uasset, uexp
+
+
+def layout_package(uasset, uexp, package, sizes):
+    """A package's layout: the stored values in place, then the rewrites (which move later bytes)."""
+    uexp = bp_float(uexp, package, sizes)
+    if LAYOUT[package].get("rewrites"):
+        uasset, uexp = rewrite_package(uasset, uexp, LAYOUT[package]["rewrites"])
+    return uasset, uexp
 
 
 def pack_name(name):
@@ -975,25 +1149,31 @@ def dds_tools(path=None):
     return export, inject
 
 
-def needed_names():
-    """Every name the build extracts: the data files' assets and the glyph masks."""
-    return sorted({Path(a).name for a in TEXTURES} | {n for names in GLYPH_MASKS.values() for n in names}
+def needed_names(colours=True, layout=False):
+    """Every name the build extracts: the data files' assets and the glyph masks (colours), the layout packages (layout)."""
+    names = set()
+    if colours:
+        names |= ({Path(a).name for a in TEXTURES} | {n for names in GLYPH_MASKS.values() for n in names}
                   | {mask for mask, _ in PANEL_MASKS.values()})
+    if layout:
+        names |= set(LAYOUT)
+    return sorted(names)
 
 
-def extract_all(args, folder):
-    """One retoc to-legacy call with one -f per needed name into folder; refuses any asset it did not extract (a wrong folder
-    or a game update: nothing is built). Returns {lower-case name: sorted .uasset paths}."""
+def extract_all(args, folder, colours=True, layout=False):
+    """One retoc to-legacy call with one -f per needed name into folder; refuses any colour asset it did not extract (a wrong
+    folder or a game update: nothing is built; a missing layout package is skipped by its own check). Returns {lower-case name:
+    sorted .uasset paths}."""
     cmd = [args.retoc, "to-legacy", "--no-shaders", "--version", "UE5_3"]
-    for name in needed_names():
+    for name in needed_names(colours, layout):
         cmd += ["-f", name]
     run(cmd + [args.paks, folder])
     found = {}
     for path in sorted(Path(folder).rglob("*.uasset")):
         found.setdefault(path.stem.lower(), []).append(path)
     content = Path(folder) / "OblivionRemastered/Content"
-    missing = [a for a in TEXTURES if not (content / a).with_suffix(".uasset").is_file()]
-    missing += [n for names in GLYPH_MASKS.values() for n in names if n.lower() not in found]
+    missing = [a for a in TEXTURES if colours and not (content / a).with_suffix(".uasset").is_file()]
+    missing += [n for names in GLYPH_MASKS.values() for n in names if colours and n.lower() not in found]
     if missing:
         raise BuildError(f"retoc did not extract {len(missing)} asset(s) from {args.paks} (game update or wrong folder?):\n  "
                          + "\n  ".join(missing))
@@ -1023,11 +1203,12 @@ def format_supported(kind, stock):
     return kind in ("flat", "skin_flat") and bool(bgra_layout(stock))
 
 
-def bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, inject):
+def bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, inject, sizes=None):
     """One asset into the stage folder: (values it read, manifest entry). Raises SkipAsset before writing when a check fails."""
     name = Path(asset).name
     kind = recipe_name.partition(":")[0]
     make = recipe(recipe_name)[2]
+    layout_error = None
     values = recipe_values(recipe_name, colours)
     source = legacy / "OblivionRemastered/Content" / asset
     target = stage / "OblivionRemastered/Content" / asset
@@ -1039,8 +1220,14 @@ def bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, injec
         raise SkipAsset(f"owner art missing ({name}.png in {art}); the game's stock texture shows")
     if kind in ("rich_row", "bp_colour", "material_colour"):   # a data table, blueprint or material: its .uexp is patched (no DDS)
         uexp = make(source.with_suffix(".uexp").read_bytes(), values, work, None)
+        uasset = source.with_suffix(".uasset").read_bytes()
+        if sizes is not None and name in LAYOUT:   # the same package also carries sizes (decision 46): both in one copy
+            try:
+                uasset, uexp = layout_package(uasset, uexp, name, sizes)
+            except SkipAsset as error:   # the colours still bake; the sizes of this package are listed as skipped
+                layout_error = str(error)
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source.with_suffix(".uasset"), target.with_suffix(".uasset"))
+        target.with_suffix(".uasset").write_bytes(uasset)
         target.with_suffix(".uexp").write_bytes(uexp)
     else:
         stock_path = stock_dds(name)
@@ -1059,23 +1246,96 @@ def bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, injec
         for ext in (".uasset", ".uexp", ".ubulk"):
             if injected.with_suffix(ext).is_file():
                 shutil.copy2(injected.with_suffix(ext), target.with_suffix(ext))
-    return values, {"recipe": recipe_name, "style": sorted(values),
+    layout = {}
+    if sizes is not None and name in LAYOUT and kind == "bp_colour":
+        layout = {"layout_skipped": layout_error} if layout_error else {"layout": True}
+    return values, {"recipe": recipe_name, "style": sorted(values), **layout,
                     "stock_uexp_sha256": sha256(source.with_suffix(".uexp")),
                     "baked_uexp_sha256": sha256(target.with_suffix(".uexp"))}
 
 
-def build(args, out, pack=DEFAULT_PACK, colours=None, art=None, log=print):
+def build(args, out, pack=DEFAULT_PACK, colours=None, art=None, log=print, sizes=None):
     """Bake every asset of the data files with the colour values (default: the Dark values) into <out>/<pack>.*; an asset that
-    fails its check is skipped and listed. args: paks, retoc, ddstools (None = the frozen copy). Returns the manifest."""
+    fails its check is skipped and listed. sizes ([Sizes] values, Step B decision 46): the layout packages are baked into the
+    same pack (a colour-patched one gets both); None = colours only. args: paks, retoc, ddstools (None = the frozen copy).
+    Returns the manifest."""
     global ART
     saved, ART = ART, Path(ART if art is None else art)   # the png recipe (owner_png) reads ART
     try:
-        return _build(args, out, pack, colours, ART, log)
+        return _build(args, out, pack, colours, ART, log, sizes)
     finally:
         ART = saved
 
 
-def _build(args, out, pack, colours, art, log):
+def stage_layout(package, legacy, stage, sizes):
+    """One layout-only package into the stage folder (manifest entry); SkipAsset before writing when a check fails."""
+    row = LAYOUT[package]
+    source = legacy / "OblivionRemastered/Content" / row["asset"]
+    if not source.with_suffix(".uasset").is_file():
+        raise SkipAsset("not extracted from the game (game update or wrong folder?)")
+    uasset, uexp = layout_package(source.with_suffix(".uasset").read_bytes(), source.with_suffix(".uexp").read_bytes(), package, sizes)
+    target = stage / "OblivionRemastered/Content" / row["asset"]
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.with_suffix(".uasset").write_bytes(uasset)
+    target.with_suffix(".uexp").write_bytes(uexp)
+    return {"recipe": "layout", "stock_uexp_sha256": sha256(source.with_suffix(".uexp")),
+            "baked_uexp_sha256": sha256(target.with_suffix(".uexp"))}
+
+
+def layout_entries(legacy, stage, sizes, skip_names, textures, skipped, log):
+    """Every layout package not already staged by a colour recipe: staged, or skipped and listed."""
+    for package, row in LAYOUT.items():
+        if package in skip_names:
+            continue
+        try:
+            textures[row["asset"]] = stage_layout(package, legacy, stage, sizes)
+            log(f"{package}: layout")
+        except SkipAsset as error:
+            skipped.append({"asset": row["asset"], "recipe": "layout", "reason": str(error)})
+            log(f"SKIPPED {package}: {error}")
+
+
+def used_sizes(sizes):
+    return {k: float(v) for k, v in sizes.items() if k not in custom_colours.TEXT_ROLES}
+
+
+def build_layout(args, out, sizes, pack=LAYOUT_PACK, log=print):
+    """MRLayout_P: the layout packages only, with the sizes (decision 46: installed when the colour pack is not). Returns the
+    manifest ("sizes": what it baked; the builder compares it with [Sizes])."""
+    pack = pack_name(pack)
+    log = log or (lambda line: None)
+    textures, skipped = {}, []
+    if not Path(args.retoc).is_file():
+        raise BuildError(f"retoc not found: {args.retoc} (--retoc: the path of retoc.exe)")
+    with tempfile.TemporaryDirectory() as temp:
+        work = Path(temp)
+        stage, legacy = work / "stage", work / "legacy"
+        log(f"Reading {len(LAYOUT)} layout packages from {args.paks}")
+        extract_all(args, legacy, colours=False, layout=True)
+        layout_entries(legacy, stage, sizes, set(), textures, skipped, log)
+        if not textures:
+            raise BuildError(f"no layout package passed its check ({len(skipped)} skipped): nothing to build")
+        out.mkdir(parents=True, exist_ok=True)
+        log("Writing the layout pack")
+        run([args.retoc, "to-zen", "--version", "UE5_3", stage, out / f"{pack}.utoc"])
+    return write_manifest(out, pack, {"sizes": used_sizes(sizes), "textures": textures, "skipped": skipped})
+
+
+def write_manifest(out, pack, body):
+    files = {}
+    for ext in ("pak", "utoc", "ucas"):
+        path = out / f"{pack}.{ext}"
+        if not path.is_file():
+            raise BuildError(f"retoc wrote no {path.name}")
+        files[path.name] = sha256(path)
+    manifest = {"pack": pack, "game_build": GAME_BUILD,
+                "built_by": paths.EXE_NAME if paths.is_frozen() else "tools/make_dark_pack.py",
+                "builder_version": VERSION, **body, "files": files}
+    (out / f"{pack}.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    return manifest
+
+
+def _build(args, out, pack, colours, art, log, sizes=None):
     pack = pack_name(pack)
     colours = custom_colours.pack_values() | (colours or {})
     log = log or (lambda line: None)
@@ -1087,8 +1347,8 @@ def _build(args, out, pack, colours, art, log):
         work = Path(temp)
         stage = work / "stage"
         legacy = work / "legacy"
-        log(f"Reading {len(needed_names())} stock assets from {args.paks}")
-        found = extract_all(args, legacy)
+        log(f"Reading {len(needed_names(True, sizes is not None))} stock assets from {args.paks}")
+        found = extract_all(args, legacy, colours=True, layout=sizes is not None)
         exported = {}
 
         def stock_dds(name):
@@ -1103,7 +1363,7 @@ def _build(args, out, pack, colours, art, log):
             name = Path(asset).name
             target = stage / "OblivionRemastered/Content" / asset
             try:
-                values, entry = bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, inject)
+                values, entry = bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, inject, sizes)
             except (BuildError, KeyboardInterrupt):
                 raise
             except Exception as error:   # SkipAsset or a recipe failing on unexpected data: skip and list, build the rest
@@ -1119,23 +1379,22 @@ def _build(args, out, pack, colours, art, log):
                 continue
             style.update(values)
             textures[asset] = entry
+            if entry.get("layout_skipped"):
+                skipped.append({"asset": asset, "recipe": "layout", "reason": entry["layout_skipped"]})
+                log(f"SKIPPED {name} sizes: {entry['layout_skipped']}")
             log(f"{name}: {recipe_name} {values}")
+        if sizes is not None:   # the layout packages no colour recipe staged (a skipped colour blueprint is staged with sizes only)
+            staged = {Path(a).name for a in textures}
+            layout_entries(legacy, stage, sizes, staged, textures, skipped, log)
         if not textures:
             raise BuildError(f"no asset passed its check ({len(skipped)} skipped): nothing to build")
         out.mkdir(parents=True, exist_ok=True)
         log("Writing the pack")
         run([args.retoc, "to-zen", "--version", "UE5_3", stage, out / f"{pack}.utoc"])
-    files = {}
-    for ext in ("pak", "utoc", "ucas"):
-        path = out / f"{pack}.{ext}"
-        if not path.is_file():
-            raise BuildError(f"retoc wrote no {path.name}")
-        files[path.name] = sha256(path)
-    manifest = {"pack": pack, "game_build": GAME_BUILD,
-                "built_by": paths.EXE_NAME if paths.is_frozen() else "tools/make_dark_pack.py",
-                "builder_version": VERSION, "style": style, "textures": textures, "skipped": skipped, "files": files}
-    (out / f"{pack}.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    return manifest
+    body = {"style": style, "textures": textures, "skipped": skipped}
+    if sizes is not None:
+        body["sizes"] = used_sizes(sizes)
+    return write_manifest(out, pack, body)
 
 
 def readback(retoc, utoc, assets, log=print):

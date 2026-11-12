@@ -43,7 +43,8 @@ for key, value in KEYS.items():
     check(custom_colours.HELP.get(key, "").startswith("Inventory and Magic category tab"), f"{key} is labelled")
     check(dark.get(key) == value, f"DarkStyle.h holds {key}")
     check(f"MR_CC_RGB({key}," in reader, f"the plugin reader knows {key}")
-    check(custom_colours.GROUPS.get(key) == "Inventory and Magic category tabs", f"{key} is in the category tabs group")
+    check(any(key in r["members"] and "Category tabs" in r["label"] for r in custom_colours.ROLES.values()) or
+          (key == "tabGlyph" and key in custom_colours.ROLES["icons"]["members"]), f"{key} is fed by a category tab (or icon) role")
 rendered = custom_colours.render(custom_colours.DEFAULTS)
 check("[Tab] entries are retained with no effect" in rendered and "[Tab] entries are retained with no effect" in reader,
       "the colour file says the [Tab] greys have no effect (Python and plugin default files agree)")

@@ -13,7 +13,6 @@
 #include "engine/WorldMap.h"
 #include "search/WorldMapSearch.h"
 #include "alchemy/AlchemyMenu.h"
-#include "layout/CompactRows.h"
 #ifdef MR_DEVTOOLS
 #include "devtools/Census.h"
 #endif
@@ -98,7 +97,7 @@ namespace core
 		if (GetTickCount64() >= next) {
 			next = GetTickCount64() + 200;
 			if (!reflect::Ok()) reflect::SelfCheck();
-			if (reflect::Ok()) { menus::Tick(); container::Tick(); quests::Tick(); worldmap::Tick(); compactrows::Tick(); }
+			if (reflect::Ok()) { menus::Tick(); container::Tick(); quests::Tick(); worldmap::Tick(); }
 		}
 		if (!reflect::Ok() || SameFrame()) return;
 		container::TickScope frame;

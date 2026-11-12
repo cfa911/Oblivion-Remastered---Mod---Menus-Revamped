@@ -92,7 +92,7 @@ check("customcolours::Parse(" in pack and "darkstyle::Set(" in pack, "DarkPack.c
 check("customcolours::Render(" in pack, "DarkPack.cpp writes the default colour file when it is missing")
 check("custompack::ParseManifest(" in pack and "custompack::Decide(" in pack and 'L"MRCustom_P.json"' in pack,
       "DarkPack.cpp checks MRCustom_P.json before the switch")
-check("darkpackswitch::SwitchCustom(" in pack and 'L"CustomPack"' in pack, "DarkPack.cpp switches MRCustom_P from Plugins/MenusRevamped/CustomPack")
+check("layoutpack::Switch(" in pack and 'L"CustomPack"' in pack, "DarkPack.cpp switches MRCustom_P from Plugins/MenusRevamped/CustomPack")
 check("TEMP-DIAG" not in pack, "no temporary diagnostics in DarkPack.cpp")
 theme = text("src/core/UiTheme.h")
 check("inline constexpr Skin kDarkSkin" not in theme and "darkstyle::Get()" in theme,
