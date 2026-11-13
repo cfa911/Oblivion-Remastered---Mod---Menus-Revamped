@@ -75,7 +75,7 @@ check(sorted(alchemy_rows) == sorted(ALCHEMY), "the three Alchemy textures are s
 for name, (menu, row) in alchemy_rows.items():
     check(menu == "alchemy" and row["recipe"] == "alchemy", f"{name}: alchemy.json, recipe alchemy ({menu}, {row['recipe']})")
     check(row["colours"] == ["alchemyMetal", "alchemyStone"], f"{name}: reads alchemyMetal and alchemyStone ({row['colours']})")
-check(len(rows) == 146, f"146 assets after 28b and the 2026-11-13 Inventory bakes ({len(rows)})")
+check(len(rows) == 166, f"166 assets after 28b, the 2026-11-13 Inventory bakes and RMI-096 popups ({len(rows)})")
 
 # ---- 3. the recipe on a synthetic BC3 texture: bronze top half, green-grey stone bottom half, a soft alpha ----
 try:
@@ -243,6 +243,7 @@ REAL = pipe.recipe
 fake = Fake()
 saved = {k: getattr(pipe, k, None) for k in ("run", "recipe", "dds_tools", "LAUREL_STOCK_SHA256", "ALCHEMY_STOCK_SHA256")}
 pipe.run, pipe.recipe, pipe.dds_tools = fake.run, fake_recipe, (lambda path=None: (fake.export, fake.inject))
+pipe.swap_imports = lambda uasset, swaps: uasset   # fake packages; the real header swap: popup_paper_swap_tests
 laurel = next(a for a, r in pipe.TEXTURES.items() if r == "laurels")
 pipe.LAUREL_STOCK_SHA256 = synthetic_hash(laurel)
 pipe.ALCHEMY_STOCK_SHA256 = {Path(a).name: synthetic_hash(a) for a in pipe.TEXTURES if Path(a).name in ALCHEMY}
@@ -255,8 +256,8 @@ try:
         with contextlib.redirect_stdout(io.StringIO()):
             manifest = pipe.build(SimpleNamespace(retoc=retoc, paks=temp / "Paks", ddstools=None), temp / "out",
                                   art=temp / "no-art")
-        check(len(manifest["textures"]) == 146 and manifest["skipped"] == [],
-              f"a build without owner art: 146 baked, 0 skipped ({len(manifest['textures'])}, {len(manifest['skipped'])} skipped)")
+        check(len(manifest["textures"]) == 166 and manifest["skipped"] == [],
+              f"a build without owner art: 166 baked, 0 skipped ({len(manifest['textures'])}, {len(manifest['skipped'])} skipped)")
         check(manifest["style"].get("alchemyMetal") == METAL and manifest["style"].get("alchemyStone") == STONE,
               "the manifest style records alchemyMetal and alchemyStone")
 except Exception as error:   # noqa: BLE001

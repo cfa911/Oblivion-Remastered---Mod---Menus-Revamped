@@ -1,7 +1,7 @@
 {
   "menu": "Shared art",
   "order": 4,
-  "note": "Assets drawn by many menus (Phase 7). The scrollbar: the Dark scrollbar instances MIC_UI_Scrollbar_Vert_Dark and MIC_UI_ScrollbarVert_Handle_Dark hold no colours, so the [Skin] scrollbar values are baked into their parent materials' defaults (CachedExpressionData and the shader map's uniform defaults; KB docs/reverse-engineering/dark-mode-ui.md 'Scrollbar materials', game 1.512.105.0). Every scrollbar but Settings (Light instances) takes them. RMI-087 (owner 2026-11-12, baked not run time): the shared button prefab's label, rules and hover band (Confirm/Cancel and every other WBP_ModernPrefab_Button).",
+  "note": "Assets drawn by many menus (Phase 7). The scrollbar: the Dark scrollbar instances MIC_UI_Scrollbar_Vert_Dark and MIC_UI_ScrollbarVert_Handle_Dark hold no colours, so the [Skin] scrollbar values are baked into their parent materials' defaults (CachedExpressionData and the shader map's uniform defaults; KB docs/reverse-engineering/dark-mode-ui.md 'Scrollbar materials', game 1.512.105.0). Every scrollbar but Settings (Light instances) takes them. RMI-087 (owner 2026-11-12, baked not run time): the shared button prefab's label, rules and hover band (Confirm/Cancel and every other WBP_ModernPrefab_Button). RMI-096 (owner 2026-11-13, all popups): the popup paper textures (M_Popup_PaperBackground has no colour parameters) on parchment, and every popup text literal light (rowText; the blue ones enchantedDot). RMI-096 styling (owner 2026-11-13): popup paper paper_scale:0.42 (the shader lifts it ~44), the Laurels group (pattern: Inventory button laurels, popup title flowers, leaf border) blue, sliders silver, focus band highlight grey. RMI-096 paper swap (owner 2026-11-13): import_swaps point the 11 popups' paper at T_UI_BackgroundHorizontal (Dark Mode UI's route; the shader material is bypassed), baked by popup_paper.",
   "material_colours": {
     "M_UI_Scrollbar_Vert_Reworked": [
       {
@@ -108,10 +108,50 @@
     ]
   },
   "assets": [
-    {"asset": "Art/UI/Common/T_Empty_Background_D", "recipe": "neutral:listHighlight:59.75", "colours": ["listHighlight"], "shared_with": ["Inventory", "Container", "Barter", "Magic", "Spell Purchase", "Quests", "Character (the Empty list label band, RMI-095)"]},
-    {"asset": "Art/UI/Common/T_List_Default", "recipe": "flat:rowSeparator", "colours": ["rowSeparator"], "shared_with": ["12 row blueprints: Inventory/Container/Barter, Magic rows and details, Alchemy, Enchanting, Spellmaking, Spell Purchase, Repair, Gear, Help, Quests, the effect lines"]},
-    {"asset": "Art/UI/Common/T_List_equip_V2", "recipe": "flat_alpha:rowEquipped:0.6", "colours": ["rowEquipped"], "shared_with": ["the Focusbox prefab in 15 row blueprints: Inventory/Container/Barter, Magic, Alchemy, Enchanting, Spellmaking, Spell Purchase, Gear, Recharge, the effect lines, Character overview/attributes/derived stats/skills/factions, Level Up"]},
-    {"asset": "UI/Modern/Prefabs/WBP_ModernPrefab_Focusbox", "recipe": "bp_colour:WBP_ModernPrefab_Focusbox", "colours": [], "shared_with": ["the Focusbox prefab in 15 row blueprints: Inventory/Container/Barter, Magic, Alchemy, Enchanting, Spellmaking, Spell Purchase, Gear, Recharge, the effect lines, Character overview/attributes/derived stats/skills/factions, Level Up"]},
+    {
+      "asset": "Art/UI/Common/T_Empty_Background_D",
+      "recipe": "neutral:listHighlight:59.75",
+      "colours": [
+        "listHighlight"
+      ],
+      "shared_with": [
+        "Inventory",
+        "Container",
+        "Barter",
+        "Magic",
+        "Spell Purchase",
+        "Quests",
+        "Character (the Empty list label band, RMI-095)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Common/T_List_Default",
+      "recipe": "flat:rowSeparator",
+      "colours": [
+        "rowSeparator"
+      ],
+      "shared_with": [
+        "12 row blueprints: Inventory/Container/Barter, Magic rows and details, Alchemy, Enchanting, Spellmaking, Spell Purchase, Repair, Gear, Help, Quests, the effect lines"
+      ]
+    },
+    {
+      "asset": "Art/UI/Common/T_List_equip_V2",
+      "recipe": "flat_alpha:rowEquipped:0.6",
+      "colours": [
+        "rowEquipped"
+      ],
+      "shared_with": [
+        "the Focusbox prefab in 15 row blueprints: Inventory/Container/Barter, Magic, Alchemy, Enchanting, Spellmaking, Spell Purchase, Gear, Recharge, the effect lines, Character overview/attributes/derived stats/skills/factions, Level Up"
+      ]
+    },
+    {
+      "asset": "UI/Modern/Prefabs/WBP_ModernPrefab_Focusbox",
+      "recipe": "bp_colour:WBP_ModernPrefab_Focusbox",
+      "colours": [],
+      "shared_with": [
+        "the Focusbox prefab in 15 row blueprints: Inventory/Container/Barter, Magic, Alchemy, Enchanting, Spellmaking, Spell Purchase, Gear, Recharge, the effect lines, Character overview/attributes/derived stats/skills/factions, Level Up"
+      ]
+    },
     {
       "asset": "UI/Materials/Common/M_UI_Scrollbar_Vert_Reworked",
       "recipe": "material_colour:M_UI_Scrollbar_Vert_Reworked",
@@ -214,10 +254,220 @@
       "shared_with": [
         "WBP_ModernPrefab_Button (27 widgets, see the button row)"
       ]
+    },
+    {
+      "asset": "UI/Modern/ModalLayer/WBP_ModernMenu_Quantity",
+      "recipe": "bp_colour:WBP_ModernMenu_Quantity",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "the quantity dialog (Inventory, Container, Barter)"
+      ]
+    },
+    {
+      "asset": "UI/Modern/ModalLayer/Messages/WBP_MessageMenu_Specific_Default",
+      "recipe": "bp_colour:WBP_MessageMenu_Specific_Default",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "the message box (WBP_ModernMenu_Message)"
+      ]
+    },
+    {
+      "asset": "UI/Modern/ModalLayer/WBP_ModernMenu_SleepWait",
+      "recipe": "bp_colour:WBP_ModernMenu_SleepWait",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "Sleep/Wait"
+      ]
+    },
+    {
+      "asset": "UI/Modern/ModalLayer/Messages/WBP_GenericMenu_Specific_SkillIncrease",
+      "recipe": "bp_colour:WBP_GenericMenu_Specific_SkillIncrease",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "skill increase popup (WBP_ModernMenu_QuestSkillPopup)"
+      ]
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/GenericMenu/WBP_ModernMenu_QuestAdded",
+      "recipe": "bp_colour:WBP_ModernMenu_QuestAdded",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "quest added popup (WBP_ModernMenu_QuestSkillPopup)"
+      ]
+    },
+    {
+      "asset": "UI/Modern/ModalLayer/WBP_ModernMenu_Negotiate",
+      "recipe": "bp_colour:WBP_ModernMenu_Negotiate",
+      "colours": [
+        "enchantedDot",
+        "rowText"
+      ],
+      "shared_with": [
+        "barter haggle popup"
+      ]
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/SkillAndClassMenus/SkillsMenu/SkillsAttributesSelection/WBP_Modern_SkillsMenu_SkillsAttributesSelection",
+      "recipe": "bp_colour:WBP_Modern_SkillsMenu_SkillsAttributesSelection",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "the skills/attributes selection popup (Skills menu)"
+      ]
+    },
+    {
+      "asset": "UI/Modern/MenuLayer/Settings/Popup/WBP_Modern_SettingsMenu_TimedRevertPopup",
+      "recipe": "bp_colour:WBP_Modern_SettingsMenu_TimedRevertPopup",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "Settings revert popup"
+      ]
+    },
+    {
+      "asset": "UI/Modern/MenuLayer/Settings/Popup/WBP_Modern_SettingsMenu_ValidationPopup",
+      "recipe": "bp_colour:WBP_Modern_SettingsMenu_ValidationPopup",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "Settings validation popup"
+      ]
+    },
+    {
+      "asset": "UI/Modern/MenuLayer/Settings/Prefabs/WBP_Modern_Settings_SaveLoadPopup",
+      "recipe": "bp_colour:WBP_Modern_Settings_SaveLoadPopup",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "Save/Load and Settings confirmation popup"
+      ]
+    },
+    {
+      "asset": "UI/Modern/MenuLayer/Onboarding/Flow/WBP_Modern_Onboarding_EULAScreen",
+      "recipe": "bp_colour:WBP_Modern_Onboarding_EULAScreen",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "EULA screen"
+      ]
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/GenericMenu/WBP_ModernMenu_MapQuestEntry_NoFocus",
+      "recipe": "bp_colour:WBP_ModernMenu_MapQuestEntry_NoFocus",
+      "colours": [
+        "enchantedDot",
+        "rowText"
+      ],
+      "shared_with": [
+        "quest added popup only"
+      ]
+    },
+    {
+      "asset": "UI/Modern/Prefabs/WBP_Modern_HorizontalSliderWithLabels",
+      "recipe": "bp_colour:WBP_Modern_HorizontalSliderWithLabels",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "barter haggle popup only (Negotiate slider)"
+      ]
+    },
+    {
+      "asset": "UI/Modern/ModalLayer/Messages/DT_MessageMenu_RichTextStyle",
+      "recipe": "bp_colour:DT_MessageMenu_RichTextStyle",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "message box, skill increase, Save/Load popup, quest added entry (popups only)"
+      ]
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/SkillAndClassMenus/DataTables/RichTextStyles/DT_UI_SkillsClass_Birthsign_RichTextStyle",
+      "recipe": "bp_colour:DT_UI_SkillsClass_Birthsign_RichTextStyle",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": [
+        "skills/attributes selection popup only"
+      ]
+    },
+    {
+      "asset": "Art/UI/Common/Ornaments/T_UI_HelpPattern1",
+      "recipe": "laurel_tint",
+      "colours": [
+        "pattern"
+      ],
+      "shared_with": [
+        "Quantity, Sleep/Wait and haggle popup titles, Help menu (the flower ornaments, Laurels group)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Common/Sliders/T_UI_SliderBase",
+      "recipe": "grey_scale:1.2",
+      "colours": [],
+      "shared_with": [
+        "the popup sliders: Quantity, Sleep/Wait, haggle, video settings slider (silver)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Common/Sliders/T_Sliderhandle",
+      "recipe": "grey_scale:1.2",
+      "colours": [],
+      "shared_with": [
+        "slider handles: Quantity, Sleep/Wait, haggle, Settings sliders, Character Creation sliders (silver)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/CharacterCreation/T_Character_SettingSlidersV2",
+      "recipe": "flat:listHighlight",
+      "colours": [
+        "listHighlight"
+      ],
+      "shared_with": [
+        "the popup sliders' focus band (Highlight_Image), Character Creation buttons, sliders and overview bands"
+      ]
+    },
+    {
+      "asset": "Art/UI/Common/Backgrounds/T_UI_BackgroundHorizontal",
+      "recipe": "popup_panel:0.05:0.03",
+      "colours": [
+        "parchmentLight"
+      ],
+      "shared_with": [
+        "every popup after the import swap (quantity, message box, Sleep/Wait, skill increase, quest added, haggle, skills selection, Settings popups, EULA); unused by stock widgets"
+      ]
     }
   ],
   "blueprint_colours": {
-    "WBP_ModernPrefab_Focusbox": [{"offset": 5642, "stock": [0.491, 0.4287, 0.3663, 0.35], "colour": "white", "widget": "focusBox_equip_image (image tile tint; the equipped band)"}],
+    "WBP_ModernPrefab_Focusbox": [
+      {
+        "offset": 5642,
+        "stock": [
+          0.491,
+          0.4287,
+          0.3663,
+          0.35
+        ],
+        "colour": "white",
+        "widget": "focusBox_equip_image (image tile tint; the equipped band)"
+      }
+    ],
     "WBP_ModernPrefab_Button": [
       {
         "offset": 2332,
@@ -295,6 +545,599 @@
         ],
         "colour": "columnLine",
         "widget": "State_Hover_Middle_LineTop"
+      }
+    ],
+    "WBP_ModernMenu_Quantity": [
+      {
+        "offset": 12693,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Header_Text (title)"
+      },
+      {
+        "offset": 12793,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "QuantityText (the number)"
+      }
+    ],
+    "WBP_MessageMenu_Specific_Default": [
+      {
+        "offset": 10765,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "message_text"
+      },
+      {
+        "offset": 11331,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "TitleText"
+      }
+    ],
+    "WBP_ModernMenu_SleepWait": [
+      {
+        "offset": 14108,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Date_Text"
+      },
+      {
+        "offset": 14158,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Seed_Text"
+      },
+      {
+        "offset": 14208,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Time_Text"
+      },
+      {
+        "offset": 14274,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Title"
+      }
+    ],
+    "WBP_GenericMenu_Specific_SkillIncrease": [
+      {
+        "offset": 5456,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "MessageRichText"
+      },
+      {
+        "offset": 6105,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Title"
+      }
+    ],
+    "WBP_ModernMenu_QuestAdded": [
+      {
+        "offset": 11328,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "qadd_quest_message"
+      }
+    ],
+    "WBP_ModernMenu_Negotiate": [
+      {
+        "offset": 12756,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Buy_Text"
+      },
+      {
+        "offset": 12829,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Disposition_Text"
+      },
+      {
+        "offset": 12928,
+        "stock": [
+          0.0513,
+          0.0648,
+          0.1441,
+          1.0
+        ],
+        "colour": "enchantedDot",
+        "widget": "DispositionNumber_Text (blue)"
+      },
+      {
+        "offset": 12994,
+        "stock": [
+          0.0513,
+          0.0648,
+          0.1441,
+          1.0
+        ],
+        "colour": "enchantedDot",
+        "widget": "MasteryLevel_Text (blue)"
+      },
+      {
+        "offset": 13064,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "MercantileSkill_Text"
+      },
+      {
+        "offset": 13167,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "MerchantName_Text"
+      },
+      {
+        "offset": 13235,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Sell_Text"
+      },
+      {
+        "offset": 13309,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "TitleText"
+      }
+    ],
+    "WBP_Modern_SkillsMenu_SkillsAttributesSelection": [
+      {
+        "offset": 11327,
+        "stock": [
+          0.1195,
+          0.0666,
+          0.0343,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "ItemDetailDescriptionText (warm brown)"
+      },
+      {
+        "offset": 11426,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "MainTitle"
+      }
+    ],
+    "WBP_Modern_SettingsMenu_TimedRevertPopup": [
+      {
+        "offset": 8035,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "message_text"
+      },
+      {
+        "offset": 8149,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "TimerText"
+      },
+      {
+        "offset": 8257,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "TitleText"
+      }
+    ],
+    "WBP_Modern_SettingsMenu_ValidationPopup": [
+      {
+        "offset": 8589,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "message_text"
+      },
+      {
+        "offset": 8698,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "TitleText"
+      }
+    ],
+    "WBP_Modern_Settings_SaveLoadPopup": [
+      {
+        "offset": 5480,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "message_text"
+      }
+    ],
+    "WBP_Modern_Onboarding_EULAScreen": [
+      {
+        "offset": 17386,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "DisclaimerText"
+      },
+      {
+        "offset": 17495,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "EULAText"
+      },
+      {
+        "offset": 17595,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "PageLabel"
+      },
+      {
+        "offset": 17695,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "SIEA"
+      },
+      {
+        "offset": 17792,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "SIEE"
+      }
+    ],
+    "WBP_ModernMenu_MapQuestEntry_NoFocus": [
+      {
+        "offset": 3457,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "map_item_body"
+      },
+      {
+        "offset": 3940,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "map_item_date"
+      },
+      {
+        "offset": 4010,
+        "stock": [
+          0.0497,
+          0.0648,
+          0.147,
+          1.0
+        ],
+        "colour": "enchantedDot",
+        "widget": "map_item_name (blue)"
+      }
+    ],
+    "WBP_Modern_HorizontalSliderWithLabels": [
+      {
+        "offset": 2445,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Min/Max label"
+      },
+      {
+        "offset": 2512,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Min/Max label"
+      }
+    ],
+    "DT_MessageMenu_RichTextStyle": [
+      {
+        "offset": 69,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "row Default (a data table, patched like a blueprint literal)"
+      },
+      {
+        "offset": 425,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "row RT_BlueMed"
+      }
+    ],
+    "DT_UI_SkillsClass_Birthsign_RichTextStyle": [
+      {
+        "offset": 69,
+        "stock": [
+          0.1195,
+          0.0704,
+          0.0369,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "row Default (a data table, patched like a blueprint literal)"
+      },
+      {
+        "offset": 425,
+        "stock": [
+          0.1195,
+          0.0704,
+          0.0369,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "row RT_BlueMed"
+      }
+    ]
+  },
+  "import_swaps": {
+    "WBP_ModernMenu_Quantity": [
+      {
+        "from_package": "/Game/UI/Materials/Common/PopupPapers/M_Popup_PaperBackground",
+        "from_object": "M_Popup_PaperBackground",
+        "from_class": "Material",
+        "to_package": "/Game/Art/UI/Common/Backgrounds/T_UI_BackgroundHorizontal",
+        "to_object": "T_UI_BackgroundHorizontal",
+        "to_class": "Texture2D"
+      }
+    ],
+    "WBP_ModernMenu_SleepWait": [
+      {
+        "from_package": "/Game/UI/Materials/Common/PopupPapers/M_Popup_PaperBackground",
+        "from_object": "M_Popup_PaperBackground",
+        "from_class": "Material",
+        "to_package": "/Game/Art/UI/Common/Backgrounds/T_UI_BackgroundHorizontal",
+        "to_object": "T_UI_BackgroundHorizontal",
+        "to_class": "Texture2D"
+      }
+    ],
+    "WBP_GenericMenu_Specific_SkillIncrease": [
+      {
+        "from_package": "/Game/UI/Materials/Common/PopupPapers/M_Popup_PaperBackground",
+        "from_object": "M_Popup_PaperBackground",
+        "from_class": "Material",
+        "to_package": "/Game/Art/UI/Common/Backgrounds/T_UI_BackgroundHorizontal",
+        "to_object": "T_UI_BackgroundHorizontal",
+        "to_class": "Texture2D"
+      }
+    ],
+    "WBP_Modern_SettingsMenu_TimedRevertPopup": [
+      {
+        "from_package": "/Game/UI/Materials/Common/PopupPapers/M_Popup_PaperBackground",
+        "from_object": "M_Popup_PaperBackground",
+        "from_class": "Material",
+        "to_package": "/Game/Art/UI/Common/Backgrounds/T_UI_BackgroundHorizontal",
+        "to_object": "T_UI_BackgroundHorizontal",
+        "to_class": "Texture2D"
+      }
+    ],
+    "WBP_Modern_SettingsMenu_ValidationPopup": [
+      {
+        "from_package": "/Game/UI/Materials/Common/PopupPapers/M_Popup_PaperBackground",
+        "from_object": "M_Popup_PaperBackground",
+        "from_class": "Material",
+        "to_package": "/Game/Art/UI/Common/Backgrounds/T_UI_BackgroundHorizontal",
+        "to_object": "T_UI_BackgroundHorizontal",
+        "to_class": "Texture2D"
+      }
+    ],
+    "WBP_Modern_Settings_SaveLoadPopup": [
+      {
+        "from_package": "/Game/UI/Materials/Common/PopupPapers/M_Popup_PaperBackground",
+        "from_object": "M_Popup_PaperBackground",
+        "from_class": "Material",
+        "to_package": "/Game/Art/UI/Common/Backgrounds/T_UI_BackgroundHorizontal",
+        "to_object": "T_UI_BackgroundHorizontal",
+        "to_class": "Texture2D"
+      }
+    ],
+    "WBP_MessageMenu_Specific_Default": [
+      {
+        "from_package": "/Game/UI/Materials/Common/PopupPapers/MIC_Popup_PaperBackground_Generic",
+        "from_object": "MIC_Popup_PaperBackground_Generic",
+        "from_class": "MaterialInstanceConstant",
+        "to_package": "/Game/Art/UI/Common/Backgrounds/T_UI_BackgroundHorizontal",
+        "to_object": "T_UI_BackgroundHorizontal",
+        "to_class": "Texture2D"
+      }
+    ],
+    "WBP_ModernMenu_QuestAdded": [
+      {
+        "from_package": "/Game/UI/Materials/Common/PopupPapers/MIC_Popup_PaperBackground_Quest",
+        "from_object": "MIC_Popup_PaperBackground_Quest",
+        "from_class": "MaterialInstanceConstant",
+        "to_package": "/Game/Art/UI/Common/Backgrounds/T_UI_BackgroundHorizontal",
+        "to_object": "T_UI_BackgroundHorizontal",
+        "to_class": "Texture2D"
+      }
+    ],
+    "WBP_ModernMenu_Negotiate": [
+      {
+        "from_package": "/Game/UI/Materials/Common/PopupPapers/MIC_Popup_PaperBackground_Quest",
+        "from_object": "MIC_Popup_PaperBackground_Quest",
+        "from_class": "MaterialInstanceConstant",
+        "to_package": "/Game/Art/UI/Common/Backgrounds/T_UI_BackgroundHorizontal",
+        "to_object": "T_UI_BackgroundHorizontal",
+        "to_class": "Texture2D"
+      }
+    ],
+    "WBP_Modern_SkillsMenu_SkillsAttributesSelection": [
+      {
+        "from_package": "/Game/UI/Materials/Common/PopupPapers/MIC_Popup_PaperBackground_Quest",
+        "from_object": "MIC_Popup_PaperBackground_Quest",
+        "from_class": "MaterialInstanceConstant",
+        "to_package": "/Game/Art/UI/Common/Backgrounds/T_UI_BackgroundHorizontal",
+        "to_object": "T_UI_BackgroundHorizontal",
+        "to_class": "Texture2D"
+      }
+    ],
+    "WBP_Modern_Onboarding_EULAScreen": [
+      {
+        "from_package": "/Game/UI/Materials/Common/PopupPapers/MIC_Popup_PaperBackground_EULA",
+        "from_object": "MIC_Popup_PaperBackground_EULA",
+        "from_class": "MaterialInstanceConstant",
+        "to_package": "/Game/Art/UI/Common/Backgrounds/T_UI_BackgroundHorizontal",
+        "to_object": "T_UI_BackgroundHorizontal",
+        "to_class": "Texture2D"
       }
     ]
   }

@@ -68,7 +68,7 @@ int main()
 	Check(custompack::Decide(m, "1.512.105.0", s).verdict == Verdict::Current,
 		"run-time tints and colours the pack does not bake (not in its style) never make it stale");
 
-	const auto laurelPack = custompack::ParseManifest(R"({"game_build":"1.512.105.0","style":{"pattern":[150,150,150],"Skin.pattern":[1,0,0,0.5]}})");
+	const auto laurelPack = custompack::ParseManifest(R"({"game_build":"1.512.105.0","style":{"pattern":[66,99,153],"Skin.pattern":[1,0,0,0.5]}})");
 	Check(custompack::HasBakedLaurelTint(laurelPack) && !custompack::HasBakedLaurelTint(m),
 		"only a new pack with the baked tint disables the runtime tint");
 	s = d; s.skin.pattern = { 1, 0, 0, 0.5f };

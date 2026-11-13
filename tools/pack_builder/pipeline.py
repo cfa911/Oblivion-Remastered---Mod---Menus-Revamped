@@ -63,6 +63,11 @@ class SkipAsset(Exception):
     """An asset that failed its check: skipped and listed, the rest of the pack is built."""
 
 
+# package -> [{from_package, from_object, from_class, to_package, to_object, to_class}]: imports a package's .uasset is rewritten
+# to (RMI-096: the popups draw T_UI_BackgroundHorizontal instead of the paper material), filled by load_menus
+IMPORT_SWAPS = {}
+
+
 def load_menus(folder=MENUS):
     """The pack's tables from the per-menu data files (<menu>.json, in their "order"):
     TEXTURES {stock asset (path under Content): recipe name}, GLYPH_MASKS {recipe kind: [mask texture names]},
@@ -76,6 +81,7 @@ def load_menus(folder=MENUS):
         except ValueError as error:
             raise BuildError(f"{path.name}: not valid JSON ({error})")
     textures, masks, rich_rows, blueprints = {}, {}, {}, {}
+    IMPORT_SWAPS.clear()
     for menu in sorted(menus, key=lambda m: (m.get("order", 99), m.get("menu", ""))):
         for row in menu.get("assets", []):
             if row["asset"] in textures:
@@ -84,6 +90,7 @@ def load_menus(folder=MENUS):
         masks |= {kind: tuple(names) for kind, names in menu.get("glyph_masks", {}).items()}
         for table, rows in menu.get("rich_rows", {}).items():
             rich_rows[table] = {row: (e["offset"], tuple(e["stock"])) for row, e in rows.items()}
+        IMPORT_SWAPS.update(menu.get("import_swaps", {}))
         for section in ("blueprint_colours", "material_colours"):
             for package, entries in menu.get(section, {}).items():
                 blueprints[package] = [(e["offset"], tuple(e["stock"]), e["colour"]) for e in entries]
@@ -270,6 +277,124 @@ def replace_export(uasset, uexp, serial_offset, serial_size, new_export):
         if off > serial_offset:
             struct.pack_into("<q", ua, q + 8, off + delta)
     return bytes(ua), new_uexp
+
+
+def _fstring(data, pos):
+    n = struct.unpack_from("<i", data, pos)[0]
+    if n < 0:
+        return data[pos + 4:pos + 4 - 2 * n].decode("utf-16-le")[:-1], pos + 4 - 2 * n
+    return data[pos + 4:pos + 4 + n][:-1].decode("latin-1"), pos + 4 + n
+
+
+def package_summary(uasset):
+    """A UE 5.3 legacy cooked package's summary (retoc to-legacy, unversioned): every offset field with its byte position
+    ("@<field>"), the name map [(name, hash1, hash2, start)] and where it ends. KB dark-mode-ui.md "Popup paper" (layout)."""
+    s, pos = {}, 0
+
+    def take(field, fmt):
+        nonlocal pos
+        s["@" + field] = pos
+        s[field] = struct.unpack_from(fmt, uasset, pos)[0]
+        pos += struct.calcsize(fmt)
+
+    if struct.unpack_from("<I", uasset, 0)[0] != 0x9E2A83C1 or struct.unpack_from("<i", uasset, 4)[0] != -8:
+        raise SkipAsset("not a UE5 legacy package summary")
+    pos = 28
+    if struct.unpack_from("<i", uasset, 24)[0] != 0:
+        raise SkipAsset("versioned package (custom versions present)")
+    take("TotalHeaderSize", "<i")
+    s["PackageName"], pos = _fstring(uasset, pos)
+    take("PackageFlags", "<I")
+    take("NameCount", "<i"); take("NameOffset", "<i")
+    for k in ("SoftObjectPaths", "GatherableTextData", "Export", "Import"):
+        take(k + "Count", "<i"); take(k + "Offset", "<i")
+    take("DependsOffset", "<i")
+    take("SoftPackageReferencesCount", "<i"); take("SoftPackageReferencesOffset", "<i")
+    take("SearchableNamesOffset", "<i"); take("ThumbnailTableOffset", "<i")
+    pos += 16   # Guid
+    pos += 4 + 8 * struct.unpack_from("<i", uasset, pos)[0]   # generations
+    for _ in range(2):   # saved-by and compatible-with engine versions
+        pos += 10
+        pos = _fstring(uasset, pos)[1]
+    take("CompressionFlags", "<I"); take("CompressedChunks", "<i"); take("PackageSource", "<I")
+    take("AdditionalPackagesToCook", "<i")
+    if s["CompressedChunks"] or s["AdditionalPackagesToCook"]:
+        raise SkipAsset("unexpected compressed chunks or packages to cook in the summary")
+    take("AssetRegistryDataOffset", "<i"); take("BulkDataStartOffset", "<q"); take("WorldTileInfoDataOffset", "<i")
+    pos += 4 + 4 * struct.unpack_from("<i", uasset, pos)[0]   # chunk ids
+    take("PreloadDependencyCount", "<i"); take("PreloadDependencyOffset", "<i")
+    take("NamesReferencedFromExportDataCount", "<i"); take("PayloadTocOffset", "<q"); take("DataResourceOffset", "<i")
+    s["end"] = pos
+    if s["NameOffset"] != pos:
+        raise SkipAsset(f"the name map does not follow the summary ({s['NameOffset']} != {pos})")
+    names, pos = [], s["NameOffset"]
+    for _ in range(s["NameCount"]):
+        start = pos
+        name, pos = _fstring(uasset, pos)
+        h1, h2 = struct.unpack_from("<HH", uasset, pos)
+        pos += 4
+        names.append((name, h1, h2, start))
+    s["names"], s["names_end"] = names, pos
+    if s["ImportOffset"] != pos or s["ExportOffset"] != s["ImportOffset"] + 32 * s["ImportCount"] \
+            or s["DependsOffset"] != s["ExportOffset"] + 96 * s["ExportCount"]:
+        raise SkipAsset("unexpected package layout (name map, 32-byte imports, 96-byte exports)")
+    return s
+
+
+OFFSET_FIELDS = (("TotalHeaderSize", "<i"), ("SoftObjectPathsOffset", "<i"), ("GatherableTextDataOffset", "<i"),
+                 ("ExportOffset", "<i"), ("ImportOffset", "<i"), ("DependsOffset", "<i"), ("SoftPackageReferencesOffset", "<i"),
+                 ("SearchableNamesOffset", "<i"), ("ThumbnailTableOffset", "<i"), ("AssetRegistryDataOffset", "<i"),
+                 ("BulkDataStartOffset", "<q"), ("WorldTileInfoDataOffset", "<i"), ("PreloadDependencyOffset", "<i"),
+                 ("PayloadTocOffset", "<q"), ("DataResourceOffset", "<i"))
+
+
+def swap_imports(uasset, swaps):
+    """The package with each import swapped (RMI-096, Dark Mode UI's route): the import row of from_object (class from_class)
+    becomes a to_class import of to_object; its outer package row's name and the object's name are renamed in the name map (both
+    must be used by those rows only), and every offset after the name map (summary fields, export serial offsets) moves by the
+    size change. Refuses anything unexpected (SkipAsset); the .uexp is unchanged."""
+    s = package_summary(uasset)
+    names = [n[0] for n in s["names"]]
+    ua = bytearray(uasset)
+    imp, exp = s["ImportOffset"], s["ExportOffset"]
+    rows = [list(struct.unpack_from("<qqiqi", ua, imp + 32 * i)) for i in range(s["ImportCount"])]
+    exports = [struct.unpack_from("<q", ua, exp + 96 * i + 16)[0] for i in range(s["ExportCount"])]
+    for sw in swaps:
+        try:
+            pkg_n, obj_n, cls_n = (names.index(sw[k]) for k in ("from_package", "from_object", "from_class"))
+            to_cls = names.index(sw["to_class"])
+        except ValueError as error:
+            raise SkipAsset(f"import {sw['from_object']} not found ({error})")
+        if sw["to_package"] in names or sw["to_object"] in names:
+            raise SkipAsset(f"{sw['to_object']} is already named in the package")
+        hits = [i for i, r in enumerate(rows) if r[3] == obj_n and r[1] == cls_n]
+        if len(hits) != 1 or rows[hits[0]][2] >= 0 or rows[-rows[hits[0]][2] - 1][3] != pkg_n:
+            raise SkipAsset(f"import {sw['from_object']} ({sw['from_class']}) not found once with its package")
+        row, outer = hits[0], -rows[hits[0]][2] - 1
+        users = [i for i, r in enumerate(rows) for f in (0, 1, 3) if r[f] in (pkg_n, obj_n)] + \
+                [i for i, n in enumerate(exports) if n in (pkg_n, obj_n)]
+        if sorted(users) != sorted([row, outer]):
+            raise SkipAsset(f"{sw['from_object']}'s names are used by other rows ({users})")
+        if names[rows[row][0]] != "/Script/Engine":
+            raise SkipAsset(f"{sw['from_object']} is not an Engine class import")
+        rows[row][1] = to_cls
+        names[pkg_n], names[obj_n] = sw["to_package"], sw["to_object"]
+    for i, r in enumerate(rows):
+        struct.pack_into("<qqiqi", ua, imp + 32 * i, *r)
+    name_map = b"".join(struct.pack("<i", len(n) + 1) + n.encode("latin-1") + b"\0" + struct.pack("<HH", h1, h2)
+                        for n, (_, h1, h2, _) in zip(names, s["names"]))
+    old_end = s["names_end"]
+    delta = len(name_map) - (old_end - s["NameOffset"])
+    for field, fmt in OFFSET_FIELDS:
+        if s[field] >= old_end:
+            struct.pack_into(fmt, ua, s["@" + field], s[field] + delta)
+    for i in range(s["ExportCount"]):
+        at = exp + 96 * i + 36
+        struct.pack_into("<q", ua, at, struct.unpack_from("<q", ua, at)[0] + delta)
+    out = bytes(ua[:s["NameOffset"]]) + name_map + bytes(ua[old_end:])
+    if package_summary(out)["TotalHeaderSize"] != len(out):
+        raise SkipAsset("swapped header size mismatch")
+    return out
 
 
 def masked_sha256(data, mask):
@@ -477,9 +602,18 @@ def bgra_layout(data):
     return None
 
 
+def r8_header_size(data):
+    """The DDS header size of a single-channel 8-bit texture (PF_G8 = DXGI 61 R8_UNORM: the popup paper T_Paper_Wrinkled_D,
+    RMI-096), or None for any other format."""
+    if data[:4] == b"DDS " and data[84:88] == b"DX10" and int.from_bytes(data[128:132], "little") == 61:
+        return 148
+    return None
+
+
 def texture_header(data):
-    """The DDS header size of a texture the colour recipes can map: BC3, BC1 or uncompressed 32-bit; AssertionError otherwise."""
-    for size in (bc1_header_size(data), (bgra_layout(data) or (None,))[0]):
+    """The DDS header size of a texture the colour recipes can map: BC3, BC1, uncompressed 32-bit or R8 (paper_scale only);
+    AssertionError otherwise."""
+    for size in (bc1_header_size(data), (bgra_layout(data) or (None,))[0], r8_header_size(data)):
         if size:
             return size
     return header_size(data)
@@ -744,6 +878,155 @@ def parchment(stock_dds, dark, light):
     values = sorted(round(lum(p)) for p in image.get_flattened_data() if p[3] > 128) or [0, 255]
     low, high = values[len(values) * 2 // 100], values[len(values) * 98 // 100]
     return grey_blocks(stock_dds.read_bytes(), lambda v: parchment_curve(v, low, high, dark, light))
+
+
+def paper_scale(stock_dds, light):
+    """The popup paper darkened evenly (RMI-096, owner 2026-11-13 "Keep stock grain"): every brightness times light / the
+    texture's 98th-percentile brightness, so the light end lands on `light` and the grain keeps its stock ratio (parchment's
+    dark..light stretch made the faint creases harsh). R8 (PF_G8: T_Paper_Wrinkled_D) bytes directly; BC1/BC3 through
+    grey_blocks (T_Popup_Flowers_D: its black background stays black)."""
+    data = stock_dds.read_bytes()
+    head = r8_header_size(data)
+    values = sorted(data[head:]) if head else sorted(round(lum(p)) for p in decode_rgba(stock_dds).get_flattened_data() if p[3] > 128)
+    high = (values or [255])[len(values) * 98 // 100] or 255
+    scale = lambda v: max(0, min(255, round(v * light / high)))   # noqa: E731
+    if head:
+        return data[:head] + bytes(scale(v) for v in data[head:])
+    return grey_blocks(data, scale)
+
+
+GREY5 = [(k << 3) | (k >> 2) for k in range(32)]   # a 5-bit BC colour level as the decoder expands it
+BAYER4 = (0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5)
+
+
+def neutral_grey_colour(blocks, grey, dither=False):
+    """BC3 blocks (alpha halves kept) with every colour half rewritten as exact neutral grey (565 green = 2 x red/blue, so no
+    green cast): the endpoints bracket the block's range on the 5-bit grey ladder and each pixel takes the nearest of the four
+    palette greys (thirds between the endpoints); `dither` offsets each pixel by a 4x4 ordered (Bayer) pattern of up to one
+    third, a fixed pattern, not random grain. Pillow's own BC3 encoder bands dark gradients into 8-level steps and tints them
+    green (RMI-096, KB lessons/tooling.md)."""
+    out = bytearray(blocks)
+    width, height = grey.size
+    values = grey.get_flattened_data() if hasattr(grey, "get_flattened_data") else grey.getdata()
+    values = list(values)
+    at = 0
+    for by in range(0, height, 4):
+        for bx in range(0, width, 4):
+            block = [values[min(by + y, height - 1) * width + min(bx + x, width - 1)] for y in range(4) for x in range(4)]
+            lo, hi = min(block), max(block)
+            k0 = max([k for k in range(32) if GREY5[k] <= lo] or [0])
+            k1 = min([k for k in range(32) if GREY5[k] >= hi] or [31])
+            if k1 <= k0:
+                k0, k1 = (k0, k0 + 1) if k0 < 31 else (30, 31)
+            p0, p1 = GREY5[k1], GREY5[k0]
+            palette = (p0, p1, (2 * p0 + p1) / 3, (p0 + 2 * p1) / 3)
+            third = (p0 - p1) / 3
+            index = 0
+            for i, v in enumerate(block):
+                if dither:
+                    v += (BAYER4[i] / 16 - 0.5) * third
+                index |= min(range(4), key=lambda j: abs(palette[j] - v)) << (2 * i)
+            struct.pack_into("<HHI", out, at + 8, (k1 << 11) | ((2 * k1) << 5) | k1, (k0 << 11) | ((2 * k0) << 5) | k0, index)
+            at += 16
+    return bytes(out)
+
+
+def popup_panel(stock_dds, paper, side, top, work):
+    """T_UI_BackgroundHorizontal for the swapped popups (RMI-096; owner 2026-11-13 chose mock-up D, 15% off the sides, 8% off
+    top/bottom): plain paper in `paper`, the edges fading smoothly to 16/33 of it (12% of the width, 22% of the height), a border
+    line at 64/33 of it (1 screen pixel, inset ~13 at the popup's usual 800x275 size), keeping the stock torn-edge alpha; then
+    the whole panel shrunk into the centre (`side` of the width off each side, `top` of the height off top and bottom),
+    transparent around it. Every mip BC3-encoded with this alpha (like stolen_mark)."""
+    from PIL import ImageChops, ImageDraw
+    stock = stock_dds.read_bytes()
+    height, width = int.from_bytes(stock[12:16], "little"), int.from_bytes(stock[16:20], "little")
+    mips = max(1, int.from_bytes(stock[28:32], "little"))
+    alpha = decode_rgba(stock_dds).getchannel("A")
+    ramp = lambda n, frac: [round(255 * min(1.0, min(i, n - 1 - i) / (n * frac))) for i in range(n)]   # noqa: E731
+    across, down = Image.new("L", (width, 1)), Image.new("L", (1, height))
+    across.putdata(ramp(width, 0.12))
+    down.putdata(ramp(height, 0.22))
+    depth = ImageChops.darker(across.resize((width, height), Image.NEAREST), down.resize((width, height), Image.NEAREST))
+    lut = [255 * (1 - (1 - d / 255) ** 2) for d in range(256)]   # smooth: dark at the edge, full paper inward
+    bands = []
+    for c in paper[:3]:
+        edge = c * 16 / 33
+        band = depth.point([max(0, min(255, round(edge + (c - edge) * lut[d] / 255))) for d in range(256)])
+        line = max(0, min(255, round(c * 64 / 33)))
+        draw = ImageDraw.Draw(band)
+        ix, iy = round(width * 34 / 2048), round(height * 52 / 1024)
+        lw, lh = max(1, round(width * 3 / 2048)), max(1, round(height * 4 / 1024))
+        draw.rectangle((ix, iy, width - 1 - ix, iy + lh - 1), fill=line)
+        draw.rectangle((ix, height - iy - lh, width - 1 - ix, height - 1 - iy), fill=line)
+        draw.rectangle((ix, iy, ix + lw - 1, height - 1 - iy), fill=line)
+        draw.rectangle((width - ix - lw, iy, width - 1 - ix, height - 1 - iy), fill=line)
+        bands.append(band)
+    panel = Image.merge("RGBA", (*bands, alpha))
+    w, h = round(width * (1 - 2 * side)), round(height * (1 - 2 * top))
+    shape = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    shape.alpha_composite(panel.resize((w, h), Image.LANCZOS), ((width - w) // 2, (height - h) // 2))
+    neutral = max(paper[:3]) - min(paper[:3]) <= 3
+    blocks = b""
+    for size in mip_sizes(width, height, mips):
+        level = work / "level.dds"
+        mip = shape.resize(size, Image.LANCZOS)
+        mip.save(level, pixel_format="DXT5")
+        data = level.read_bytes()
+        encoded = data[header_size(data):]
+        if neutral:   # owner 2026-11-13 (option c): no green cast, no 3-band fade
+            encoded = neutral_grey_colour(encoded, mip.convert("L"), dither=True)
+        blocks += encoded
+    if len(blocks) != len(stock) - header_size(stock):
+        raise SkipAsset("popup_panel: encoded size differs from the stock texture")
+    return stock[:header_size(stock)] + blocks
+
+
+POPUP_LAUREL_BANDS = (0.075, 0.915)   # T_UI_BackgroundHorizontal: laurels in rows < 7.5% and > 91.5% (local-contrast scan, RMI-096)
+
+
+def popup_paper(stock_dds, dark, light, laurel, strength, work):
+    """T_UI_BackgroundHorizontal for the swapped popups (RMI-096): the paper's grain on the parchment curve (2nd percentile ..
+    median brightness -> dark..light, neutral); inside the top and bottom laurel bands, opaque pixels brighter than their
+    surroundings (8-pixel box blur) blend toward the laurel colour by that local contrast, times strength (the paper's lighter
+    middle is not a laurel); alpha (the torn edges) kept (BC3 re-encoded with the stock alpha)."""
+    from PIL import ImageFilter
+    image = decode_rgba(stock_dds)
+    width, height = image.size
+    pixels = list(image.get_flattened_data())
+    grey = Image.new("L", image.size)
+    grey.putdata([round(lum(p)) for p in pixels])
+    local = list(grey.filter(ImageFilter.BoxBlur(8)).get_flattened_data())
+    # the paper behind the laurels: a smoothed 9x9 minimum (the leaves are lighter than the band they are painted on)
+    behind = list(grey.filter(ImageFilter.MinFilter(9)).filter(ImageFilter.BoxBlur(4)).get_flattened_data())
+    values = sorted(lum(p) for p in pixels if p[3] > 128) or [0, 255]
+    low, mid = values[len(values) * 2 // 100], values[len(values) // 2]
+    top, bottom = POPUP_LAUREL_BANDS[0] * height, POPUP_LAUREL_BANDS[1] * height
+    ramp = max(1.0, min(16.0, top / 3))   # 16 rows on the stock 1024-row paper
+    out = []
+    for i, p in enumerate(pixels):
+        v = lum(p)
+        y = i // width
+        in_band = p[3] >= 250 and (y < top or y > bottom)
+        # how far inside a band (0 at its inner edge -> 1 after `ramp` rows): no visible step where the band ends
+        depth = min(1.0, max(top - y, y - bottom, 0) / ramp) if in_band else 0.0
+        base = (parchment_curve(min(v, mid), low, mid, dark, light) * (1 - depth)
+                + parchment_curve(min(behind[i], mid), low, mid, dark, light) * depth)
+        t = 0.0
+        if in_band:
+            t = min(1.0, max(0.0, (v - local[i] - 3) / 14)) * strength
+        out.append(tuple(round(base * (1 - t) + c * t) for c in laurel) + (p[3],))
+    result = Image.new("RGBA", image.size)
+    result.putdata(out)
+    return colour_keep_alpha(stock_dds, result, work)
+
+
+def laurel_tint(stock_dds, rgb):
+    """The laurel colour scaled by each colour's brightness over the texture's 98th-percentile brightness (opaque pixels): the
+    brightest part lands on rgb, darker parts stay darker, black stays black (the leaf border's background); BC3/BC1 colour
+    endpoints mapped (indices and alpha kept). RMI-096, owner 2026-11-13: all laurels grouped and blue."""
+    values = sorted(lum(p) for p in decode_rgba(stock_dds).get_flattened_data() if p[3] > 128) or [255]
+    high = values[len(values) * 98 // 100] or 255
+    return map_colours(stock_dds.read_bytes(), lambda c: tuple(min(255.0, x * lum(c) / high) for x in rgb))
 
 
 def panel_gray(v, frame=None, panel=None):
@@ -1120,6 +1403,25 @@ def preview_frame(stock_dds, v, work):
 def recipe(name):
     """recipe name -> (number elements, colour elements, function(stock dds, values, work, stock) -> DDS bytes)"""
     kind, _, arg = name.partition(":")
+    if kind == "paper_scale":   # paper_scale[:<factor>]: the popup paper's light end = parchmentLight x factor (RMI-096)
+        factor = float(arg) if arg else 1.0
+        return (), ("parchmentLight",), lambda dds, v, work, stock: paper_scale(dds, v["parchmentLight"][0] * factor)
+    if kind == "popup_panel":   # popup_panel:<side>:<top>: the swapped-in popup paper as a framed panel (RMI-096, mock-up D)
+        side, _, top = arg.partition(":")
+        return (), ("parchmentLight",), lambda dds, v, work, stock: popup_panel(
+            dds, v["parchmentLight"], float(side or 0), float(top or 0), work)
+    if kind == "popup_paper":   # popup_paper:<laurel strength>: the swapped-in popup paper (RMI-096); 0 = no laurels
+        strength = float(arg) if arg else 0.6
+        if strength == 0:   # owner 2026-11-13: "discard the laurels here"
+            return (), ("parchmentDark", "parchmentLight"), lambda dds, v, work, stock: popup_paper(
+                dds, v["parchmentDark"][0], v["parchmentLight"][0], (0, 0, 0), 0.0, work)
+        return (), ("parchmentDark", "parchmentLight", "pattern"), lambda dds, v, work, stock: popup_paper(
+            dds, v["parchmentDark"][0], v["parchmentLight"][0], v["pattern"], strength, work)
+    if kind == "mask_peak":   # mask_peak:<value>: a shader mask texture's brightest part scaled to <value> (RMI-096: the popup
+        # laurel border is the material's R-channel mask, painted white by the shader; owner "very faint")
+        return (), (), lambda dds, v, work, stock: paper_scale(dds, float(arg))
+    if kind == "laurel_tint":   # the popup title flowers and leaf border in the laurel colour (RMI-096 Laurels group)
+        return (), ("pattern",), lambda dds, v, work, stock: laurel_tint(dds, v["pattern"])
     if kind == "flat":
         return (), (arg,), lambda dds, v, work, stock: flat_blocks(dds.read_bytes(), v[arg])
     if kind == "flat_alpha":   # flat_alpha:<key>:<alpha scale>
@@ -1293,7 +1595,9 @@ def format_supported(kind, stock):
         return True
     except AssertionError:
         pass
-    if kind in ("parchment", "altar_metal", "altar_panel", "tab_strip", "grey_scale"):
+    if kind == "paper_scale" and r8_header_size(stock):   # the popup paper (PF_G8, RMI-096)
+        return True
+    if kind in ("parchment", "paper_scale", "mask_peak", "laurel_tint", "altar_metal", "altar_panel", "tab_strip", "grey_scale"):
         return bool(bc1_header_size(stock) or bgra_layout(stock))
     return kind in ("flat", "skin_flat") and bool(bgra_layout(stock))
 
@@ -1321,6 +1625,8 @@ def bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, injec
                 uasset, uexp = layout_package(uasset, uexp, name, sizes)
             except SkipAsset as error:   # the colours still bake; the sizes of this package are listed as skipped
                 layout_error = str(error)
+        if name in IMPORT_SWAPS:   # RMI-096: the popup paper draws a plain texture instead of the shader material
+            uasset = swap_imports(uasset, IMPORT_SWAPS[name])
         target.parent.mkdir(parents=True, exist_ok=True)
         target.with_suffix(".uasset").write_bytes(uasset)
         target.with_suffix(".uexp").write_bytes(uexp)
