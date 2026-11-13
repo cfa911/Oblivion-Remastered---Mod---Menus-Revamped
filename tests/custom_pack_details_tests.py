@@ -285,7 +285,7 @@ for stock in ("T_Property_1_magnitude", "T_Property_1_Range", "T_Property_1_time
               "T_SigilStone_SubNameBG", "T_Category_Armor", "T_Category_Weapons", "T_CircularProgress_bg", "T_Arrow_Empty",
               "T_Button_State_Hovered_LeftLineFade"):
     check(f'"{stock}"' not in art, f"kDarkArt: no {stock} swap (baked)")
-check('"T_MagicBackground"' in art and "_ListSmall" in art, "kDarkArt keeps the Magic page and row icons (28c)")
+check('"T_MagicBackground"' not in art and "_ListSmall" in art, "kDarkArt keeps the row icons; the Magic page is baked (RMI-091)")
 
 print(f"{count} checks, {len(fails)} failures")
 for why in fails:

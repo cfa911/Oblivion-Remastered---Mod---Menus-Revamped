@@ -104,9 +104,9 @@ with tempfile.TemporaryDirectory() as temp:
         check(fresh.needs_build(manifest["style"]) == [], "a run-time or retired [Skin] change needs no Build")
         fresh.set_text("Colours", "rowText", "255, 80, 80")
         fresh.set_text("Tab", "glyph", "200")   # retired by decision 34: no baked asset reads it
-        fresh.set_text("Colours", "tabGlyph", "200, 200, 200")
-        check(sorted(fresh.needs_build(manifest["style"])) == ["rowText", "tabGlyph"],
-              f"[Colours] changes need a Build, the retired [Tab] greys do not ({fresh.needs_build(manifest['style'])})")
+        fresh.set_text("Colours", "tabGlyph", "200, 200, 200")   # retired by RMI-097: the tabs bake from the charcoal palette
+        check(sorted(fresh.needs_build(manifest["style"])) == ["rowText"],
+              f"[Colours] changes need a Build, the retired [Tab] greys and tab keys do not ({fresh.needs_build(manifest['style'])})")
         note = getattr(model, "BUILD_NOTE", "")
         check("restart" in note and "Build" in note and "Save" in note,
               "the window explains saving runtime colours and rebuilding baked colours")

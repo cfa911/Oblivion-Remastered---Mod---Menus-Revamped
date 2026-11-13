@@ -52,7 +52,7 @@ namespace testpage { inline float Frame() { return -1; } inline float DetailsTin
 namespace testpage {
 inline float Frame() { return darkstyle::Get().frame.r; }
 inline float DetailsTint() { return darkstyle::Get().detailsPage; }
-inline bool PageUntinted(const uistyle::Skin& s) { for (int i = 0; i < s.artSwapCount; ++i) if (std::string_view(s.artSwaps[i].stock) == "T_MagicBackground") return !s.artSwaps[i].tint; return false; }
+inline bool PageUntinted(const uistyle::Skin& s) { for (int i = 0; i < s.artSwapCount; ++i) if (std::string_view(s.artSwaps[i].stock) == "T_MagicBackground") return false; return true; }   // RMI-091: baked, no swap
 }
 #endif
 #ifndef UISTYLE_MAGIC_SKIN_R2
@@ -122,8 +122,7 @@ Check(darkControls.darkArt && darkControls.selectedSortTint == 0.24f && !Invento
  Check(&PickerFor(SkinnedKind(1),Preset::Dark)==&kInventorySkinPicker&&&PickerFor(SkinnedKind(5),Preset::Dark)==&kInventorySkinPicker,
   "Magic School and Type popups use the Inventory's dark popup in Dark");
  Check(&PickerFor(SkinnedKind(1),Preset::Classic)==&kClassic.picker,"Magic popups keep the Classic popup in Classic");
- Check(IsMagicPage("T_MagicBackground")&&!IsMagicPage("T_UI_PlayerMenu_Background")&&!IsMagicPage("T_Magic_Tabs_All"),
-  "the Magic page texture (shared with Quest/Help/Stats) is darkened per widget; tabs are not tinted");
+ // RMI-091 round 3: the Magic page (T_MagicBackground) is baked into MRCustom_P; no per-widget page swap (IsMagicPage removed)
  // Batch 2026-11-10: one Dark style header; Inventory and Magic read the same values; PNGs are white shapes tinted by them.
  const auto& ds=darkstyle::Get();
  const auto same=[](darkstyle::Rgb c,float v){return c.r==v&&c.g==v&&c.b==v;};
@@ -164,7 +163,7 @@ Check(darkControls.darkArt && darkControls.selectedSortTint == 0.24f && !Invento
   "the tab greys are the Inventory compiler's (BODY 41, BOX 33, GAP 24, LINE 134, glyphs 242/162), named in DarkStyle.h");
  // Round 8 (owner 2026-11-10, "not using the same method"): the Inventory method for the Magic pages.
  Check(testpage::Frame()==16,"the frame is the installed Inventory panel art's (RGB 16), named in DarkStyle.h");
- Check(testpage::PageUntinted(dark),"the Magic page art is drawn untinted, its colours baked like the Inventory pak");
+ Check(testpage::PageUntinted(dark),"the Magic page is baked into the pack (RMI-091): no run-time swap or tint");
  Check(testpage::DetailsTint()==dark.pageGray&&dark.pageGray==0.010f,
   "one details page tint (DarkStyle.h detailsPage) for the Inventory and the Magic page widgets, the Inventory's 0.010");
 std::printf("%u checks, %u failures\n",checks,failures);return failures?1:0;

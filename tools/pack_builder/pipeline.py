@@ -44,6 +44,7 @@ if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 import custom_colours  # noqa: E402
 import make_dark_tab_art as tabs  # noqa: E402
+from pack_builder import charcoal_tabs  # noqa: E402
 from pack_builder import VERSION, BuildError, paths  # noqa: E402
 
 ROOT = TOOLS.parent
@@ -66,6 +67,7 @@ class SkipAsset(Exception):
 # package -> [{from_package, from_object, from_class, to_package, to_object, to_class}]: imports a package's .uasset is rewritten
 # to (RMI-096: the popups draw T_UI_BackgroundHorizontal instead of the paper material), filled by load_menus
 IMPORT_SWAPS = {}
+BLUEPRINT_SCALES = {}   # {(package, .uexp offset): factor on its sRGB colour value} (RMI-091: the container lines, pattern x 1.6)
 
 
 def load_menus(folder=MENUS):
@@ -82,6 +84,7 @@ def load_menus(folder=MENUS):
             raise BuildError(f"{path.name}: not valid JSON ({error})")
     textures, masks, rich_rows, blueprints = {}, {}, {}, {}
     IMPORT_SWAPS.clear()
+    BLUEPRINT_SCALES.clear()
     for menu in sorted(menus, key=lambda m: (m.get("order", 99), m.get("menu", ""))):
         for row in menu.get("assets", []):
             if row["asset"] in textures:
@@ -94,6 +97,7 @@ def load_menus(folder=MENUS):
         for section in ("blueprint_colours", "material_colours"):
             for package, entries in menu.get(section, {}).items():
                 blueprints[package] = [(e["offset"], tuple(e["stock"]), e["colour"]) for e in entries]
+                BLUEPRINT_SCALES.update({(package, e["offset"]): float(e["scale"]) for e in entries if "scale" in e})
     return textures, masks, rich_rows, blueprints
 
 
@@ -931,6 +935,216 @@ def neutral_grey_colour(blocks, grey, dither=False):
     return bytes(out)
 
 
+def neutral_grey_fs(blocks, grey):
+    """BC3 blocks (alpha halves kept) with every colour half rewritten as exact neutral grey like neutral_grey_colour, but the
+    pixels quantised to their block's four palette greys with Floyd-Steinberg error diffusion (7/16, 3/16, 5/16, 1/16, raster
+    order across block borders): no repeating 4x4 pattern (RMI-091, owner 2026-11-13: the ordered dither showed as lines and
+    points on the stretched container panel). Endpoints bracket each block's target range on the 5-bit grey ladder."""
+    out = bytearray(blocks)
+    width, height = grey.size
+    flat = list(grey.get_flattened_data() if hasattr(grey, "get_flattened_data") else grey.getdata())
+    rows = [[float(v) for v in flat[y * width:(y + 1) * width]] for y in range(height)]
+    bw, bh = (width + 3) // 4, (height + 3) // 4
+    ends = []
+    for by in range(bh):
+        for bx in range(bw):
+            vals = [rows[min(by * 4 + y, height - 1)][min(bx * 4 + x, width - 1)] for y in range(4) for x in range(4)]
+            lo, hi = min(vals), max(vals)
+            k0 = max([k for k in range(32) if GREY5[k] <= lo] or [0])
+            k1 = min([k for k in range(32) if GREY5[k] >= hi] or [31])
+            if k1 <= k0:
+                k0, k1 = (k0, k0 + 1) if k0 < 31 else (30, 31)
+            p0, p1 = GREY5[k1], GREY5[k0]
+            ends.append((k0, k1, (p0, p1, (2 * p0 + p1) / 3, (p0 + 2 * p1) / 3)))
+    index = [[0] * width for _ in range(height)]
+    for y in range(height):
+        row, below = rows[y], rows[y + 1] if y + 1 < height else None
+        base = (y // 4) * bw
+        for x in range(width):
+            palette = ends[base + x // 4][2]
+            v = row[x]
+            j = min(range(4), key=lambda k: abs(palette[k] - v))
+            index[y][x] = j
+            err = v - palette[j]
+            if x + 1 < width:
+                row[x + 1] += err * 7 / 16
+            if below is not None:
+                if x > 0:
+                    below[x - 1] += err * 3 / 16
+                below[x] += err * 5 / 16
+                if x + 1 < width:
+                    below[x + 1] += err / 16
+    at = 0
+    for by in range(bh):
+        for bx in range(bw):
+            k0, k1, _ = ends[by * bw + bx]
+            bits = 0
+            for i in range(16):
+                bits |= index[min(by * 4 + i // 4, height - 1)][min(bx * 4 + i % 4, width - 1)] << (2 * i)
+            struct.pack_into("<HHI", out, at + 8, (k1 << 11) | ((2 * k1) << 5) | k1, (k0 << 11) | ((2 * k0) << 5) | k0, bits)
+            at += 16
+    return bytes(out)
+
+
+def page_grain(stock_dds, frame, panel, blur, amount, tone=None):
+    """The Inventory page (T_UI_PlayerMenu_Background) with a paper grain instead of a flat colour (RMI-091, owner 2026-11-13):
+    the `panel` recipe's tone curve (stock brightness PANEL_DARK..PANEL_LIGHT -> frame..panel) plus, on the paper (stock
+    brightness above PANEL_LIGHT, faded in over 20), the blurred paper brightness (2nd..98th percentile) as +-amount around
+    it; Floyd-Steinberg neutral greys, alpha halves kept."""
+    from PIL import ImageFilter
+    data = stock_dds.read_bytes()
+    head = header_size(data)
+    image = decode_rgba(stock_dds)
+    grey = grey_of(image)
+    values = list(grey.get_flattened_data())
+    soft = list(grey.filter(ImageFilter.GaussianBlur(blur)).get_flattened_data())
+    paper = sorted(v for v, p in zip(values, image.get_flattened_data()) if v > PANEL_LIGHT + 20 and p[3] > 128) or [0, 255]
+    low, high = paper[len(paper) * 2 // 100], paper[len(paper) * 98 // 100]
+    span = (high - low) or 1
+    panel = panel if tone is None else tone   # the paper's tone: the shared paper tone (RMI-091 round 2)
+    target = []
+    for v, s in zip(values, soft):
+        t = min(1.0, max(0.0, (v - PANEL_DARK) / (PANEL_LIGHT - PANEL_DARK)))
+        w = min(1.0, max(0.0, (v - PANEL_LIGHT) / 20))
+        grain = (min(1.0, max(0.0, (s - low) / span)) - 0.5) * 2 * amount
+        target.append(max(0.0, min(255.0, frame + (panel - frame) * t + w * grain)))
+    image = Image.new("F", grey.size)
+    image.putdata(target)
+    return data[:head] + neutral_grey_fs(data[head:], image)
+
+
+def band_lines(stock_dds, rgb, scale):
+    """The container name band (T_Trading_Title_Background): its two thin lines in rgb x scale (RMI-091, owner "lighter
+    accent"), the black shadow band kept black: every colour scaled by its brightness over the texture's brightest opaque
+    pixels (99.9th percentile; the lines are ~2% of the pixels, so line_tint's 98th percentile would land in the shadow)."""
+    values = sorted(lum(p) for p in decode_rgba(stock_dds).get_flattened_data() if p[3] > 128) or [255]
+    high = values[-max(1, len(values) // 1000)] or 255
+    target = [min(255.0, c * scale) for c in rgb]
+    return map_colours(stock_dds.read_bytes(), lambda c: tuple(min(255.0, x * lum(c) / high) for x in target))
+
+
+def grey_of(image):
+    """The image's per-pixel brightness as an L image."""
+    grey = Image.new("L", image.size)
+    grey.putdata([round(lum(p)) for p in image.get_flattened_data()])
+    return grey
+
+
+def paper_tone(dark, light, panel):
+    """The shared paper tone of the container panel, the Inventory page and the Magic page (RMI-091, owner 2026-11-13:
+    "approximate the colours between inv and the containers"): halfway between the parchment band's centre and the panel."""
+    return ((dark + light) / 2 + panel) / 2
+
+
+def smooth_grain(stock_dds, dark, light, blur, amount, mid=None):
+    """A paper with a smoother grain (RMI-091, owner 2026-11-13 "blur 1.5, grain 60%"): its brightness Gaussian-blurred by
+    `blur` pixels, the 2nd..98th percentile (opaque pixels) mapped onto `amount` of the dark..light band around its middle, then
+    BC3-encoded as dithered neutral greys (neutral_grey_colour); the stock alpha halves are kept. The parchment bake's 8..33
+    band left ~4 grey levels per block: the blocky grain."""
+    from PIL import ImageFilter
+    data = stock_dds.read_bytes()
+    head = header_size(data)
+    image = decode_rgba(stock_dds)
+    grey = grey_of(image)
+    values = sorted(v for v, p in zip(grey.get_flattened_data(), image.get_flattened_data()) if p[3] > 128) or [0, 255]
+    low, high = values[len(values) * 2 // 100], values[len(values) * 98 // 100]
+    soft = grey.filter(ImageFilter.GaussianBlur(blur)) if blur else grey
+    mid = (dark + light) / 2 if mid is None else mid
+    half = (light - dark) / 2 * amount
+    span = (high - low) or 1
+    lut = [max(0.0, min(255.0, mid - half + 2 * half * min(1.0, max(0.0, (v - low) / span)))) for v in range(256)]
+    target = Image.new("F", soft.size)
+    target.putdata([lut[v] for v in soft.get_flattened_data()])
+    return data[:head] + neutral_grey_fs(data[head:], target)   # round 2: error diffusion, not the ordered dither
+
+
+def details_smooth(stock_dds, tint, blur, amount):
+    """The details page (T_SpellPurchase_LeftPageBG) with smooth_grain in the band its detailsPage tint gives today (stock
+    2nd..98th percentile brightness times the linear tint): same tone, smoother grain (RMI-091)."""
+    image = decode_rgba(stock_dds)
+    values = sorted(round(lum(p)) for p in image.get_flattened_data() if p[3] > 128) or [0, 255]
+    dark = srgb(linear(values[len(values) * 2 // 100]) * tint)
+    light = srgb(linear(values[len(values) * 98 // 100]) * tint)
+    return smooth_grain(stock_dds, dark, light, blur, amount)
+
+
+def gray_smooth(stock_dds, blur):
+    """The preview box (T_InventoryPreview_Background_D): its brightness as grey (like "gray"), blurred by `blur` pixels and
+    encoded as dithered neutral greys, stock alpha halves kept; Pillow's encoder banded the glow into green rings (RMI-091)."""
+    from PIL import ImageFilter
+    data = stock_dds.read_bytes()
+    head = header_size(data)
+    grey = grey_of(decode_rgba(stock_dds))
+    if blur:
+        grey = grey.filter(ImageFilter.GaussianBlur(blur))
+    return data[:head] + neutral_grey_colour(data[head:], grey, dither=True)
+
+
+def invert_paper(stock_dds, tone, blur, mode="clamp", frame=None, panel=None):
+    """The standard parchment look (RMI-091, owner 2026-11-13: luminance inversion + colour mapping, full strength, blur 3,
+    "this combo should be the standard for parchments"): the paper's brightness clamped to its own 2nd..98th percentile,
+    Gaussian-blurred by `blur` (non-paper pixels count as the paper median: no bright rim at a torn edge), inverted
+    (255 - v) and mapped to tone x inverted / inverted median (the paper median lands on `tone`, every value keeps its ratio).
+    mode "clamp": the whole texture is paper (container panel). "frame": pixels at or below stock PANEL_LIGHT keep the panel
+    curve (frame..panel, the ornament's relief), blended into the paper over PANEL_LIGHT..+20 (Inventory/Magic page).
+    "shadow": the darkest 20% of the opaque pixels are the drop shadow, ramped from black to the paper's edge value (details
+    page). Neutral grey Floyd-Steinberg BC3 (neutral_grey_fs), alpha halves kept."""
+    from PIL import ImageFilter
+    data = stock_dds.read_bytes()
+    head = header_size(data)
+    image = decode_rgba(stock_dds)
+    px = list(image.get_flattened_data())
+    values = [lum(p) for p in px]
+    edge = PANEL_LIGHT + 20 if mode == "frame" else 0
+    paper = sorted(v for v, p in zip(values, px) if p[3] > 128 and v > edge) or [128.0]
+    if mode == "shadow":
+        paper = paper[len(paper) // 5:]
+    low, high = paper[len(paper) * 2 // 100], paper[len(paper) * 98 // 100]
+    middle = paper[len(paper) // 2]
+    inv_middle = (255 - middle) or 1
+
+    def mapped(v):
+        return tone * (255 - min(high, max(low, v))) / inv_middle
+
+    soft = values
+    if blur:
+        source = Image.new("L", image.size)
+        source.putdata([round(min(high, max(low, v))) if (p[3] > 128 and v > edge) else round(middle) for v, p in zip(values, px)])
+        soft = list(source.filter(ImageFilter.GaussianBlur(blur)).get_flattened_data())
+    target = []
+    for v, s in zip(values, soft):
+        out = mapped(s)
+        if mode == "frame":
+            t = min(1.0, max(0.0, (v - PANEL_DARK) / (PANEL_LIGHT - PANEL_DARK)))
+            f = frame + (panel - frame) * t
+            w = min(1.0, max(0.0, (v - PANEL_LIGHT) / 20))
+            out = f + (out - f) * w
+        elif mode == "shadow" and v < low:
+            out = mapped(low) * v / low
+        target.append(max(0.0, min(255.0, out)))
+    grey = Image.new("F", image.size)
+    grey.putdata(target)
+    return data[:head] + neutral_grey_fs(data[head:], grey)
+
+
+def details_tone(stock_dds, tint):
+    """The details page's tone: the middle of the band its detailsPage tint gave (stock 2nd..98th percentile brightness of the
+    opaque pixels times the linear tint), ~13 for 0.01."""
+    values = sorted(round(lum(p)) for p in decode_rgba(stock_dds).get_flattened_data() if p[3] > 128) or [0, 255]
+    dark = srgb(linear(values[len(values) * 2 // 100]) * tint)
+    light = srgb(linear(values[len(values) * 98 // 100]) * tint)
+    return (dark + light) / 2
+
+
+def line_tint(stock_dds, rgb, scale):
+    """A glow line in the accent colour (RMI-091, owner "lighter accent"): rgb x scale at the texture's brightest part (98th
+    percentile of the visible pixels), darker parts darker; BC3 colour endpoints mapped, alpha kept."""
+    values = sorted(lum(p) for p in decode_rgba(stock_dds).get_flattened_data() if p[3] > 0) or [255]
+    high = values[len(values) * 98 // 100] or 255
+    target = [min(255.0, c * scale) for c in rgb]
+    return map_colours(stock_dds.read_bytes(), lambda c: tuple(min(255.0, x * lum(c) / high) for x in target))
+
+
 def popup_panel(stock_dds, paper, side, top, work):
     """T_UI_BackgroundHorizontal for the swapped popups (RMI-096; owner 2026-11-13 chose mock-up D, 15% off the sides, 8% off
     top/bottom): plain paper in `paper`, the edges fading smoothly to 16/33 of it (12% of the width, 22% of the height), a border
@@ -1185,6 +1399,26 @@ def tab_paper(stock_dds, v, work, stock):
     return splice_colour(stock_dds, out, work)
 
 
+def charcoal_texture(stock_dds, preset):
+    """charcoal:<preset> (owner recipe 2026-11-13, tools/pack_builder/charcoal_tabs.py): a stock parchment tab texture recoloured
+    pixel by pixel to dark charcoal parchment with light icons (fixed owner palette); written as neutral greys into the stock
+    blocks: BC3 colour halves (alpha halves byte for byte, no dither), BC1 four-colour blocks (refuses punch-through)."""
+    if preset not in charcoal_tabs.PRESETS:
+        raise SkipAsset(f"unknown charcoal preset {preset!r}")
+    data = stock_dds.read_bytes()
+    if int.from_bytes(data[28:32], "little") > 1:
+        raise SkipAsset("charcoal recolours one mip level; the stock texture has more")
+    grey, _ = charcoal_tabs.recolour(decode_rgba(stock_dds), **charcoal_tabs.PRESETS[preset])
+    bc1 = bc1_header_size(data)
+    if bc1:
+        try:
+            return data[:bc1] + charcoal_tabs.neutral_grey_bc1(data[bc1:], grey)
+        except ValueError as error:
+            raise SkipAsset(str(error))
+    head = header_size(data)
+    return data[:head] + neutral_grey_colour(data[head:], grey, dither=False)
+
+
 def rich_row_colour(uexp, row, rgb, table="DT_UI_MagicMenu"):
     """A RichTextStyleRow's colour set to an sRGB colour (linear floats, alpha 1); refuses an unexpected stock value."""
     offset, expected = RICH_ROWS[table][row]
@@ -1381,15 +1615,18 @@ def bp_colour(uexp, package, values):
         if len(found) != 4 or any(abs(a - b) > 5e-4 for a, b in zip(found, expected)):
             raise SkipAsset(f"{package}: stock colour {found} at byte {offset}, expected {expected} (game update? re-scan the asset)")
         value = CONSTANT_COLOURS[name] if name in CONSTANT_COLOURS else values[name]
+        scale = BLUEPRINT_SCALES.get((package, offset))
+        if scale is not None:   # an sRGB colour brightened (RMI-091: the container lines in the lighter accent)
+            value = [min(255.0, float(c) * scale) for c in value[:3]]
         struct.pack_into("<4f", out, offset, *literal_rgba(value)[:3], found[3])
     for row in BLUEPRINT_LITERALS.get(package, []):   # fixed literals (RMI-089), stock-checked like the colours
-        fmt = "<d" if row.get("type") == "double" else "<f"
+        fmt = {"double": "<d", "int32": "<i"}.get(row.get("type"), "<f")   # int32: RMI-100 overlay slot order
         width = struct.calcsize(fmt)
         found = struct.unpack_from(fmt, uexp, row["offset"])[0] if len(uexp) >= row["offset"] + width else None
         if found is None or abs(found - row["stock"]) > 1e-6:
             raise SkipAsset(f"{package}: stock value {found} at byte {row['offset']} ({row['widget']}), expected {row['stock']} "
                             f"(game update? re-scan the asset)")
-        struct.pack_into(fmt, out, row["offset"], float(row["value"]))
+        struct.pack_into(fmt, out, row["offset"], int(row["value"]) if fmt == "<i" else float(row["value"]))
     return bytes(out)
 
 
@@ -1420,8 +1657,39 @@ def recipe(name):
     if kind == "mask_peak":   # mask_peak:<value>: a shader mask texture's brightest part scaled to <value> (RMI-096: the popup
         # laurel border is the material's R-channel mask, painted white by the shader; owner "very faint")
         return (), (), lambda dds, v, work, stock: paper_scale(dds, float(arg))
+    if kind == "smooth_grain":   # smooth_grain:<blur>:<amount> (RMI-091: the container panel, on the shared paper tone)
+        blur, _, amount = arg.partition(":")
+        return (), ("parchmentDark", "parchmentLight", "panel"), lambda dds, v, work, stock: smooth_grain(
+            dds, v["parchmentDark"][0], v["parchmentLight"][0], float(blur), float(amount),
+            paper_tone(v["parchmentDark"][0], v["parchmentLight"][0], v["panel"][0]))
+    if kind == "page_grain":   # page_grain:<blur>:<grain +-> (RMI-091: the Inventory page, on the shared paper tone)
+        blur, _, amount = arg.partition(":")
+        return (), ("frame", "panel", "parchmentDark", "parchmentLight"), lambda dds, v, work, stock: page_grain(
+            dds, v["frame"][0], v["panel"][0], float(blur), float(amount),
+            paper_tone(v["parchmentDark"][0], v["parchmentLight"][0], v["panel"][0]))
+    if kind == "paper_invert":   # paper_invert:<blur> (RMI-091 round 3: the standard parchment look, container panel)
+        return (), ("parchmentDark", "parchmentLight", "panel"), lambda dds, v, work, stock: invert_paper(
+            dds, paper_tone(v["parchmentDark"][0], v["parchmentLight"][0], v["panel"][0]), float(arg))
+    if kind == "page_invert":   # page_invert:<blur> (RMI-091 round 3: the Inventory and Magic pages, frame relief kept)
+        return (), ("frame", "panel", "parchmentDark", "parchmentLight"), lambda dds, v, work, stock: invert_paper(
+            dds, paper_tone(v["parchmentDark"][0], v["parchmentLight"][0], v["panel"][0]), float(arg), "frame",
+            v["frame"][0], v["panel"][0])
+    if kind == "details_invert":   # details_invert:<blur> (RMI-091 round 3: the details page, its own tone)
+        return ("detailsPage",), (), lambda dds, v, work, stock: invert_paper(
+            dds, details_tone(dds, v["detailsPage"]), float(arg), "shadow")
+    if kind == "band_lines":   # band_lines:<scale> (RMI-091: the thin lines around the container name)
+        return (), ("pattern",), lambda dds, v, work, stock: band_lines(dds, v["pattern"], float(arg))
+    if kind == "details_smooth":   # details_smooth:<blur>:<amount> (RMI-091: the Inventory details page)
+        blur, _, amount = arg.partition(":")
+        return ("detailsPage",), (), lambda dds, v, work, stock: details_smooth(dds, v["detailsPage"], float(blur), float(amount))
+    if kind == "gray_smooth":   # gray_smooth:<blur> (RMI-091: the Inventory preview box)
+        return (), (), lambda dds, v, work, stock: gray_smooth(dds, float(arg))
+    if kind == "line_tint":   # line_tint:<scale> (RMI-091: the glow lines around the container name)
+        return (), ("pattern",), lambda dds, v, work, stock: line_tint(dds, v["pattern"], float(arg))
     if kind == "laurel_tint":   # the popup title flowers and leaf border in the laurel colour (RMI-096 Laurels group)
         return (), ("pattern",), lambda dds, v, work, stock: laurel_tint(dds, v["pattern"])
+    if kind == "charcoal":   # charcoal[:<preset>]: the charcoal tab recolour (palette fixed, no colour element)
+        return (), (), lambda dds, v, work, stock: charcoal_texture(dds, arg)
     if kind == "flat":
         return (), (arg,), lambda dds, v, work, stock: flat_blocks(dds.read_bytes(), v[arg])
     if kind == "flat_alpha":   # flat_alpha:<key>:<alpha scale>
@@ -1590,6 +1858,8 @@ def checked_texture(stock, baked):
 def format_supported(kind, stock):
     """Whether a recipe kind can recolour this stock DDS: every recipe takes BC3; parchment, altar_metal, altar_panel and
     tab_strip also BC1 and uncompressed 32-bit; flat also uncompressed 32-bit (the altar separators, RMI-087)."""
+    if kind == "charcoal" and bc1_header_size(stock):   # the two BC1 Enchanting strips
+        return True
     try:
         header_size(stock)
         return True

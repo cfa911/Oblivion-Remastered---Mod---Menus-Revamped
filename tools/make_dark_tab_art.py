@@ -1,9 +1,5 @@
-"""The Dark tab compiler (used by tools/make_dark_pack.py for the Inventory and Magic tab atlases) and the Magic page
-(assets/Skin/MagicPage.png, a run-time swap: T_MagicBackground is shared with Quest/Help/Stats, so it is not in the pack yet).
-
-Usage: python tools/make_dark_tab_art.py <folder of stock .dds exports> [<output folder>]
-Export with UE4-DDS-Tools (--mode export --export_as dds) after `retoc to-legacy --version UE5_3 --no-shaders <Content/Paks> <out>`
-with --filter T_MagicBackground.
+"""The Dark tab compiler (imported by tools/pack_builder/pipeline.py for the Inventory and Magic tab atlases). The Magic page
+(T_MagicBackground) is baked by the pack builder (page_invert, RMI-091); this module no longer makes page art.
 
 Tabs (dark_tab): the Inventory tab process (local compile-outlined-tabs.cjs, RMI-069/070, ported): the stock Magic atlases have the same
 layout (2026-11-10 measurement). Flat bodies, the stepped outlined selected tab, glyphs from the clean standalone T_Category
@@ -14,6 +10,9 @@ stock alpha is kept below it (the fade into the title band).
 Page: the installed Inventory panel art's recipe (MRSkinPlayerPanel_P T_UI_PlayerMenu_Background, fitted on the 2026-11-10
 export, RMS 0.6): stock brightness <= 40 -> DarkStyle.h frame, >= 124 -> panel, linear between (the ornament bar keeps its
 relief), stock alpha kept; drawn untinted. The Magic details page is the game's own page widget, tinted in code.
+RMI-091 (owner 2026-11-13): the paper is not flat: the shared paper tone (halfway between the parchment band's centre and
+panel, the container panel's and the Inventory page's tone too) with the stock paper's grain, blurred 3 px, +-7.5 (the same
+as the pack recipe page_grain:3:7.5; a PNG needs no dither).
 Requires Pillow.
 """
 import math
@@ -108,31 +107,3 @@ def style_gray(name):
     if not found:
         sys.exit(f"DarkStyle.h has no {name}")
     return float(found.group(1))
-
-
-DARK, LIGHT = 40, 124   # the Inventory curve's ends (stock brightness)
-
-
-def inventory_page(image, frame, panel):
-    out = []
-    for p in image.get_flattened_data():
-        lum = 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2]
-        t = min(1.0, max(0.0, (lum - DARK) / (LIGHT - DARK)))
-        g = round(frame + (panel - frame) * t)
-        out.append((g, g, g, p[3]))
-    result = Image.new("RGBA", image.size)
-    result.putdata(out)
-    return result
-
-
-def main():
-    if len(sys.argv) < 2:
-        sys.exit(__doc__)
-    source = Path(sys.argv[1])
-    out = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "assets/Skin"
-    inventory_page(load(source / "T_MagicBackground.dds"), style_gray("frame"), style_gray("panel")).save(out / "MagicPage.png")
-    print("T_MagicBackground -> MagicPage.png (Inventory panel curve)")
-
-
-if __name__ == "__main__":
-    main()

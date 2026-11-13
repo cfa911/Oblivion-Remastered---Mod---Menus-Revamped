@@ -43,8 +43,7 @@ for key, value in KEYS.items():
     check(custom_colours.HELP.get(key, "").startswith("Inventory and Magic category tab"), f"{key} is labelled")
     check(dark.get(key) == value, f"DarkStyle.h holds {key}")
     check(f"MR_CC_RGB({key}," in reader, f"the plugin reader knows {key}")
-    check(any(key in r["members"] and "Category tabs" in r["label"] for r in custom_colours.ROLES.values()) or
-          (key == "tabGlyph" and key in custom_colours.ROLES["icons"]["members"]), f"{key} is fed by a category tab (or icon) role")
+    check(key in custom_colours.RETIRED_TAB_KEYS, f"{key} is retired (RMI-097: no effect, the tabs bake from the charcoal palette)")
 rendered = custom_colours.render(custom_colours.DEFAULTS)
 check("[Tab] entries are retained with no effect" in rendered and "[Tab] entries are retained with no effect" in reader,
       "the colour file says the [Tab] greys have no effect (Python and plugin default files agree)")
@@ -66,8 +65,9 @@ for asset, menu in [(INV + n, "inventory") for n in ("T_Tab_weapons", "T_Tab_arm
                    [(MAG + n, "magic") for n in ("T_Magic_Tabs_Self", "T_Magic_Tabs_Touch", "T_Magic_Tabs_Target", "T_Magic_Tabs_All",
                                                   "T_Magic_Tabs_ActiveEffect")]:
     got_menu, row = rows.get(asset, (None, {}))
-    check(got_menu == menu and row.get("recipe") == "tab_paper", f"{Path(asset).name}: {menu}.json tab_paper ({got_menu}, {row.get('recipe')})")
-    check(sorted(row.get("colours", [])) == sorted(KEYS), f"{Path(asset).name}: reads the three tab keys ({row.get('colours')})")
+    # RMI-097: the rows moved to tabs.json (charcoal:<menu>, no colour element); tab_paper stays tested below
+    check(got_menu == "tabs" and row.get("recipe") == f"charcoal:{menu}", f"{Path(asset).name}: tabs.json charcoal:{menu} ({got_menu}, {row.get('recipe')})")
+    check(row.get("colours") == [], f"{Path(asset).name}: reads no colour element ({row.get('colours')})")
 try:
     floats, rgbs, _ = pipe.recipe("tab_paper")
     check(sorted({*floats, *rgbs}) == sorted(KEYS), f"tab_paper reads exactly the three keys ({floats}, {rgbs})")
