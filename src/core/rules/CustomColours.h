@@ -55,8 +55,8 @@ namespace customcolours
 		MR_CC_RGB(filterHover, "Alchemy hovered filter row background"), MR_CC_RGB(filterSelected, "Alchemy selected filter row background"),
 		MR_CC_RGB(filterMark, "Alchemy filter row diamond"),
 		MR_CC_RGB(alchemyMetal, "Alchemy frame, ingredient slots and pot - metal"), MR_CC_RGB(alchemyStone, "Alchemy frame, ingredient slots and pot - stone"),
-		MR_CC_RGB(enchantingFrame, "Enchanting right panel frame - metal"), MR_CC_RGB(spellmakingFrame, "Spellmaking right panel frame - metal"), MR_CC_RGB(altarPaper, "Enchanting and Spellmaking right panel paper"), MR_CC_RGB(enchantingCrystal, "Enchanting crystal under the right panel"), MR_CC_RGB(enchantingOrnament, "Enchanting ornament under the right panel"), MR_CC_RGB(spellmakingEye, "Spellmaking eye ornament under the right panel"), MR_CC_RGB(enchantingTabPaper, "Enchanting tab strip background"), MR_CC_RGB(enchantingTabIcon, "Enchanting tab strip icons and arrows"),
-		MR_CC_RGB(tabPaperDark, "Inventory and Magic category tabs - paper shadows"), MR_CC_RGB(tabPaperLight, "Inventory and Magic category tabs - paper highlights"), MR_CC_RGB(tabGlyph, "Inventory and Magic category tab icons and arrows"),
+		MR_CC_RGB(enchantingFrame, "Enchanting right panel frame - metal"), MR_CC_RGB(spellmakingFrame, "Spellmaking right panel frame - metal"), MR_CC_RGB(altarPaper, "Enchanting and Spellmaking right panel paper"), MR_CC_RGB(enchantingCrystal, "Enchanting crystal under the right panel"), MR_CC_RGB(enchantingOrnament, "Enchanting ornament under the right panel"), MR_CC_RGB(spellmakingEye, "Spellmaking eye ornament under the right panel"), MR_CC_RGB(enchantingTabPaper, "Enchanting tab strip background (no effect: charcoal tabs)"), MR_CC_RGB(enchantingTabIcon, "Enchanting tab strip icons and arrows (no effect: charcoal tabs)"),
+		MR_CC_RGB(tabPaperDark, "Inventory and Magic category tabs - paper shadows (no effect: charcoal tabs)"), MR_CC_RGB(tabPaperLight, "Inventory and Magic category tabs - paper highlights (no effect: charcoal tabs)"), MR_CC_RGB(tabGlyph, "Inventory and Magic category tab icons and arrows (no effect: charcoal tabs)"),
 		Entry{ "Colours", "detailsPage", Kind::Unit, [](darkstyle::Style& s) -> float* { return &s.detailsPage; }, "Inventory, Magic and shared details page brightness" },
 		MR_CC_TAB(selected, "Inventory and Magic selected category tab fill"), MR_CC_TAB(unselected, "Inventory and Magic unselected category tab fill"), MR_CC_TAB(gap, "Inventory and Magic gaps between category tabs"), MR_CC_TAB(outline, "Inventory and Magic category tab outlines"), MR_CC_TAB(glyph, "Inventory and Magic selected category tab icons"), MR_CC_TAB(glyphDim, "Inventory and Magic unselected category tab icons"),
 		MR_CC_TINT(rule, "Inventory and Magic header horizontal lines"), MR_CC_TINT(guide, "Inventory and Magic header column guides"), MR_CC_TINT(ring, "Inventory and Magic details skill level ring"),
@@ -174,7 +174,7 @@ namespace customcolours
 			"; [Skin]: linear red, green, blue, alpha (0-1); the three scrollbar entries are single numbers.\n"
 			"; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern, ornament, ring, emphasisInk and the scrollbar.\n"
 			"; Other active [Skin] edits need a restart.\n"
-			"; [Colours] pickerIcon and the [Tab] entries are retained with no effect in this build (tabs: tabPaperDark, tabPaperLight, tabGlyph).\n"
+			"; [Colours] pickerIcon, tabPaperDark, tabPaperLight, tabGlyph, enchantingTabPaper, enchantingTabIcon and the [Tab] entries are retained with no effect in this build (the tabs bake from a fixed charcoal palette).\n"
 			"; [Skin] band, buttonFill and buttonRule are retained with no effect in this build (baked into the game's art).\n";
 		std::string_view section;
 		for (const auto& e : kEntries) {

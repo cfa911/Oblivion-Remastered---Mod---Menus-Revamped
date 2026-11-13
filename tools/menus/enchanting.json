@@ -186,33 +186,6 @@
       "shared_with": []
     },
     {
-      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Effect",
-      "recipe": "tab_strip",
-      "colours": [
-        "enchantingTabIcon",
-        "enchantingTabPaper"
-      ],
-      "shared_with": []
-    },
-    {
-      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Gear",
-      "recipe": "tab_strip",
-      "colours": [
-        "enchantingTabIcon",
-        "enchantingTabPaper"
-      ],
-      "shared_with": []
-    },
-    {
-      "asset": "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_SoulGem",
-      "recipe": "tab_strip",
-      "colours": [
-        "enchantingTabIcon",
-        "enchantingTabPaper"
-      ],
-      "shared_with": []
-    },
-    {
       "asset": "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Effects_icon",
       "recipe": "flat:headerIcon",
       "colours": [

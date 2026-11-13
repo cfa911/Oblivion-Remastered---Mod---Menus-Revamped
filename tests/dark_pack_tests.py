@@ -200,7 +200,7 @@ listed = dict(data_listed)
 check(all(listed.get(a) == "flat:rowIcon" for a in SCHOOLS), "phase 3: the six row school icons are baked flat rowIcon on the stock alpha")
 check(sorted(Path(a).name for a, r in listed.items() if r == "flat:rowIcon" and "T_MagicMenuIcon_" in a) == sorted(STATS),
       "phase 3: the ten details stat/type icons are baked flat rowIcon (Magic-only textures)")
-check([listed.get(a) for a in MAGIC_TABS] == ["tab_paper"] * 5, "decision 34: the five Magic tab atlases are recoloured from stock (tab_paper)")
+check([listed.get(a) for a in MAGIC_TABS] == ["charcoal:magic"] * 5, "RMI-097 (was decision 34): the five Magic tab atlases are recoloured from stock (charcoal:magic)")
 # RMI-086 (owner screenshot on 9828be38): the table's Default row baked blue left the line tan: the details blueprint sets the
 # line's default colour itself (SetDefaultColorAndOpacity), which replaces the Default row. The colour is set at run time.
 check(TABLE not in listed, "RMI-086: DT_UI_MagicMenu is not in the pack (its Default row never reaches the cast-frequency line)")

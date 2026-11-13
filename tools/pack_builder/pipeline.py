@@ -44,6 +44,7 @@ if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 import custom_colours  # noqa: E402
 import make_dark_tab_art as tabs  # noqa: E402
+from pack_builder import charcoal_tabs  # noqa: E402
 from pack_builder import VERSION, BuildError, paths  # noqa: E402
 
 ROOT = TOOLS.parent
@@ -1185,6 +1186,26 @@ def tab_paper(stock_dds, v, work, stock):
     return splice_colour(stock_dds, out, work)
 
 
+def charcoal_texture(stock_dds, preset):
+    """charcoal:<preset> (owner recipe 2026-11-13, tools/pack_builder/charcoal_tabs.py): a stock parchment tab texture recoloured
+    pixel by pixel to dark charcoal parchment with light icons (fixed owner palette); written as neutral greys into the stock
+    blocks: BC3 colour halves (alpha halves byte for byte, no dither), BC1 four-colour blocks (refuses punch-through)."""
+    if preset not in charcoal_tabs.PRESETS:
+        raise SkipAsset(f"unknown charcoal preset {preset!r}")
+    data = stock_dds.read_bytes()
+    if int.from_bytes(data[28:32], "little") > 1:
+        raise SkipAsset("charcoal recolours one mip level; the stock texture has more")
+    grey, _ = charcoal_tabs.recolour(decode_rgba(stock_dds), **charcoal_tabs.PRESETS[preset])
+    bc1 = bc1_header_size(data)
+    if bc1:
+        try:
+            return data[:bc1] + charcoal_tabs.neutral_grey_bc1(data[bc1:], grey)
+        except ValueError as error:
+            raise SkipAsset(str(error))
+    head = header_size(data)
+    return data[:head] + neutral_grey_colour(data[head:], grey, dither=False)
+
+
 def rich_row_colour(uexp, row, rgb, table="DT_UI_MagicMenu"):
     """A RichTextStyleRow's colour set to an sRGB colour (linear floats, alpha 1); refuses an unexpected stock value."""
     offset, expected = RICH_ROWS[table][row]
@@ -1422,6 +1443,8 @@ def recipe(name):
         return (), (), lambda dds, v, work, stock: paper_scale(dds, float(arg))
     if kind == "laurel_tint":   # the popup title flowers and leaf border in the laurel colour (RMI-096 Laurels group)
         return (), ("pattern",), lambda dds, v, work, stock: laurel_tint(dds, v["pattern"])
+    if kind == "charcoal":   # charcoal[:<preset>]: the charcoal tab recolour (palette fixed, no colour element)
+        return (), (), lambda dds, v, work, stock: charcoal_texture(dds, arg)
     if kind == "flat":
         return (), (arg,), lambda dds, v, work, stock: flat_blocks(dds.read_bytes(), v[arg])
     if kind == "flat_alpha":   # flat_alpha:<key>:<alpha scale>
@@ -1590,6 +1613,8 @@ def checked_texture(stock, baked):
 def format_supported(kind, stock):
     """Whether a recipe kind can recolour this stock DDS: every recipe takes BC3; parchment, altar_metal, altar_panel and
     tab_strip also BC1 and uncompressed 32-bit; flat also uncompressed 32-bit (the altar separators, RMI-087)."""
+    if kind == "charcoal" and bc1_header_size(stock):   # the two BC1 Enchanting strips
+        return True
     try:
         header_size(stock)
         return True
