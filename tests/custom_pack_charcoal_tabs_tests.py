@@ -112,6 +112,20 @@ try:
         m = model.ColourModel(ini)
         for key in RETIRED:
             check(m.entry("Colours", key).applies == "Inactive", f"model: {key} Inactive ({m.entry('Colours', key).applies})")
+    # an owner file written before RMI-097 still holds [Roles] tabShadow / tabLight: dropped quietly (no "not a known entry"
+    # warning in the Pack Builder log), while a really unknown entry is still reported
+    import contextlib
+    import io
+    with tempfile.TemporaryDirectory() as temp:
+        ini = Path(temp) / "old.ini"
+        ini.write_text("[Roles]\ntabShadow = 17, 17, 17\ntabLight = 30, 30, 30\nnoSuchRole = 1, 2, 3\n", encoding="utf-8")
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            found = custom_colours.read_entries(ini)
+        log = err.getvalue()
+        check("tabShadow" not in log and "tabLight" not in log, f"retired roles tabShadow / tabLight are dropped quietly ({log!r})")
+        check("noSuchRole" in log, f"an unknown entry is still reported ({log!r})")
+        check(not any(n in ("tabShadow", "tabLight") for _, n, _ in found), "retired roles are not read")
 except Exception as error:   # noqa: BLE001
     check(False, f"the retired tab keys ({type(error).__name__}: {error})")
 

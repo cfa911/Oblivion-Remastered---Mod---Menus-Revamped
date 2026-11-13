@@ -61,6 +61,7 @@ BAKED_SKIN = {"pattern": "Skin.pattern", "scrollTrack": "Skin.scrollTrack", "scr
 RETIRED_SKIN = ("band", "buttonFill", "buttonRule")
 # retired by RMI-097: kept in the file, no effect (every tab texture bakes from the fixed charcoal palette, recipe charcoal)
 RETIRED_TAB_KEYS = ("tabPaperDark", "tabPaperLight", "tabGlyph", "enchantingTabPaper", "enchantingTabIcon")
+RETIRED_ROLES = ("tabShadow", "tabLight")   # RMI-097: their only members are retired; an older file's [Roles] entries are dropped quietly
 SKIN_HELP = {
     "rule": "Inventory and Magic header horizontal lines",
     "guide": "Inventory and Magic header column guides",
@@ -311,6 +312,8 @@ def read_entries(path):
     found = []
     for section in parser.sections():
         for name, raw in parser.items(section):
+            if section == "Roles" and name in RETIRED_ROLES:   # written by an older builder: nothing to warn about
+                continue
             if name not in SECTIONS.get(section, ()):
                 print(f"CustomColours.ini: [{section}] {name} is not a known entry, ignored", file=sys.stderr)
                 continue
