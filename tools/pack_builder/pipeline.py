@@ -1620,13 +1620,13 @@ def bp_colour(uexp, package, values):
             value = [min(255.0, float(c) * scale) for c in value[:3]]
         struct.pack_into("<4f", out, offset, *literal_rgba(value)[:3], found[3])
     for row in BLUEPRINT_LITERALS.get(package, []):   # fixed literals (RMI-089), stock-checked like the colours
-        fmt = "<d" if row.get("type") == "double" else "<f"
+        fmt = {"double": "<d", "int32": "<i"}.get(row.get("type"), "<f")   # int32: RMI-100 overlay slot order
         width = struct.calcsize(fmt)
         found = struct.unpack_from(fmt, uexp, row["offset"])[0] if len(uexp) >= row["offset"] + width else None
         if found is None or abs(found - row["stock"]) > 1e-6:
             raise SkipAsset(f"{package}: stock value {found} at byte {row['offset']} ({row['widget']}), expected {row['stock']} "
                             f"(game update? re-scan the asset)")
-        struct.pack_into(fmt, out, row["offset"], float(row["value"]))
+        struct.pack_into(fmt, out, row["offset"], int(row["value"]) if fmt == "<i" else float(row["value"]))
     return bytes(out)
 
 

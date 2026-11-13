@@ -164,6 +164,7 @@ uexp = bytearray(115400)
 for offset in (115047, 115376):
     struct.pack_into("<4f", uexp, offset, *STOCK)
 struct.pack_into("<4f", uexp, 115088, 0.5469, 0.4519, 0.3276, 1.0)   # round 2: the name band tint (set to white)
+struct.pack_into("<2i", uexp, 112631, 307, 306)   # RMI-100: the take overlay's stock slot order (swapped by the literals)
 try:
     out = pipe.bp_colour(bytes(uexp), "WBP_ModernMenu_Container", {"pattern": [66.0, 99.0, 153.0]})
     got = struct.unpack_from("<4f", out, 115047)

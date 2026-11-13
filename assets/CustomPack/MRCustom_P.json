@@ -417,7 +417,7 @@
         "pattern"
       ],
       "stock_uexp_sha256": "cc0b9c041c013afa86353f62a266f8e7550421c466f35402618c8ed75f7cb251",
-      "baked_uexp_sha256": "8146861c58ede12c9d4913415f8960d5a54d00b7f09f031bf88595bab346cc96"
+      "baked_uexp_sha256": "ab745cfbdf3031283b02dc28db47238178d594e0752c6958e325e273608eb86f"
     },
     "Art/UI/Modern/GameMenuLayer/Inventory/T_Inventory_pattern": {
       "recipe": "laurels",
@@ -1799,7 +1799,7 @@
   },
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "258fefa2b863276eb35e221958a917c9e7070cac5e0f646ef33be3e2dc9cd61e",
-    "MRCustom_P.ucas": "2d3eaf1ffe10c5302f1251b29d0287d14aace7f7610c39c8fd4b4dbe0a276cb1"
+    "MRCustom_P.utoc": "d605aacea57fc0f00e562a7922ce87cc560cb8a70f1b703ff519baaf27af14dc",
+    "MRCustom_P.ucas": "645e646510537d1ba5830be62c901df39747dcb78630517fca5dbd375f4d2620"
   }
 }

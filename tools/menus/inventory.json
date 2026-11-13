@@ -4,6 +4,7 @@
   "note": "The Inventory art (phase 2: the values of the old local MRSkinPlayerPanel_P / MRSkinHighlight_P packs) and the details parchment shared by the Inventory and Magic details, Help, Spell Purchase, Stats page 3 and Quest details.",
   "glyph_masks": {"tab": ["T_Category_Weapons", "T_Category_Armor", "T_Category_Alchemy", "T_Category_Misc", "T_Category_All_items"]},
   "blueprint_literals": {
+    "WBP_ModernMenu_Container": [{"offset": 112631, "type": "int32", "stock": 307, "value": 306, "widget": "cont_take_overlay Slots[0] (RMI-100: the take side drew its panel over its tabs; now panel, tabs, list like the give side)"}, {"offset": 112635, "type": "int32", "stock": 306, "value": 307, "widget": "cont_take_overlay Slots[1] (RMI-100)"}],
     "WBP_OriginalMenu_InventoryItemDetails": [{"offset": 11509, "type": "double", "stock": 1.0, "value": 0.0, "widget": "inv_details_item_background UseShadow? in Construct() (RMI-089: the page drop shadow, on only in the Inventory)"}]
   },
   "blueprint_colours": {
