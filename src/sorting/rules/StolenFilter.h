@@ -10,7 +10,9 @@ namespace stolenfilter
 	constexpr int kToggleCommand = -5;  // pickergrid uses -4 and -1..-3
 	// Active background: owner's #DB675F at 50% opacity, sRGB converted to linear Slate colour. No outline.
 	inline constexpr float kStolenFill[4] = { 0.708376f, 0.135633f, 0.114435f, 0.5f };
-	constexpr bool Supports(int kind) { return kind == 0 || kind == 3; }  // picker kinds: Inventory, player side
+	// picker kinds: Inventory, player side, and the container side unless it is a barter (RMI-094: containers can hold
+	// stolen items; a merchant's goods are never stolen)
+	constexpr bool Supports(int kind, bool barter = false) { return kind == 0 || kind == 3 || (kind == 4 && !barter); }
 	enum class Status : std::int8_t { Unknown = -1, Legal = 0, Stolen = 1 };
 	constexpr Status FromFlags(std::uint32_t flags) { return (flags & kStolenBit) ? Status::Stolen : Status::Legal; }
 	// A row whose status cannot be read stays visible, like an unresolved category.

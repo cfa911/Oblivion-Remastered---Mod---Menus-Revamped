@@ -167,8 +167,7 @@ for name in ("StyleRow(", "WatchFooters(", "InkTree("):
     check(name not in skin_h, f"MenuSkin.h: {name} removed")
     check(name not in headers, f"InventoryHeaders.cpp: no {name} call")
 check("InkTree(" not in alchemy, "Alchemy: no run-time ink pass")
-title = skin[skin.find("void StyleTitle("):skin.find("void SetTitleLabel(")]
-check("void StyleTitle(" in skin and "uix::Ink" not in title and "UnclipTitle(title)" in title, "StyleTitle keeps the layout (RMI-073), no ink")
+check("void StyleTitle(" not in skin, "no run-time title pass: the title colour and layout are baked (decision 28, inventory_title_bake_tests)")
 for stock in ("T_List_Default", "T_List_equip_V2"):
     check(f'"{stock}"' not in theme[theme.find("kDarkArt[]"):theme.find("};", theme.find("kDarkArt[]"))], f"kDarkArt: no {stock} swap (baked)")
 check("hideEquippedScribble" not in theme, "UiTheme.h: no hideEquippedScribble")

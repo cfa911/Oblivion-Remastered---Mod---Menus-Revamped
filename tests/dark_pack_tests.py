@@ -68,7 +68,8 @@ for ext in ("pak", "utoc", "ucas"):
     path = pack / f"MRCustom_P.{ext}"
     digest = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else ""
     check(manifest.get("files", {}).get(f"MRCustom_P.{ext}") == digest, f"MRCustom_P.{ext} is the file the manifest's build wrote")
-check(set(manifest.get("textures", {})) == set(data_listed) and manifest.get("textures"),
+colour_textures = {k for k, v in manifest.get("textures", {}).items() if v.get("recipe") != "layout"}   # decision 46: layout packages ride along
+check(colour_textures == set(data_listed) and colour_textures,
       "the manifest lists exactly the textures make_dark_pack.py bakes")
 
 dp_rules = root / "src/core/rules/DarkPackSwitch.h"
@@ -205,7 +206,7 @@ check([listed.get(a) for a in MAGIC_TABS] == ["tab_paper"] * 5, "decision 34: th
 check(TABLE not in listed, "RMI-086: DT_UI_MagicMenu is not in the pack (its Default row never reaches the cast-frequency line)")
 check(not any("_ListSmall" in a or a.endswith("/T_MagicBackground") for a in listed),
       "phase 3: the shared T_MagicBackground and _ListSmall icons stay out of the pack (other menus use them)")
-check(set(listed) <= baked and set(manifest.get("textures", {})) == set(listed),
+check(set(listed) <= baked and colour_textures == set(listed),
       "the shipped pack holds every asset make_dark_pack.py lists (rebuilt), the table included")
 check(TABLE not in manifest.get("textures", {}), "RMI-086: the shipped pack has no DT_UI_MagicMenu")
 check("InkCastFrequency" not in source_paths.read("picker") and "InkCastLines" not in source_paths.read("picker"),

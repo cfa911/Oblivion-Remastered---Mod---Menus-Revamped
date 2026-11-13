@@ -141,7 +141,7 @@ namespace sorting
 			std::vector<InventoryClip> inventoryClips;
 			std::array<std::array<double, 2>, kSorts + 3> inventoryTranslations{};
 			std::array<reflect::Handle, inventoryheaders::kGuides> inventoryHeaderGuides{};
-			reflect::Handle titleLabel, titleNative;   // our own tab title and the native text it covers (RMI-073)
+			reflect::Handle titleLabel, titleNative;   // our own Magic page title and the native text it covers (RMI-079)
 			inventoryheaders::Box inventoryMeasuredList, inventoryMeasuredStatus;
 			std::array<inventoryheaders::Box, kSorts> inventoryMeasuredColumns{};
 			double inventoryMeasuredNameX=0;
@@ -156,6 +156,7 @@ namespace sorting
 			std::array<std::array<double, 2>, 4> inventoryStatusOffsets{{
 				{0,0}, {-9,0}, {0,-45}, {-9,-29}
 			}};
+			std::array<std::array<bool, 2>, 4> inventoryStatusMeasured{};   // RMI-093: which masks have a measured offset
 			bool inventoryStatusReady=false;
 			std::array<float, 4> inventoryListBase{};
 			bool inventoryListPadding = false, inventoryListReserved = false;

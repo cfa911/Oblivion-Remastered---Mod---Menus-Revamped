@@ -108,63 +108,6 @@ namespace menuskin
 			}
 		}
 
-		// RMI-073: Slate cuts text at its widget's box, and the title box kept the width of a shorter name (156, the width of
-		// "Weapons"; log on 2cdd2c68). A minimum width that fits "Miscellaneous" (about 228) and a fresh layout pass keep
-		// every tab name whole. The title may be a prefab text widget: its inner "text" then. Layout: every preset.
-		void UnclipTitle(UE::UObject* title)
-		{
-			static auto* widgetClass = ui::Class(L"/Script/UMG.Widget");
-			if (!widgetClass || !reflect::Usable(title)) return;
-			static const int clippingOffset = reflect::Offset(widgetClass, "Clipping");
-			if (clippingOffset >= 0)
-				if (const auto* clip = reflect::At<std::uint8_t>(title, clippingOffset); clip && *clip) {
-					ui::Call set(title, L"SetClipping");
-					if (set.Set("InClipping", std::uint8_t(0))) set.Run();
-				}
-			// RMI-073: a different slice of "Miscellaneous" shows each time (Miscellan, liscellane, cellaneou): the text
-			// scrolls inside a box narrower than the name. The title is a WBP_AltarTextBlock (a user widget, log on
-			// a22c29b8) whose text is the inner "text_block"; no scrolling plus a wide enough box keeps it whole.
-			constexpr float kTitleWidth = 240.0f;
-			// The prefab keeps its own "Min Desired Width" and "IsScrollingEnable" and re-applies them to its text on every
-			// SetText (owner screenshot on 7c938a78: still cut at the old width). Set them on this instance first.
-			if (const int at = reflect::Offset(title->GetClass(), "Min Desired Width"); at >= 0 && ui::SizeOf(title->GetClass(), "Min Desired Width") == 4)
-				*reflect::At<float>(title, at) = kTitleWidth;
-			if (const int at = reflect::Offset(title->GetClass(), "IsScrollingEnable"); at >= 0 && ui::SizeOf(title->GetClass(), "IsScrollingEnable") == 1)
-				*reflect::At<bool>(title, at) = false;
-			UE::UObject* label = title;
-			if (!ui::Call(label, L"SetMinDesiredWidth")) label = ui::FindInTree(title, "text_block");
-			if (!label) label = ui::FindInTree(title, "text");
-			if (!label) return;
-			const bool off = false;
-			ui::CallFirst(label, L"SetScrollingEnabled", &off, sizeof(off));
-			const bool widened = bool(ui::Call(label, L"SetMinDesiredWidth"));
-			if (widened) ui::Float(label, L"SetMinDesiredWidth", kTitleWidth);
-			// The title sits in a RetainerBox (inv_cont_AnimationRetainerforText) that draws it through an effect material for
-			// its reveal animation; that mask cut the text at a fixed width whatever the text's own width (owner screenshots on
-			// 7c938a78 and 76e583e0). Drawn directly, the whole name shows.
-			static auto* retainerClass = ui::Class(L"/Script/UMG.RetainerBox");
-			UE::UObject* parent = title;
-			for (int depth = 0; depth < 4 && parent && reflect::Usable(parent); ++depth) {
-				if (retainerClass && parent->GetClass()->IsChildOf(retainerClass)) {
-					// only while it is on: each switch makes the engine drop and rebuild the retainer's render target (RMI-084)
-					static const int retainOffset = reflect::Offset(retainerClass, "bRetainRender");
-					const auto* retaining = retainOffset >= 0 ? reflect::At<bool>(parent, retainOffset) : nullptr;
-					if (!retaining || *retaining) {
-						const bool retain = false;
-						ui::CallFirst(parent, L"SetRetainRendering", &retain, sizeof(retain));
-					}
-				}
-				ui::Call up(parent, L"GetParent");
-				parent = up && up.Run() ? up.Get<UE::UObject*>("ReturnValue") : nullptr;
-			}
-			static int prepasses = 0;
-			if (prepasses < 3) {
-				++prepasses;
-			}
-			for (auto* widget : { label, title })
-				if (ui::Call prepass(widget, L"ForceLayoutPrepass"); widget && prepass) prepass.Run();
-		}
-
 		bool Readable(const void* a_ptr, std::size_t a_bytes)
 		{
 			MEMORY_BASIC_INFORMATION info{};
@@ -253,75 +196,6 @@ namespace menuskin
 			}
 			return inked;
 		}
-	}
-
-	namespace
-	{
-		reflect::Handle g_title;
-
-		reflect::Handle g_titleLabel;
-
-		// RMI-073: inside the prefab's own SetText (same frame): our label takes the new name and the native text stays hidden.
-		// The header layout runs on its own timer, so waiting for it showed the old name or both texts (owner on a593c0f7).
-		void KeepTitleLabel(UE::UObject* title, UE::UFunction* function, void* params)
-		{
-			auto* label = reflect::Get(g_titleLabel);
-			auto* text = label ? ui::FindInTree(title, "text_block") : nullptr;
-			if (!text) return;
-			if (params) {
-				std::optional<std::string> requested;
-				auto* signature = reinterpret_cast<UE::UStruct*>(function);
-				const auto fields = reflect::Fields(signature);
-				if (!fields.empty()) {
-					const auto& [name, offset] = fields.front();
-					if (offset >= 0 && ui::SizeOf(signature, name) == sizeof(UE::FText) &&
-						offset + static_cast<int>(sizeof(UE::FText)) <= signature->propertiesSize) {
-						const auto* value = reinterpret_cast<const UE::FText*>(static_cast<const std::uint8_t*>(params) + offset);
-						requested = reflect::Text(*value);
-					}
-				}
-				const auto native = uix::GetText(text);
-				const auto want = inventoryheaders::TitleText(requested ? std::optional<std::string_view>(*requested) : std::nullopt, native);
-				if (uix::GetText(label) != want) uix::SetText(label, std::string(want));
-			}
-
-			if (ui::RenderOpacity(title) > 0) ui::Float(title, L"SetRenderOpacity", 0.0f);
-		}
-
-		// the prefab re-applies its variables on its own updates (SetText when the tab changes): keep the title whole after
-		void OnTitleEvent(UE::UObject* widget, UE::UFunction* function, void* params)
-		{
-			if (widget != reflect::Get(g_title)) return;
-			const auto name = pe::FunctionName(function);
-
-			if (name == "SetText" || name == "PreConstruct" || name == "Construct" || name == "ToggleScrollingText") {
-				UnclipTitle(widget);
-				KeepTitleLabel(widget, function, name == "SetText" ? params : nullptr);
-			}
-		}
-	}
-
-	void StyleTitle(UE::UObject* title)
-	{
-		if (!reflect::Usable(title)) return;
-		g_title = reflect::Hold(title);
-		static UE::UClass* watched = nullptr;
-		if (watched != title->GetClass() && pe::WatchPost(title->GetClass(), &OnTitleEvent)) watched = title->GetClass();
-		UnclipTitle(title);   // decision 28: the title colour is baked (inv_cont_title, ContainerInventory_MainContent)
-	}
-
-
-	void SetTitleLabel(UE::UObject* label) { g_titleLabel = label ? reflect::Hold(label) : reflect::Handle{}; }
-
-	void RefreshInventoryTitle()
-	{
-		auto* label = reflect::Get(g_titleLabel);
-		auto* title = reflect::Get(g_title);
-		auto* text = label && title ? ui::FindInTree(title, "text_block") : nullptr;
-		if (!text) return;
-		const auto current = uix::GetText(text);
-		if (!current.empty() && uix::GetText(label) != current) uix::SetText(label, current);
-		if (ui::RenderOpacity(title) > 0) ui::Float(title, L"SetRenderOpacity", 0.0f);
 	}
 
 	void InkText(UE::UObject* label)

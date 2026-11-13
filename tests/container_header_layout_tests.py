@@ -42,7 +42,7 @@ checks = {
     "Magic is named by its kinds, not by 'not the Inventory'": "const bool magic=kind==1 || kind==6;" in layout_fn,
     "container guides get a name per side (one shared canvas: a shared name replaces the other side's guide)":
         "MrContainerHeaderGuide" in layout_fn,
-    "the title label stays Inventory only (RMI-073; container names: baked, owner 2026-11-12)": "if (kind==0) PlaceTitleLabel(" in layout_fn,
+    "no title label for the Inventory strip either (names baked, owner 2026-11-12/13)": "PlaceTitleLabel(" not in layout_fn,
     "the container bars sit in the side's title row (inv_cont_title)": '"inv_cont_title"' in bar_rect_fn
         and "ty + th * 0.5 - a_h * 0.5" in bar_rect_fn,
     "the container bars end 4 inside the side's header (owner-accepted on C8FB448F)": "hx + hw - kSideBarRightInset - a_w" in bar_rect_fn
@@ -58,7 +58,7 @@ checks = {
     "the old container keys (above the header, width 825) are not read": "uTitleRowXOffset" in search_cfg_cpp
         and 'place(L"ContainerYours"' not in search_cfg_cpp and 'place(L"ContainerTake"' not in search_cfg_cpp,
     "the shipped INI has the title-row keys, not the old place": "uTitleRowXOffset=0" in defaults_ini and "uXOffset=-48" not in defaults_ini,
-    "the Inventory title skin stays Inventory only": "if (kind==0) menuskin::StyleTitle(" in layout_fn,
+    "no run-time title skin on any Inventory strip kind": "StyleTitle(" not in layout_fn,
     "row status icons follow the picker whose side holds the row": "ui::IsWithin(row" in bound_fn and "InventoryStrip()" in bound_fn,
     "the A-Z resize compensation runs for the container sides too": "!InventoryStrip()" in compensate_fn,
     "the container post-event compensates before the paint (RMI-077)": "CompensateInventorySlots()" in refresh_fn,

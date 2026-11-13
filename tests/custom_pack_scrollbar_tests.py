@@ -187,6 +187,7 @@ def fake_recipe(name):
 fake = Fake()
 saved = {k: getattr(pipe, k, None) for k in ("run", "recipe", "dds_tools", "LAUREL_STOCK_SHA256", "ALCHEMY_STOCK_SHA256")}
 pipe.run, pipe.recipe, pipe.dds_tools = fake.run, fake_recipe, (lambda path=None: (fake.export, fake.inject))
+pipe.swap_imports = lambda uasset, swaps: uasset   # fake packages; the real header swap: popup_paper_swap_tests
 synthetic = {a: hashlib.sha256(b"uexp " + a.encode() + bytes(4096)).hexdigest() for a in pipe.TEXTURES}
 pipe.LAUREL_STOCK_SHA256 = next(h for a, h in synthetic.items() if pipe.TEXTURES[a] == "laurels")
 pipe.ALCHEMY_STOCK_SHA256 = {Path(a).name: h for a, h in synthetic.items() if pipe.TEXTURES[a] == "alchemy"}

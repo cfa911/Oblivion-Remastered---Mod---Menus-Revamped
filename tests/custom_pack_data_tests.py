@@ -22,7 +22,7 @@ root = source_paths.ROOT
 menus_dir = root / "tools/menus"
 MENUS = ("inventory", "magic", "alchemy", "common", "enchanting", "spellmaking")   # build order ("order" in each file); Phase 7 added the last two
 manifest = json.loads((root / "assets/CustomPack/MRCustom_P.json").read_text(encoding="utf-8"))
-shipped = manifest["textures"]
+shipped = {k: v for k, v in manifest["textures"].items() if v.get("recipe") != "layout"}   # decision 46: the layout packages ride along (layout.json)
 
 data = {}
 for menu in MENUS:
@@ -50,7 +50,7 @@ for menu in MENUS:
         check(isinstance(row.get("shared_with"), list), f"{name}: has a shared-with list (empty when the menu owns it alone)")
 
 assets = [row.get("asset") for row in rows]
-check(len(assets) == 142, f"the data files describe 142 assets (Phase 7: 69 + 2 scrollbar materials + 4 shared icons + 13 Enchanting + 2 Spellmaking; RMI-087: 8 Enchanting + 5 Spellmaking + 4 shared button; 28a: 3 shared + 5 Inventory + 5 Alchemy; 28b: 18 Inventory + 3 Magic + 1 Alchemy; found {len(assets)})")
+check(len(assets) == 166, f"the data files describe 166 assets (RMI-096: popup paper T_UI_BackgroundHorizontal + 15 popup text packages + 4 laurel/slider textures; 2026-11-13: + icon count, rich-text default, stolen mark, Empty band; Phase 7: 69 + 2 scrollbar materials + 4 shared icons + 13 Enchanting + 2 Spellmaking; RMI-087: 8 Enchanting + 5 Spellmaking + 4 shared button; 28a: 3 shared + 5 Inventory + 5 Alchemy; 28b: 18 Inventory + 3 Magic + 1 Alchemy; found {len(assets)})")
 check(len(set(assets)) == len(assets), "no asset is listed twice across the data files")
 check(set(assets) == set(shipped), "the data files list exactly the assets of the shipped MRCustom_P")
 check(assets == list(shipped), "the data files keep the build order (inventory, magic, alchemy, common, enchanting, spellmaking)")

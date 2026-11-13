@@ -226,7 +226,7 @@ namespace sorting
 				if (!make(L"SlEnchantedHeader", L"Enchanted.png", enchantedHeader, enchantedImage, enchantedFrame, 30, true)) return false;
 				PaintEnchanted();
 			}
-			if (stolenfilter::Supports(kind) && mrconfig::Get().picker.stolenFilter) {
+			if (stolenfilter::Supports(kind, kind == 4 && container::IsBarter()) && mrconfig::Get().picker.stolenFilter) {
 				if (!make(L"SlStolenHeader", L"Stolen-Item.png", stolenHeader, stolenImage, stolenFrame, 30, true)) return false;
 				PaintStolen();
 			}

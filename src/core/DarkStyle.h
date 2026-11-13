@@ -46,8 +46,9 @@ namespace darkstyle
 		Rgb subTabDisc{ 96, 96, 96 };         // T_inv_subtabs_button_BG, the selected details sub-tab disc (shows 99 97 99)
 		Rgb subTabCircle{ 72, 72, 72 };       // T_inv_subtabs_button_BG2, the sub-tab circle (the game tints it white)
 		Rgb subTabIcon{ 228, 228, 228 };      // the sub-tab glyphs (overview, skill, enchantment; shows 231 227 231)
-		Rgb pattern{ 150, 150, 150 };         // T_Inventory_pattern, the laurels beside the action button
+		Rgb pattern{ 66, 99, 153 };          // the Laurels group (RMI-096): T_Inventory_pattern and the popup title flowers
 		Rgb enchantedDot{ 66, 99, 153 };      // T_Icon_enchanted: a round dot (radius 14.5 px) replaces the stock art
+		Rgb stolenMark{ 210, 99, 91 };        // T_Icon_stolen: our stolen shape in this colour (was a run-time swap, kStolenFill)
 		// T_inv_details_preview_frame_D: the stock brightness inverted, black -> light, white -> dark
 		Rgb previewFrameLight{ 150, 150, 150 };
 		Rgb previewFrameDark{ 30, 30, 30 };

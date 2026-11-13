@@ -119,6 +119,12 @@ namespace container
 		return content && ShownNow(g_sideShown[side == 3 ? 0 : 1], content);
 	}
 
+	bool IsBarter()
+	{
+		auto* money = FindWidget(Widget(), "cont_take_money_verticalbox");
+		return money && ui::ShownOnScreen(money);
+	}
+
 	void SetTransferHandlers(void (*a_started)(), void (*a_settled)())
 	{
 		g_transferStarted = a_started;

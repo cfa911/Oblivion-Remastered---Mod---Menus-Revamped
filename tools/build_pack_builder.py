@@ -83,7 +83,7 @@ def main():
     (dist / NAME).rename(folder)
 
     (folder / "menus").mkdir()
-    for data in sorted((ROOT / "tools/menus").glob("*.json")):
+    for data in sorted([*(ROOT / "tools/menus").glob("*.json"), *(ROOT / "tools/menus").glob("*.png")]):   # *.png: shapes
         shutil.copy2(data, folder / "menus" / data.name)
     (folder / "retoc").mkdir()
     for name in ("retoc.exe", "LICENSE"):

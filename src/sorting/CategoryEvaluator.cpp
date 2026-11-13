@@ -98,7 +98,7 @@ namespace sorting
 			(!useSecond || second.choice == second.appliedChoice) &&
 			(!useType || type.choice == type.appliedChoice))
 			return state.filtered;
-		const bool stolenOnly = primary.stolenOnly && stolenfilter::Supports(primary.kind) && (side == 1 || side == 3);
+		const bool stolenOnly = primary.stolenOnly && stolenfilter::Supports(primary.kind, primary.kind == 4 && container::IsBarter()) && (side == 1 || side == 3 || side == 4);
 		if (stolenOnly && state.stolen.size() != source.size()) {
 			state.stolen.clear();
 			for (auto* item : source) state.stolen.push_back(StolenStatus(item));
