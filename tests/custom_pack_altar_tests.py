@@ -43,9 +43,10 @@ ROWS = {
     E + "T_Enchantment_EnchantingBackground": ("enchanting", "altar_panel:enchantingFrame", ["altarPaper", "enchantingFrame"]),
     E + "T_UI_Crystal_Enchant": ("enchanting", "altar_metal:enchantingCrystal", ["enchantingCrystal"]),
     E + "T_UI_Frame_Enchant": ("enchanting", "altar_metal:enchantingOrnament", ["enchantingOrnament"]),
-    E + "Tabs/T_Enchantment_Tab_Effect": ("enchanting", "tab_strip", ["enchantingTabIcon", "enchantingTabPaper"]),
-    E + "Tabs/T_Enchantment_Tab_Gear": ("enchanting", "tab_strip", ["enchantingTabIcon", "enchantingTabPaper"]),
-    E + "Tabs/T_Enchantment_Tab_SoulGem": ("enchanting", "tab_strip", ["enchantingTabIcon", "enchantingTabPaper"]),
+    # RMI-097: the three tab strips moved to tabs.json (charcoal:enchanting, no colour element); tab_strip stays tested below
+    E + "Tabs/T_Enchantment_Tab_Effect": ("tabs", "charcoal:enchanting", []),
+    E + "Tabs/T_Enchantment_Tab_Gear": ("tabs", "charcoal:enchanting", []),
+    E + "Tabs/T_Enchantment_Tab_SoulGem": ("tabs", "charcoal:enchanting", []),
     S + "T_UI_Spellmaking-Frame": ("spellmaking", "altar_panel:spellmakingFrame", ["altarPaper", "spellmakingFrame"]),
     S + "T_UI_SpellMaking_Frame": ("spellmaking", "altar_metal:spellmakingEye", ["spellmakingEye"]),
 }

@@ -59,6 +59,8 @@ BAKED_SKIN = {"pattern": "Skin.pattern", "scrollTrack": "Skin.scrollTrack", "scr
               "ornament": "Skin.ornament", "ring": "Skin.ring", "emphasisInk": "Skin.emphasisInk"}
 # retired by phase 28b: kept in the file, no effect (the Effects/skill band art and the WBP_ModernPrefab_Button colours are baked)
 RETIRED_SKIN = ("band", "buttonFill", "buttonRule")
+# retired by RMI-097: kept in the file, no effect (every tab texture bakes from the fixed charcoal palette, recipe charcoal)
+RETIRED_TAB_KEYS = ("tabPaperDark", "tabPaperLight", "tabGlyph", "enchantingTabPaper", "enchantingTabIcon")
 SKIN_HELP = {
     "rule": "Inventory and Magic header horizontal lines",
     "guide": "Inventory and Magic header column guides",
@@ -109,11 +111,11 @@ HELP = {
     "enchantingCrystal": "Enchanting crystal under the right panel",
     "enchantingOrnament": "Enchanting ornament under the right panel",
     "spellmakingEye": "Spellmaking eye ornament under the right panel",
-    "enchantingTabPaper": "Enchanting tab strip background",
-    "enchantingTabIcon": "Enchanting tab strip icons and arrows",
-    "tabPaperDark": "Inventory and Magic category tabs - paper shadows",
-    "tabPaperLight": "Inventory and Magic category tabs - paper highlights",
-    "tabGlyph": "Inventory and Magic category tab icons and arrows",
+    "enchantingTabPaper": "Enchanting tab strip background (no effect: charcoal tabs)",
+    "enchantingTabIcon": "Enchanting tab strip icons and arrows (no effect: charcoal tabs)",
+    "tabPaperDark": "Inventory and Magic category tabs - paper shadows (no effect: charcoal tabs)",
+    "tabPaperLight": "Inventory and Magic category tabs - paper highlights (no effect: charcoal tabs)",
+    "tabGlyph": "Inventory and Magic category tab icons and arrows (no effect: charcoal tabs)",
     "detailsPage": "Inventory, Magic and shared details page brightness",
 }
 TAB_HELP = {
@@ -136,13 +138,11 @@ ROLES = {
     "emphasis": {"label": "Highlighted words (perk descriptions in the item details)", "members": ["Skin.emphasisInk"]},
     "paperShadow": {"label": "Page paper - shadows (all menus with paper: details pages, Alchemy, Enchanting, Spellmaking, "
                              "Container, Repair, Recharge, Training, Sigil Stone, Help)",
-                    "members": ["parchmentDark", "altarPaper", "enchantingTabPaper", "detailsPage"]},
+                    "members": ["parchmentDark", "altarPaper", "detailsPage"]},
     "paperLight": {"label": "Page paper - highlights (all menus with paper)", "members": ["parchmentLight"]},
-    "tabShadow": {"label": "Category tabs paper - shadows (Inventory, Magic)", "members": ["tabPaperDark"]},
-    "tabLight": {"label": "Category tabs paper - highlights (Inventory, Magic)", "members": ["tabPaperLight"]},
     "listPanel": {"label": "List background and frame (Inventory, Magic, Container, Barter)", "members": ["panel", "frame"]},
     "lines": {"label": "Lines and separators (all menus)", "members": ["rowSeparator", "columnLine", "Skin.ornament"]},
-    "icons": {"label": "Icons (all menus)", "members": ["rowIcon", "headerIcon", "subTabIcon", "tabGlyph", "enchantingTabIcon"]},
+    "icons": {"label": "Icons (all menus)", "members": ["rowIcon", "headerIcon", "subTabIcon"]},
     "highlight": {"label": "Highlighted row and hover (all menus)",
                   "members": ["listHighlight", "filterHover", "subTabDisc", "subTabCircle"]},
     "equipped": {"label": "Equipped item band (all lists)", "members": ["rowEquipped"]},
@@ -240,7 +240,7 @@ def render(values, skin=None, roles=None, sizes=None):
              "; [Skin]: linear red, green, blue, alpha (0-1); the three scrollbar entries are single numbers.",
              "; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern, ornament, ring, emphasisInk and the scrollbar.",
              "; Other active [Skin] edits need a restart.",
-             "; [Colours] pickerIcon and the [Tab] entries are retained with no effect in this build (tabs: tabPaperDark, tabPaperLight, tabGlyph).",
+             "; [Colours] pickerIcon, tabPaperDark, tabPaperLight, tabGlyph, enchantingTabPaper, enchantingTabIcon and the [Tab] entries are retained with no effect in this build (the tabs bake from a fixed charcoal palette).",
              "; [Skin] band, buttonFill and buttonRule are retained with no effect in this build (baked into the game's art).",
              "", "[Colours]"]
     for name in list(COLOURS) + list(NUMBERS):

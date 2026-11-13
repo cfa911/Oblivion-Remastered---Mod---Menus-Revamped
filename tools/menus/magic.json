@@ -27,11 +27,6 @@
     {"asset": "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Lesser_Power", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
     {"asset": "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Scroll", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
     {"asset": "Art/UI/Modern/GameMenuLayer/magic/SpellType/T_MagicMenuIcon_Spell", "recipe": "flat:rowIcon", "colours": ["rowIcon"], "shared_with": []},
-    {"asset": "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Self", "recipe": "tab_paper", "colours": ["tabGlyph", "tabPaperDark", "tabPaperLight"], "shared_with": []},
-    {"asset": "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Touch", "recipe": "tab_paper", "colours": ["tabGlyph", "tabPaperDark", "tabPaperLight"], "shared_with": []},
-    {"asset": "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Target", "recipe": "tab_paper", "colours": ["tabGlyph", "tabPaperDark", "tabPaperLight"], "shared_with": []},
-    {"asset": "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_All", "recipe": "tab_paper", "colours": ["tabGlyph", "tabPaperDark", "tabPaperLight"], "shared_with": []},
-    {"asset": "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_ActiveEffect", "recipe": "tab_paper", "colours": ["tabGlyph", "tabPaperDark", "tabPaperLight"], "shared_with": []},
     {"asset": "UI/Modern/GameMenuLayer/Magic/WBP_ModernMenu_MagicDetails", "recipe": "bp_colour:WBP_ModernMenu_MagicDetails", "colours": ["rowText"], "shared_with": ["Spell Purchase (the same details view)"]},
     {"asset": "Art/UI/Common/T_Diamond_Brown_Separator", "recipe": "skin_flat:ornament:235", "colours": ["Skin.ornament"], "shared_with": ["Magic details only"]},
     {"asset": "Art/UI/Modern/GameMenuLayer/CharacterCreation/T_Character_Line_Long", "recipe": "skin_flat:ornament:235", "colours": ["Skin.ornament"], "shared_with": ["Spell Purchase", "Character Creation pages", "Lock Pick", "Recharge", "Repair", "Settings", "player menu header and footer"]}

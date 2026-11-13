@@ -33,7 +33,7 @@ from pack_builder import model  # noqa: E402
 ROLES = getattr(cc, "ROLES", None)
 check(isinstance(ROLES, dict) and ROLES, "custom_colours.ROLES exists")
 ROLES = ROLES or {}
-RETIRED = {"pickerIcon"} | {f"Skin.{n}" for n in cc.RETIRED_SKIN}
+RETIRED = {"pickerIcon"} | {f"Skin.{n}" for n in cc.RETIRED_SKIN} | set(cc.RETIRED_TAB_KEYS)   # RMI-097: the tab keys have no effect
 RUNTIME = {"Skin.rule", "Skin.guide"}
 
 # ---- the role table (decision 39) ----
@@ -51,8 +51,8 @@ check(body and set(ROLES[body[0]]["members"]) == {"rowText", "nameBox"} and "all
 paper = [k for k, r in ROLES.items() if "parchmentDark" in r.get("members", ()) or "parchmentLight" in r.get("members", ())]
 check(len(paper) == 2 and "parchmentDark" in ROLES[paper[0]]["members"] and "parchmentLight" in ROLES[paper[1]]["members"],
       f"the parchments are one shadow + highlight pair of roles ({paper})")
-check(all(m in fed for m in ("altarPaper", "enchantingTabPaper", "detailsPage")) and
-      all(fed[m][0] in paper for m in ("altarPaper", "enchantingTabPaper", "detailsPage")),
+check(all(m in fed for m in ("altarPaper", "detailsPage")) and
+      all(fed[m][0] in paper for m in ("altarPaper", "detailsPage")),   # RMI-097: enchantingTabPaper retired
       "the single-value page papers are fed by the page paper pair")
 scroll = [k for k, r in ROLES.items() if "Skin.scrollTrack" in r.get("members", ())]
 check(scroll and "all menus but settings" in ROLES[scroll[0]]["label"].lower(), "Scrollbars (all menus but Settings)")

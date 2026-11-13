@@ -55,21 +55,6 @@
       247.0,
       247.0
     ],
-    "tabPaperDark": [
-      17.0,
-      17.0,
-      17.0
-    ],
-    "tabPaperLight": [
-      30.0,
-      30.0,
-      30.0
-    ],
-    "tabGlyph": [
-      255.0,
-      255.0,
-      255.0
-    ],
     "pattern": [
       66.0,
       99.0,
@@ -182,16 +167,6 @@
     "Skin.scrollTrack": 0.0052,
     "Skin.scrollBorder": 0.0052,
     "Skin.scrollInside": 0.0222,
-    "enchantingTabIcon": [
-      255.0,
-      255.0,
-      255.0
-    ],
-    "enchantingTabPaper": [
-      27.0,
-      27.0,
-      29.0
-    ],
     "enchantingFrame": [
       67.0,
       75.0,
@@ -405,56 +380,6 @@
       ],
       "stock_uexp_sha256": "ca2caf8b776ed8b029e58abd4a42c8e87a07f8a446bde97f34d3b85d7eb8e363",
       "baked_uexp_sha256": "2bd2bb44a11d56c0b31b41efe9955b1de1c3ad09d44c6c1dacb9f0970f2030ef"
-    },
-    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_weapons": {
-      "recipe": "tab_paper",
-      "style": [
-        "tabGlyph",
-        "tabPaperDark",
-        "tabPaperLight"
-      ],
-      "stock_uexp_sha256": "c519c67f16301db9383d027985ccf48149bafff6574898dd0b4a91b014fa2c0a",
-      "baked_uexp_sha256": "3ae51d1da3e6039e5f3e6a49e83cddddceccefc71e36cc328010fc09d5c5a730"
-    },
-    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_armor": {
-      "recipe": "tab_paper",
-      "style": [
-        "tabGlyph",
-        "tabPaperDark",
-        "tabPaperLight"
-      ],
-      "stock_uexp_sha256": "e755851045304f7c449e27041aaa6bd250033d96be1cad4f008f73ec7b5b398b",
-      "baked_uexp_sha256": "ade72c0181901e8580a97391d4bf25fb216589541bfea3a154241f63db219bcf"
-    },
-    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_alchemy": {
-      "recipe": "tab_paper",
-      "style": [
-        "tabGlyph",
-        "tabPaperDark",
-        "tabPaperLight"
-      ],
-      "stock_uexp_sha256": "cedc30a0da4bd87e452cbce103eb3e76e60f5ed471adeaa7046799d596976d74",
-      "baked_uexp_sha256": "ec87a8c3e0939979b0ce9dadef8e177a3979166bc51d0bd76630f286b84e8a07"
-    },
-    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_misc": {
-      "recipe": "tab_paper",
-      "style": [
-        "tabGlyph",
-        "tabPaperDark",
-        "tabPaperLight"
-      ],
-      "stock_uexp_sha256": "80718c7ee443a80b96a4c27c80668b4e8f4f0ca15767dee77ff8533d84638189",
-      "baked_uexp_sha256": "9287ac78c83062c3e07988233acb242e9031768c51ac4223fc20125cc7bf6ae6"
-    },
-    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_all": {
-      "recipe": "tab_paper",
-      "style": [
-        "tabGlyph",
-        "tabPaperDark",
-        "tabPaperLight"
-      ],
-      "stock_uexp_sha256": "5b4f131e69c3b13a32c1dd3117a49469558e63ee1888cf7b0e2950e215e02bb2",
-      "baked_uexp_sha256": "8824cdb526966be22f3f684da34d8dc433d9cdc7db1a3a8cf87e45e1421a6368"
     },
     "Art/UI/Modern/GameMenuLayer/Inventory/T_InventoryPreview_Background_D": {
       "recipe": "gray_smooth:1.5",
@@ -830,56 +755,6 @@
       ],
       "stock_uexp_sha256": "08c8cc76532b978a85efd23a9e3eae7971203615cd0a3ac287aad3110c3aa73c",
       "baked_uexp_sha256": "94c707b9868ce45dbf94db75146fc235df3da4e60280d781d5fb2b7a110d8d0f"
-    },
-    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Self": {
-      "recipe": "tab_paper",
-      "style": [
-        "tabGlyph",
-        "tabPaperDark",
-        "tabPaperLight"
-      ],
-      "stock_uexp_sha256": "b46afb3cc5314dd293248f2f90988c6f1d2317d47764fccf3d6de40bcef466e7",
-      "baked_uexp_sha256": "1c463c3ec8c5e86241f9ad05f4ebe41178d0463271ab4b40a80409fcc5adaa0b"
-    },
-    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Touch": {
-      "recipe": "tab_paper",
-      "style": [
-        "tabGlyph",
-        "tabPaperDark",
-        "tabPaperLight"
-      ],
-      "stock_uexp_sha256": "6930ff1fd76e6da943faeef31da84905c66d4df6fe6b7b42f7e45df3ff4a939c",
-      "baked_uexp_sha256": "22fe6a4e470b6a63bdc4c3264bc86c236feeff2473aaf0ec62ff26b3270ffe49"
-    },
-    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Target": {
-      "recipe": "tab_paper",
-      "style": [
-        "tabGlyph",
-        "tabPaperDark",
-        "tabPaperLight"
-      ],
-      "stock_uexp_sha256": "dc9af1da0c35c32925de88c4131e5312629f15826986ff661af26a17ec2fbc05",
-      "baked_uexp_sha256": "2530f6fe67b20949d404594a30fb1a7a92349ad0d1dfc6eae9c52cd8b899dbfd"
-    },
-    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_All": {
-      "recipe": "tab_paper",
-      "style": [
-        "tabGlyph",
-        "tabPaperDark",
-        "tabPaperLight"
-      ],
-      "stock_uexp_sha256": "af11fc8b664d399a04e67bafce9cf4e21535efd1f57bd0a403251170842c2e36",
-      "baked_uexp_sha256": "6447b844bc863bbac6325b8a4263c934939df9305a948722666745c238e3fa12"
-    },
-    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_ActiveEffect": {
-      "recipe": "tab_paper",
-      "style": [
-        "tabGlyph",
-        "tabPaperDark",
-        "tabPaperLight"
-      ],
-      "stock_uexp_sha256": "20e789f9ac55213e9c5e7f7b1ae3354bde4dd1016c6e8f86c35ca84248ed9006",
-      "baked_uexp_sha256": "0e58a6d9941b726648c9d3405e634b5224f02e4483d73d825d2d84bd9f21ae75"
     },
     "UI/Modern/GameMenuLayer/Magic/WBP_ModernMenu_MagicDetails": {
       "recipe": "bp_colour:WBP_ModernMenu_MagicDetails",
@@ -1419,33 +1294,6 @@
       "stock_uexp_sha256": "d90d5a30616bddad171f5f0385f1b9aa4f0dca680a14fa29ed5f8b4b9e67f6ef",
       "baked_uexp_sha256": "773c309bbbb72db3e9dfe28fa784f73780c19bdc8004e2211e791b30b33d0510"
     },
-    "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Effect": {
-      "recipe": "tab_strip",
-      "style": [
-        "enchantingTabIcon",
-        "enchantingTabPaper"
-      ],
-      "stock_uexp_sha256": "24b1836206ec9314ae2a1f5cd773e6701a9bce22dfed08c7f72fd60764cf322c",
-      "baked_uexp_sha256": "daee76dbb9547ff5a2bfafd658dc1802ca33adda75df8ff9bb4473285d07ac00"
-    },
-    "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Gear": {
-      "recipe": "tab_strip",
-      "style": [
-        "enchantingTabIcon",
-        "enchantingTabPaper"
-      ],
-      "stock_uexp_sha256": "e0ef854af366c390de9f9dbc29100b84d6d45068da73158f6c720a7bc903a437",
-      "baked_uexp_sha256": "4e24eb82a6752a8c5067187dbe12c776142f1730f508bdb41e959e74d5a3d827"
-    },
-    "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_SoulGem": {
-      "recipe": "tab_strip",
-      "style": [
-        "enchantingTabIcon",
-        "enchantingTabPaper"
-      ],
-      "stock_uexp_sha256": "96ff3e40aab5dd677573b9a6e91712b6fc6445aed497af9c01378cddeb34656e",
-      "baked_uexp_sha256": "ac82fa5e30b1fe58ad326312a1308cb9bc5af07bf973c292ed61b041bb93ca65"
-    },
     "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Effects_icon": {
       "recipe": "flat:headerIcon",
       "style": [
@@ -1649,6 +1497,234 @@
       "stock_uexp_sha256": "dbce4205aac6a7e0cf72d507c8c7a80745ce5ef5a4b9329af83a5a9d58a45aca",
       "baked_uexp_sha256": "f86dd181c2eb4629086c247986f5e088cfa83cc8eab7e9a96c5f227962b700b4"
     },
+    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_weapons": {
+      "recipe": "charcoal:inventory",
+      "style": [],
+      "stock_uexp_sha256": "c519c67f16301db9383d027985ccf48149bafff6574898dd0b4a91b014fa2c0a",
+      "baked_uexp_sha256": "c8a09be0618c73d6bfe981f2bbbb4c13140ebef1da56b90e847abe3f0d3635c3"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_armor": {
+      "recipe": "charcoal:inventory",
+      "style": [],
+      "stock_uexp_sha256": "e755851045304f7c449e27041aaa6bd250033d96be1cad4f008f73ec7b5b398b",
+      "baked_uexp_sha256": "226da7807e3d9466ddc15e1f9087bdc8ca06be7ba2204eb9f9bbfa5b9f4dc217"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_alchemy": {
+      "recipe": "charcoal:inventory",
+      "style": [],
+      "stock_uexp_sha256": "cedc30a0da4bd87e452cbce103eb3e76e60f5ed471adeaa7046799d596976d74",
+      "baked_uexp_sha256": "83c8ad11de93ed4fc844d8a4e9c539f10744ae07d067bdb798a4294681c5a2cd"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_misc": {
+      "recipe": "charcoal:inventory",
+      "style": [],
+      "stock_uexp_sha256": "80718c7ee443a80b96a4c27c80668b4e8f4f0ca15767dee77ff8533d84638189",
+      "baked_uexp_sha256": "64ec74df9717d4210a8c8562426a440208dd2e48db56b9eb3f7ddb1aeb475eca"
+    },
+    "Art/UI/Modern/GameMenuLayer/Inventory/Tabs/T_Tab_all": {
+      "recipe": "charcoal:inventory",
+      "style": [],
+      "stock_uexp_sha256": "5b4f131e69c3b13a32c1dd3117a49469558e63ee1888cf7b0e2950e215e02bb2",
+      "baked_uexp_sha256": "79d58450ec75ff71694deffac1285aadb0c8594e6e2b2fe0d3827601e00099ca"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Self": {
+      "recipe": "charcoal:magic",
+      "style": [],
+      "stock_uexp_sha256": "b46afb3cc5314dd293248f2f90988c6f1d2317d47764fccf3d6de40bcef466e7",
+      "baked_uexp_sha256": "3548d6255f048c259567c52837d118606fb5247320e6ccc2449a79819c2a740f"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Touch": {
+      "recipe": "charcoal:magic",
+      "style": [],
+      "stock_uexp_sha256": "6930ff1fd76e6da943faeef31da84905c66d4df6fe6b7b42f7e45df3ff4a939c",
+      "baked_uexp_sha256": "0b8dea5ae7e0c6c8a32d2b06a6f4f2c0092e09d3a61330a99454a140867013e6"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_Target": {
+      "recipe": "charcoal:magic",
+      "style": [],
+      "stock_uexp_sha256": "dc9af1da0c35c32925de88c4131e5312629f15826986ff661af26a17ec2fbc05",
+      "baked_uexp_sha256": "d9ca431081db79ba2242b97501c136300a260bc26b8d632a6f9c9d94bbeddd4f"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_All": {
+      "recipe": "charcoal:magic",
+      "style": [],
+      "stock_uexp_sha256": "af11fc8b664d399a04e67bafce9cf4e21535efd1f57bd0a403251170842c2e36",
+      "baked_uexp_sha256": "4b5f9a6ca7a0a15620a6f57480d9c7b9c30c8f1ee155f4bd58032d48679ce099"
+    },
+    "Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_ActiveEffect": {
+      "recipe": "charcoal:magic",
+      "style": [],
+      "stock_uexp_sha256": "20e789f9ac55213e9c5e7f7b1ae3354bde4dd1016c6e8f86c35ca84248ed9006",
+      "baked_uexp_sha256": "7d874284cbe8c9d63d978454ae34adb346ea471318408fa2120b058d89a036da"
+    },
+    "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Gear": {
+      "recipe": "charcoal:enchanting",
+      "style": [],
+      "stock_uexp_sha256": "e0ef854af366c390de9f9dbc29100b84d6d45068da73158f6c720a7bc903a437",
+      "baked_uexp_sha256": "c02daa511090d16a2ac1edaa7f98911b48917151f01aeb08e46dbe9408c5ad64"
+    },
+    "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_SoulGem": {
+      "recipe": "charcoal:enchanting",
+      "style": [],
+      "stock_uexp_sha256": "96ff3e40aab5dd677573b9a6e91712b6fc6445aed497af9c01378cddeb34656e",
+      "baked_uexp_sha256": "b09550e95477532de7e2e2c0818e3a2ec2d7c4de0c2162d82cf9d958ae9b63ed"
+    },
+    "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Effect": {
+      "recipe": "charcoal:enchanting",
+      "style": [],
+      "stock_uexp_sha256": "24b1836206ec9314ae2a1f5cd773e6701a9bce22dfed08c7f72fd60764cf322c",
+      "baked_uexp_sha256": "a3eba2bce1642cacd1a8ffaeb18d43a274af17a3ca03701421c2565cbdb835ae"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_AvailableQuestTabSelected": {
+      "recipe": "charcoal:quests",
+      "style": [],
+      "stock_uexp_sha256": "63775a1a01f64c4224454b120223b8678afba2dd7e217cf7452b9ad3305fd048",
+      "baked_uexp_sha256": "196bb1eb3e6ebee658f8b9a83a2cfe1dc1576723bfb890a01b0025705ad020ed"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_CompletedQuestTabSelected": {
+      "recipe": "charcoal:quests",
+      "style": [],
+      "stock_uexp_sha256": "24ade52360e5e60dd12f92c1122e46b955f9c8fc8b64dc90097b34202650a931",
+      "baked_uexp_sha256": "536b405079416cd0594a35a679ba1ace3c33d3671ca49bbf7fafbd3bcf8579aa"
+    },
+    "Art/UI/Common/Tabs/T_Tab_1": {
+      "recipe": "charcoal",
+      "style": [],
+      "stock_uexp_sha256": "3e49e13ea1f5b61803b9f9d9999aa5eebff24172d7660a6067a22b06ae26f89b",
+      "baked_uexp_sha256": "d5ce14f4004147ec2b01cd33e379d0c9ae9ddf356536af04f3618ca9ec9796d4"
+    },
+    "Art/UI/Common/Tabs/T_Tab_2": {
+      "recipe": "charcoal",
+      "style": [],
+      "stock_uexp_sha256": "39d72b338a103867c342915cc767944e363d308d155ed26fb4527d236bdb27a4",
+      "baked_uexp_sha256": "97e205e1bf76b5c8bf9bd2635d4b62db1e741ed86a9e1296054a39470e0a1317"
+    },
+    "Art/UI/Common/Tabs/T_Tab_3": {
+      "recipe": "charcoal",
+      "style": [],
+      "stock_uexp_sha256": "d712d24bc8d5dbe27ee55583b0324bc73f333bf3804fc357eec74c8e1f42f3a0",
+      "baked_uexp_sha256": "548cf31701c021d70c861fd80623b2ec6e350b7870afe5875d94ac81c53dbe2d"
+    },
+    "Art/UI/Common/Tabs/T_Tab_4": {
+      "recipe": "charcoal",
+      "style": [],
+      "stock_uexp_sha256": "e844d65f007a1255c743ee76db5531077566a0974f76e144d657a58a5f3c52f2",
+      "baked_uexp_sha256": "cc5d696983ac03ac44007d23499505bed6e0edebbf32b476c3029be3cfa25631"
+    },
+    "Art/UI/Common/Tabs/T_Tab_5": {
+      "recipe": "charcoal",
+      "style": [],
+      "stock_uexp_sha256": "94964d274e1886d942b20c9714375fc6141ac1353df6463cf698eb080c3e8be5",
+      "baked_uexp_sha256": "b194004b69408f73e7302c3a467aaa3b6ad2b8199f48aebd744267583de712ed"
+    },
+    "Art/UI/Common/T_Tab_arrow_on": {
+      "recipe": "charcoal:glyph",
+      "style": [],
+      "stock_uexp_sha256": "34ffdf7d8fc280760d796facae78b12ed0c3a3046c11fb0caf5382457993b1c6",
+      "baked_uexp_sha256": "97bae8f23a58d884ada9249e2d9d01e536ae5cd9f7245044991cc046916f7727"
+    },
+    "Art/UI/Common/T_Tab_arrow_off": {
+      "recipe": "charcoal:glyph",
+      "style": [],
+      "stock_uexp_sha256": "0238cb03c53e6e35cde2dd53b165d2e46bb6002638ed61fd26d0079e9db777dd",
+      "baked_uexp_sha256": "3881acd3e1765b05413c87ef5b25bd7ce9132522da5b56dc24434d228cda1dc8"
+    },
+    "Art/UI/Icons/Icon_Category/T_Category_attributes": {
+      "recipe": "charcoal:emblem",
+      "style": [],
+      "stock_uexp_sha256": "33728a6ec50bf9a083d08f99ecab74a5c53023e360a5bac7dabc6635f3658631",
+      "baked_uexp_sha256": "eff457fa270604ab663b884dc312fc306fabd064da56de7c69f3ad4d9597414c"
+    },
+    "Art/UI/Icons/Icon_Category/T_Category_def": {
+      "recipe": "charcoal:emblem",
+      "style": [],
+      "stock_uexp_sha256": "be355d2ff853dbf8514416db8d2419da1b418327a603350340fbbb9e831f566f",
+      "baked_uexp_sha256": "9e3e8e9ef0e75bc67e2e0c153862dde04c06488eebc49ca29846ca58b0faabb9"
+    },
+    "Art/UI/Icons/Icon_Category/T_Category_details": {
+      "recipe": "charcoal:emblem",
+      "style": [],
+      "stock_uexp_sha256": "d55a014272187ee85990a25396e499b879b430cec689d3c04caa4b8c1c254e9f",
+      "baked_uexp_sha256": "8e18d0db1951f69119ffe40f9b7fa0aa6f9cff7296e2ce65b227ff0b15f84553"
+    },
+    "Art/UI/Icons/Icon_Category/T_Category_factions": {
+      "recipe": "charcoal:emblem",
+      "style": [],
+      "stock_uexp_sha256": "399a0e2c24b49ef2064e281d09c3d1ce536aefaf60c704fdbe5a357ec5979325",
+      "baked_uexp_sha256": "27d187c6ab13096a85bcab3da2a55d7c5947b6c26632e836cd35eacd75d5e0be"
+    },
+    "Art/UI/Icons/Icon_Category/T_Category_skills": {
+      "recipe": "charcoal:emblem",
+      "style": [],
+      "stock_uexp_sha256": "e1313048b6123a11365caae3f5756bd0ff4e38f1de1dd095070c10e2497eca3e",
+      "baked_uexp_sha256": "4bf9f8218333468d68d1e9adba92e2adf1c7deba8cd3b1ce2782879abdca3bc2"
+    },
+    "Art/UI/Modern/GameMenuLayer/SkillAndClass/PaperTabs/T_UI_SkillClass_PaperTab_Selected": {
+      "recipe": "charcoal:flourish",
+      "style": [],
+      "stock_uexp_sha256": "a1c1657faf0fd92911214a55d4d3409824041ec6e548bd731a46dc4621098d43",
+      "baked_uexp_sha256": "c8ae242774b9509aab8abf9bb0f54ee0772a2c00228e36a9fe5e569ac15b0328"
+    },
+    "Art/UI/Modern/GameMenuLayer/SkillAndClass/PaperTabs/T_UI_SkillClass_LeftPaperTab_Active": {
+      "recipe": "charcoal:flourish",
+      "style": [],
+      "stock_uexp_sha256": "dbec2c0b9ef700e74e95df595016d33054358471a98a732816b8ef8eaba647d0",
+      "baked_uexp_sha256": "041c752a788eea39020c18acd5808160c37ff91c386729efec4a56d4d147a21a"
+    },
+    "Art/UI/Modern/GameMenuLayer/SkillAndClass/PaperTabs/T_UI_SkillsClass_TabLeft_On": {
+      "recipe": "charcoal:laurel",
+      "style": [],
+      "stock_uexp_sha256": "1adce5f50836d5a5d07c35da1b2c8d2ade719280d97c0437469bcbe8e93fb08b",
+      "baked_uexp_sha256": "423ee97b790d0c1a6545ae51d87403e8d21a40165a91f8af98d6ad4417bf6829"
+    },
+    "Art/UI/Modern/GameMenuLayer/SkillAndClass/PaperTabs/T_UI_SkillsClass_TabMiddle_On": {
+      "recipe": "charcoal:laurel",
+      "style": [],
+      "stock_uexp_sha256": "afaac0d29f80fa8271583f4bc15623d3ec25e632ede22ba91c55c88b2d5ed910",
+      "baked_uexp_sha256": "02c0b1148d78dd43694525a99089c1dad61324968f80ed8613535a037759fe4d"
+    },
+    "Art/UI/Modern/GameMenuLayer/SkillAndClass/PaperTabs/T_UI_SkillsClass_TabRight_On": {
+      "recipe": "charcoal:laurel",
+      "style": [],
+      "stock_uexp_sha256": "18d86504ed4689f7c16347008daab28e1cca19593e6e5397f49374acd0f5499b",
+      "baked_uexp_sha256": "50437f14f70fe1f2314c8e3ad230ecbcfc711f9c33604675af725eeb400134eb"
+    },
+    "Art/UI/Modern/GameMenuLayer/SkillAndClass/PaperTabs/T_UI_SkillClass_PaperTab_Unselected": {
+      "recipe": "charcoal:paper",
+      "style": [],
+      "stock_uexp_sha256": "a4ef95e884e7486112be0570f30c4f9361cec4a21a4f7f84c26d1c1add561698",
+      "baked_uexp_sha256": "bb70dbd5df81d67575ea89295a592e6596c04a373427ec17dce1662c76fc485c"
+    },
+    "Art/UI/Modern/GameMenuLayer/SkillAndClass/PaperTabs/T_UI_SkillClass_LeftPaperTab_Inactive": {
+      "recipe": "charcoal:paper",
+      "style": [],
+      "stock_uexp_sha256": "16c4096ec124a9abbc4709b323f3cff89de4cad9fc45a0b262e68395c5366c55",
+      "baked_uexp_sha256": "31bdb39609ca92476ab35c06d2a6f78a2f734241faed823b1edd92c86c0b29c1"
+    },
+    "Art/UI/Modern/GameMenuLayer/SkillAndClass/PaperTabs/T_UI_SkillsClass_TabLeft_Off": {
+      "recipe": "charcoal:paper",
+      "style": [],
+      "stock_uexp_sha256": "7e6206650577fc94143a455fdd3b4d321462799b5ea2084b6c1560d7b19c77d0",
+      "baked_uexp_sha256": "b962951a4c77fad628b3e85f27efe79637bbc20096ccb24eebb3c9f476bc0230"
+    },
+    "Art/UI/Modern/GameMenuLayer/SkillAndClass/PaperTabs/T_UI_SkillsClass_TabMiddle_Off": {
+      "recipe": "charcoal:paper",
+      "style": [],
+      "stock_uexp_sha256": "ed11c6a995b7e794ff0f72b4ad5a15493b76e1aa7361244a93087b229d0c22ff",
+      "baked_uexp_sha256": "3c556df17e9a70d9ae4f7f326977e7e24007b479d4476d63de2bf959fa92b50d"
+    },
+    "Art/UI/Modern/GameMenuLayer/CharacterCreation/T_Character_BG_Tab_L": {
+      "recipe": "charcoal:header_l",
+      "style": [],
+      "stock_uexp_sha256": "6261c03f406a1097aace1d9865d10ec3b13238b2e95e2df9f780c4b3266f55a7",
+      "baked_uexp_sha256": "72cec8cabd80834aadf3d7ece00486d372b6c8553a23b6df2ac2cd7eb377cd5f"
+    },
+    "Art/UI/Modern/GameMenuLayer/CharacterCreation/T_Character_BG_Tab_R": {
+      "recipe": "charcoal:header_r",
+      "style": [],
+      "stock_uexp_sha256": "df037c3ad9ddcecfc63388774dce8dd8c769aae5825cf917f7728d53b16f4535",
+      "baked_uexp_sha256": "b0cc2b941a28f97121bea77e346af4b00c4911116b0767173a786cafd045e136"
+    },
     "UI/Modern/GameMenuLayer/magic/WBP_ModernMenu_MagicEntry": {
       "recipe": "layout",
       "stock_uexp_sha256": "b898fca2c9bcef7841d5e3908864b731655e21436e6732905941b2ff7b8ddf39",
@@ -1723,7 +1799,7 @@
   },
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "0631e85894988ed675004bb8412fb979245b494b847b85f65736deabc763dc17",
-    "MRCustom_P.ucas": "bc262f310dcf8c1035edbbadffe0fc67ee951db8396f83d7a860f4c743d998ff"
+    "MRCustom_P.utoc": "258fefa2b863276eb35e221958a917c9e7070cac5e0f646ef33be3e2dc9cd61e",
+    "MRCustom_P.ucas": "2d3eaf1ffe10c5302f1251b29d0287d14aace7f7610c39c8fd4b4dbe0a276cb1"
   }
 }

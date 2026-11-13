@@ -73,6 +73,8 @@ class Entry:
             return "Build pack" if self.name in cc.BAKED_SKIN else "Restart game"
         if self.section == "Tab":
             return "Inactive"   # retired by decision 34: the tabs bake from tabPaperDark/tabPaperLight/tabGlyph
+        if self.name in cc.RETIRED_TAB_KEYS:
+            return "Inactive"   # RMI-097: the tabs bake from the fixed charcoal palette (recipe charcoal)
         return "Inactive" if self.name in ("rowSeparator", "pickerIcon") else "Build pack"
 
     @property
