@@ -41,7 +41,7 @@ check(not source_paths.function(src, "void StyleDetailsButton("),
 check('L"Color"' not in src and "Role::Ring" not in src, "phase 28b (decision 28): the item details are baked in the Custom pack; the skill ring colour is baked (MIC_UI_SkillCircularProgress)")
 import re
 skin_h = (source_paths.ROOT / "src/core/UiTheme.h").read_text(encoding="utf-8")
-files = set(re.findall(r'L"([A-Za-z0-9]+\.png)"', skin_h))
+files = set(re.findall(r'L"([A-Za-z0-9_-]+\.png)"', skin_h))
 missing = [f for f in files if not (source_paths.ROOT / "assets/Skin" / f).is_file()]
 check(bool(files) and not missing, f"every Dark art file is shipped in assets/Skin (missing: {missing})")
 popup = (source_paths.ROOT / "src/sorting/PickerPopup.cpp").read_text(encoding="utf-8-sig")
@@ -92,7 +92,7 @@ check("OnMagicRowBound" in layout and "WatchDetails" not in layout,
       "the Magic header layout hooks its rows (generated, not in the menu tree); its details are baked (phase 28b)")
 check("StyleListScrollbar" not in layout, "the Magic list scrollbar is not painted at run time (baked)")
 page = source_paths.function(src, "void StyleMagicPage(")
-check(bool(page) and "IsMagicPage(" in page and "SwapArt(" in page, "the Magic page takes its white-shape art in the panel colour, per widget")
+check(bool(page) and "IsMagicPage(" not in page and "SwapArt(" not in page, "the Magic page is baked (RMI-091): no per-widget swap")
 check("menuskin::StyleMagicPage(" in layout, "the Magic layout applies the page tint")
 bar = (source_paths.ROOT / "src/search/SearchBar.cpp").read_text(encoding="utf-8-sig")
 check("SearchFor(" in bar and "menus::Menu::kMagic" in source_paths.function(bar, "const uistyle::Search& BarStyle("),
@@ -166,29 +166,16 @@ check("T_Category_OnSelf" in (source_paths.ROOT / "tools/menus/magic.json").read
 # The Inventory method: its installed panel art (MRSkinPlayerPanel_P, T_UI_PlayerMenu_Background) is a tone curve on the stock
 # brightness (<= 40 -> frame 16, >= 124 -> body 41, linear between: the ornament bar keeps its relief), drawn untinted; its
 # details page is the game's own page widget tinted pageGray. No overlay box of ours (it stayed up: RMI-082).
-try:
-    from PIL import Image
-    from collections import Counter
-    path = source_paths.ROOT / "assets/Skin/MagicPage.png"
-    img = Image.open(path).convert("RGBA") if path.is_file() else None
-    opaque = [q[:3] for q in img.get_flattened_data() if q[3] > 0] if img else []
-    common = [c for c, _ in Counter(opaque).most_common(2)]
-    check(common == [(41, 41, 41), (16, 16, 16)], f"MagicPage.png is the Inventory panel art: body 41, frame 16 ({common})")
-    check(bool(opaque) and all(16 <= c[0] <= 41 and c[0] == c[1] == c[2] for c in opaque),
-          "MagicPage.png stays inside the Inventory curve (gray 16 to 41)")
-    bar = {img.getpixel((x, y))[0] for y in range(0, 60) for x in range(200, 824)} if img else set()
-    check(len(bar) >= 10, f"the ornament bar keeps its relief ({len(bar)} grays in the bar)")
-except ImportError:
-    check(False, "Pillow is needed for the round 8 art checks")
+check(not (source_paths.ROOT / "assets/Skin/MagicPage.png").exists(), "RMI-091: no MagicPage.png (the Magic page is baked)")
 check("PlaceDetailsPage" not in src and "MrMagicDetailsPage" not in src, "no page box of ours on the details' root canvas (RMI-082)")
 check("PlaceMagicPage" not in src and "MrDarkDetailsPage" not in src,
       "phase 3: no details page overlay of ours (the pack's dark parchment is drawn by the game's own paper material)")
 theme_dark = re.search(r"&darkstyle::Style::panel", skin_h)
-check('"T_MagicBackground", L"MagicPage.png" }' in skin_h and not theme_dark, "the Magic page art is drawn untinted (its colours are baked)")
+check('L"MagicPage.png"' not in skin_h and not theme_dark, "the Magic page is baked into the pack (RMI-091): no swap, no tint")
 check("detailsPage" in skin_h, "the details page tint (pageGray) comes from DarkStyle.h detailsPage")
 tab_tool8 = (source_paths.ROOT / "tools/make_dark_tab_art.py").read_text(encoding="utf-8")
-check("frame" in tab_tool8 and "124" in tab_tool8 and "DetailsPage" not in tab_tool8,
-      "the page art tool applies the Inventory curve with panel/frame from DarkStyle.h")
+check("DetailsPage" not in tab_tool8 and "inventory_page" not in tab_tool8,
+      "the tab tool makes no page art (the Magic page is baked by the pack builder, RMI-091)")
 # ---- Round 9 (owner 2026-11-10): row icons as white shapes drawn in rowIcon. Phase 3: the six school icons are baked into the
 # pack (Magic-only); the 11 _ListSmall type icons stay run-time swaps (Sigil Stone and the effect lists use them too). ----
 ROW_ICONS = ["T_MagicMenuIcon_" + n + "_ListSmall" for n in ("Ability", "Disease", "Enchantment", "GreaterPower", "LesserPower", "Poison",

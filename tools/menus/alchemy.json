@@ -23,7 +23,7 @@
     {"asset": "Art/UI/Modern/GameMenuLayer/Spellmaking/T_Spellmaking_LeftPaperBackground", "recipe": "parchment", "colours": ["parchmentDark", "parchmentLight"], "shared_with": ["Spellmaking"]},
     {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_paper_bg", "recipe": "parchment", "colours": ["parchmentDark", "parchmentLight"], "shared_with": []},
     {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_Right_apparatis", "recipe": "parchment", "colours": ["parchmentDark", "parchmentLight"], "shared_with": []},
-    {"asset": "Art/UI/Common/Backgrounds/T_UI_MenuLeft", "recipe": "parchment", "colours": ["parchmentDark", "parchmentLight"], "shared_with": ["Container", "Recharge", "Repair", "Sigil Stone", "Training", "Help"]},
+    {"asset": "Art/UI/Common/Backgrounds/T_UI_MenuLeft", "recipe": "paper_invert:3", "colours": ["panel", "parchmentDark", "parchmentLight"], "shared_with": ["Container", "Recharge", "Repair", "Sigil Stone", "Training", "Help"]},
     {"asset": "Art/UI/Icons/Icon_Stats/T_Property_1_cost", "recipe": "flat:headerIcon", "colours": ["headerIcon"], "shared_with": ["Alchemy", "effect lists", "Enchanting", "Magic", "Inventory"]},
     {"asset": "Art/UI/Icons/Icon_Category/T_Category_All_items", "recipe": "flat:headerIcon", "colours": ["headerIcon"], "shared_with": []},
     {"asset": "Art/UI/Common/T_UI_EditableText_FeatherIndicator", "recipe": "flat:nameBox", "colours": ["nameBox"], "shared_with": ["every editable text field"]},

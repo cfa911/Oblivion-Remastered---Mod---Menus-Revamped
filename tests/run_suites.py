@@ -33,7 +33,7 @@ GROUPS = {
                     "pack_builder_cli_tests", "custom_pack_alchemy_tests", "custom_pack_scrollbar_tests",
                     "custom_pack_enchanting_tests", "custom_pack_coverage_tests",
                     "custom_pack_altar_tests", "pack_builder_roles_tests", "pack_builder_layout_tests", "layout_pack_switch_tests", "layout_pack_wiring_tests", "custom_pack_rows_tests", "custom_pack_tabs_tests",
-                    "custom_pack_details_tests"],
+                    "custom_pack_details_tests", "container_theming_tests", "container_theming_r2_tests", "paper_invert_tests"],
 }
 COUNT = re.compile(r"(\d+) checks, (\d+) failures")
 

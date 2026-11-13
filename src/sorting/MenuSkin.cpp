@@ -221,7 +221,6 @@ namespace menuskin
 	namespace
 	{
 		reflect::Handle g_magicMenu;
-		std::vector<reflect::Handle> g_magicPages;
 
 	}
 
@@ -232,17 +231,8 @@ namespace menuskin
 		static auto* richClass = ui::Class(L"/Script/UMG.RichTextBlock");
 		static auto* textClass = ui::Class(L"/Script/UMG.TextBlock");
 		if (!skin.recolor || !imageClass || !reflect::Usable(menu)) return;
-		// a page widget gone (the details view re-created): look again, at most once a second
-		static ULONGLONG s_nextLost = 0;
-		if (!rescan && reflect::Get(g_magicMenu) == menu && GetTickCount64() >= s_nextLost &&
-			std::any_of(g_magicPages.begin(), g_magicPages.end(), [](const auto& page) { return !reflect::Get(page); })) {
-			s_nextLost = GetTickCount64() + 1000;
-			rescan = true;
-		}
 		if (rescan || reflect::Get(g_magicMenu) != menu) {
 			g_magicMenu = reflect::Hold(menu);
-			g_magicPages.clear();
-			auto* pageArt = SkinArt(L"MagicPage.png");
 			// the Spell Effectiveness texts by widget name (any game language; static scan of WBP_ModernMenu_MagicMenu): the line
 			// under the bars (SpellEffectiveness_Box, the game's spelling) and the explanation's title
 			UE::UObject* effectiveness[]{ ui::FindInTree(menu, "Magic_SpellEffectivenes_Value"),
@@ -266,12 +256,8 @@ namespace menuskin
 					}
 					continue;
 				}
-				if (!widget->GetClass()->IsChildOf(imageClass)) continue;
-				auto* brush = ui::BrushResource(widget);
-				if (uistyle::IsMagicPage(NameOf(brush)) || (pageArt && brush == pageArt)) g_magicPages.push_back(reflect::Hold(widget));
 			}
 		}
-		for (const auto& page : g_magicPages)
-			if (auto* widget = reflect::Get(page)) SwapArt(widget, skin);   // MagicPage.png in DarkStyle.h panel
+		// the page itself (T_MagicBackground) is baked into MRCustom_P (RMI-091): no run-time swap
 	}
 }

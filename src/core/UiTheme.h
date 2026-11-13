@@ -150,7 +150,7 @@ namespace uistyle
 		{ "T_MagicMenuIcon_SpellCustom_ListSmall", L"MagicRow-T_MagicMenuIcon_SpellCustom_ListSmall.png", &darkstyle::Style::rowIcon },
 		{ "T_MagicMenuIcon_Spell_ListSmall", L"MagicRow-T_MagicMenuIcon_Spell_ListSmall.png", &darkstyle::Style::rowIcon },
 		{ "T_MagicMenuIcon_WortCraft_ListSmall", L"MagicRow-T_MagicMenuIcon_WortCraft_ListSmall.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicBackground", L"MagicPage.png" },   // Magic page: the Inventory panel art's curve, baked (DarkStyle.h panel/frame)
+		// the Magic page (also Quest/Help/Stats) is baked into MRCustom_P (page_invert, RMI-091): no swap
 	};
 
 	inline constexpr Skin kStockSkin{
@@ -229,9 +229,6 @@ namespace uistyle
 	{
 		return skinnedMenu && Recolors(p) ? kInventorySkinPicker : Get(p).picker;
 	}
-	// The Magic page (T_MagicBackground, shared with Quest/Help/Stats, so never replaced in a texture package) is swapped per
-	// widget inside Magic only for MagicPage.png, its own shape in white, drawn in DarkStyle.h panel (the Inventory recipe).
-	inline constexpr bool IsMagicPage(std::string_view resource) { return resource == "T_MagicBackground"; }
 	// Round 2 (owner screenshot 2026-11-10): in Dark the Magic header icons (Effect, Type, Cost...) are full white like the
 	// A-Z and School icons, not dimmed while inactive; the active one keeps its gray background and arrow.
 #define UISTYLE_MAGIC_SKIN_R2 1
