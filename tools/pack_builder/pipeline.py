@@ -919,6 +919,22 @@ def tone_colour(v, peak, rgb):
     return tuple(round(c * k) for c in rgb)
 
 
+def neutral(data, rgb, body):
+    """The art made neutral grey, its brightness scaled so the stock body brightness `body` lands on the colour's brightness:
+    each BC3 colour endpoint becomes grey(min(255, lum * lum(rgb) / body)); indices and alpha blocks kept (shape and relief)."""
+    out = bytearray(data)
+    target = lum(rgb)
+
+    def endpoint_lum(e):
+        return lum((((e >> 11) & 31) * 255 / 31, ((e >> 5) & 63) * 255 / 63, (e & 31) * 255 / 31))
+
+    for offset in range(header_size(data) + 8, len(out), 16):
+        for at in (offset, offset + 2):
+            grey = min(255.0, endpoint_lum(int.from_bytes(out[at:at + 2], "little")) * target / body)
+            out[at:at + 2] = rgb565((grey, grey, grey)).to_bytes(2, "little")
+    return bytes(out)
+
+
 def tone(data, rgb):
     """The art's own shading in one colour: each BC3 colour endpoint becomes the colour times its brightness
     relative to the brightest endpoint (every mip level; indices and alpha blocks kept, so the relief stays)."""
@@ -993,6 +1009,35 @@ def owner_png(stock_dds, name, work):
     """The owner's PNG for this texture at the stock size, every mip level BC3-encoded by Pillow; only the colour blocks go into
     the stock texture, so the stock alpha (the shape the game's material expects) stays byte for byte."""
     return colour_keep_alpha(stock_dds, Image.open(ART / (name + ".png")).convert("RGBA"), work)
+
+
+def stolen_mark(stock_dds, rgb, work):
+    """T_Icon_stolen: our stolen shape (menus/Stolen-Item.png, the white copy the plugin used to swap in, cropped to fill the width) in one colour,
+    at the stock size, every mip level BC3-encoded; replaces the stock art and its alpha (like enchanted_dot)."""
+    stock = stock_dds.read_bytes()
+    height, width = int.from_bytes(stock[12:16], "little"), int.from_bytes(stock[16:20], "little")
+    mips = max(1, int.from_bytes(stock[28:32], "little"))
+    shape = Image.open(Path(MENUS) / "Stolen-Item.png").convert("RGBA")
+    # owner 2026-11-13: the row mark 80% of the sort-bar icon. The row box is 16 units and the toggle draws the shape ~20.6
+    # wide (probe MRROW), so the shape is cropped to its outline and fills the texture width (~78%, the most a 16 box holds).
+    box = shape.getchannel("A").getbbox()
+    shape = shape.crop(box)
+    side = max(shape.size)
+    square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    square.paste(shape, ((side - shape.width) // 2, (side - shape.height) // 2))
+    shape = square
+    colour = tuple(round(c) for c in rgb[:3])
+    blocks = bytearray()
+    for size in mip_sizes(width, height, mips):
+        alpha = shape.getchannel("A").resize(size, Image.LANCZOS)
+        level_image = Image.new("RGBA", size, colour + (0,))
+        level_image.putalpha(alpha)
+        level = work / "level.dds"
+        level_image.save(level, pixel_format="DXT5")
+        data = level.read_bytes()
+        blocks += data[header_size(data):]
+    assert len(blocks) == len(stock) - header_size(stock), "size mismatch"
+    return stock[:header_size(stock)] + bytes(blocks)
 
 
 def colour_keep_alpha(stock_dds, art, work):
@@ -1089,6 +1134,9 @@ def recipe(name):
         return (), (f"Skin.{key}",), lambda dds, v, work, stock: skin_flat(dds.read_bytes(), float(base), v[f"Skin.{key}"])
     if kind == "tone":
         return (), (arg,), lambda dds, v, work, stock: tone(dds.read_bytes(), v[arg])
+    if kind == "neutral":   # neutral:<key>:<stock body brightness> (RMI-095: the Empty label band)
+        key, _, body = arg.partition(":")
+        return (), (key,), lambda dds, v, work, stock: neutral(dds.read_bytes(), v[key], float(body))
     if kind in ("bp_colour", "material_colour"):   # a widget blueprint or a material: build() patches its .uexp (no DDS)
         names = tuple(sorted({name for _, _, name in BLUEPRINT_COLOURS[arg]} - set(CONSTANT_COLOURS)))
         return (), names, lambda uexp, v, work, stock: bp_colour(uexp, arg, v)
@@ -1127,6 +1175,7 @@ def recipe(name):
         "tab_paper": ((), ("tabPaperDark", "tabPaperLight", "tabGlyph"), tab_paper),
         "png": ((), (), lambda dds, v, work, stock: owner_png(dds, dds.stem, work)),   # development only (owner art)
         "enchanted_dot": ((), ("enchantedDot",), lambda dds, v, work, stock: enchanted_dot(dds.read_bytes(), v["enchantedDot"])),
+        "stolen_mark": ((), ("stolenMark",), lambda dds, v, work, stock: stolen_mark(dds, v["stolenMark"], work)),
         # the preview background: the stock brightness without its brown cast
         "gray": ((), (), lambda dds, v, work, stock: per_pixel(dds, work, lambda p: (round(lum(p)),) * 3)),
         "preview_frame": ((), ("previewFrameLight", "previewFrameDark"), lambda dds, v, work, stock: preview_frame(dds, v, work)),

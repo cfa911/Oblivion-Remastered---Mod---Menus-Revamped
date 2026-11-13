@@ -156,6 +156,7 @@ namespace sorting
 			std::array<std::array<double, 2>, 4> inventoryStatusOffsets{{
 				{0,0}, {-9,0}, {0,-45}, {-9,-29}
 			}};
+			std::array<std::array<bool, 2>, 4> inventoryStatusMeasured{};   // RMI-093: which masks have a measured offset
 			bool inventoryStatusReady=false;
 			std::array<float, 4> inventoryListBase{};
 			bool inventoryListPadding = false, inventoryListReserved = false;

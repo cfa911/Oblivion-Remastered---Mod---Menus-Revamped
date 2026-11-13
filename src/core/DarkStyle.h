@@ -48,6 +48,7 @@ namespace darkstyle
 		Rgb subTabIcon{ 228, 228, 228 };      // the sub-tab glyphs (overview, skill, enchantment; shows 231 227 231)
 		Rgb pattern{ 150, 150, 150 };         // T_Inventory_pattern, the laurels beside the action button
 		Rgb enchantedDot{ 66, 99, 153 };      // T_Icon_enchanted: a round dot (radius 14.5 px) replaces the stock art
+		Rgb stolenMark{ 210, 99, 91 };        // T_Icon_stolen: our stolen shape in this colour (was a run-time swap, kStolenFill)
 		// T_inv_details_preview_frame_D: the stock brightness inverted, black -> light, white -> dark
 		Rgb previewFrameLight{ 150, 150, 150 };
 		Rgb previewFrameDark{ 30, 30, 30 };

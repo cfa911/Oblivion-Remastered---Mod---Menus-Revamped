@@ -48,7 +48,7 @@ namespace customcolours
 		MR_CC_RGB(headerIcon, "Inventory and Magic header stat icons"), MR_CC_RGB(pickerIcon, "Inventory and Magic sort picker icons (inactive)"), MR_CC_RGB(listHighlight, "Inventory and Magic highlighted row background"),
 		MR_CC_RGB(subTabDisc, "Inventory selected details tab background"), MR_CC_RGB(subTabCircle, "Inventory details tab circle"),
 		MR_CC_RGB(subTabIcon, "Inventory details tab icons"), MR_CC_RGB(pattern, "Inventory action button laurels - base colour"),
-		MR_CC_RGB(enchantedDot, "Inventory enchanted item dot"), MR_CC_RGB(previewFrameLight, "Inventory item preview frame highlights"),
+		MR_CC_RGB(enchantedDot, "Inventory enchanted item dot"), MR_CC_RGB(stolenMark, "Inventory, Container, Barter and Enchanting stolen item mark"), MR_CC_RGB(previewFrameLight, "Inventory item preview frame highlights"),
 		MR_CC_RGB(previewFrameDark, "Inventory item preview frame shadows"), MR_CC_RGB(parchmentDark, "Alchemy and other parchment menus - shadows"),
 		MR_CC_RGB(parchmentLight, "Alchemy and other parchment menus - highlights"), MR_CC_RGB(effectBox, "Alchemy effect boxes"),
 		MR_CC_RGB(nameBox, "Alchemy and other editable name fields"), MR_CC_RGB(filterRow, "Alchemy filter row background"),

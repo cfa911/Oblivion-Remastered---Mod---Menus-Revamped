@@ -47,7 +47,7 @@ check('stolenPx.Hit(x, y)' in message and 'stolenfilter::kToggleCommand' in mess
 tick = source_paths.function(gear, 'void Picker::Tick(int a_kind, UE::UObject* a_menu')
 check('cmd == stolenfilter::kToggleCommand' in tick and 'stolenOnly = !stolenOnly' in tick, 'the toggle command flips the state')
 insert = source_paths.function(gear, 'bool Picker::InsertHeader(')
-check('stolenfilter::Supports(kind)' in insert, 'the icon is created only where the toggle is supported')
+check('stolenfilter::Supports(kind' in insert, 'the icon is created only where the toggle is supported')
 check('reflect::Get(stolenHeader)' in insert, 'the icon is not re-added as a native child')
 attach = insert[insert.find('if (schoolAt < 0)'):]
 check(0 <= attach.find('Get(stolenHeader)') < attach.find('addHeader(box)'),

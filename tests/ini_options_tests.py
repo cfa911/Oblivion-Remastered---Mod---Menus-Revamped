@@ -59,7 +59,7 @@ check("mrconfig::Get().picker" in tick, "sorting Tick turns a switched-off menu'
 header = read("sorting/PickerHeader.cpp")
 check(re.search(r"enchantedfilter::Supports\(kind\)\s*&&\s*mrconfig::Get\(\)\.picker\.enchantedFilter", header) is not None,
       "enchanted icon only created when bEnchantedFilter=1")
-check(re.search(r"stolenfilter::Supports\(kind\)\s*&&\s*mrconfig::Get\(\)\.picker\.stolenFilter", header) is not None,
+check(re.search(r"stolenfilter::Supports\(kind[^)]*\)\)?\s*&&\s*mrconfig::Get\(\)\.picker\.stolenFilter", header) is not None,
       "stolen icon only created when bStolenFilter=1")
 
 # 13: Alchemy circles

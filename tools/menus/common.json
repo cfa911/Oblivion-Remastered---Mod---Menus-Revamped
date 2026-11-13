@@ -108,6 +108,7 @@
     ]
   },
   "assets": [
+    {"asset": "Art/UI/Common/T_Empty_Background_D", "recipe": "neutral:listHighlight:59.75", "colours": ["listHighlight"], "shared_with": ["Inventory", "Container", "Barter", "Magic", "Spell Purchase", "Quests", "Character (the Empty list label band, RMI-095)"]},
     {"asset": "Art/UI/Common/T_List_Default", "recipe": "flat:rowSeparator", "colours": ["rowSeparator"], "shared_with": ["12 row blueprints: Inventory/Container/Barter, Magic rows and details, Alchemy, Enchanting, Spellmaking, Spell Purchase, Repair, Gear, Help, Quests, the effect lines"]},
     {"asset": "Art/UI/Common/T_List_equip_V2", "recipe": "flat_alpha:rowEquipped:0.6", "colours": ["rowEquipped"], "shared_with": ["the Focusbox prefab in 15 row blueprints: Inventory/Container/Barter, Magic, Alchemy, Enchanting, Spellmaking, Spell Purchase, Gear, Recharge, the effect lines, Character overview/attributes/derived stats/skills/factions, Level Up"]},
     {"asset": "UI/Modern/Prefabs/WBP_ModernPrefab_Focusbox", "recipe": "bp_colour:WBP_ModernPrefab_Focusbox", "colours": [], "shared_with": ["the Focusbox prefab in 15 row blueprints: Inventory/Container/Barter, Magic, Alchemy, Enchanting, Spellmaking, Spell Purchase, Gear, Recharge, the effect lines, Character overview/attributes/derived stats/skills/factions, Level Up"]},
