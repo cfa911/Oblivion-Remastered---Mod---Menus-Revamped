@@ -189,40 +189,6 @@ namespace sorting::detail
 		{
 			if (pe::FunctionName(function)=="OnListItemObjectSet") menuskin::StyleMagicRow(row);
 		}
-		// RMI-073: the native tab title cuts "Miscellaneous" at 156-158 units whatever width is set on it. Our own text sits on
-		// it with the native font and text; the native text is hidden by render opacity (its layout and animations stay).
-		void PlaceTitleLabel(Picker& picker,UE::UObject* menu,UE::UObject* canvas,const inventoryheaders::Box& canvasBounds)
-		{
-			auto* title=ui::FindInTree(menu,"inv_cont_title");
-			auto* text=title?ui::FindInTree(title,"text_block"):nullptr;
-			inventoryheaders::Box native;
-			if (!text || !Bounds(text,native)) return;
-			auto* label=reflect::Get(picker.titleLabel);
-			const bool created=!label;
-			if (!label) {
-				label=CanvasChild(canvas,L"/Script/UMG.TextBlock",L"MrInventoryTitleLabel",0,0,1,1,3);
-				if (!label) return;
-				picker.titleLabel=reflect::Hold(label);
-				menuskin::SetTitleLabel(label);
-			}
-			picker.titleNative=reflect::Hold(title);
-			const auto box=inventoryheaders::TitleLabel(native);
-			LayoutChild(label,box.x-canvasBounds.x,box.y-canvasBounds.y,box.w,box.h);
-			if (created) {
-				for (const char* prop : {"Font","ColorAndOpacity"}) {   // the native text's own look
-					const auto off=reflect::Offset(text->GetClass(),prop);
-					const auto size=ui::SizeOf(text->GetClass(),prop);
-					if (off>=0 && size>0 && size<=512)
-						ui::CallFirst(label,prop==std::string_view("Font")?L"SetFont":L"SetColorAndOpacity",
-							reinterpret_cast<const std::uint8_t*>(text)+off,static_cast<std::size_t>(size));
-				}
-				menuskin::InkText(label);
-				const auto want=uix::GetText(text);
-				if (uix::GetText(label)!=want) uix::SetText(label,want);
-			}
-			if (ui::RenderOpacity(title)>0) ui::Float(title,L"SetRenderOpacity",0.0f);
-		}
-
 		// RMI-079 (owner 2026-11-09): with the Magic header row the native page title is not drawn any more, although its text,
 		// colour, opacity and visibility are unchanged and nothing covers it (probes MRMAGIC4/5; cause unknown). As for the
 		// Inventory (RMI-073), our own label shows the title in the native font and colour and the native one is hidden.
@@ -411,12 +377,11 @@ namespace sorting::detail
 		inventoryListSlot={};
 		inventoryHeaderMeasured=false;
 		inventoryHeaderFrame=-1;
-		if (auto* label=reflect::Get(titleLabel)) {   // our title label goes; the native title shows again
+		if (auto* label=reflect::Get(titleLabel)) {   // the Magic title label goes; the native title shows again
 			ui::Call remove(label,L"RemoveFromParent");
 			remove.RunGuarded();
 		}
 		titleLabel={};
-		menuskin::SetTitleLabel(nullptr);
 		if (auto* text=reflect::Get(titleNative)) ui::Float(text,L"SetRenderOpacity",1.0f);
 		titleNative={};
 		magicTitleText={};
@@ -435,10 +400,9 @@ namespace sorting::detail
 		const bool magic=kind==1 || kind==6;   // Magic spell pages (School host) or Active Effects; else the Inventory strip
 		if (measureColumns) {
 			ui::Visible(ui::FindInTree(a_menu, "HeaderList_Separator"), false);   // our own rules replace it (both menus)
-			if (kind==0) menuskin::StyleTitle(ui::FindInTree(a_menu, "inv_cont_title"));   // the Inventory title only
 		}
 		static bool announced=false, announcedMagic=false, announcedContainer=false;
-		if (kind==0 && !announced) { announced=true; logger::info("Menus Revamped MR-INVENTORY-SINGLE-HEADER-R9"); }
+		if (kind==0 && !announced) { announced=true; logger::info("Menus Revamped MR-INVENTORY-TITLE-BAKED-T1"); }
 		if ((kind==3 || kind==4) && !announcedContainer) { announcedContainer=true; logger::info("Menus Revamped MR-CONTAINER-SINGLE-HEADER-C1K"); }
 		if (magic && !announcedMagic) { announcedMagic=true; logger::info("Menus Revamped MR-MAGIC-SINGLE-HEADER-R10"); }
 		const double frameTime=ui::RealTimeSeconds();
@@ -672,7 +636,6 @@ namespace sorting::detail
 				LayoutChild(guide,rect.x-canvasBounds.x,rect.y-canvasBounds.y,rect.w,rect.h);
 				ui::Visible(guide,settled || inventoryHeaderReady);
 			}
-			if (kind==0) PlaceTitleLabel(*this,a_menu,a_canvas,canvasBounds);   // RMI-073 is an Inventory title cut
 		}
 		if (inventoryFillPending) {
 			const bool reveal = inventoryheaders::CanRevealControlFills(measureColumns, settled);

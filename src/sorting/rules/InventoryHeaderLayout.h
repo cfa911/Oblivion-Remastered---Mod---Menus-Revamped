@@ -243,15 +243,7 @@ namespace inventoryheaders
 			std::max(0.0, right - left), std::max(0.0, bottom.y - top.y - top.h)};
 	}
 
-	// RMI-073: the native tab title cuts "Miscellaneous" at a fixed 156-158 units whatever width is set on it (min width,
-	// no scrolling, RetainerBox off; logs on 89d7ca0d and d7b00224). Our own label sits on the native text, wide enough
-	// for the longest tab name.
-#define INVENTORYHEADERS_TITLE_LABEL 1
+	// RMI-079: width of the Magic page title label (the longest page name fits). The Inventory title is baked
+	// (ContainerInventory_MainContent title slot Auto, Min Desired Width 300), no label.
 	inline constexpr double kTitleLabelWidth=300;
-	inline Box TitleLabel(Box text) { return { text.x, text.y, std::max(text.w, kTitleLabelWidth), text.h }; }
-#define INVENTORYHEADERS_IMMEDIATE_TITLE 1
-	inline std::string_view TitleText(std::optional<std::string_view> requested, std::string_view native)
-	{
-		return requested.value_or(native);
-	}
 }

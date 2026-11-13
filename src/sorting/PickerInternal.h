@@ -141,7 +141,7 @@ namespace sorting
 			std::vector<InventoryClip> inventoryClips;
 			std::array<std::array<double, 2>, kSorts + 3> inventoryTranslations{};
 			std::array<reflect::Handle, inventoryheaders::kGuides> inventoryHeaderGuides{};
-			reflect::Handle titleLabel, titleNative;   // our own tab title and the native text it covers (RMI-073)
+			reflect::Handle titleLabel, titleNative;   // our own Magic page title and the native text it covers (RMI-079)
 			inventoryheaders::Box inventoryMeasuredList, inventoryMeasuredStatus;
 			std::array<inventoryheaders::Box, kSorts> inventoryMeasuredColumns{};
 			double inventoryMeasuredNameX=0;

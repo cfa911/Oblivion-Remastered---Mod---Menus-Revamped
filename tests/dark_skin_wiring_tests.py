@@ -20,11 +20,8 @@ rows = source_paths.function(src, "void StyleRow(")
 # decision 28 (28a): the scribble (T_UI_Scribble cleared), row ink and row art are baked in the Custom pack: no Inventory row pass
 check(not rows and "inv_entry_scribble" not in src, "the equipped pen scribble is baked out, not hidden at run time (RMI-072, decision 28)")
 layout = source_paths.function(src, "bool Picker::LayoutInventoryHeaders(")
-check("menuskin::StyleTitle(" in layout and "UnclipTitle(" in source_paths.function(src, "void StyleTitle("),
-      "the tab title is not clipped")
-unclip = source_paths.function(src, "void UnclipTitle(")
-check("SetMinDesiredWidth" in unclip and "ForceLayoutPrepass" in unclip,
-      "the title box is wide enough for the longest tab name and re-laid out (RMI-073: it kept the width of Weapons)")
+check("StyleTitle" not in layout and not source_paths.function(src, "void UnclipTitle("),
+      "the Inventory tab title is baked (title slot Auto, min width 300), no run-time unclip pass (inventory_title_bake_tests)")
 import configparser
 ini = configparser.ConfigParser(inline_comment_prefixes=(";",), strict=False)
 ini.read(source_paths.ROOT / "config/MenusRevamped.defaults.ini", encoding="utf-8")
@@ -42,11 +39,6 @@ check("SwapArt(" in source_paths.function(src, "void StyleRowArt("), "Magic rows
 check(not source_paths.function(src, "void StyleDetailsButton("),
       "phase 28b (decision 28): the item details are baked in the Custom pack; the action button is the baked WBP_ModernPrefab_Button (RMI-087)")
 check('L"Color"' not in src and "Role::Ring" not in src, "phase 28b (decision 28): the item details are baked in the Custom pack; the skill ring colour is baked (MIC_UI_SkillCircularProgress)")
-unclip_body = source_paths.function(src, "void UnclipTitle(")
-check('"text_block"' in unclip_body,
-      "the title's inner text (text_block in WBP_AltarTextBlock, log on a22c29b8) gets the width and no-scroll settings")
-check("SetScrollingEnabled" in unclip_body,
-      "the title does not scroll inside a stale narrow box (RMI-073)")
 import re
 skin_h = (source_paths.ROOT / "src/core/UiTheme.h").read_text(encoding="utf-8")
 files = set(re.findall(r'L"([A-Za-z0-9]+\.png)"', skin_h))
@@ -68,12 +60,6 @@ try:
     check(max(p[3] for p in seen) >= 100, "the equipped-row band is clearly visible (stronger than the faint 0.22 band)")
 except ImportError:
     check(False, "Pillow is needed to check the equipped-row art")
-check('"Min Desired Width"' in unclip_body and '"IsScrollingEnable"' in unclip_body,
-      "the title prefab's own width and scrolling variables are set, so its SetText keeps them (RMI-073)")
-check("OnTitleEvent" in src and "WatchPost" in source_paths.function(src, "void StyleTitle("),
-      "the title is re-kept after the prefab's own updates")
-check("SetRetainRendering" in unclip_body and "RetainerBox" in unclip_body,
-      "the title's animation RetainerBox draws it directly (its effect mask cut the text at a fixed width; RMI-073)")
 check(not source_paths.function(src, "void StyleListEntries("), "phase 28b (decision 28): the item details are baked in the Custom pack; effect lines are baked (WBP_LegacyMenu_AddedEffects)")
 check("IsEmphasisRow(" in rebuild and "perkInk" in rebuild, "bold rows take the emphasis gray, regular rows the light perk ink")
 try:
@@ -87,28 +73,14 @@ except ImportError:
 check(not source_paths.function(src, "void WatchDetails(") and "OnEffectLineEvent" not in src and "ReadBrushTint" not in src,
       "phase 28b (decision 28): the item details are baked in the Custom pack; no details watch, effect-line hook or brush-tint reader")
 layout_fn = source_paths.function(src, "bool Picker::LayoutInventoryHeaders(")
-place_title = source_paths.function(src, "void PlaceTitleLabel(")
-check("PlaceTitleLabel(" in layout_fn, "the Inventory layout places our own tab title label (RMI-073)")
-check(all(s in place_title for s in ("TitleLabel(", "/Script/UMG.TextBlock", "SetFont", "uix::SetText", "SetRenderOpacity")),
-      "the title label copies the native font and text and hides the clipped native text (RMI-073)")
+check("PlaceTitleLabel(" not in src and "PlaceTitleLabel(" not in layout_fn,
+      "no Inventory title label at run time (owner: no run-time title labels; the title is baked)")
 clear_fn = source_paths.function(src, "void Picker::ClearInventoryHeaderLayout(")
 check("titleLabel" in clear_fn and "RemoveFromParent" in clear_fn,
-      "leaving the layout removes our title label and shows the native title again")
-check("NeutralBrush(" not in src and "WriteBrushTint(" not in src,
-      "phase 28b (decision 28): the item details are baked in the Custom pack; the ornament and button rule brush tints are baked literals")
-theme = (source_paths.ROOT / "src/core/UiTheme.h").read_text(encoding="utf-8-sig")
-check("buttonRule" in theme, "the rule colour of the action button is per preset")
-title_event = source_paths.function(src, "void OnTitleEvent(")
-keep = source_paths.function(src, "void KeepTitleLabel(")
-check("KeepTitleLabel(" in title_event and "uix::SetText" in keep and "SetRenderOpacity" in keep,
-      "the title label takes the new name and the native text stays hidden inside the prefab's own SetText (double text or flash on a593c0f7)")
-check("menuskin::SetTitleLabel(" in place_title, "the layout hands our title label to the skin")
-check("titleNative=reflect::Hold(title)" in place_title and 'ui::Float(title,L"SetRenderOpacity",0.0f)' in place_title,
-      "suppress the complete native title prefab while the overlay is visible")
+      "leaving the layout removes the Magic title label and shows the native title again")
 check('"T_Line_02"' not in src, "phase 28b (decision 28): the item details are baked in the Custom pack; T_Line_02 is baked (skin_flat, shared: Sigil Stone, Recharge, Training, Alchemy)")
 tick = source_paths.function(src, "void Picker::Tick(")
-check("menuskin::RefreshInventoryTitle(" in tick and tick.index("RefreshInventoryTitle(") < tick.index("now >= nextLayout"),
-      "the displayed title follows native text even when the prefab bypasses the reflected SetText hook")
+check("RefreshInventoryTitle" not in tick, "no per-tick Inventory title copy (the native title is drawn, baked)")
 check("RefreshButtonRules" not in tick, "phase 28b (decision 28): the item details are baked in the Custom pack; no button rule refresh per tick")
 # ---- Phase 2: Dark Magic (owner 2026-11-10) ----
 skin_hdr = (source_paths.ROOT / "src/sorting/MenuSkin.h").read_text(encoding="utf-8-sig")
@@ -261,8 +233,7 @@ check("SetRetainRendering" not in page + updated, "the game's details retainer i
 check(not updated, "phase 28b (decision 28): the item details are baked in the Custom pack; no details event hook")
 check("schoolArt" not in (source_paths.ROOT / "src/core/DarkStyle.h").read_text(encoding="utf-8"),
       "phase 3: no school-drawing strength (the game's paper material draws the school illustration itself)")
-unclip16 = source_paths.function(src, "void UnclipTitle(")
-check("bRetainRender" in unclip16, "the Inventory title's retainer is switched off only while it is on (no needless rebuilds)")
+check("SetRetainRendering" not in src, "the Inventory title's retainer is left to the game (baked title, RMI-084)")
 # ---- Rounds 19-22 (details stat/type icons white). Phase 3: the ten icons are baked into the pack (Magic-only), so the per-hover
 # re-swap machinery (material icon swap, tile event hook, menu Tick) is gone. ----
 STAT_ICONS = ["T_MagicMenuIcon_" + n for n in ("Cost", "Custom_Spell", "Duration", "Greater_Power", "Lesser_Power", "Magnitude",
