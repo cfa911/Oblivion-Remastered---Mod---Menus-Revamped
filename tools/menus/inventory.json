@@ -38,7 +38,7 @@
     {"asset": "UI/Modern/Prefabs/WBP_AltarRichTextBlock", "recipe": "bp_colour:WBP_AltarRichTextBlock", "colours": ["rowText"], "shared_with": ["every menu with rich text (32 importers; the template default only)"]},
     {"asset": "UI/Modern/GameMenuLayer/Container_Inventory/WBP_ModernMenu_ContainerInventory_MainContent", "recipe": "bp_colour:WBP_ModernMenu_ContainerInventory_MainContent", "colours": ["rowText"], "shared_with": ["Container", "Barter", "Spell Purchase"]},
     {"asset": "Art/UI/Modern/GameMenuLayer/SpellPurchase/T_SpellPurchase_LeftPageBG", "recipe": "details_invert:3", "colours": ["detailsPage"], "shared_with": ["Magic", "Help", "Spell Purchase", "Stats", "Quest"]},
-    {"asset": "Art/UI/Common/Backgrounds/T_UI_PlayerMenu_Background", "recipe": "page_invert:3", "colours": ["frame", "panel", "parchmentDark", "parchmentLight"], "shared_with": []},
+    {"asset": "Art/UI/Common/Backgrounds/T_UI_PlayerMenu_Background", "recipe": "page_invert:3:0.7", "colours": ["frame", "panel", "parchmentDark", "parchmentLight"], "shared_with": []},
     {"asset": "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertBtm_D", "recipe": "flat:frame", "colours": ["frame"], "shared_with": ["every scrolling menu (common art)"]},
     {"asset": "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertMiddleNew_D", "recipe": "flat:frame", "colours": ["frame"], "shared_with": ["every scrolling menu (common art)"]},
     {"asset": "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertTop_D", "recipe": "flat:frame", "colours": ["frame"], "shared_with": ["every scrolling menu (common art)"]},

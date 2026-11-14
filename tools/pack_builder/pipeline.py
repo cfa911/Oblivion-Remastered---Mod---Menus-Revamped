@@ -1667,12 +1667,17 @@ def recipe(name):
         return (), ("frame", "panel", "parchmentDark", "parchmentLight"), lambda dds, v, work, stock: page_grain(
             dds, v["frame"][0], v["panel"][0], float(blur), float(amount),
             paper_tone(v["parchmentDark"][0], v["parchmentLight"][0], v["panel"][0]))
-    if kind == "paper_invert":   # paper_invert:<blur> (RMI-091 round 3: the standard parchment look, container panel)
-        return (), ("parchmentDark", "parchmentLight", "panel"), lambda dds, v, work, stock: invert_paper(
-            dds, paper_tone(v["parchmentDark"][0], v["parchmentLight"][0], v["panel"][0]), float(arg))
-    if kind == "page_invert":   # page_invert:<blur> (RMI-091 round 3: the Inventory and Magic pages, frame relief kept)
+    if kind in ("paper_invert", "page_invert"):
+        # paper_invert:<blur>[:<scale>] (RMI-091 round 3: the standard parchment look, container panel);
+        # page_invert:<blur>[:<scale>] (the Inventory and Magic pages, frame relief kept). <scale> multiplies the shared paper
+        # tone (owner 2026-11-13: 0.7 = "30% darker"); the frame and panel curve are not scaled
+        blur, _, scale = arg.partition(":")
+        blur, scale = float(blur), float(scale or 1)
+        if kind == "paper_invert":
+            return (), ("parchmentDark", "parchmentLight", "panel"), lambda dds, v, work, stock: invert_paper(
+                dds, scale * paper_tone(v["parchmentDark"][0], v["parchmentLight"][0], v["panel"][0]), blur)
         return (), ("frame", "panel", "parchmentDark", "parchmentLight"), lambda dds, v, work, stock: invert_paper(
-            dds, paper_tone(v["parchmentDark"][0], v["parchmentLight"][0], v["panel"][0]), float(arg), "frame",
+            dds, scale * paper_tone(v["parchmentDark"][0], v["parchmentLight"][0], v["panel"][0]), blur, "frame",
             v["frame"][0], v["panel"][0])
     if kind == "details_invert":   # details_invert:<blur> (RMI-091 round 3: the details page, its own tone)
         return ("detailsPage",), (), lambda dds, v, work, stock: invert_paper(
