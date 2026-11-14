@@ -40,9 +40,9 @@ for path in (ROOT / "tools/menus").glob("*.json"):
 
 PAGE_COLOURS = ["frame", "panel", "parchmentDark", "parchmentLight"]
 WANT = {
-    "Art/UI/Common/Backgrounds/T_UI_MenuLeft": ("paper_invert:3", ["panel", "parchmentDark", "parchmentLight"]),
-    "Art/UI/Common/Backgrounds/T_UI_PlayerMenu_Background": ("page_invert:3", PAGE_COLOURS),
-    "Art/UI/Modern/GameMenuLayer/magic/T_MagicBackground": ("page_invert:3", PAGE_COLOURS),
+    "Art/UI/Common/Backgrounds/T_UI_MenuLeft": ("paper_invert:3:0.7", ["panel", "parchmentDark", "parchmentLight"]),
+    "Art/UI/Common/Backgrounds/T_UI_PlayerMenu_Background": ("page_invert:3:0.7", PAGE_COLOURS),
+    "Art/UI/Modern/GameMenuLayer/magic/T_MagicBackground": ("page_invert:3:0.7", PAGE_COLOURS),
     "Art/UI/Modern/GameMenuLayer/SpellPurchase/T_SpellPurchase_LeftPageBG": ("details_invert:3", ["detailsPage"]),
 }
 for asset, (recipe, colours) in WANT.items():
@@ -55,6 +55,8 @@ check(all(m in magic.get("shared_with", []) for m in ("Quest", "Help", "Stats"))
 
 for name, numbers, colours in (("paper_invert:3", (), ("parchmentDark", "parchmentLight", "panel")),
                                ("page_invert:3", (), ("frame", "panel", "parchmentDark", "parchmentLight")),
+                               ("paper_invert:3:0.7", (), ("parchmentDark", "parchmentLight", "panel")),
+                               ("page_invert:3:0.7", (), ("frame", "panel", "parchmentDark", "parchmentLight")),
                                ("details_invert:3", ("detailsPage",), ())):
     try:
         got = pipe.recipe(name)[:2]
@@ -122,6 +124,22 @@ try:
             check(24 <= statistics.median(body) <= 38, f"page_invert paper sits on the shared tone ~31 ({statistics.median(body)})")
         except Exception as error:   # noqa: BLE001
             check(False, f"page_invert runs ({error!r})")
+
+        # owner 2026-11-13: the three shared-tone papers 30% darker (<blur>:<scale>, scale 0.7 on the paper tone); the page
+        # frame keeps its panel curve; the details page is not scaled
+        try:
+            _, base = bake(work, "paper_invert:3", paper)
+            _, dark = bake(work, "paper_invert:3:0.7", paper)
+            b, d = statistics.median(p[0] for p in base.get_flattened_data()), statistics.median(p[0] for p in dark.get_flattened_data())
+            check(abs(d - 0.7 * b) <= 1.5, f"paper_invert:3:0.7 is 30% darker ({d} vs 0.7 x {b})")
+            _, base = bake(work, "page_invert:3", page)
+            _, dark = bake(work, "page_invert:3:0.7", page)
+            body = lambda im: statistics.median(im.getpixel((x, y))[0] for y in range(24, 64) for x in range(64))   # noqa: E731
+            frame = lambda im: max(im.getpixel((x, y))[0] for y in range(0, 12) for x in range(64))   # noqa: E731
+            check(abs(body(dark) - 0.7 * body(base)) <= 1.5, f"page_invert:3:0.7 paper is 30% darker ({body(dark)} vs 0.7 x {body(base)})")
+            check(frame(dark) == frame(base), f"page_invert:3:0.7 keeps the frame ({frame(dark)} vs {frame(base)})")
+        except Exception as error:   # noqa: BLE001
+            check(False, f"the 30% darker papers run ({error!r})")
 
         # details: paper inside a transparent black drop shadow (8-pixel border)
         det = make(work, "det", lambda x, y: (205, 200, 195, 255) if 8 <= x < 56 and 8 <= y < 56 else (0, 0, 0, 60))

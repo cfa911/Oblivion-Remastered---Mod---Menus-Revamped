@@ -283,8 +283,8 @@ check("menuskin::InkTree(" not in source_paths.function(alchemy, "void Layout(")
 # and coloured at run time (owner: colours easy to change). Effect names white, their boxes blue, the potion name box white,
 # the Filters rows: hover gray, selected very dark blue, diamond blue. Colours named in DarkStyle.h.
 # RMI-091 (owner 2026-11-13): T_UI_MenuLeft (the container panel) moved to the smoother neutral grain (smooth_grain)
-check(all(listed.get(a) == ("paper_invert:3" if a.endswith("T_UI_MenuLeft") else "parchment") for a in ALCHEMY_PAGES),
-      "Alchemy r2: the parchments use the gray parchment recipe (T_UI_MenuLeft: paper_invert, RMI-091 round 3)")
+check(all(listed.get(a) == ("paper_invert:3:0.7" if a.endswith("T_UI_MenuLeft") else "parchment") for a in ALCHEMY_PAGES),
+      "Alchemy r2: the parchments use the gray parchment recipe (T_UI_MenuLeft: paper_invert 30% darker, owner 2026-11-13)")
 # Round 4 (owner 2026-11-11, the Dark plan): every texture is baked in its final DarkStyle.h colour, nothing is tinted at
 # run time; only what has no texture (the effect text, the Filters row's plain normal/selected boxes) stays run-time.
 BAKED_R4 = {"Art/UI/Icons/Icon_Stats/T_Property_1_cost": "flat:headerIcon",

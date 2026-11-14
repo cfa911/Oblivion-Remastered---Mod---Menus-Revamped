@@ -60,8 +60,10 @@ BOX_PAD = 3   # every icon box grown by this many px (inclusive x1/y1): antialia
 PATTERN_COLOUR = "primary"
 PATTERN_SOFT, PATTERN_FLOOR, PATTERN_FULL, PATTERN_STRENGTH = 2, 1.0, 6.0, 0.8
 PATTERN_CHROMA, PATTERN_LOCAL = 1.2, 0.88
-# emblem mode: rim = chroma ramp EMBLEM_RIM; fill grey = EMBLEM_FILL[1] + (L* - EMBLEM_FILL[0]) x EMBLEM_FILL[2]
-EMBLEM_RIM, EMBLEM_FILL = (9.0, 17.0), (48.0, 30.0, 0.9)
+# emblem mode: rim = chroma ramp EMBLEM_RIM, read through a Gaussian blur of EMBLEM_SMOOTH px (mask only: the stock rim's grain
+# dips to chroma 11-14 and mottled the outline grey at screen size, RMI-099); the rim is drawn primary; fill grey =
+# EMBLEM_FILL[1] + (L* - EMBLEM_FILL[0]) x EMBLEM_FILL[2]
+EMBLEM_RIM, EMBLEM_SMOOTH, EMBLEM_FILL = (8.0, 13.0), 2, (48.0, 30.0, 0.9)
 SEAM_GRAIN = 4   # seam option: box-mean radius that separates the paper's level from its grain
 # selected vs inactive: the stock draws the icons as dark on every tab and lifts the selected tab's paper; the light-paper
 # level around a pixel (70th percentile over 61 px) from ACTIVE_PAPER[0] (inactive) to [1] (selected) scales the ink strength
@@ -181,17 +183,20 @@ def recolour(image, palette=PALETTE, params=PARAMS, glyph=False, seam=None, icon
         # a stand-alone embossed icon (the Stats tab icons T_Category_attributes ...): a thick brown rim (chroma 20-26,
         # L* 17-34) around a grainy paper fill (chroma 5-10, L* 43-55) on transparency. Rim -> light (secondary..primary by
         # its colour strength), fill -> charcoal with its grain (lightness kept around EMBLEM_FILL); alpha untouched.
+        # The rim test reads a smoothed chroma (the grain must not punch dark specks into the outline, RMI-099).
         rim_lo, rim_hi = EMBLEM_RIM
+        c_img = Image.new("L", image.size)
+        c_img.putdata([max(0, min(255, round(c * 6))) for c in cs])
+        cs_s = [v / 6 for v in c_img.filter(ImageFilter.GaussianBlur(EMBLEM_SMOOTH)).get_flattened_data()]
+        ink = ink_grey(1.0, 0.0, palette, params)
         out = []
-        for l, c in zip(ls, cs):
-            rim = _smooth(c, rim_lo, rim_hi)
+        for l, c in zip(ls, cs_s):
             fill = max(0.0, EMBLEM_FILL[1] + (l - EMBLEM_FILL[0]) * EMBLEM_FILL[2]) * params["background"]
-            ink = ink_grey(0.68 + 0.32 * _smooth(c, rim_hi, rim_hi + 8), fill, palette, params)
-            out.append(max(0, min(255, round(_mix(fill, ink, rim)))))
+            out.append(max(0, min(255, round(_mix(fill, ink, _smooth(c, rim_lo, rim_hi))))))
         grey = Image.new("L", image.size)
         grey.putdata(out)
         weight = Image.new("L", image.size)
-        weight.putdata([round(255 * _smooth(c, rim_lo, rim_hi)) for c in cs])
+        weight.putdata([round(255 * _smooth(c, rim_lo, rim_hi)) for c in cs_s])
         return grey, weight
     if glyph:
         primary = min(255.0, lum(palette["primary"]) * params["icon"])
@@ -325,7 +330,10 @@ _ARROWS = tuple((c - 12, 36, c + 14, 63) for c in (108, 235, 279, 405, 450, 577,
 _SKILLCLASS_FLOURISH = ((40, 86, 508, 97), (128, 78, 390, 106))   # rule line (x from 40: a stain on _LeftPaperTab_Active) + ornament
 _NOWHERE = ((-9, -9, -9, -9),)   # a box outside the image: nothing is ink
 PRESETS = {
-    "": {},   # T_Tab_1-5: arrows only, the generic tests suffice
+    "": {},   # generic tests over the whole texture (no data row uses it since RMI-098)
+    # T_Tab_1-5 (the Stats strip): arrows only; outside the arrow boxes nothing is ink (RMI-098: the generic test lit the torn
+    # tile corners, bottom tears and the notch under tile 4)
+    "arrows": {"icon_boxes": _ARROWS, "faint": False},
     # icon and arrow boxes as an ink mask only (no faint icons; the relaxed test caught the tabs' warm side shadows)
     "inventory": {"icon_boxes": _ARROWS + ((134, 12, 208, 87), (312, 13, 373, 86), (477, 13, 548, 84), (647, 13, 722, 86),
                                            (821, 13, 893, 86)), "faint": False},

@@ -46,7 +46,7 @@ EXPECTED.update({MAG + n: "charcoal:magic" for n in ("T_Magic_Tabs_Self", "T_Mag
                                                      "T_Magic_Tabs_All", "T_Magic_Tabs_ActiveEffect")})
 EXPECTED.update({ENC + n: "charcoal:enchanting" for n in ("T_Enchantment_Tab_Gear", "T_Enchantment_Tab_SoulGem", "T_Enchantment_Tab_Effect")})
 EXPECTED.update({QST + n: "charcoal:quests" for n in ("T_QuestPage_AvailableQuestTabSelected", "T_QuestPage_CompletedQuestTabSelected")})
-EXPECTED.update({COM + "Tabs/" + n: "charcoal" for n in ("T_Tab_1", "T_Tab_2", "T_Tab_3", "T_Tab_4", "T_Tab_5")})
+EXPECTED.update({COM + "Tabs/" + n: "charcoal:arrows" for n in ("T_Tab_1", "T_Tab_2", "T_Tab_3", "T_Tab_4", "T_Tab_5")})
 EXPECTED.update({COM + n: "charcoal:glyph" for n in ("T_Tab_arrow_on", "T_Tab_arrow_off")})
 EXPECTED.update({SKC + n: "charcoal:flourish" for n in ("T_UI_SkillClass_PaperTab_Selected", "T_UI_SkillClass_LeftPaperTab_Active")})
 EXPECTED.update({SKC + n: "charcoal:laurel" for n in ("T_UI_SkillsClass_TabLeft_On", "T_UI_SkillsClass_TabMiddle_On", "T_UI_SkillsClass_TabRight_On")})
@@ -207,6 +207,29 @@ with tempfile.TemporaryDirectory() as temp:
             same_frame("charcoal:emblem", s, b, sb, bb)
             check(min(b.getpixel((48, 128))[:3]) >= 180, f"emblem: the brown rim turns light ({b.getpixel((48, 128))[:3]})")
             check(max(b.getpixel((128, 128))[:3]) <= 80, f"emblem: the paper fill turns charcoal ({b.getpixel((128, 128))[:3]})")
+        # RMI-099: the stock rim's grain (1 px columns of a greyer brown, chroma 14 in a chroma 37 rim) must not mottle the
+        # light outline: every rim pixel away from its edges stays light
+        im = Image.new("RGBA", (256, 256), (0, 0, 0, 0))
+        px = im.load()
+        for y in range(40, 216):
+            for x in range(40, 216):
+                rim = x < 60 or x >= 196 or y < 60 or y >= 196
+                px[x, y] = ((120, 55, 35, 255) if x % 2 else (118, 92, 80, 255)) if rim else (150, 140, 130, 255)
+        if "charcoal:emblem" in fns:
+            s, b, sb, bb = run("charcoal:emblem", im, "DXT5", temp)
+            rim_min = min(b.getpixel((x, y))[0] for y in range(70, 186) for x in range(44, 56))
+            check(rim_min >= 200, f"emblem: a grainy rim stays solid light (darkest rim pixel {rim_min}, RMI-099)")
+            check(max(b.getpixel((128, 128))[:3]) <= 80, f"emblem: the fill of a grainy icon stays charcoal ({b.getpixel((128, 128))[:3]})")
+        # RMI-098: the Stats strip (T_Tab_1-5, arrows only): a warm dark torn-edge blotch outside every arrow box stays paper,
+        # an arrow stroke turns light
+        im = paper_image(1024, 256, lambda x, y: 255 if y < 200 else max(0, 255 - 4 * (y - 200)))
+        stroke(im, (102, 42, 110, 58), (110, 60, 35))     # inside the first arrow box (96..122, 36..63)
+        stroke(im, (226, 88, 236, 104), (110, 60, 35))    # a tile corner / bottom tear
+        if "charcoal:arrows" in fns:
+            s, b, sb, bb = run("charcoal:arrows", im, "DXT5", temp)
+            same_frame("charcoal:arrows", s, b, sb, bb)
+            check(min(b.getpixel((106, 50))[:3]) >= 120, f"arrows: an arrow stroke turns light ({b.getpixel((106, 50))[:3]})")
+            check(max(b.getpixel((231, 96))[:3]) <= 60, f"arrows: a torn-edge blotch stays paper ({b.getpixel((231, 96))[:3]}, RMI-098)")
         # laurel pattern: a faint grey leaf (6 L* darker, greyer) is lifted; a warm stain of the same darkness is not
         im = paper_image(512, 128)
         stroke(im, (100, 30, 140, 42), (185, 178, 168))   # greyer, darker leaf

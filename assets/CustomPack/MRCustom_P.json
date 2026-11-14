@@ -267,7 +267,7 @@
       "baked_uexp_sha256": "989a372c45c04628c1fecad453be44bacb4ee6f9be6727876e7b8c9e09da0148"
     },
     "Art/UI/Common/Backgrounds/T_UI_PlayerMenu_Background": {
-      "recipe": "page_invert:3",
+      "recipe": "page_invert:3:0.7",
       "style": [
         "frame",
         "panel",
@@ -275,7 +275,7 @@
         "parchmentLight"
       ],
       "stock_uexp_sha256": "a7e81a346b03ca46464e7e82826c41d6a8854f87bb921c16ef477ebaba7383bc",
-      "baked_uexp_sha256": "a5a28bafc987ccdc86db9d3bbb63f1250a93cf1888f0a0a6a5d042965e2090ba"
+      "baked_uexp_sha256": "c47e516143c9d5c0310060238789ef2008707b9e1d7d73e6812a44fa1d41054d"
     },
     "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertBtm_D": {
       "recipe": "flat:frame",
@@ -618,7 +618,7 @@
       "baked_uexp_sha256": "90facec7b9361f547898ee2ed922c4c0b194a71878d08206dc6c760aac72b77e"
     },
     "Art/UI/Modern/GameMenuLayer/magic/T_MagicBackground": {
-      "recipe": "page_invert:3",
+      "recipe": "page_invert:3:0.7",
       "style": [
         "frame",
         "panel",
@@ -626,7 +626,7 @@
         "parchmentLight"
       ],
       "stock_uexp_sha256": "ff683f4e7686e6719de4f476f22290374e10098397fa986f0ecf268c1d873782",
-      "baked_uexp_sha256": "070fd363ca90a03d7e8631315b0b5dec58bfcaa945882bc385e7a4fcfea38f46"
+      "baked_uexp_sha256": "e644901d3b0102562873dfa57eba82acbd1a228b10ab9452a38564dc000e703f"
     },
     "Art/UI/Modern/GameMenuLayer/magic/School/T_MagicSchoolSimple_Alteration": {
       "recipe": "flat:rowIcon",
@@ -851,14 +851,14 @@
       "baked_uexp_sha256": "b9fcf2fa1d77b654e1a4639ad50caac5ad71e6329de25b9727f2fa6ce21f2834"
     },
     "Art/UI/Common/Backgrounds/T_UI_MenuLeft": {
-      "recipe": "paper_invert:3",
+      "recipe": "paper_invert:3:0.7",
       "style": [
         "panel",
         "parchmentDark",
         "parchmentLight"
       ],
       "stock_uexp_sha256": "8c591b6e8d3faba622a87add5816fb914abfe3ff840542da5ba3564876643f96",
-      "baked_uexp_sha256": "8e303692d5fbe7eb26b86c4af56f1c060d0063148e07c4a33505750055bc529d"
+      "baked_uexp_sha256": "3c93df24a331f9842e2047b754dc08ee809462347a51b76af7e2c7817284c7f3"
     },
     "Art/UI/Icons/Icon_Stats/T_Property_1_cost": {
       "recipe": "flat:headerIcon",
@@ -1588,34 +1588,34 @@
       "baked_uexp_sha256": "536b405079416cd0594a35a679ba1ace3c33d3671ca49bbf7fafbd3bcf8579aa"
     },
     "Art/UI/Common/Tabs/T_Tab_1": {
-      "recipe": "charcoal",
+      "recipe": "charcoal:arrows",
       "style": [],
       "stock_uexp_sha256": "3e49e13ea1f5b61803b9f9d9999aa5eebff24172d7660a6067a22b06ae26f89b",
-      "baked_uexp_sha256": "d5ce14f4004147ec2b01cd33e379d0c9ae9ddf356536af04f3618ca9ec9796d4"
+      "baked_uexp_sha256": "c0c4becf06f0c2314a0ef6f18d5e8a05474c360e506ee932ac8782968640e9f9"
     },
     "Art/UI/Common/Tabs/T_Tab_2": {
-      "recipe": "charcoal",
+      "recipe": "charcoal:arrows",
       "style": [],
       "stock_uexp_sha256": "39d72b338a103867c342915cc767944e363d308d155ed26fb4527d236bdb27a4",
-      "baked_uexp_sha256": "97e205e1bf76b5c8bf9bd2635d4b62db1e741ed86a9e1296054a39470e0a1317"
+      "baked_uexp_sha256": "f4a55eb1faae6a690d074600bb923c21cdde98a34a5257796cb12ed7a88ac871"
     },
     "Art/UI/Common/Tabs/T_Tab_3": {
-      "recipe": "charcoal",
+      "recipe": "charcoal:arrows",
       "style": [],
       "stock_uexp_sha256": "d712d24bc8d5dbe27ee55583b0324bc73f333bf3804fc357eec74c8e1f42f3a0",
-      "baked_uexp_sha256": "548cf31701c021d70c861fd80623b2ec6e350b7870afe5875d94ac81c53dbe2d"
+      "baked_uexp_sha256": "6efeb2e208142fcf1a5147116e2148ab75cd38dbf68eec4d5cfe362f43edf389"
     },
     "Art/UI/Common/Tabs/T_Tab_4": {
-      "recipe": "charcoal",
+      "recipe": "charcoal:arrows",
       "style": [],
       "stock_uexp_sha256": "e844d65f007a1255c743ee76db5531077566a0974f76e144d657a58a5f3c52f2",
-      "baked_uexp_sha256": "cc5d696983ac03ac44007d23499505bed6e0edebbf32b476c3029be3cfa25631"
+      "baked_uexp_sha256": "f0a4f55ac2a622030c65ed101ce30c3d8e7e36c576e81871087ffab51519d6fa"
     },
     "Art/UI/Common/Tabs/T_Tab_5": {
-      "recipe": "charcoal",
+      "recipe": "charcoal:arrows",
       "style": [],
       "stock_uexp_sha256": "94964d274e1886d942b20c9714375fc6141ac1353df6463cf698eb080c3e8be5",
-      "baked_uexp_sha256": "b194004b69408f73e7302c3a467aaa3b6ad2b8199f48aebd744267583de712ed"
+      "baked_uexp_sha256": "c740038d3f814042659f172ba9232f51c24d51de984767577a7f8f10e9eb70c2"
     },
     "Art/UI/Common/T_Tab_arrow_on": {
       "recipe": "charcoal:glyph",
@@ -1633,31 +1633,31 @@
       "recipe": "charcoal:emblem",
       "style": [],
       "stock_uexp_sha256": "33728a6ec50bf9a083d08f99ecab74a5c53023e360a5bac7dabc6635f3658631",
-      "baked_uexp_sha256": "eff457fa270604ab663b884dc312fc306fabd064da56de7c69f3ad4d9597414c"
+      "baked_uexp_sha256": "1dec89801ed5b6bf9b387f6a31fc3b3bd873e8fab8a42bca78e0e744107827f2"
     },
     "Art/UI/Icons/Icon_Category/T_Category_def": {
       "recipe": "charcoal:emblem",
       "style": [],
       "stock_uexp_sha256": "be355d2ff853dbf8514416db8d2419da1b418327a603350340fbbb9e831f566f",
-      "baked_uexp_sha256": "9e3e8e9ef0e75bc67e2e0c153862dde04c06488eebc49ca29846ca58b0faabb9"
+      "baked_uexp_sha256": "a0e0ba37ea132ded792968645255c9364debdc45f840a8481f01592d56f6e1d3"
     },
     "Art/UI/Icons/Icon_Category/T_Category_details": {
       "recipe": "charcoal:emblem",
       "style": [],
       "stock_uexp_sha256": "d55a014272187ee85990a25396e499b879b430cec689d3c04caa4b8c1c254e9f",
-      "baked_uexp_sha256": "8e18d0db1951f69119ffe40f9b7fa0aa6f9cff7296e2ce65b227ff0b15f84553"
+      "baked_uexp_sha256": "c94c5b2819b31b705738e92750a3cd182f3d39baf0ae171dff3d7f99e83ca986"
     },
     "Art/UI/Icons/Icon_Category/T_Category_factions": {
       "recipe": "charcoal:emblem",
       "style": [],
       "stock_uexp_sha256": "399a0e2c24b49ef2064e281d09c3d1ce536aefaf60c704fdbe5a357ec5979325",
-      "baked_uexp_sha256": "27d187c6ab13096a85bcab3da2a55d7c5947b6c26632e836cd35eacd75d5e0be"
+      "baked_uexp_sha256": "af05c74e73d26a3857e939f47a692a7446173652fa834e1a4393b95efca7218c"
     },
     "Art/UI/Icons/Icon_Category/T_Category_skills": {
       "recipe": "charcoal:emblem",
       "style": [],
       "stock_uexp_sha256": "e1313048b6123a11365caae3f5756bd0ff4e38f1de1dd095070c10e2497eca3e",
-      "baked_uexp_sha256": "4bf9f8218333468d68d1e9adba92e2adf1c7deba8cd3b1ce2782879abdca3bc2"
+      "baked_uexp_sha256": "6e3bd845514b18b955d075ed2dcfa9ffffcd45535e6f5929365c720d085379c0"
     },
     "Art/UI/Modern/GameMenuLayer/SkillAndClass/PaperTabs/T_UI_SkillClass_PaperTab_Selected": {
       "recipe": "charcoal:flourish",
@@ -1799,7 +1799,7 @@
   },
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "d605aacea57fc0f00e562a7922ce87cc560cb8a70f1b703ff519baaf27af14dc",
-    "MRCustom_P.ucas": "645e646510537d1ba5830be62c901df39747dcb78630517fca5dbd375f4d2620"
+    "MRCustom_P.utoc": "054f80ff551f8f3cfe4143df2ea3928d80b468c20441fef7de5fbed9fe828175",
+    "MRCustom_P.ucas": "2c424ad36692945b1039539564e05d254e26eaddaf311d05b8ce3ac7e1dd49d9"
   }
 }
