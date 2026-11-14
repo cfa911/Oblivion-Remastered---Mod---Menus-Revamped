@@ -28,8 +28,8 @@ def section(text, name):
 
 magic_ini = section(ini, 'Magic')
 checks = {
-    'one predicate names the menus with the single header row (Inventory strip incl. container sides, Magic spell pages, Active Effects)':
-        re.search(r'bool HeaderLayout\(\) const \{ return InventoryStrip\(\) \|\| kind == 1 \|\| kind == 6; \}', internal) is not None,
+    'one predicate lists the Inventory strip, Magic spell pages, Active Effects and Spell Purchase':
+        re.search(r'bool HeaderLayout\(\) const \{ return InventoryStrip\(\) \|\| kind == 1 \|\| kind == 6 \|\| SpellPurchase\(\); \}', internal) is not None,
     'the header layout runs for Magic, not only for the Inventory':
         'if (!HeaderLayout() || !OwnSorts()) return false;' in layout_fn,
     'Magic rows come from the spell list': 'Magic_Spell_List' in layout,

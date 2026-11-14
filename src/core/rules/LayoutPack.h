@@ -47,6 +47,8 @@ namespace layoutpack
 
 	// the colour pack carries the sizes (built with bLayoutPack=1 by a Step B builder)
 	inline bool HasSizes(std::string_view manifest) { return detail::HasObject(manifest, "sizes"); }
+	inline bool HasHeaderLayout(std::string_view manifest) { return detail::HasObject(manifest, "header_layout"); }
+	inline bool HasHeaderOverflow(std::string_view manifest) { return detail::HasObject(manifest, "header_overflow"); }
 
 	// MRLayout_P.json allows the pack: built for this game build, with its sizes
 	inline bool LayoutManifestOk(std::string_view manifest, std::string_view runningBuild)

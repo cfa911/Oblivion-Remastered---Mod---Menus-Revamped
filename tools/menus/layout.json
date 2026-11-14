@@ -3,6 +3,23 @@
  "order": 0,
  "about": "Step B (owner 2026-11-12, decisions 29, 45, 46): the compact-row sizes baked into MRLayout_P and MRCustom_P. Each float/double is checked against its stock value (game 1.512.105.0) before it is written; 'size' names the [Sizes] key (CustomColours.ini), 'value' is fixed layout. Rewrites add the three values the cook did not store (KB techniques/unversioned-package-rewrite.md).",
  "layout": {
+  "WBP_OriginalMenu_Inventory_FilterScrollbox": {
+   "asset": "UI/Original/GameMenuLayer/Inventory/MainPart/Filter/WBP_OriginalMenu_Inventory_FilterScrollbox",
+   "floats": [],
+   "rewrites": [
+    {
+     "widget": "ScrollBox Clipping",
+     "export_start": 111,
+     "export_size": 10,
+     "header_pos": 0,
+     "stock_fields": [2, 39],
+     "stock_zeroes": [2],
+     "add_bytes": [[38,"00"]],
+     "field_sizes": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
+     "stock_export_sha256": "ff2c46116cacd1781bf558a7ef70c0cb67071d4ab35246a129aa926ef028e4c7"
+    }
+   ]
+  },
   "WBP_ModernMenu_MagicEntry": {
    "asset": "UI/Modern/GameMenuLayer/magic/WBP_ModernMenu_MagicEntry",
    "floats": [
@@ -94,6 +111,28 @@
     }
    ],
    "rewrites": [
+    {
+     "widget": "HeaderList_Separator Visibility",
+     "export_start": 74940,
+     "export_size": 49,
+     "header_pos": 0,
+     "stock_fields": [4,12,35,45],
+     "stock_zeroes": [],
+     "add_bytes": [[62,"01"]],
+     "field_sizes": [0,0,0,0,8,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,16,0,0,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+     "stock_export_sha256": "ffb983877198cbc44f8dff7a8b460308d1c9548641264124d5c3bbbda78da5a5"
+    },
+    {
+     "widget": "VerticalBoxSlot_2 (SpellListRetainerBox) Padding",
+     "export_start": 73374,
+     "export_size": 19,
+     "header_pos": 0,
+     "stock_fields": [0, 4, 5],
+     "stock_zeroes": [],
+     "add_bytes": [[1, "010300003042"]],
+     "field_sizes": [3, 6, 1, 1, 4, 4],
+     "stock_export_sha256": "ad8eb864d303083b2d7f95944e7d1b9b452f0c49c02c338c2ebddc859236d114"
+    },
     {
      "widget": "Magic_TabName (WBP_AltarTextBlock_C) Min Desired Width",
      "export_start": 74018,
@@ -705,6 +744,17 @@
       4
      ],
      "stock_export_sha256": "56c47b2e80ead67480022d7d1e6065d95413ee2c824b553ba7dc73c46ccdf3d0"
+    },
+    {
+     "widget": "VerticalBoxSlot_3 (inv_cont_listview_overlay) Padding",
+     "export_start": 21251,
+     "export_size": 19,
+     "header_pos": 0,
+     "stock_fields": [0, 4, 5],
+     "stock_zeroes": [],
+     "add_bytes": [[1, "010300003042"]],
+     "field_sizes": [3, 6, 1, 1, 4, 4],
+     "stock_export_sha256": "a884222d60af7c0fa19900a0eba35986c1dc49a5330a5efe5133539f866bee89"
     },
     {
      "widget": "inv_cont_title (WBP_AltarTextBlock_C) Min Desired Width",

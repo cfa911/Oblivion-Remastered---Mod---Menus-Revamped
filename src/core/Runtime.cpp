@@ -106,9 +106,11 @@ namespace core
 				ui::TreeRootCanvas(container::Widget()), ui::ViewportScale(), container::SideContent(4));
 		} else {
 			const auto menu = menus::Active();
-			if (menu == menus::Menu::kInventory || menu == menus::Menu::kMagic) {
+			if (menu == menus::Menu::kInventory || menu == menus::Menu::kMagic || menu == menus::Menu::kSpellPurchase) {
 				auto* widget = menus::Widget(menu);
-				sorting::Tick(menu == menus::Menu::kMagic ? sorting::Mode::Magic : sorting::Mode::Inventory,
+				const auto mode = menu == menus::Menu::kSpellPurchase ? sorting::Mode::SpellPurchase :
+					menu == menus::Menu::kMagic ? sorting::Mode::Magic : sorting::Mode::Inventory;
+				sorting::Tick(mode,
 					widget, ui::TreeRootCanvas(widget), ui::ViewportScale());
 			} else {
 				sorting::Tick(sorting::Mode::None, nullptr, nullptr, 1);

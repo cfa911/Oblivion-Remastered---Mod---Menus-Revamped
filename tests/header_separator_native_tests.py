@@ -28,8 +28,8 @@ rules = (ROOT / "src/sorting/rules/InventoryHeaderLayout.h").read_text(encoding=
 layout_fn = source_paths.function(headers, "bool Picker::LayoutInventoryHeaders(")
 
 hides = [m.start() for m in re.finditer(r'"HeaderList_Separator"', layout_fn)]
-check(len(hides) == 1 and "if (magic) ui::Visible(ui::FindInTree(a_menu, \"HeaderList_Separator\"), false);" in layout_fn,
-      "only Magic still hides its separator; the Inventory strip leaves the game's line alone")
+check(len(hides) == 1 and "if (magic && measureColumns && !bakedOverflow)" in layout_fn,
+      "only Magic with an older or absent layout pack collapses its separator at runtime")
 check("SetRenderOpacity\",0.0f);   // TEMP-DIAG MRSEP" not in layout_fn and "TEMP-DIAG MRSEP" not in headers,
       "the MRSEP probe is gone (result recorded in the KB)")
 check("SideSeparator(" not in headers, "no separator lookup is left for the Inventory strip")

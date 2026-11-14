@@ -122,6 +122,9 @@ namespace sorting::detail
 				wanted = itemtags::Tab::AllItems;  // full tree when the side's page cannot be read
 				// RMI-006: follow the side's native tab like the Inventory (Misc tab -> Misc choices).
 				itemtags::TabFromPage(ContainerPage(a_kind), wanted);
+			} else if (a_kind == 7) {
+				show = ui::ShownOnScreen(a_menu);
+				wanted = itemtags::Tab::MagicSchool;
 			} else if (a_kind == 0) {
 				auto** vm = reflect::At<UE::UObject*>(a_menu, reflect::Offset(a_menu->GetClass(), "VInventoryMenuViewModel"));
 				if (vm && *vm) {
@@ -143,6 +146,7 @@ namespace sorting::detail
 		if (kind != a_kind) {  // another menu: forget everything and rebuild
 			if (kind >= 0) { enchantedOnly = false; stolenOnly = false; Reset(); tabSet = false; }
 			kind = a_kind;
+			if (SpellPurchase()) SortAt(SortSlot()) = {};
 			if (kind != 0) ClearInventoryHeaderLayout();
 		}
 		active.store(true);  // page identity is independent of whether its new widgets have finished layout
@@ -190,7 +194,7 @@ namespace sorting::detail
 				return kind >= 3 && kind <= 4 ? container::FindWidget(owner, name) : ui::FindInTree(owner, name);
 			};
 			auto* iconBox = find(a_menu, "FilterIconBox");
-			if (!iconBox && kind >= 3 && kind <= 4) iconBox = find(a_menu, "inv_cont_filter");
+			if (!iconBox && ((kind >= 3 && kind <= 4) || SpellPurchase())) iconBox = find(a_menu, "inv_cont_filter");
 			auto* panel = iconBox ? find(iconBox, "ScrollBox") : nullptr;  // FilterIconBox is a user widget wrapping the real panel
 			auto* headerWidget = reflect::Get(header);
 			ui::Call parent(headerWidget, L"GetParent");
@@ -306,6 +310,10 @@ namespace sorting::detail
 			const auto next = pickernav::Choose(tab, view, category, choice, static_cast<unsigned>(cmd));
 			if (view != next.view) { view = next.view; styled = false; nextHitMeasure = 0; nextLayout = 0; }
 			category = next.category; choice = next.choice; cursor = next.cursor;
+			if (SpellPurchase() && appliedChoice != choice) {
+				appliedChoice = choice;
+				Republish(*this);
+			}
 			open = !next.close;
 			if (pickerpad::ShouldReturnToList(core::ReturnToListAfterFilter(), fromController, next.close))
 				returnToList.Request();

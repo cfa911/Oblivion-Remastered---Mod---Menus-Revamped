@@ -30,7 +30,7 @@ from pack_builder import app, paths, pipeline  # noqa: E402
 from pack_builder.pipeline import *  # noqa: E402,F401,F403  (the recipes and tables, for the tests and old callers)
 from pack_builder.pipeline import DEFAULT_PACK, pack_name, sha256  # noqa: E402
 
-COMPARED = ("pack", "game_build", "style", "textures", "sizes")   # --check: what a pack was baked from and what it holds
+COMPARED = ("pack", "game_build", "style", "textures", "sizes", "header_layout", "header_overflow")
 
 
 def comparable(manifest):

@@ -14,6 +14,8 @@ namespace darkpack
 	{
 		bool g_active = false;
 		bool g_layoutBaked = false;
+		bool g_headerLayoutBaked = false;
+		bool g_headerOverflowBaked = false;
 		bool g_bakedLaurelTint = false;
 
 		const char* Describe(darkpackswitch::Outcome outcome)
@@ -110,6 +112,8 @@ namespace darkpack
 		const auto outcomes = layoutpack::Switch(source, mods, custom, installable, layoutOn, layoutAllowed);
 		g_active = darkpackswitch::Active(outcomes.custom);
 		g_layoutBaked = (g_active && customSizes) || darkpackswitch::Active(outcomes.layout);
+	g_headerLayoutBaked = g_layoutBaked && layoutpack::HasHeaderLayout(g_active ? customJson : layoutJson);
+	g_headerOverflowBaked = g_headerLayoutBaked && layoutpack::HasHeaderOverflow(g_active ? customJson : layoutJson);
 		const bool problem = outcomes.custom == darkpackswitch::Outcome::Incomplete || outcomes.custom == darkpackswitch::Outcome::Failed;
 		if (problem)
 			logger::warn("Menus Revamped: Custom UI pack {}", Describe(outcomes.custom));
@@ -131,5 +135,7 @@ namespace darkpack
 
 	bool Active() { return g_active; }
 	bool LayoutBaked() { return g_layoutBaked; }
+	bool HeaderLayoutBaked() { return g_headerLayoutBaked; }
+	bool HeaderOverflowBaked() { return g_headerOverflowBaked; }
 	bool BakedLaurelTint() { return g_active && g_bakedLaurelTint; }
 }

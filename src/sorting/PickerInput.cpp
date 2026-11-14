@@ -22,7 +22,7 @@ namespace sorting
 			auto* anchor = kind == 6 ? reflect::Get(sortHeaders[static_cast<int>(itemsort::Key::Name)]) : reflect::Get(header);
 			if (!active.load() || !ui::ShownOnScreen(anchor)) return false;
 			ui::Call mode(reflect::Get(menu), L"IsFilterFocused");
-			if (mode && mode.Size("IsClosed") == 1) {
+		if (!SpellPurchase() && mode && mode.Size("IsClosed") == 1) {
 				if (!mode.RunGuarded() || !mode.Get<std::uint8_t>("IsClosed")) return false;
 			} else {
 				// Magic may not expose Inventory's Blueprint query: use the inherited focus getter.

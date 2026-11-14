@@ -132,7 +132,8 @@ namespace sorting
 			// Slots 0-4 Inventory/container tabs, 5 Magic Active Effects (kind 6), 6-9 Magic spell pages (own memory: the
 			// Inventory and Magic share g_pickers[0]).
 			static constexpr int kMagicSorts = 6;
-			itemsort::State sorts[10];
+			static constexpr int kSpellPurchaseSort = 10;
+			itemsort::State sorts[kSpellPurchaseSort + 1];
 			unsigned seededKinds = 0;   // kinds whose slots got the INI default (bCategorySort) once
 			bool pendingRepublish = false;   // the classification landed for rows the category sort could not place
 			reflect::Handle groupBack, groupArrow;   // the category sort shown on the filter like an active sort
@@ -176,18 +177,19 @@ namespace sorting
 			int quickLootHintShown = -1;     // last visibility we set: -1 none, 0 hidden, 1 shown
 			std::vector<reflect::Handle> quickLootShown;   // the glyph and the parents we made visible (hidden again on mouse)
 			// kind 6: Magic Active Effects sort host (a free container slot, page 4 only, no category picker)
-			bool OwnSorts() const { return kind == 0 || kind == 1 || kind == 3 || kind == 4 || kind == 6; }
+			bool SpellPurchase() const { return kind == 7; }
+			bool OwnSorts() const { return kind == 0 || kind == 1 || kind == 3 || kind == 4 || kind == 6 || SpellPurchase(); }
 		// The single header row (strip under the title, sorts over their columns): Inventory, and since the Magic revamp the
 		// Magic spell pages (the School host, which also places the Effect and Type pickers) and Active Effects. The
 		// inventory* layout fields below are this row's state for all three.
 		// The Inventory strip (Inventory rows): the Inventory and both container/barter sides (owner, C.1 2026-11-12: the same
 		// WBP_ModernMenu_ContainerInventory_MainContent lays out each side).
 		bool InventoryStrip() const { return kind == 0 || kind == 3 || kind == 4; }
-		bool HeaderLayout() const { return InventoryStrip() || kind == 1 || kind == 6; }
-			std::vector<itemsort::Key> SortKeys() const { return kind == 1 ? itemsort::MagicKeys() : kind == 6 ? itemsort::ActiveKeys() : itemsort::Keys(tab); }
+		bool HeaderLayout() const { return InventoryStrip() || kind == 1 || kind == 6 || SpellPurchase(); }
+			std::vector<itemsort::Key> SortKeys() const { return SpellPurchase() ? itemsort::SpellPurchaseKeys() : kind == 1 ? itemsort::MagicKeys() : kind == 6 ? itemsort::ActiveKeys() : itemsort::Keys(tab); }
 			bool Offers(itemsort::Key a_key) const { const auto keys = SortKeys(); return std::find(keys.begin(), keys.end(), a_key) != keys.end(); }
-			int SortSlot() const { return kind == 1 ? kMagicSorts + magicPage : kind == 6 ? 5 : static_cast<int>(tab); }
-			itemsort::State& SortAt(int a_slot) { return sorts[a_slot >= 0 && a_slot < 10 ? a_slot : 4]; }
+			int SortSlot() const { return SpellPurchase() ? kSpellPurchaseSort : kind == 1 ? kMagicSorts + magicPage : kind == 6 ? 5 : static_cast<int>(tab); }
+			itemsort::State& SortAt(int a_slot) { return sorts[a_slot >= 0 && a_slot <= kSpellPurchaseSort ? a_slot : 4]; }
 			// Category sort: the picker whose sort memory this filter uses (Magic school/effect/type: the school picker).
 			Picker* SortHost();
 			bool GroupSorts() { auto* host = SortHost(); return kind != 6 && host && host->OwnSorts(); }
