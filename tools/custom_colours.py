@@ -39,6 +39,12 @@ COLOURS = {
     "enchantingTabPaper": [27.0, 27.0, 29.0],
     "enchantingTabIcon": [255.0, 255.0, 255.0],
     "tabPaperDark": [17.0, 17.0, 17.0], "tabPaperLight": [30.0, 30.0, 30.0], "tabGlyph": [255.0, 255.0, 255.0],
+    # accent colours (owner 2026-11-14, labelled mock-ups): blue titles/values, gold effect details
+    "menuTitle": [61.0, 212.0, 250.0],
+    "accentValue": [61.0, 212.0, 250.0],
+    "effectLabel": [232.0, 187.0, 102.0],
+    "effectIcon": [232.0, 187.0, 102.0],
+    "effectValue": [185.0, 138.0, 69.0],
 }
 NUMBERS = {"detailsPage": 0.010}   # [Colours] entries that are one number (detailsPage: a linear multiply, 0..1)
 TAB = {"selected": 41.0, "unselected": 33.0, "gap": 24.0, "outline": 134.0, "glyph": 242.0, "glyphDim": 162.0}
@@ -118,6 +124,11 @@ HELP = {
     "tabPaperLight": "Inventory and Magic category tabs - paper highlights (no effect: charcoal tabs)",
     "tabGlyph": "Inventory and Magic category tab icons and arrows (no effect: charcoal tabs)",
     "detailsPage": "Inventory, Magic and shared details page brightness",
+    "menuTitle": "Menu titles and headings in every menu (blue accent)",
+    "accentValue": "Magic highlighted values: spell cost, spell effectiveness, active effect magnitude",
+    "effectLabel": "Effect type and Magnitude label in effect lists and Magic details (gold)",
+    "effectIcon": "Effect line magnitude and duration icons in every menu (gold)",
+    "effectValue": "Effect amounts and durations in effect lists (darker gold)",
 }
 TAB_HELP = {
     "selected": "Inventory and Magic selected category tab fill",
@@ -159,6 +170,10 @@ ROLES = {
     "ring": {"label": "Skill level ring (Inventory details, Character skills)", "members": ["Skin.ring"]},
     "scrollbars": {"label": "Scrollbars (all menus but Settings)",
                    "members": ["Skin.scrollTrack", "Skin.scrollBorder", "Skin.scrollInside"]},
+    "accentText": {"label": "Titles, headings and highlighted values (all menu titles, Magic costs and values)",
+                   "members": ["menuTitle", "accentValue"]},
+    "effectGold": {"label": "Effect details (effect type, magnitude label and icons, amounts and durations)",
+                   "members": ["effectLabel", "effectIcon", "effectValue"]},
 }
 RUNTIME_SKIN = ("rule", "guide")   # our own widgets (decision 38: the Runtime tab)
 

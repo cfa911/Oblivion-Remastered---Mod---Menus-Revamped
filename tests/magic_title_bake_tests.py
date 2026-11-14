@@ -54,12 +54,12 @@ except Exception as error:   # noqa: BLE001
 import json  # noqa: E402
 
 magic = json.loads((ROOT / "tools/menus/magic.json").read_text(encoding="utf-8"))
-check(any(o == 74024 and tuple(s) == (0.0723, 0.0382, 0.0284, 1.0) and c == "rowText"
+check(any(o == 74024 and tuple(s) == (0.0723, 0.0382, 0.0284, 1.0) and c == "menuTitle"
           for o, s, c in pipe.BLUEPRINT_COLOURS.get(PKG, [])), "the pipeline loads the Magic title colour row")
 colours = magic.get("blueprint_colours", {}).get(PKG, [])
-check(any(c.get("offset") == 74024 and c.get("colour") == "rowText" and c.get("widget") == "Magic_TabName"
+check(any(c.get("offset") == 74024 and c.get("colour") == "menuTitle" and c.get("widget") == "Magic_TabName"
           and c.get("stock") == [0.0723, 0.0382, 0.0284, 1.0] for c in colours),
-      "Magic_TabName's colour (74024) is baked to rowText in the Custom pack")
+      "Magic_TabName's colour (74024) is baked to menuTitle in the Custom pack (accent colours 2026-11-14)")
 check(any(a.get("recipe") == "bp_colour:" + PKG for a in magic.get("assets", [])),
       "the Magic menu blueprint is a Custom colour asset")
 

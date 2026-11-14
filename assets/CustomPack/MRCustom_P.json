@@ -14,6 +14,11 @@
       16.0,
       16.0
     ],
+    "menuTitle": [
+      61.0,
+      212.0,
+      250.0
+    ],
     "detailsPage": 0.01,
     "panel": [
       41.0,
@@ -114,6 +119,16 @@
       239.0,
       239.0
     ],
+    "accentValue": [
+      61.0,
+      212.0,
+      250.0
+    ],
+    "effectLabel": [
+      232.0,
+      187.0,
+      102.0
+    ],
     "nameBox": [
       239.0,
       239.0,
@@ -143,6 +158,16 @@
       14.0,
       22.0,
       42.0
+    ],
+    "effectIcon": [
+      232.0,
+      187.0,
+      102.0
+    ],
+    "effectValue": [
+      185.0,
+      138.0,
+      69.0
     ],
     "alchemyMetal": [
       56.0,
@@ -252,11 +277,11 @@
     "UI/Modern/GameMenuLayer/Container_Inventory/WBP_ModernMenu_ContainerInventory_MainContent": {
       "recipe": "bp_colour:WBP_ModernMenu_ContainerInventory_MainContent",
       "style": [
-        "rowText"
+        "menuTitle"
       ],
       "layout": true,
       "stock_uexp_sha256": "e799442b9800135cde953b5b06132f1c7729eefeefb6a63c45a06001310cb608",
-      "baked_uexp_sha256": "b0241d05b02216cf2c48858ebeddb197356660845c3497920d9aecb5c1668c46"
+      "baked_uexp_sha256": "8ed821ae7747e438462f7c82ffcf16da2e25b7931a81642b49a4b88c2fc916cc"
     },
     "Art/UI/Modern/GameMenuLayer/SpellPurchase/T_SpellPurchase_LeftPageBG": {
       "recipe": "details_invert:3",
@@ -847,11 +872,12 @@
     "UI/Modern/GameMenuLayer/magic/WBP_ModernMenu_MagicEntry": {
       "recipe": "bp_colour:WBP_ModernMenu_MagicEntry",
       "style": [
+        "accentValue",
         "rowText"
       ],
       "layout": true,
       "stock_uexp_sha256": "b898fca2c9bcef7841d5e3908864b731655e21436e6732905941b2ff7b8ddf39",
-      "baked_uexp_sha256": "df302842e540c80661cc53735a3e38175d2595dd37014802177869401bee8ce5"
+      "baked_uexp_sha256": "9db77a8de2c3d190ba205477d417b43acc1373baad09f73f69a6bb32b1c5751a"
     },
     "UI/Modern/GameMenuLayer/magic/DT_UI_Magic_SpellEffectiveness_RichTextStyle": {
       "recipe": "bp_colour:DT_UI_Magic_SpellEffectiveness_RichTextStyle",
@@ -864,19 +890,24 @@
     "UI/Modern/GameMenuLayer/magic/WBP_ModernMenu_MagicMenu": {
       "recipe": "bp_colour:WBP_ModernMenu_MagicMenu",
       "style": [
+        "accentValue",
+        "menuTitle",
         "rowText"
       ],
       "layout": true,
       "stock_uexp_sha256": "cc24f55b123d346148cba8b41ad3b6a9f1d516ab7ef5fe8d0407a160627951e9",
-      "baked_uexp_sha256": "6a81c12856609aa4d34f9a9ef0eb833c8153d23c9f8db761ab5cced60ec63c47"
+      "baked_uexp_sha256": "c25639aa22adc9aa355bcf3760c77c848accebef5d5e99be243545246b123715"
     },
     "UI/Modern/GameMenuLayer/Magic/WBP_ModernMenu_MagicDetails": {
       "recipe": "bp_colour:WBP_ModernMenu_MagicDetails",
       "style": [
+        "accentValue",
+        "effectLabel",
+        "menuTitle",
         "rowText"
       ],
       "stock_uexp_sha256": "c60af712330cc67658f5854117828ca39ac3e3eac8d6ce6ecac05d20eaeb5a13",
-      "baked_uexp_sha256": "365f9946a7c3375640e73c4c8513a9a38ec03e7e9b787509e7b8c61ef0d843b0"
+      "baked_uexp_sha256": "a951c31f8e5ce3d740a9fe03a0f439b8d5aa2662ded57c5d9f79912166b66a4a"
     },
     "Art/UI/Common/T_Diamond_Brown_Separator": {
       "recipe": "skin_flat:ornament:235",
@@ -897,20 +928,21 @@
     "UI/Modern/GameMenuLayer/Alchemy/WBP_ModernMenu_AlchemyMenu": {
       "recipe": "bp_colour:WBP_ModernMenu_AlchemyMenu",
       "style": [
+        "menuTitle",
         "rowText"
       ],
       "layout": true,
       "stock_uexp_sha256": "e7df8352d25951997fdb6002648df17bf0df1fcc63df77c0db3ff0b75ac7f31b",
-      "baked_uexp_sha256": "8dd1bb766f4841a77f9b122705b9df2ce35b350a295c1bfc292431a1c35dbd5b"
+      "baked_uexp_sha256": "4af4daae4ee637809230d6f0be1d9fd654e5be8a485cc11a75ca84ab969d5290"
     },
     "UI/Modern/GameMenuLayer/Alchemy/Filters/WBP_ModernMenu_AlchemyFilters": {
       "recipe": "bp_colour:WBP_ModernMenu_AlchemyFilters",
       "style": [
-        "rowText"
+        "menuTitle"
       ],
       "layout": true,
       "stock_uexp_sha256": "e1305e45aeba9d016635a4a0c101208d6648decfc7c5f1c1accb5038c1166e6d",
-      "baked_uexp_sha256": "7522dc8b3ff3a88c453ada8f53e1d48a320457a0be9cef7c4a41f211bc0807dd"
+      "baked_uexp_sha256": "6000593b9ad0b94d94572fb52c04b258905712c3671684cb11ec24330326c28f"
     },
     "UI/Modern/GameMenuLayer/Alchemy/Filters/WBP_ModernMenu_Alchemy_FilterEffectButton": {
       "recipe": "bp_colour:WBP_ModernMenu_Alchemy_FilterEffectButton",
@@ -1072,18 +1104,21 @@
     "UI/Legacy/GameMenuLayer/Commun/WBP_LegacyMenu_AddedEffects": {
       "recipe": "bp_colour:WBP_LegacyMenu_AddedEffects",
       "style": [
+        "effectIcon",
+        "effectLabel",
+        "effectValue",
         "rowText"
       ],
       "stock_uexp_sha256": "b0823016aad7225650a33b4e9491d74fcd5b5fb8ca9d8a61656835b380700dfd",
-      "baked_uexp_sha256": "e9eefdf34792dcdb8ad16033502995309967ef2f1d73898c24d263dad8c5280c"
+      "baked_uexp_sha256": "c03fadc198cd68f62577876325cbf7c5e66158e0f0bb6ef39245c9c60d90008e"
     },
     "Art/UI/Icons/Icon_Stats/T_Property_1_magnitude": {
-      "recipe": "flat:headerIcon",
+      "recipe": "flat:effectIcon",
       "style": [
-        "headerIcon"
+        "effectIcon"
       ],
       "stock_uexp_sha256": "c5905e49459143d0ffeca9f9e6e70af7cce9c03eb961507108534f976e32adec",
-      "baked_uexp_sha256": "a24b5830bf201f8cf16d0a0fb0bac10e42871c44b6106b78526cfd30b9a6845c"
+      "baked_uexp_sha256": "7bcef165cba17a50bb5edd93d89d30d12825b1304dc1c1d1f8e3506cf86eb58a"
     },
     "Art/UI/Icons/Icon_Stats/T_Property_1_time": {
       "recipe": "flat:headerIcon",
@@ -1399,6 +1434,38 @@
       "stock_uexp_sha256": "d2333a03a22f44511d911e9030cf811207ddea1781b93bd443da40a6500a2747",
       "baked_uexp_sha256": "0c4417d77e1b5a983c978a58eb1f91792d9e600fffa5bd45b7e5b1e2a91341f7"
     },
+    "UI/Original/GameMenuLayer/Quest/WBP_Modern_QuestListPanel": {
+      "recipe": "bp_colour:WBP_Modern_QuestListPanel",
+      "style": [
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "3adecc5b8c56982b089d31312b6bcde7dfb531be32be5e343da321ad49186c66",
+      "baked_uexp_sha256": "9be1364a6311c6b1598510b160387afe952e5d1087245a25b1e366ebbc1b8356"
+    },
+    "UI/Modern/GameMenuLayer/Stats/Page2_Attributes/WBP_ModernMenu_StatsPage2": {
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPage2",
+      "style": [
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "baeef811e5652b1b5a790265d6eadf04ae1df17680fedae6b4c318e4a5207de8",
+      "baked_uexp_sha256": "118947f988c21d77f9809aef73b74d5d1681a5d57560aafa0b68f661a987203e"
+    },
+    "UI/Modern/GameMenuLayer/Stats/Page4_Factions/WBP_ModernMenu_StatsPage4": {
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPage4",
+      "style": [
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "2689be7990835e5afe38c1b91b5e6dcfe5b7c3d0ef1a7d66b117bee1b5df2c4a",
+      "baked_uexp_sha256": "f0ba0b1542d39b987b29b0bc84d4d49e7b381beb844bb3aa17e30e3294b0d9c0"
+    },
+    "UI/Modern/GameMenuLayer/Stats/Page5_Details/WBP_ModernMenu_StatsPage5": {
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPage5",
+      "style": [
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "885356b2611b4787d22c91624a7d3b8200611ecdce867feca46ecb0a22bbcb6d",
+      "baked_uexp_sha256": "764c04d51a6c875527dd6d4b3043f3f020e8e2de724b5ea3a97943324ff0d938"
+    },
     "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Paper": {
       "recipe": "parchment:enchanting",
       "style": [
@@ -1479,12 +1546,13 @@
       "recipe": "bp_colour:WBP_ModernMenu_EnchantmentMenu",
       "style": [
         "columnLine",
+        "menuTitle",
         "panel",
         "rowText"
       ],
       "layout": true,
       "stock_uexp_sha256": "69770706c94b880ad0ad707f0c782a81c9bb4933ab28b3eb096b2d2754ef6ae4",
-      "baked_uexp_sha256": "df3a112f25399c16da9a7372800c01a7d29872fecc8ffd71e3b769a10e36118a"
+      "baked_uexp_sha256": "7586c8be08ef3796cc5928b447490873f03df0fe231827cbfeebe1045a694c61"
     },
     "Art/UI/Icons/Icon_Stats/T_Property_1_Price": {
       "recipe": "flat:headerIcon",
@@ -1571,12 +1639,13 @@
     "UI/Modern/GameMenuLayer/Spellmaking/WBP_ModernMenu_SpellMakingMenu": {
       "recipe": "bp_colour:WBP_ModernMenu_SpellMakingMenu",
       "style": [
+        "menuTitle",
         "panel",
         "rowText"
       ],
       "layout": true,
       "stock_uexp_sha256": "14154b3a43a35b02a081c1458af8dfecebfd84f8302cad5546673492a4290b14",
-      "baked_uexp_sha256": "51cd80d031313cc14ea89eb8d8193d4404b9df0c0d25756bbf65f64013f89f24"
+      "baked_uexp_sha256": "19bebe43f6273669e55d40f0e40c17d1562ea82ff4784b26abd8b9dca37410ba"
     },
     "UI/Modern/GameMenuLayer/Spellmaking/WBP_ModernMenu_SpellmakingEntry": {
       "recipe": "bp_colour:WBP_ModernMenu_SpellmakingEntry",
@@ -1903,7 +1972,7 @@
   },
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "8c6fcab0d16db108219119423f76a89722abed8ac8eac04ad460c4aefb13687b",
-    "MRCustom_P.ucas": "1882807cfbd41e5f313d397dbcca5fe70bd56b62032dadad4aed1488c6aa5917"
+    "MRCustom_P.utoc": "787c1be14e5da895bc75024f79adae29fabb396a2e5019e02dc851defc8f168a",
+    "MRCustom_P.ucas": "3a24bc8b097af0421987c3430d8287ebb9bd350d4229b4f94ae1f64a3761644f"
   }
 }

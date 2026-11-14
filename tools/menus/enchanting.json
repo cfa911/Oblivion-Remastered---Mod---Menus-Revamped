@@ -104,7 +104,7 @@
           0.0284,
           1.0
         ],
-        "colour": "rowText",
+        "colour": "menuTitle",
         "widget": "AddedEffect_Title"
       },
       {
@@ -115,7 +115,7 @@
           0.0284,
           1.0
         ],
-        "colour": "rowText",
+        "colour": "menuTitle",
         "widget": "Enchantment_TabName"
       },
       {
@@ -260,6 +260,7 @@
       "recipe": "bp_colour:WBP_ModernMenu_EnchantmentMenu",
       "colours": [
         "columnLine",
+        "menuTitle",
         "panel",
         "rowText"
       ],

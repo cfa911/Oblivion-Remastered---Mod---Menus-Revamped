@@ -373,9 +373,10 @@ check(listed.get("UI/Legacy/GameMenuLayer/Commun/WBP_LegacyMenu_AddedEffects") =
       "Alchemy r5: the effect line blueprint's brown ink is baked white")
 if mdp is not None:
     check([o for o, _, n in getattr(mdp, "BLUEPRINT_COLOURS", {}).get("WBP_LegacyMenu_AddedEffects", []) if n == "rowText"]
-          == [18182, 18251, 18320, 18409, 18478, 18554], "Alchemy r5 + 28a: the six brown ink literals of the effect line (MagicTypeName added)")
-for asset in ("Art/UI/Icons/Icon_Stats/T_Property_1_magnitude", "Art/UI/Icons/Icon_Stats/T_Property_1_time"):
-    check(listed.get(asset) == "flat:headerIcon" and asset in baked, f"Alchemy r5: {Path(asset).name} baked white")
+          == [18182, 18320, 18409], "Alchemy r5 + 28a: the effect line's body ink literals (accent colours 2026-11-14: MagicTypeName, magnitude and duration moved to effectLabel/effectValue)")
+for asset, recipe in (("Art/UI/Icons/Icon_Stats/T_Property_1_magnitude", "flat:effectIcon"),   # accent colours 2026-11-14: gold
+                      ("Art/UI/Icons/Icon_Stats/T_Property_1_time", "flat:headerIcon")):
+    check(listed.get(asset) == recipe and asset in baked, f"Alchemy r5: {Path(asset).name} baked {recipe}")
 
 
 for why in fails:

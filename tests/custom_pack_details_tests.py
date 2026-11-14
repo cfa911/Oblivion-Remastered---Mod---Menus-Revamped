@@ -78,7 +78,8 @@ BLUEPRINTS = {   # package: (menu data file, asset path, [(offset, stock, colour
         "inventory", "UI/Legacy/GameMenuLayer/stats/DataTables/DT_StatsMenu_SkillDescriptionRichTextStyle_PerLevelDescription",
         [(69, WARM, "rowText"), (425, WARM, "Skin.emphasisInk")]),
     "WBP_ModernMenu_MagicDetails": ("magic", "UI/Modern/GameMenuLayer/Magic/WBP_ModernMenu_MagicDetails",
-                                    [(o, INK, "rowText") for o in (18693, 18806, 18875, 18982, 19064, 19374, 19592)]
+                                    [(18693, INK, "menuTitle"), (18806, INK, "accentValue"), (18875, INK, "effectLabel"), (18982, INK, "menuTitle"),
+                                     (19064, INK, "rowText"), (19374, INK, "menuTitle"), (19592, INK, "menuTitle")]
                                     + [(o, GOLD, "rowText") for o in (18589, 19139, 19212, 19304, 19487, 19678, 19781, 19849,
                                                                        19924, 20031, 20098)]),
 }

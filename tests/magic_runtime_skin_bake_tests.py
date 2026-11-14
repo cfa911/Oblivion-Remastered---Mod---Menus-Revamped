@@ -38,16 +38,19 @@ LIGHT = [1.0, 0.9387, 0.8469, 1.0]
 BLUE = [0.0513, 0.0648, 0.1441, 1.0]
 
 
-def has(package, offset, stock, widget=None):
-    return any(e.get("offset") == offset and e.get("stock") == stock and e.get("colour") == "rowText"
+def has(package, offset, stock, widget=None, colour="rowText"):
+    return any(e.get("offset") == offset and e.get("stock") == stock and e.get("colour") == colour
                and (widget is None or e.get("widget") == widget) for e in colours.get(package, []))
 
 
-check(has("WBP_ModernMenu_MagicEntry", 6273, ROW, "Magic_entry_CostMagnitude"), "row cost text baked rowText")
+check(has("WBP_ModernMenu_MagicEntry", 6273, ROW, "Magic_entry_CostMagnitude", "accentValue"),
+      "row cost text baked accentValue (accent colours 2026-11-14)")
 check(has("WBP_ModernMenu_MagicEntry", 6344, ROW, "Magic_entry_name"), "row name baked rowText")
 check(assets.get("UI/Modern/GameMenuLayer/magic/WBP_ModernMenu_MagicEntry", {}).get("recipe") == "bp_colour:WBP_ModernMenu_MagicEntry",
       "the Magic row blueprint is a Custom colour asset")
-for offset, stock, widget in ((73936, DARK, "Magic_SpellEffectivenes_Value"), (73826, TAN, "Magic_Active_SpellEffectiveness_Title"),
+check(has("WBP_ModernMenu_MagicMenu", 73936, DARK, "Magic_SpellEffectivenes_Value", "accentValue"),
+      "Magic_SpellEffectivenes_Value (73936) baked accentValue (accent colours 2026-11-14)")
+for offset, stock, widget in ((73826, TAN, "Magic_Active_SpellEffectiveness_Title"),
                               (73472, TAN, "Magic_Active_SpellEffec_GlobalDetails"), (73600, TAN, "Magic_Active_SpellEffec_HeavyDetails_Text"),
                               (73713, TAN, "Magic_Active_SpellEffec_LightDetails_Text")):
     check(has("WBP_ModernMenu_MagicMenu", offset, stock, widget), f"{widget} ({offset}) baked rowText")
