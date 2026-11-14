@@ -2004,6 +2004,14 @@ def write_manifest(out, pack, body):
         if not path.is_file():
             raise BuildError(f"retoc wrote no {path.name}")
         files[path.name] = sha256(path)
+    header_packages = (LAYOUT["WBP_ModernMenu_ContainerInventory_MainContent"]["asset"],
+                       LAYOUT["WBP_ModernMenu_MagicMenu"]["asset"])
+    if "sizes" in body and all(asset in body["textures"] for asset in header_packages) and not any(
+            row["asset"] in header_packages for row in body["skipped"]):
+        body["header_layout"] = {}
+        filter_asset = LAYOUT["WBP_OriginalMenu_Inventory_FilterScrollbox"]["asset"]
+        if filter_asset in body["textures"] and not any(row["asset"] == filter_asset for row in body["skipped"]):
+            body["header_overflow"] = {}
     manifest = {"pack": pack, "game_build": GAME_BUILD,
                 "built_by": paths.EXE_NAME if paths.is_frozen() else "tools/make_dark_pack.py",
                 "builder_version": VERSION, **body, "files": files}

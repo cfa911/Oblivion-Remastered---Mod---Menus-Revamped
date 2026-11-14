@@ -114,6 +114,9 @@ namespace sorting
 			g_pickers[1].Tick(2, a_menu, a_canvas, a_viewportScale);
 			g_pickers[4].Tick(5, a_menu, a_canvas, a_viewportScale);  // insert immediately before Effects
 			g_pickers[0].Tick(1, a_menu, a_canvas, a_viewportScale);
+		} else if (a_mode == Mode::SpellPurchase) {
+			g_pickers[1].Tick(-1, nullptr, nullptr, 1);
+			g_pickers[0].Tick(7, a_menu, a_canvas, a_viewportScale);
 		} else if (a_mode == Mode::Inventory) {
 			g_pickers[1].Tick(-1, nullptr, nullptr, 1.0f);
 			g_pickers[0].Tick(0, a_menu, a_canvas, a_viewportScale);

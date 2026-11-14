@@ -2,6 +2,7 @@
 #include "sorting/PickerInternal.h"
 #include "sorting/rules/InventoryHeaderLayout.h"
 #include "sorting/MenuSkin.h"
+#include "core/DarkPack.h"
 #include "engine/Reflect.h"
 #include "engine/PEHook.h"
 #include "engine/Ui.h"
@@ -31,6 +32,7 @@ namespace sorting::detail
 		std::array<LayoutFilter,3> Filters(Picker& p)
 		{
 			if (p.InventoryStrip()) return {{{&p.enchantedHeader,&p,false},{&p.stolenHeader,&p,false},{&p.header,&p,true}}};
+		if (p.SpellPurchase()) return {{ {}, {}, {&p.header,&p,true} }};
 			if (p.kind!=1) return {};
 			auto* menu=reflect::Get(p.menu);
 			const auto peer=[&](Picker& q) {
@@ -325,30 +327,31 @@ namespace sorting::detail
 	{
 		if (!HeaderLayout() || !OwnSorts()) return false;
 		const bool magic=kind==1 || kind==6;   // Magic spell pages (School host) or Active Effects; else the Inventory strip
-		if (measureColumns) {
-			// Magic: our own rules replace its separator. The Inventory strip keeps the game's HeaderList_Separator as its upper
-			// rule (owner 2026-11-13; probe MRSEP: it sits 2 units above where our upper rule was, full list width).
-			if (magic) ui::Visible(ui::FindInTree(a_menu, "HeaderList_Separator"), false);
-		}
+		const bool bakedInset = darkpack::HeaderLayoutBaked();
+		const bool bakedOverflow = darkpack::HeaderOverflowBaked();
+		// The shared Inventory separator is its upper rule. Magic's own separator is collapsed by the new pack.
+		if (magic && measureColumns && !bakedOverflow)
+			ui::Visible(ui::FindInTree(a_menu, "HeaderList_Separator"), false);
 		static bool announced=false, announcedMagic=false, announcedContainer=false;
 		if (kind==0 && !announced) { announced=true; logger::info("Menus Revamped MR-INVENTORY-TITLE-BAKED-T4"); }
 		if ((kind==3 || kind==4) && !announcedContainer) { announcedContainer=true; logger::info("Menus Revamped MR-CONTAINER-SINGLE-HEADER-C1K"); }
 		if (magic && !announcedMagic) { announcedMagic=true; logger::info("Menus Revamped MR-MAGIC-TITLE-BAKED-C2A"); }
 		const double frameTime=ui::RealTimeSeconds();
 		if (frameTime>=0 && frameTime==inventoryHeaderFrame) return true;
-		auto* list=magic?ui::FindInTree(a_menu,"Magic_Spell_List"):InventoryList(a_menu);
+		auto* list=magic?ui::FindInTree(a_menu,"Magic_Spell_List"):
+			SpellPurchase()?ui::FindInTree(a_menu,"inv_cont_spell_listview"):InventoryList(a_menu);
 		// Magic: the strip is made on the list's retainer (its VerticalBox slot has the padding); the list view is inside it.
 		auto* reserved=magic?ui::FindInTree(a_menu,"SpellListRetainerBox"):list;
 		if (!reserved) reserved=list;
 		inventoryheaders::Box bounds;
 		if (!Bounds(list,bounds)) return false;
-		if (!inventoryListReserved) {
+		if (!bakedInset && !inventoryListReserved) {
 			// The initial cached row rectangles describe the list before this inset.
 			if (ReserveList(*this,reserved,bounds.y)) inventoryHeaderFrame=frameTime;
 			return false;
 		}
 		const auto viewport=bounds;
-		bounds.y=inventoryHeaderY;
+		bounds.y=bakedInset ? bounds.y-inventoryheaders::kInset : inventoryHeaderY;
 		bounds.h+=inventoryheaders::kInset;
 		double nameX=inventoryheaders::DefaultNameX(kind,bounds);
 		double rowsBottom=0;
@@ -407,7 +410,21 @@ namespace sorting::detail
 					inventoryTabMeasures.Store(tabIndex,{bounds,status,columns,nameX});
 				}
 			}
-			if (row && measureColumns && !magic) {
+			if (row && measureColumns && SpellPurchase()) {
+				inventoryheaders::Box name;
+				const bool measuredName=Bounds(ui::FindInTree(row,"effect_text"),name);
+				if (measuredName) nameX=name.x;
+				Bounds(ui::FindInTree(row,"inv_entry_spell_cost"),columns[int(itemsort::Key::Cost)]);
+				Bounds(ui::FindInTree(row,"inv_entry_gold_cost"),columns[int(itemsort::Key::Value)]);
+				if (measuredName && columns[int(itemsort::Key::Value)].w>0) {
+					inventoryMeasuredList=bounds;
+					inventoryMeasuredNameX=nameX;
+					inventoryMeasuredColumns=columns;
+					inventoryHeaderMeasured=true;
+					inventoryTabMeasures.Store(tabIndex,{bounds,status,columns,nameX});
+				}
+			}
+			if (row && measureColumns && InventoryStrip()) {
 			inventoryheaders::Box name;
 			const bool measuredName=Bounds(Column(row,"inv_entry_name"),name) ||
 				Bounds(ui::FindInTree(row,"inv_entry_name"),name);
@@ -433,13 +450,14 @@ namespace sorting::detail
 		const std::array filters{slots[0].widget?*slots[0].widget:reflect::Handle{},slots[1].widget?*slots[1].widget:reflect::Handle{},
 			slots[2].widget?*slots[2].widget:reflect::Handle{}};
 		// The Inventory strip without a stolen toggle (the container/barter other side, or the INI off): no stolen cell.
-		const int filterCount=kind==6?0:InventoryStrip() && !reflect::Get(stolenHeader)?2:3;
+		const int filterCount=SpellPurchase()?1:kind==6?0:InventoryStrip() && !reflect::Get(stolenHeader)?2:3;
 		const auto plan=inventoryheaders::Arrange(kind,bounds,nameX,columns,offered,filterCount,status,rowsBottom);
-		if (!plan.enabled || !ReserveList(*this,reserved,bounds.y)) return false;
+		if (!plan.enabled || (!bakedInset && !ReserveList(*this,reserved,bounds.y))) return false;
 		inventoryHeaderFrame=frameTime;
 		bool settled=inventoryHeaderReady || inventoryHeaderMeasured || displayed.empty();
 		// Allow the moved controls to extend beyond their native ScrollBox strip.
 		const auto allowOverflow=[&](UE::UObject* widget) {
+			if (bakedOverflow) return;
 			for (int depth=0; widget && depth<12; ++depth) {
 				if (const int off=reflect::Offset(widget->GetClass(),"Clipping"); off>=0 && ui::SizeOf(widget->GetClass(),"Clipping")==1) {
 					const auto clipping=*reinterpret_cast<const std::uint8_t*>(reinterpret_cast<const std::uint8_t*>(widget)+off);
@@ -516,12 +534,12 @@ namespace sorting::detail
 			Place(nullptr,hint,inventoryheaders::HintBox(plan,hintBounds),inventoryHintTranslation[0],inventoryHintTranslation[1]);
 		}
 
-		if (!magic && !inventoryStatusReady && measureColumns && row &&   // Inventory row status and skin hooks only
+		if (InventoryStrip() && !inventoryStatusReady && measureColumns && row &&   // Inventory row status and skin hooks only
 			pe::WatchPost(row->GetClass(),&OnInventoryRowBound))
 			inventoryStatusReady=true;   // item details and scrollbar colours: baked in the Custom pack (decision 28, Phase 7)
 		// RMI-093: the displayed rows every pass (a row's icons can change after the game binds it); a new mask is measured
 		// once the row has settled.
-		if (!magic && inventoryStatusReady && measureColumns)
+		if (InventoryStrip() && inventoryStatusReady && measureColumns)
 			for (auto* entry : displayed) PlaceRowStatus(*this,entry,settled || inventoryHeaderReady?&plan.filters:nullptr);
 
 		// Magic (Custom): page, rows, row icons, title and Spell Effectiveness are baked into MRCustom_P (Step C.2).

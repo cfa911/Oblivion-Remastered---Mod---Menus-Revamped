@@ -46,7 +46,7 @@ checks = {
     'tab event and tick share a layout update per frame': 'inventoryHeaderFrame' in layout,
     'new Inventory controls begin transparent': 'if (inventoryColumns || HeaderLayout() || kind == 2 || kind == 5) ui::Float(widget, L"SetRenderOpacity", 0.0f)' in header,
     'first reveal waits for settled coordinates': 'if (settled && !inventoryHeaderReady)' in layout,
-    'first open reserves the header before sampling row columns': 'if (!inventoryListReserved)' in
+    'first open reserves the header before sampling row columns when the pack lacks the inset': 'if (!bakedInset && !inventoryListReserved)' in
         source_paths.function(layout, 'bool Picker::LayoutInventoryHeaders(').split('FirstRow(list,')[0],
     'column cache requires measured item names': 'measuredName && columns' in layout,
 }

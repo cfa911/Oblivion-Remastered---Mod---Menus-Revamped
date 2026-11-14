@@ -157,6 +157,11 @@ namespace sorting
 				sortHeaders[int(Key::Health)], sortHeaders[int(Key::Damage)], sortHeaders[int(Key::Armor)],
 				sortHeaders[int(Key::Weight)], sortHeaders[int(Key::Value)]};
 		};
+		const auto purchaseOrder = [&] {
+			std::vector<reflect::Handle> order{header};
+			for (auto key : itemsort::SpellPurchaseKeys()) order.push_back(sortHeaders[int(key)]);
+			return order;
+		};
 		const auto registerHeader = [&](UE::UObject* widget) {
 			ui::Call registerChild(navigation, L"AddChild");
 			return registerChild.Size("ChildToAdd") == 8 &&
@@ -218,7 +223,7 @@ namespace sorting
 				if (!frame || !image) return nullptr;
 				if (a_inner) *a_inner = inner;
 				a_image = reflect::Hold(image); a_frame = reflect::Hold(frame);
-				if (!inventoryColumns && !registerHeader(widget)) return nullptr;
+				if (!inventoryColumns && !SpellPurchase() && !registerHeader(widget)) return nullptr;
 				return widget;
 			};
 			// Register custom headers in their on-screen order: enchanted, stolen, category picker.
@@ -247,7 +252,7 @@ namespace sorting
 			BrushHeader(itemtags::Info(tab).icons[0]);   // Magic school/type "All": the game's own icon
 			// Own sort buttons after the category picker in the game's order (A-Z first); navigation order = screen order.
 			if (OwnSorts()) {
-				const auto used = kind == 1 ? itemsort::MagicKeys() : kind == 6 ? itemsort::ActiveKeys() :
+				const auto used = SpellPurchase() ? itemsort::SpellPurchaseKeys() : kind == 1 ? itemsort::MagicKeys() : kind == 6 ? itemsort::ActiveKeys() :
 					std::vector<itemsort::Key>{ itemsort::Key::Name, itemsort::Key::Health, itemsort::Key::Damage, itemsort::Key::Armor, itemsort::Key::Weight, itemsort::Key::Value };
 				const auto widest = kind == 1 ? itemsort::Key::Cost : kind == 6 ? itemsort::Key::Magnitude : itemsort::Key::Value;   // the bar's last native button
 				for (int k = 0; k < kSorts; ++k) {
@@ -277,6 +282,9 @@ namespace sorting
 			if (inventoryColumns)
 				for (const auto& handle : inventoryOrder())
 					if (auto* widget = reflect::Get(handle); widget && !registerHeader(widget)) return false;
+			if (SpellPurchase())
+				for (const auto& handle : purchaseOrder())
+					if (auto* widget = reflect::Get(handle); widget && !registerHeader(widget)) return false;
 			carousel = reflect::Hold(navigation);
 			rollback.complete = true;
 			PaintController();  // initial All opacity must be applied after the images exist
@@ -295,6 +303,9 @@ namespace sorting
 		ui::Call clear(a_panel, L"ClearChildren"); if (!clear.RunGuarded()) return false;
 		if (inventoryColumns) {
 			for (const auto& handle : inventoryOrder())
+				if (auto* widget = reflect::Get(handle); widget && !addHeader(widget)) return false;
+		} else if (SpellPurchase()) {
+			for (const auto& handle : purchaseOrder())
 				if (auto* widget = reflect::Get(handle); widget && !addHeader(widget)) return false;
 		} else if (schoolAt < 0) {  // no native school button: the stolen-only icon leftmost (owner), then our picker
 			if (auto* enchanted = reflect::Get(enchantedHeader); enchanted && !addHeader(enchanted)) return false;

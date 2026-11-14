@@ -2,6 +2,7 @@
 
 #include "engine/PEHook.h"
 #include "engine/Reflect.h"
+#include "engine/Ui.h"
 
 namespace menus
 {
@@ -9,6 +10,9 @@ namespace menus
 	{
 		constexpr const wchar_t* kInventoryPath = L"/Game/UI/Original/GameMenuLayer/Inventory/WBP_OriginalMenu_Inventory.WBP_OriginalMenu_Inventory_C";
 		constexpr const wchar_t* kMagicPath = L"/Game/UI/Modern/GameMenuLayer/Magic/WBP_ModernMenu_MagicMenu.WBP_ModernMenu_MagicMenu_C";
+		constexpr const wchar_t* kSpellPurchasePath = L"/Game/UI/Modern/GameMenuLayer/SpellPurchase/WBP_ModernMenu_SpellPurchase.WBP_ModernMenu_SpellPurchase_C";
+		std::atomic<UE::UClass*> g_spellPurchaseClass{ nullptr };
+		reflect::Handle g_spellPurchaseWidget;
 
 		std::atomic<UE::UClass*> g_inventoryClass{ nullptr };
 		std::atomic<UE::UClass*> g_magicClass{ nullptr };
@@ -48,6 +52,10 @@ namespace menus
 			}
 			if (deactivated) g_lastClosed.store(GetTickCount64());
 			auto* cls = a_obj->GetClass();
+			if (cls == g_spellPurchaseClass.load()) {
+				g_spellPurchaseWidget = activated ? reflect::Hold(a_obj) : reflect::Handle{};
+				return;
+			}
 			auto& flag = cls == g_inventoryClass.load() ? g_inventoryActive : g_magicActive;
 			flag.store(activated);
 			if (activated) (cls == g_inventoryClass.load() ? g_inventoryWidget : g_magicWidget) = reflect::Hold(a_obj);
@@ -79,6 +87,17 @@ namespace menus
 	{
 		TryWatch(g_inventoryClass, kInventoryPath, g_inventoryActive, "inventory");
 		TryWatch(g_magicClass, kMagicPath, g_magicActive, "magic menu");
+		if (!g_spellPurchaseClass.load()) {
+			auto* cls = UE::StaticFindObject<UE::UClass>(nullptr, nullptr, kSpellPurchasePath);
+			if (cls && pe::Watch(cls, &OnMenuEvent)) {
+				g_spellPurchaseClass.store(cls);
+				for (auto* widget : reflect::Instances(cls)) {
+					if (!ui::ShownOnScreen(widget)) continue;
+					g_spellPurchaseWidget = reflect::Hold(widget);
+					break;
+				}
+			}
+		}
 	}
 
 	std::uint64_t MsSinceClosed()
@@ -98,8 +117,10 @@ namespace menus
 			// back in gameplay: nothing can be active (clears a missed deactivation)
 			g_inventoryActive.store(false);
 			g_magicActive.store(false);
+			g_spellPurchaseWidget = {};
 			return Menu::kNone;
 		}
+		if (reflect::Get(g_spellPurchaseWidget)) return Menu::kSpellPurchase;
 		if (g_magicActive.load()) {
 			return Menu::kMagic;
 		}
@@ -114,6 +135,7 @@ namespace menus
 		switch (a_menu) {
 		case Menu::kInventory: return "inventory";
 		case Menu::kMagic: return "magic menu";
+		case Menu::kSpellPurchase: return "spell purchase";
 		case Menu::kAlchemyName: return "potion name";
 		case Menu::kAlchemy: return "alchemy";
 		case Menu::kAlchemyFilters: return "alchemy effect filters";
@@ -127,11 +149,13 @@ namespace menus
 
 	UE::UClass* ClassOf(Menu a_menu)
 	{
+		if (a_menu == Menu::kSpellPurchase) return g_spellPurchaseClass.load();
 		return a_menu == Menu::kMagic ? g_magicClass.load() : a_menu == Menu::kInventory ? g_inventoryClass.load() : nullptr;
 	}
 
 	UE::UObject* Widget(Menu a_menu)
 	{
+		if (a_menu == Menu::kSpellPurchase) return reflect::Get(g_spellPurchaseWidget);
 		reflect::Handle& h = a_menu == Menu::kMagic ? g_magicWidget : g_inventoryWidget;
 		if (a_menu != Menu::kMagic && a_menu != Menu::kInventory) return nullptr;
 		if (auto* w = reflect::Get(h)) return w;

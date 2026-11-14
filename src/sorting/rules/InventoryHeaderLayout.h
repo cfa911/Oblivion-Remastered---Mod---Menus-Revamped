@@ -86,10 +86,37 @@ namespace inventoryheaders
 	}
 
 	inline constexpr double kValueRightInset=42;   // the Value column ends 42 inside the list (probe C1G, every tab)
+	inline Plan ArrangeSpellPurchase(Box list, double nameLeft, const std::array<Box,kCount>& columns,
+		const std::array<bool,kCount>& offered, double rowsBottom)
+	{
+		auto plan = ArrangeMagic(1, list, nameLeft, columns, offered, 0, rowsBottom);
+		const double priceCenter = columns[int(itemsort::Key::Value)].w > 0
+			? columns[int(itemsort::Key::Value)].x + columns[int(itemsort::Key::Value)].w / 2
+			: list.x + list.w - 65;
+		const double costLeft = columns[int(itemsort::Key::Cost)].w > 0
+			? columns[int(itemsort::Key::Cost)].x : priceCenter - 95;
+		const double right = columns[int(itemsort::Key::Value)].w > 0
+			? columns[int(itemsort::Key::Value)].x + columns[int(itemsort::Key::Value)].w : list.x + list.w - 22;
+		const auto& name = plan.sorts[int(itemsort::Key::Name)];
+		plan.filters[2] = { std::max(list.x, (list.x + name.x - kButton) / 2), list.y, kButton, kHeight };
+		plan.sorts[int(itemsort::Key::Value)] = { priceCenter - kButton / 2, list.y, kButton, kHeight };
+		if (columns[int(itemsort::Key::Cost)].w <= 0)
+			plan.sorts[int(itemsort::Key::Cost)].x = costLeft + 5;
+		plan.guides[1].x = costLeft;
+		plan.guides[2] = { columns[int(itemsort::Key::Value)].w > 0
+			? columns[int(itemsort::Key::Value)].x : priceCenter - 43, list.y, kRule, kHeight + kRule };
+		plan.rule[2] = true;
+		if (plan.guides[kListGuide + 1].w > 0) plan.guides[kListGuide + 1].x = costLeft;
+		plan.guides[kGuides - 2].w = plan.guides.back().w = right - list.x;
+		return plan;
+	}
+
 	inline Plan Arrange(int kind, Box list, double nameLeft, const std::array<Box,kCount>& columns,
 		const std::array<bool,kCount>& offered, int count, Box status = {}, double rowsBottom = 0)
 	{
 		Plan out;
+		if (kind==7 && std::isfinite(list.x+list.y+list.w+list.h) && list.w>=350 && list.h>=80 && count==1)
+			return ArrangeSpellPurchase(list,nameLeft,columns,offered,rowsBottom);
 		if ((kind==1 || kind==6) && std::isfinite(list.x+list.y+list.w+list.h) && list.w>=200 && list.h>=80 && count>=0 && count<=3)
 			return ArrangeMagic(kind,list,nameLeft,columns,offered,count,rowsBottom);
 		// Inventory (0) and both container/barter sides (3/4): the same rows and columns (owner, C.1 2026-11-12).

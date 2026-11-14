@@ -64,6 +64,84 @@ namespace sorting::detail
 		}
 
 		Picker* ActivePicker(int a_kind);
+		struct PurchaseLayout
+		{
+			UE::UStruct* structure = nullptr;
+			int size = 0, name = -1, cost = -1, price = -1, school = -1;
+		};
+
+		const PurchaseLayout& PurchaseProps()
+		{
+			static const auto layout = [] {
+				PurchaseLayout out;
+				auto* st = reinterpret_cast<UE::UStruct*>(UE::StaticFindObject<UE::UObject>(nullptr, nullptr,
+					L"/Script/Altar.LegacySpellPurchaseMenuItemProperties"));
+				if (!st || st->propertiesSize <= 0 || st->propertiesSize > 0x400) return out;
+				out.name = reflect::Offset(st, "Name");
+				out.cost = reflect::Offset(st, "Costs");
+				out.price = reflect::Offset(st, "GoldCost");
+				out.school = reflect::Offset(st, "School");
+				if (out.name >= 0 && out.name + sizeof(UE::FText) <= st->propertiesSize &&
+					out.cost >= 0 && out.cost + 4 <= st->propertiesSize &&
+					out.price >= 0 && out.price + 4 <= st->propertiesSize &&
+					out.school >= 0 && out.school < st->propertiesSize &&
+					ui::SizeOf(st, "Name") == sizeof(UE::FText) && ui::SizeOf(st, "Costs") == 4 &&
+					ui::SizeOf(st, "GoldCost") == 4 && ui::SizeOf(st, "School") == 1) {
+					out.size = st->propertiesSize;
+					out.structure = st;
+				}
+				return out;
+			}();
+			return layout;
+		}
+
+		bool PublishPurchaseRows(Picker& picker, const RawArray& items)
+		{
+			const auto& layout = PurchaseProps();
+			if (!layout.size || (items.num && !items.data) || items.num < 0 || items.num > 4000 || items.max < items.num) return false;
+			ui::Call publish(reflect::Get(picker.menu), L"UpdateSpellList");
+			if (publish.Size("NewSpellList") != sizeof(RawArray)) return false;
+
+			const auto stride = static_cast<std::size_t>(layout.size);
+			std::vector<itemsort::Row> rows;
+			std::vector<int> source;
+			for (int i = 0; i < items.num; ++i) {
+				const auto* entry = items.data + i * stride;
+				const auto school = entry[layout.school];
+				if (picker.choice && !itemtags::Includes(picker.choice, itemtags::SchoolTags(school, 0))) continue;
+				std::int32_t cost = 0, price = 0;
+				std::memcpy(&cost, entry + layout.cost, sizeof(cost));
+				std::memcpy(&price, entry + layout.price, sizeof(price));
+				itemsort::Row row;
+				row.name = reflect::Text(*reinterpret_cast<const UE::FText*>(entry + layout.name));
+				row.cost = static_cast<float>(cost);
+				row.price = static_cast<float>(price);
+				if (school <= 5) row.group = school;
+				rows.push_back(std::move(row));
+				source.push_back(i);
+			}
+			const auto order = itemsort::Order(rows, picker.SortAt(picker.SortSlot()),
+				mrconfig::Get().picker.categorySortValueFirst);
+			std::vector<std::uint8_t> display(order.size() * stride);
+			for (std::size_t i = 0; i < order.size(); ++i)
+				std::memcpy(display.data() + i * stride, items.data + source[order[i]] * stride, stride);
+
+			// The Blueprint copies the structs into its list items. The input storage and its
+			// owned fields remain intact for the caller, including the native purchase IDs.
+			const auto count = static_cast<std::int32_t>(order.size());
+			return publish.Set("NewSpellList", RawArray{count ? display.data() : nullptr, count, count}) && publish.RunGuarded();
+		}
+
+		bool OnPurchaseRefill(UE::UObject* a_obj, UE::UFunction* a_fn, void* a_params)
+		{
+			if (!a_params || pe::FunctionName(a_fn) != "OnUpdateSpellList") return false;
+			auto* picker = ActivePicker(7);
+			if (!picker || reflect::Get(picker->menu) != a_obj) return false;
+			const auto offset = reflect::Offset(a_fn, "NewParam");
+			if (offset < 0 || ui::SizeOf(a_fn, "NewParam") != sizeof(RawArray)) return false;
+			const auto& items = *reinterpret_cast<const RawArray*>(static_cast<const std::uint8_t*>(a_params) + offset);
+			return PublishPurchaseRows(*picker, items);
+		}
 
 		// Magic rows (KB probing/snippets/mr-hover-refill.md, tab-pages "Property"): Name FText, Property float = cost.
 		struct MagicLayout { bool ok = false, groups = false; int size = 0, name = -1, cost = -1, category = -1, school = -1, effectValue = -1, type = -1, index = -1; };
@@ -246,7 +324,7 @@ namespace sorting::detail
 
 	void Picker::SeedSorts()
 	{
-		if (!OwnSorts() || kind == 6 || kind < 0 || (seededKinds & (1u << kind))) return;
+		if (!OwnSorts() || kind == 6 || kind < 0 || SpellPurchase() || (seededKinds & (1u << kind))) return;
 		seededKinds |= 1u << kind;
 		const bool on = mrconfig::Get().picker.categorySort;
 		const int first = kind == 1 ? kMagicSorts : 0, count = kind == 1 ? 4 : 5;
@@ -270,7 +348,7 @@ namespace sorting::detail
 
 	const wchar_t* AllTexture(int a_kind)
 	{
-		return a_kind == 1 ? L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_school.T_Property_1_school" :
+		return a_kind == 1 || a_kind == 7 ? L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_school.T_Property_1_school" :
 			a_kind == 5 ? L"/Game/Art/UI/Icons/Icon_Stats/T_Property_1_LesserPower.T_Property_1_LesserPower" : nullptr;
 	}
 
@@ -278,6 +356,15 @@ namespace sorting::detail
 	{
 		static std::unordered_set<UE::UClass*> s_watched;
 		UE::UObject* owner = nullptr;
+		if (a_picker.SpellPurchase()) {
+			owner = reflect::Get(a_picker.menu);
+			if (!owner || s_watched.contains(owner->GetClass())) return;
+			if (PurchaseProps().size && pe::Intercept(owner->GetClass(), &OnPurchaseRefill)) {
+				s_watched.insert(owner->GetClass());
+				logger::info("Menus Revamped MR-SPELL-PURCHASE-HEADER: shop list publication hooked");
+			}
+			return;
+		}
 		if (a_picker.kind == 0) {
 			if (auto* menu = reflect::Get(a_picker.menu)) {
 				auto** part = reflect::At<UE::UObject*>(menu, reflect::Offset(menu->GetClass(), "inv_main_part"));
@@ -295,7 +382,24 @@ namespace sorting::detail
 
 	void Republish(Picker& a_picker)
 	{
-		static std::uint8_t s_next[5] = {};
+		if (a_picker.SpellPurchase()) {
+			auto* menu = reflect::Get(a_picker.menu);
+			auto** field = menu ? reflect::At<UE::UObject*>(menu, reflect::Offset(menu->GetClass(), "SpellPurchaseMenuViewModel")) : nullptr;
+			const auto& layout = PurchaseProps();
+			ui::Call get(field ? *field : nullptr, L"GetSpellList");
+			if (layout.structure && get.Size("ReturnValue") == sizeof(RawArray) && get.RunGuarded()) {
+				const auto items = get.Get<RawArray>("ReturnValue");
+				const bool published = PublishPurchaseRows(a_picker, items);
+				if (items.data) {
+					layout.structure->DestroyStruct(items.data, items.num);
+					UE::FMemory::Free(items.data);
+				}
+				if (published) return;
+			}
+			logger::warn("Menus Revamped: Spell Purchase sort could not refresh the shop list");
+			return;
+		}
+		static std::uint8_t s_next[7] = {};
 		UE::UObject*   vm = nullptr;
 		const wchar_t* setter = L"SetSortTypeInventory";
 		if (a_picker.kind == 0) {

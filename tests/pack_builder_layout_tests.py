@@ -46,10 +46,10 @@ blueprints = ["WBP_ModernMenu_MagicEntry", "WBP_ModernMenu_MagicMenu", "WBP_Orig
               "WBP_ModernMenu_SpellPurchaseItem", "WBP_ModernMenu_SpellPurchase", "WBP_ModernMenu_StatsSkillEntry",
               "WBP_ModernMenu_Stats_LevelDescription", "WBP_ModernMenu_StatsPage3", "WBP_ModernMenu_StatsPage3_Details",
               "WBP_Modern_QuestEntry",
-              "WBP_ModernMenu_ContainerInventory_MainContent"]   # C.1: the title row slots (container_title_bake_tests)
+              "WBP_ModernMenu_ContainerInventory_MainContent", "WBP_OriginalMenu_Inventory_FilterScrollbox"]
 
 # ---- A. the data ----
-check(sorted(LAYOUT) == sorted(blueprints), f"layout.json covers the 22 compact-row blueprints and the MainContent title row ({len(LAYOUT)})")
+check(sorted(LAYOUT) == sorted(blueprints), f"layout.json covers the compact rows, MainContent and shared filter ({len(LAYOUT)})")
 sized = set()
 for package, row in LAYOUT.items():
     check(row.get("asset", "").endswith("/" + package), f"{package}: asset path ends with the package name")
@@ -63,8 +63,9 @@ rows_and_fonts = {k for k in cc.SIZES if k not in cc.TEXT_ROLES}
 check(sized == rows_and_fonts, f"every Rows/Text option feeds a baked value (unused {sorted(rows_and_fonts - sized)})")
 rewrites = {p: r["rewrites"] for p, r in LAYOUT.items() if r.get("rewrites")}
 check(sorted(rewrites) == ["WBP_ModernMenu_AlchemyFilters", "WBP_ModernMenu_AlchemyItemsListView",
-                           "WBP_ModernMenu_ContainerInventory_MainContent", "WBP_ModernMenu_MagicMenu"],
-      f"the four packages with unstored values have a rewrite ({sorted(rewrites)})")
+                           "WBP_ModernMenu_ContainerInventory_MainContent", "WBP_ModernMenu_MagicMenu",
+                           "WBP_OriginalMenu_Inventory_FilterScrollbox"],
+      f"all packages with unstored values have a rewrite ({sorted(rewrites)})")
 check(sum(len(f) for r in rewrites.values() for f in [x.get("add", []) for x in r]) == 5,
       "five unstored floats are added (Alchemy 3, RMI-092 the container title's and C.2 the Magic title's Min Desired Width)")
 check(sum(len(r.get("floats", [])) for r in LAYOUT.values()) == 75, "75 stored values (62 changes, squares and pairs counted)")
@@ -239,7 +240,8 @@ with tempfile.TemporaryDirectory() as temp:
         check(inv and struct.unpack_from("<f", inv[0], off)[0] == 40.0, "MRLayout_P bakes the row height")
         skipped = {Path(e["asset"]).name for e in lay.get("skipped", [])}
         check(skipped == {"WBP_ModernMenu_AlchemyFilters", "WBP_ModernMenu_AlchemyItemsListView",
-                         "WBP_ModernMenu_ContainerInventory_MainContent", "WBP_ModernMenu_MagicMenu"},
+                         "WBP_ModernMenu_ContainerInventory_MainContent", "WBP_ModernMenu_MagicMenu",
+                         "WBP_OriginalMenu_Inventory_FilterScrollbox"},
               f"a rewrite whose stock export differs is skipped and listed, the rest is built ({sorted(skipped)})")
         check(not any("t_" in k.split("/")[-1][:2] for k in staged), "MRLayout_P holds no colour asset")
         check(lay.get("game_build") == pipe.GAME_BUILD, "the layout manifest names the game build (the plugin checks it)")

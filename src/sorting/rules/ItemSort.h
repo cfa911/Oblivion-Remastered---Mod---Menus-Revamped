@@ -230,6 +230,7 @@ namespace itemsort
 	// ---- Magic spell pages (Self, Touch, Target, All). The game offers [0 Name, 2 ItemCategory, 4 School, 6 Cost]
 	// there (KB tab-pages "Magic sort types per page"); ItemCategory and School are already our type/school pickers.
 	inline std::vector<Key> MagicKeys() { return { Key::Name, Key::Cost }; }
+	inline std::vector<Key> SpellPurchaseKeys() { return { Key::Name, Key::Cost, Key::Value }; }
 
 	// Which of our sorts replaces a native Magic sort wrapper in place (by wrapper name); -1 = keep the native one.
 	inline int MagicNativeKey(std::string_view a_name)
