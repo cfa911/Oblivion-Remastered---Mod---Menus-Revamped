@@ -124,7 +124,7 @@ namespace uistyle
 	{
 		bool           recolor, invertToggles;
 		Color          ink, perkInk, rule, guide;
-		const ArtSwap* artSwaps;          // made by tools/make_dark_skin_art.py from the stock textures (stock alpha kept)
+		const ArtSwap* artSwaps;          // none left: every swap is baked in the Custom pack (C.2)
 		int            artSwapCount;
 		Color          ring;              // the skill level ring (M_UI_CircularProgess "Color")
 		float          pageGray;          // the details page tint (M_MaskedPage keeps its shape)

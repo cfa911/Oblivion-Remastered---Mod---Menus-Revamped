@@ -50,25 +50,8 @@ check(not any(source_paths.function(src, f) for f in ("void OnDetailsEntryEvent(
       "phase 28b (decision 28): the item details are baked in the Custom pack; no effect-line or perk-line pass")
 rebuild = source_paths.function(src, "bool RebuildEmphasis(")
 check(not rebuild, "C.2: no rich-text row rebuild (the Spell Effectiveness table is baked)")
-try:
-    from PIL import Image
-    band = Image.open(source_paths.ROOT / "assets/Skin/RowEquipped.png").convert("RGBA")
-    seen = [p for p in band.get_flattened_data() if p[3] > 0]
-    r, g, b = (sum(p[i] for p in seen) / len(seen) for i in range(3))
-    check(r > 150 and r > g > b + 40, "the equipped-row band is gold")
-    check(max(p[3] for p in seen) >= 100, "the equipped-row band is clearly visible (stronger than the faint 0.22 band)")
-except ImportError:
-    check(False, "Pillow is needed to check the equipped-row art")
 check(not source_paths.function(src, "void StyleListEntries("), "phase 28b (decision 28): the item details are baked in the Custom pack; effect lines are baked (WBP_LegacyMenu_AddedEffects)")
 check(not rebuild, "C.2: no run-time emphasis rebuild left (its last user, the Magic Spell Effectiveness line, is baked)")
-try:
-    from PIL import Image
-    line = Image.open(source_paths.ROOT / "assets/Skin/ButtonLine.png").convert("RGBA")
-    seen = [p for p in line.get_flattened_data() if p[3] > 0]
-    check(min(p[0] for p in seen) >= 225 and all(p[0] == p[1] == p[2] for p in seen),
-          "action button rules are near-white neutral (170 gray read brownish over the laurels)")
-except ImportError:
-    check(False, "Pillow is needed to check the button rule art")
 check(not source_paths.function(src, "void WatchDetails(") and "OnEffectLineEvent" not in src and "ReadBrushTint" not in src,
       "phase 28b (decision 28): the item details are baked in the Custom pack; no details watch, effect-line hook or brush-tint reader")
 layout_fn = source_paths.function(src, "bool Picker::LayoutInventoryHeaders(")

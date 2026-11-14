@@ -23,7 +23,7 @@ from pathlib import Path
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from make_dark_skin_art import load  # noqa: E402
+from dds_image import load  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
