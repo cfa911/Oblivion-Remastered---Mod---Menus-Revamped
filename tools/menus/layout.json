@@ -83,6 +83,50 @@
      "stock": 21.0,
      "size": "font.MagicMenu.Magic_SpellEffectivenes_Value"
     }
+   ],
+   "note": "C.2 (every preset): the page title keeps its own width when the header row widens Magic_Filters in the shared Header_Box (probe MRMAGIC8: the Fill title slot fell to 0, RMI-079). Title slot Fill -> Auto and Min Desired Width 300 (the RMI-079 label's width), like inv_cont_title (C.1, RMI-092). Header_Box = [Magic_TabName, Magic_Filters (Auto, HAlign Right), Filters_spacer (Auto)].",
+   "bytes": [
+    {
+     "widget": "HorizontalBoxSlot_1 (Magic_TabName) Size.SizeRule",
+     "offset": 62180,
+     "stock": 1,
+     "value": 0
+    }
+   ],
+   "rewrites": [
+    {
+     "widget": "Magic_TabName (WBP_AltarTextBlock_C) Min Desired Width",
+     "export_start": 74018,
+     "export_size": 72,
+     "header_pos": 0,
+     "stock_fields": [
+      2,
+      3,
+      4,
+      40
+     ],
+     "stock_zeroes": [],
+     "add": [
+      [
+       13,
+       300.0
+      ]
+     ],
+     "field_sizes": [
+      0,
+      0,
+      18,
+      20,
+      22
+     ],
+     "sha_mask": [
+      [
+       6,
+       16
+      ]
+     ],
+     "stock_export_sha256": "47e39aee9bf5708cbee1cdc2dbb5b3c7c71738a40c5b2604e9df4afed756c2db"
+    }
    ]
   },
   "WBP_OriginalMenu_InventoryIconEntry": {

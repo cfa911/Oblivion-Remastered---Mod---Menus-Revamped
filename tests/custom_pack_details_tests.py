@@ -279,13 +279,13 @@ for name in ("WatchDetails", "RefreshButtonRules"):
     check(name not in skin_h, f"MenuSkin.h: {name} removed")
 check("WatchDetails" not in headers, "InventoryHeaders.cpp: no details watch")
 check("RefreshButtonRules" not in tick, "PickerTick.cpp: no button rule refresh")
-check("InkRich(" in skin and "StyleMagicRow" in skin, "the Magic page/row passes stay for 28c")
+check("InkRich(" not in skin and "StyleMagicRow" not in skin, "C.2: the Magic page/row passes are baked (no run time)")
 art = theme[theme.find("kDarkArt[]"):theme.find("};", theme.find("kDarkArt[]"))]
 for stock in ("T_Property_1_magnitude", "T_Property_1_Range", "T_Property_1_time", "T_Property_1_cost", "T_inv_details_effects_title_BG",
               "T_SigilStone_SubNameBG", "T_Category_Armor", "T_Category_Weapons", "T_CircularProgress_bg", "T_Arrow_Empty",
               "T_Button_State_Hovered_LeftLineFade"):
     check(f'"{stock}"' not in art, f"kDarkArt: no {stock} swap (baked)")
-check('"T_MagicBackground"' not in art and "_ListSmall" in art, "kDarkArt keeps the row icons; the Magic page is baked (RMI-091)")
+check("kDarkArt" not in theme, "C.2: no kDarkArt (the row icons are baked; the Magic page too, RMI-091)")
 
 print(f"{count} checks, {len(fails)} failures")
 for why in fails:

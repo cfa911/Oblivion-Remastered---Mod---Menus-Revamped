@@ -35,7 +35,8 @@ for name in ("StyleTitle", "UnclipTitle", "KeepTitleLabel", "OnTitleEvent", "Ref
           f"the run-time title pass {name} is gone")
 check("g_titleLabel" not in skin and "g_title " not in skin and "g_title;" not in skin, "the skin holds no title handles")
 check("TitleLabel(Box" not in rules and "TitleText(" not in rules, "the Inventory label rules are gone")
-check("kTitleLabelWidth" in rules and "PlaceMagicTitleLabel(" in headers, "the Magic page label (RMI-079, a later step) stays")
+check("kTitleLabelWidth" not in rules and "PlaceMagicTitleLabel(" not in headers,
+      "the Magic page label is baked too (C.2, magic_title_bake_tests)")
 
 # the bake that replaces the label covers the Inventory's own title (shared MainContent package)
 import sys  # noqa: E402

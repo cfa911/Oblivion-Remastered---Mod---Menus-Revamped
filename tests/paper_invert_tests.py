@@ -158,12 +158,9 @@ except ImportError:
 # Magic page: baked, so the run-time MagicPage.png swap is gone (Custom = the only recolouring preset)
 theme = (ROOT / "src/core/UiTheme.h").read_text(encoding="utf-8")
 dark_art = theme.split("inline constexpr ArtSwap kDarkArt[]{", 1)[1].split("};", 1)[0] if "kDarkArt[]{" in theme else ""
-check(bool(dark_art) and "T_MagicBackground" not in dark_art and "MagicPage.png" not in dark_art,
-      "kDarkArt has no T_MagicBackground -> MagicPage.png swap (the page is baked)")
+check("T_MagicBackground" not in theme and "MagicPage.png" not in theme, "no T_MagicBackground -> MagicPage.png swap (the page is baked)")
 page_fn = source_paths.function(source_paths.read("picker"), "void StyleMagicPage(")
-check(bool(page_fn) and "SwapArt(" not in page_fn and "MagicPage.png" not in page_fn and "IsMagicPage(" not in page_fn,
-      "StyleMagicPage no longer swaps the page art")
-check("InkRich(" in page_fn, "StyleMagicPage still inks the Spell Effectiveness texts")
+check(not page_fn, "no run-time Magic page pass (page RMI-091, Spell Effectiveness C.2: baked)")
 check(not (ROOT / "assets/Skin/MagicPage.png").exists(), "assets/Skin/MagicPage.png is gone (nothing draws it)")
 tab_art = (ROOT / "tools/make_dark_tab_art.py").read_text(encoding="utf-8")
 check("MagicPage.png" not in re.sub(r'""".*?"""', "", tab_art, flags=re.S), "make_dark_tab_art.py no longer writes MagicPage.png")

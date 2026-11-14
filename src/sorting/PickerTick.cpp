@@ -184,7 +184,6 @@ namespace sorting::detail
 				fontWarning = true;
 			}
 		}
-		if (kind == 1 || kind == 6) SyncMagicTitle();
 		if (now >= nextLayout) {
 			nextLayout = now + 150;
 			auto find = [&](UE::UObject* owner, std::string_view name) {

@@ -141,7 +141,6 @@ namespace sorting
 			std::vector<InventoryClip> inventoryClips;
 			std::array<std::array<double, 2>, kSorts + 3> inventoryTranslations{};
 			std::array<reflect::Handle, inventoryheaders::kGuides> inventoryHeaderGuides{};
-			reflect::Handle titleLabel, titleNative;   // our own Magic page title and the native text it covers (RMI-079)
 			inventoryheaders::Box inventoryMeasuredList, inventoryMeasuredStatus;
 			std::array<inventoryheaders::Box, kSorts> inventoryMeasuredColumns{};
 			double inventoryMeasuredNameX=0;
@@ -185,8 +184,6 @@ namespace sorting
 		// WBP_ModernMenu_ContainerInventory_MainContent lays out each side).
 		bool InventoryStrip() const { return kind == 0 || kind == 3 || kind == 4; }
 		bool HeaderLayout() const { return InventoryStrip() || kind == 1 || kind == 6; }
-		reflect::Handle magicTitleText;   // RMI-079: the Magic page title's drawn text (VAltarTextBlock) our label copies
-		void SyncMagicTitle();            // RMI-079: our Magic title label takes a new page name in the same tick
 			std::vector<itemsort::Key> SortKeys() const { return kind == 1 ? itemsort::MagicKeys() : kind == 6 ? itemsort::ActiveKeys() : itemsort::Keys(tab); }
 			bool Offers(itemsort::Key a_key) const { const auto keys = SortKeys(); return std::find(keys.begin(), keys.end(), a_key) != keys.end(); }
 			int SortSlot() const { return kind == 1 ? kMagicSorts + magicPage : kind == 6 ? 5 : static_cast<int>(tab); }

@@ -63,10 +63,10 @@ rows_and_fonts = {k for k in cc.SIZES if k not in cc.TEXT_ROLES}
 check(sized == rows_and_fonts, f"every Rows/Text option feeds a baked value (unused {sorted(rows_and_fonts - sized)})")
 rewrites = {p: r["rewrites"] for p, r in LAYOUT.items() if r.get("rewrites")}
 check(sorted(rewrites) == ["WBP_ModernMenu_AlchemyFilters", "WBP_ModernMenu_AlchemyItemsListView",
-                           "WBP_ModernMenu_ContainerInventory_MainContent"],
-      f"the three packages with unstored values have a rewrite ({sorted(rewrites)})")
-check(sum(len(f) for r in rewrites.values() for f in [x.get("add", []) for x in r]) == 4,
-      "four unstored floats are added (Alchemy 3, RMI-092: the container title's Min Desired Width)")
+                           "WBP_ModernMenu_ContainerInventory_MainContent", "WBP_ModernMenu_MagicMenu"],
+      f"the four packages with unstored values have a rewrite ({sorted(rewrites)})")
+check(sum(len(f) for r in rewrites.values() for f in [x.get("add", []) for x in r]) == 5,
+      "five unstored floats are added (Alchemy 3, RMI-092 the container title's and C.2 the Magic title's Min Desired Width)")
 check(sum(len(r.get("floats", [])) for r in LAYOUT.values()) == 75, "75 stored values (62 changes, squares and pairs counted)")
 
 # ---- B. bp_float ----
@@ -231,15 +231,15 @@ with tempfile.TemporaryDirectory() as temp:
         with faked(fake):
             lay = pipe.build_layout(args, temp / "outL", sizes, log=None)
         staged = fake.stages.get("MRLayout_P", {})
-        check(len(staged) == 20 and lay.get("pack") == "MRLayout_P",
-              f"MRLayout_P stages the 20 layout packages that pass their checks ({len(staged)})")
+        check(len(staged) == 19 and lay.get("pack") == "MRLayout_P",
+              f"MRLayout_P stages the 19 layout packages that pass their checks ({len(staged)})")
         check(lay.get("sizes", {}).get("inventoryRowHeight") == 40.0, "the layout manifest records the sizes it baked")
         inv = [b for k, b in staged.items() if k.endswith("wbp_originalmenu_inventoryentry.uasset")]
         off = [f["offset"] for f in LAYOUT["WBP_OriginalMenu_InventoryEntry"]["floats"] if f.get("size") == "inventoryRowHeight"][0]
         check(inv and struct.unpack_from("<f", inv[0], off)[0] == 40.0, "MRLayout_P bakes the row height")
         skipped = {Path(e["asset"]).name for e in lay.get("skipped", [])}
         check(skipped == {"WBP_ModernMenu_AlchemyFilters", "WBP_ModernMenu_AlchemyItemsListView",
-                         "WBP_ModernMenu_ContainerInventory_MainContent"},
+                         "WBP_ModernMenu_ContainerInventory_MainContent", "WBP_ModernMenu_MagicMenu"},
               f"a rewrite whose stock export differs is skipped and listed, the rest is built ({sorted(skipped)})")
         check(not any("t_" in k.split("/")[-1][:2] for k in staged), "MRLayout_P holds no colour asset")
         check(lay.get("game_build") == pipe.GAME_BUILD, "the layout manifest names the game build (the plugin checks it)")

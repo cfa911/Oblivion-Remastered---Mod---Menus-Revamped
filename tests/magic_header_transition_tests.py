@@ -61,21 +61,13 @@ checks = {
         'g_released' in hide_fn and 'g_released' in source_paths.function(layout, 'bool ReserveList('),
     'RMI-080 the Magic row columns are the named row boxes (probe 2026-11-09), not the cost text inside its box':
         all(f'"{n}"' in layout_fn for n in ('SpellType_SizeBox', 'School_SizeBox', 'Cost_SizeBox', 'Effect_SizeBox')),
-    'RMI-079 Magic draws its own page title label over the native one (the RMI-073 pattern)':
-        'MrMagicTitleLabel' in layout and 'PlaceMagicTitleLabel(' in layout_fn,
-    'RMI-079 spell pages and Active Effects create their title labels and guides under their own names '
+    'RMI-079/C.2 the Magic page title is baked (Magic_TabName slot Auto, Min Desired Width 300): no run-time label':
+        'MrMagicTitleLabel' not in layout and 'PlaceMagicTitleLabel(' not in layout and 'SyncMagicTitle()' not in tick_fn,
+    'spell pages and Active Effects create their guides under their own names '
     '(a second widget with the same name in the same menu replaces the first in place)':
-        'L"MrMagicTitleLabel"+std::to_wstring(picker.kind)' in layout and 'L"MrMagicHeaderGuide"+std::to_wstring(kind)' in layout_fn,
-    'RMI-079 a re-created Magic label or guide never reuses the name of a removed one (creation failed; probe MRMAGIC6)':
-        layout.count('g_widgetSerial++') >= 2,
-    'RMI-079 a Magic title label made during a tab switch takes the native colour fully opaque (not mid-fade)':
-        'colour[3]=1.0f' in source_paths.function(layout, 'void PlaceMagicTitleLabel('),
-    'RMI-079 the Magic title label is placed from the title row (Header_Box), not the squeezed native title box':
-        '"Header_Box"' in source_paths.function(layout, 'void PlaceMagicTitleLabel('),
-    'RMI-079 the Magic title label follows a page change every tick, not only on the layout timer':
-        'SyncMagicTitle()' in tick_fn,
-    'RMI-079 a hidden Magic header hides its title label (spell pages <-> Active Effects use one label each)':
-        'titleLabel' in hide_fn,
+        'L"MrMagicHeaderGuide"+std::to_wstring(kind)' in layout_fn,
+    'RMI-079 a re-created Magic guide never reuses the name of a removed one (creation failed; probe MRMAGIC6)':
+        'g_widgetSerial++' in layout,
     'no Magic slot compensation: spell pages never resize a wrapper (probe 2026-11-09)':
         'if (!InventoryStrip() || !inventoryHeaderReady) return;' in source_paths.function(layout, 'void Picker::CompensateInventorySlots('),
 }
