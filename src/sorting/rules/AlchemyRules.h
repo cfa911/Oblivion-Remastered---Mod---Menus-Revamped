@@ -556,6 +556,10 @@ namespace alchemyrules
 		return false;
 	}
 
+	// RMI-035 / RMI-101: filter rows reused while the list scrolls keep their old hover look. True when a displayed row may
+	// keep it: with the controller the focused row, with the mouse the row under the cursor.
+	inline bool KeepRowHover(bool a_pad, bool a_focused, bool a_underCursor) { return a_pad ? a_focused : a_underCursor; }
+
 	// The text of one active-filter entry: the name without icon glyphs or tag prefix, as shown on screen.
 	inline std::string ChipLabel(std::string_view a_display) { return std::string(detail::DropCount(detail::DropPrefix(a_display))); }
 }

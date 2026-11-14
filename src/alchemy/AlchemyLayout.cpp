@@ -101,22 +101,31 @@ namespace alchemy
 			ui::CallFirst(back, L"SetVisibility", &visible, sizeof(visible));
 		}
 
+		// RMI-035 (controller) and RMI-101 (mouse wheel): rows the list reuses while scrolling keep their old Hovered_State.
+		// Controller: only the one focused row keeps it. Mouse: only the row under the cursor (IsHovered) keeps it.
 		void ClearStaleFilterHover(const std::vector<UE::UObject*>& a_rows)
 		{
-			if (!PadInput()) return;
+			const bool pad = PadInput();
 			UE::UObject* focused = nullptr;
-			for (auto* row : a_rows) {
-				ui::Call own(row, L"HasAnyUserFocus");
-				ui::Call child(row, L"HasFocusedDescendants");
-				if ((own && own.Run() && own.Get<bool>("ReturnValue")) ||
-				    (child && child.Run() && child.Get<bool>("ReturnValue"))) {
-					if (focused) return;
-					focused = row;
+			if (pad) {
+				for (auto* row : a_rows) {
+					ui::Call own(row, L"HasAnyUserFocus");
+					ui::Call child(row, L"HasFocusedDescendants");
+					if ((own && own.Run() && own.Get<bool>("ReturnValue")) ||
+					    (child && child.Run() && child.Get<bool>("ReturnValue"))) {
+						if (focused) return;
+						focused = row;
+					}
 				}
+				if (!focused) return;
 			}
-			if (!focused) return;
 			for (auto* row : a_rows) {
-				if (row == focused) continue;
+				bool underCursor = false;
+				if (!pad) {
+					ui::Call hovered(row, L"IsHovered");
+					underCursor = hovered && hovered.Run() && hovered.Get<bool>("ReturnValue");
+				}
+				if (alchemyrules::KeepRowHover(pad, row == focused, underCursor)) continue;
 				auto* hover = Field(row, "Hovered_State");
 				if (!hover || !hover->GetClass()) continue;
 				const auto vis = reflect::Offset(hover->GetClass(), "Visibility");
@@ -214,7 +223,16 @@ namespace alchemy
 			// Clear all keeps the red rim; a filter button gets a black one (owner 2026-11-04)
 			const auto& style = UiPalette().alchemy;
 			const float* line = a_index == 0 ? style.buttonLine.data() : style.buttonLineDark.data();
-			if (ui::RoundedBox(back, false, a_hovered ? style.buttonHover.data() : style.buttonFill.data(), line, 0.5f, 6.0f)) g_chipStyle[a_index] = want;
+			const float* fill = a_hovered ? style.buttonHover.data() : style.buttonFill.data();
+			// Custom (C.3 round 2, owner 2026-11-14): the run-time box colours (Pack Builder Runtime tab); Clear all red, hover the list highlight
+			std::array<float, 4> hover{};
+			if (uistyle::Recolors(mrconfig::Get().stylePreset)) {
+				const auto& s = darkstyle::Get();
+				hover = darkstyle::Arr(s.listHighlight);
+				line = a_index == 0 ? s.skin.alchemyClearLine.data() : s.skin.alchemyBoxLine.data();
+				fill = a_hovered ? hover.data() : s.skin.alchemyBox.data();
+			}
+			if (ui::RoundedBox(back, false, fill, line, 0.5f, 6.0f)) g_chipStyle[a_index] = want;
 		}
 
 		double MarkWidth()
@@ -955,7 +973,8 @@ namespace alchemy
 			auto* chipTitle = reflect::Get(g_chipTitle);
 			if (!chipTitle) {
 				const auto& titleInk = UiPalette().alchemy.titleInk;
-				const std::array<float, 4> ink{ titleInk[0] * 0.8f, titleInk[1] * 0.8f, titleInk[2] * 0.8f, 1.0f };
+				std::array<float, 4> ink{ titleInk[0] * 0.8f, titleInk[1] * 0.8f, titleInk[2] * 0.8f, 1.0f };
+				if (uistyle::Recolors(mrconfig::Get().stylePreset)) ink = darkstyle::Get().skin.alchemyHeading;   // C.3 round 2: Runtime tab
 				chipTitle = MakeLabel(canvas, L"MrAlchemyChipTitle", ink.data(), 23.1);
 				if (chipTitle) {
 					uix::SetText(chipTitle, "Selected Filters");

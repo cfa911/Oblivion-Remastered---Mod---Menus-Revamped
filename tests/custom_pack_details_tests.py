@@ -127,7 +127,8 @@ try:
     shown = {e.key.split(".")[-1] for label, groups in m.pages() if label in ("Colours", "Runtime") for _, entries in groups for e in entries}
     check(not shown & {"band", "buttonFill", "buttonRule"}, f"window: the retired keys are not shown ({shown & {'band', 'buttonFill', 'buttonRule'}})")
     run_time = [entries for label, groups in m.pages() if label == "Runtime" for _, entries in groups]
-    check(sorted(e.name for entries in run_time for e in entries) == ["guide", "rule"], "window: only rule and guide stay run time")
+    check(sorted(e.name for entries in run_time for e in entries) == sorted(["guide", "rule", "alchemyHeading", "alchemyBox", "alchemyBoxLine", "alchemyClearLine"]),
+      "window: only our own widgets stay run time (header rule and guide; C.3 round 2: the Alchemy filter heading, boxes and outlines)")
     check({"Skin.ornament", "Skin.ring", "Skin.emphasisInk"} <= set(m.needs_build({})), "an older pack without the baked tints needs a Build")
 except Exception as error:   # noqa: BLE001
     check(False, f"model works ({type(error).__name__}: {error})")

@@ -66,10 +66,11 @@ namespace darkstyle
 		// header's lightning and category icon are baked in headerIcon, the effect names in rowText.
 		Rgb effectBox{ 66, 99, 153 };
 		Rgb nameBox{ 239, 239, 239 };
-		Rgb filterRow{ 66, 66, 66 };         // the normal row box (stock: a brush-tinted solid box, no texture)
+		Rgb filterRow{ 40, 40, 40 };         // the normal row box (stock: a brush-tinted solid box, no texture)
 		Rgb filterHover{ 112, 112, 112 };    // the hover box (stock cream T_Alchemy_Filters_Highlighted): light text stays readable
 		Rgb filterSelected{ 14, 22, 42 };
 		Rgb filterMark{ 92, 140, 214 };
+		Rgb filterOutline{ 66, 99, 153 };   // the 1-pixel row outline (T_Alchemy_Filters_Overlay; owner C.3-3 "softer blue")
 		// Alchemy frame (T_UI_Alchemy_Background), ingredient slots and pot (Custom pack builder Phase 6, "alchemy" recipe): the
 		// stock bronze metal and green-grey stone recoloured separately, stock shading and alpha kept; defaults = the owner art's averages.
 		Rgb alchemyMetal{ 56, 83, 118 };
@@ -81,8 +82,8 @@ namespace darkstyle
 		Rgb enchantingOrnament{ 72, 78, 90 };
 		Rgb spellmakingEye{ 86, 127, 181 };
 		// accent colours (owner 2026-11-14): baked only (blueprint text colours and the effect icon art)
-		Rgb menuTitle{ 61, 212, 250 };
-		Rgb accentValue{ 61, 212, 250 };
+		Rgb menuTitle{ 79, 124, 176 };
+		Rgb accentValue{ 79, 124, 176 };
 		Rgb effectLabel{ 232, 187, 102 };
 		Rgb effectIcon{ 232, 187, 102 };
 		Rgb effectValue{ 185, 138, 69 };
@@ -101,9 +102,13 @@ namespace darkstyle
 			std::array<float, 4> pattern{ 1, 1, 1, 1 };                  // T_Inventory_pattern (baked gray: untinted)
 			std::array<float, 4> band{ 0.41f, 0.65f, 1.0f, 1 };          // per-channel inverse of T_inv_details_effects_title_BG's brown
 			std::array<float, 4> buttonFill{ 0.12f, 0.12f, 0.12f, 1 };   // action button fill and arrows
-			float scrollTrack = 0.0052f, scrollBorder = 0.0052f, scrollInside = 0.0222f;   // scrollbar material (linear gray)
+			float scrollTrack = 0.0052f, scrollBorder = 0.0052f, scrollInside = 0.8632f;   // C.3-12: white thumb (sRGB 239)   // scrollbar material (linear gray)
 			std::array<float, 4> emphasisInk{ 0.125f, 0.120f, 0.125f, 1 };   // owner swatch, sRGB 99 97 99
 			std::array<float, 4> buttonRule{ 0.83f, 0.83f, 0.83f, 1 };   // rule middles match the end pieces (ButtonLine.png, sRGB 235)
+			std::array<float, 4> alchemyHeading{ 0.0782f, 0.2016f, 0.4342f, 1 };   // sRGB 79 124 176 (#4f7cb0), the menu-title blue (Alchemy C.3 round 2)
+			std::array<float, 4> alchemyBox{ 0.0212f, 0.0212f, 0.0212f, 1 };   // sRGB 40, the filter row grey (Alchemy C.3 round 2)
+			std::array<float, 4> alchemyBoxLine{ 0.0545f, 0.1248f, 0.3185f, 1 };   // sRGB 66 99 153, the filter row outline (Alchemy C.3 round 2)
+			std::array<float, 4> alchemyClearLine{ 0.6445f, 0.1248f, 0.1046f, 1 };   // sRGB 210 99 91, the stolen-mark red (Alchemy C.3 round 2)
 		} skin;
 	};
 #define DARKSTYLE_SKIN_TINTS 1

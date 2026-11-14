@@ -47,5 +47,14 @@ ev = src[src.find("void OnEntryEvent("):]
 ev = ev[:ev.find("\n\t\t}\n")]
 check('"Checkmark"' not in ev and "ShouldRestoreSelected(" not in ev,
       "RMI-024: the restore is not done inside the game's own row call")
+# RMI-101 (owner 2026-11-14, mouse wheel): rows reused while scrolling keep the hover look; RMI-035's cleanup ran only
+# for the controller. The cleanup now runs for the mouse too and keeps the hover only on the row under the cursor.
+stale = src[src.find("void ClearStaleFilterHover("):]
+stale = stale[:stale.find("\n\t\t}\n")]
+check("void ClearStaleFilterHover(" in src and "ClearStaleFilterHover(rows)" in rows, "the hover cleanup runs from the tick")
+check("if (!PadInput()) return;" not in stale, "RMI-101: the hover cleanup is not controller-only")
+check('L"IsHovered"' in stale and "KeepRowHover(" in stale,
+      "RMI-101: with the mouse, only the row under the cursor (IsHovered) keeps Hovered_State")
+check('"Hovered_State"' not in ev, "RMI-101: the cleanup is not done inside the game's own row call")
 print(f"{checks} checks, {failures} failures")
 sys.exit(1 if failures else 0)

@@ -99,7 +99,7 @@ int main(){
 #ifdef UISTYLE_SKIN
  Check(dark.pageGray>0&&dark.pageGray<0.022f,"Dark details page is a very dark gray, darker than the list (sRGB 41)");
  Check(dark.pattern[0]==1&&dark.pattern[1]==1&&dark.pattern[2]==1,"laurel pattern shows its packaged gray unchanged");
- Check(dark.scrollInside>dark.scrollBorder&&dark.scrollTrack<0.01f,"dark scrollbar: near-black track and border, charcoal thumb");
+ Check(dark.scrollInside>dark.scrollBorder&&dark.scrollTrack<0.01f,"dark scrollbar: near-black track and border, white thumb (C.3-12)");
 #endif
  const auto classicControls = InventoryControls(true, Preset::Classic);
 const auto lightControls = InventoryControls(true, Preset::Light);
@@ -149,7 +149,7 @@ Check(darkControls.darkArt && darkControls.selectedSortTint == 0.24f && !Invento
   &&dark.scrollTrack==dt.scrollTrack&&dark.scrollBorder==dt.scrollBorder&&dark.scrollInside==dt.scrollInside,
   "kDarkSkin takes every tint from DarkStyle.h");
  Check(dark.rule==Color{0.65f,0.65f,0.65f,0.55f}&&dark.guide==Color{0.55f,0.55f,0.55f,0.13f}&&dark.band==Color{0.41f,0.65f,1.0f,1}
-  &&dark.scrollInside==0.0222f&&dark.buttonRule==Color{0.83f,0.83f,0.83f,1},"the tint values are unchanged by the move");
+  &&dark.scrollInside==0.8632f&&dark.buttonRule==Color{0.83f,0.83f,0.83f,1},"the tint values are unchanged by the move");
 #else
  Check(false,"kDarkSkin takes every tint from DarkStyle.h");
 #endif

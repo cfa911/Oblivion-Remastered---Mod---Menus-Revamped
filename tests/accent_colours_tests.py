@@ -26,7 +26,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 import custom_colours as cc  # noqa: E402
 from pack_builder import pipeline as pipe  # noqa: E402
 
-BLUE, GOLD, BROWN = [61.0, 212.0, 250.0], [232.0, 187.0, 102.0], [185.0, 138.0, 69.0]
+BLUE, GOLD, BROWN = [79.0, 124.0, 176.0], [232.0, 187.0, 102.0], [185.0, 138.0, 69.0]
 ELEMENTS = {"menuTitle": BLUE, "accentValue": BLUE, "effectLabel": GOLD, "effectIcon": GOLD, "effectValue": BROWN}
 
 ini = (ROOT / "config/CustomColours.ini").read_text(encoding="utf-8")

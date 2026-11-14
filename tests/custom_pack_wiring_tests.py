@@ -60,7 +60,7 @@ check('ROOT / "assets/CustomPack"' in text("tools/make_dark_pack.py"), "make_dar
 style = text("src/core/DarkStyle.h")
 block = re.search(r"struct SkinTints\s*\{(.*?)\}\s*skin;", style, re.S)
 skin_names = [m.group(1) or m.group(2) for m in re.finditer(r"array<float,\s*4>\s+(\w+)\{|(\w+)\s*=\s*[\d.]+f", block.group(1))] if block else []
-check(len(skin_names) == 12, f"DarkStyle.h has 12 run-time skin tints ({skin_names})")
+check(len(skin_names) == 16, f"DarkStyle.h has 16 run-time skin tints (C.3 round 2: + 4 Alchemy; {skin_names})")
 cc = load_module("custom_colours")
 check(list(getattr(cc, "SKIN", {})) == skin_names, "custom_colours.SKIN lists the 12 tints in DarkStyle.h order")
 if block and hasattr(cc, "from_skin"):

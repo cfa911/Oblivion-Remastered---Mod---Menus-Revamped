@@ -53,7 +53,7 @@ namespace customcolours
 		MR_CC_RGB(parchmentLight, "Alchemy and other parchment menus - highlights"), MR_CC_RGB(effectBox, "Alchemy effect boxes"),
 		MR_CC_RGB(nameBox, "Alchemy and other editable name fields"), MR_CC_RGB(filterRow, "Alchemy filter row background"),
 		MR_CC_RGB(filterHover, "Alchemy hovered filter row background"), MR_CC_RGB(filterSelected, "Alchemy selected filter row background"),
-		MR_CC_RGB(filterMark, "Alchemy filter row diamond"),
+		MR_CC_RGB(filterMark, "Alchemy filter row diamond"), MR_CC_RGB(filterOutline, "Alchemy filter row and Must Contain button outline"),
 		MR_CC_RGB(alchemyMetal, "Alchemy frame, ingredient slots and pot - metal"), MR_CC_RGB(alchemyStone, "Alchemy frame, ingredient slots and pot - stone"),
 		MR_CC_RGB(enchantingFrame, "Enchanting right panel frame - metal"), MR_CC_RGB(spellmakingFrame, "Spellmaking right panel frame - metal"), MR_CC_RGB(altarPaper, "Enchanting and Spellmaking right panel paper"), MR_CC_RGB(enchantingCrystal, "Enchanting crystal under the right panel"), MR_CC_RGB(enchantingOrnament, "Enchanting ornament under the right panel"), MR_CC_RGB(spellmakingEye, "Spellmaking eye ornament under the right panel"), MR_CC_RGB(enchantingTabPaper, "Enchanting tab strip background (no effect: charcoal tabs)"), MR_CC_RGB(enchantingTabIcon, "Enchanting tab strip icons and arrows (no effect: charcoal tabs)"),
 		MR_CC_RGB(tabPaperDark, "Inventory and Magic category tabs - paper shadows (no effect: charcoal tabs)"), MR_CC_RGB(tabPaperLight, "Inventory and Magic category tabs - paper highlights (no effect: charcoal tabs)"), MR_CC_RGB(tabGlyph, "Inventory and Magic category tab icons and arrows (no effect: charcoal tabs)"),
@@ -65,6 +65,7 @@ namespace customcolours
 		MR_CC_TINT(band, "Inventory and Magic details Effects heading strip (fallback)"), MR_CC_TINT(buttonFill, "Inventory and Magic details action button fill"),
 		MR_CC_LIN(scrollTrack, "Scrollbar track in every menu but Settings"), MR_CC_LIN(scrollBorder, "Scrollbar thumb border in every menu but Settings"), MR_CC_LIN(scrollInside, "Scrollbar thumb fill in every menu but Settings"),
 		MR_CC_TINT(emphasisInk, "Inventory and Magic details emphasized perk text"), MR_CC_TINT(buttonRule, "Inventory and Magic action button divider centres"),
+		MR_CC_TINT(alchemyHeading, "Alchemy Selected Filters heading (our own label)"), MR_CC_TINT(alchemyBox, "Alchemy filter chips and Search effects box - fill"), MR_CC_TINT(alchemyBoxLine, "Alchemy filter chips and Search effects box - outline"), MR_CC_TINT(alchemyClearLine, "Alchemy Clear all chip - outline"),
 	};
 #undef MR_CC_RGB
 #undef MR_CC_TAB

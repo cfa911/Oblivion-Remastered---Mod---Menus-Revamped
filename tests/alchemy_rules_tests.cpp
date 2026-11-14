@@ -230,6 +230,12 @@ int main()
 		check(ShouldRestoreSelected("\xE2\x98\xBA[Alte] Water Breathing", false, sel), "active filter shown unselected: restore");
 		check(ShouldRestoreSelected("\xE2\x98\xBA[Illu] Invisibility (6)", false, sel), "prefix and count do not matter");
 		check(!ShouldRestoreSelected("\xE2\x98\xBA[Alte] Water Breathing", true, sel), "already selected: nothing to do");
+		// RMI-101: which displayed filter row may keep its hover look (controller: the focused row; mouse: the row under the cursor)
+		check(KeepRowHover(true, true, false), "controller: the focused row keeps its hover");
+		check(!KeepRowHover(true, false, true), "controller: a row under a resting cursor does not");
+		check(KeepRowHover(false, false, true), "mouse: the row under the cursor keeps its hover");
+		check(!KeepRowHover(false, true, false), "mouse: a reused row away from the cursor loses it, even with stale focus");
+		check(!KeepRowHover(false, false, false), "mouse: rows scrolled under no cursor lose it");
 		check(!ShouldRestoreSelected("\xE2\x98\xBA[Alte] Water Walking", false, sel), "not an active filter: nothing");
 		check(!ShouldRestoreSelected("Shield", false, {}), "no active filters: nothing");
 		check(!ShouldRestoreSelected("", false, { "" }), "empty text never matches");
