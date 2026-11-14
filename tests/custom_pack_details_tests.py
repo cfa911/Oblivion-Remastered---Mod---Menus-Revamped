@@ -80,7 +80,8 @@ BLUEPRINTS = {   # package: (menu data file, asset path, [(offset, stock, colour
     "WBP_ModernMenu_MagicDetails": ("magic", "UI/Modern/GameMenuLayer/Magic/WBP_ModernMenu_MagicDetails",
                                     [(18693, INK, "menuTitle"), (18806, INK, "accentValue"), (18875, INK, "effectLabel"), (18982, INK, "menuTitle"),
                                      (19064, INK, "rowText"), (19374, INK, "menuTitle"), (19592, INK, "menuTitle")]
-                                    + [(o, GOLD, "rowText") for o in (18589, 19139, 19212, 19304, 19487, 19678, 19781, 19849,
+                                    + [(o, GOLD, "accentValue") for o in (19304, 19781)]   # C2P2-2: Cost and Range values blue
+                                    + [(o, GOLD, "rowText") for o in (18589, 19139, 19212, 19487, 19678, 19849,
                                                                        19924, 20031, 20098)]),
 }
 MATERIALS = {   # material instance: (menu, asset, [(offset, stock, colour)])

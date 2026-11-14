@@ -75,7 +75,7 @@ check(sorted(alchemy_rows) == sorted(ALCHEMY), "the three Alchemy textures are s
 for name, (menu, row) in alchemy_rows.items():
     check(menu == "alchemy" and row["recipe"] == "alchemy", f"{name}: alchemy.json, recipe alchemy ({menu}, {row['recipe']})")
     check(row["colours"] == ["alchemyMetal", "alchemyStone"], f"{name}: reads alchemyMetal and alchemyStone ({row['colours']})")
-check(len(rows) == 218, f"218 assets (C.3: + 4 Alchemy filter textures; accent colours: + 4 title blueprints) after 28b, C.2 (+14), the 2026-11-13 Inventory bakes, RMI-096 popups and RMI-097 tabs, RMI-091 (+5) ({len(rows)})")
+check(len(rows) == 220, f"220 assets (C2P2: + the Spell Purchase menu and row blueprints; C.3: + 4 Alchemy filter textures; accent colours: + 4 title blueprints) after 28b, C.2 (+14), the 2026-11-13 Inventory bakes, RMI-096 popups and RMI-097 tabs, RMI-091 (+5) ({len(rows)})")
 
 # ---- 3. the recipe on a synthetic BC3 texture: bronze top half, green-grey stone bottom half, a soft alpha ----
 try:
@@ -256,8 +256,8 @@ try:
         with contextlib.redirect_stdout(io.StringIO()):
             manifest = pipe.build(SimpleNamespace(retoc=retoc, paks=temp / "Paks", ddstools=None), temp / "out",
                                   art=temp / "no-art")
-        check(len(manifest["textures"]) == 218 and manifest["skipped"] == [],
-              f"a build without owner art: 218 baked, 0 skipped ({len(manifest['textures'])}, {len(manifest['skipped'])} skipped)")
+        check(len(manifest["textures"]) == 220 and manifest["skipped"] == [],
+              f"a build without owner art: 220 baked, 0 skipped ({len(manifest['textures'])}, {len(manifest['skipped'])} skipped)")
         check(manifest["style"].get("alchemyMetal") == METAL and manifest["style"].get("alchemyStone") == STONE,
               "the manifest style records alchemyMetal and alchemyStone")
 except Exception as error:   # noqa: BLE001

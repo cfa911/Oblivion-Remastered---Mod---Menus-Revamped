@@ -895,6 +895,22 @@
       "stock_uexp_sha256": "cc24f55b123d346148cba8b41ad3b6a9f1d516ab7ef5fe8d0407a160627951e9",
       "baked_uexp_sha256": "0d5c7882757f9be17202cb066c8d8af3615838a93590e39efccaa57fab119ff8"
     },
+    "UI/Modern/GameMenuLayer/SpellPurchase/WBP_ModernMenu_SpellPurchase": {
+      "recipe": "bp_colour:WBP_ModernMenu_SpellPurchase",
+      "style": [
+        "effectLabel"
+      ],
+      "stock_uexp_sha256": "031f15980c7289b1485efb8df0c97bba4aeeb9bee038b357dd6090125e5ed4b5",
+      "baked_uexp_sha256": "bd035b3f5e3302ee5d5e7181c4be44c3d301ebd662f28fb1ce1fedc8d21149a3"
+    },
+    "UI/Modern/GameMenuLayer/SpellPurchase/WBP_ModernMenu_SpellPurchaseItem": {
+      "recipe": "bp_colour:WBP_ModernMenu_SpellPurchaseItem",
+      "style": [
+        "rowText"
+      ],
+      "stock_uexp_sha256": "928c2dd6fb3127c774e4bcb70c57584410fa2e8b2267075b4ac1c1b07c91b2df",
+      "baked_uexp_sha256": "503cc3c0367b139ad4acbeda7a29a39b8877e69df322d0bc74934caf613348bd"
+    },
     "UI/Modern/GameMenuLayer/Magic/WBP_ModernMenu_MagicDetails": {
       "recipe": "bp_colour:WBP_ModernMenu_MagicDetails",
       "style": [
@@ -904,7 +920,7 @@
         "rowText"
       ],
       "stock_uexp_sha256": "c60af712330cc67658f5854117828ca39ac3e3eac8d6ce6ecac05d20eaeb5a13",
-      "baked_uexp_sha256": "d725c13b98ea022b8853b16a3f4a7bab20fe9b5653be8c748c03f152ddc9dffe"
+      "baked_uexp_sha256": "7a80dedf625bda94efba556e537bff8600231f019cc97bb59131bf4a6b603f67"
     },
     "Art/UI/Common/T_Diamond_Brown_Separator": {
       "recipe": "skin_flat:ornament:235",
@@ -1136,7 +1152,7 @@
         "rowText"
       ],
       "stock_uexp_sha256": "b0823016aad7225650a33b4e9491d74fcd5b5fb8ca9d8a61656835b380700dfd",
-      "baked_uexp_sha256": "c03fadc198cd68f62577876325cbf7c5e66158e0f0bb6ef39245c9c60d90008e"
+      "baked_uexp_sha256": "9311f47e513b3be8360d2a99be17ac491b0ee642fa73f82cbf20302fd631c2d4"
     },
     "Art/UI/Icons/Icon_Stats/T_Property_1_magnitude": {
       "recipe": "flat:effectIcon",
@@ -1934,7 +1950,7 @@
   "skipped": [],
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "f5c48064b9d603ade66077e95cf48961e205fc22b99a99615b00a10456b992a3",
-    "MRCustom_P.ucas": "c04a00fd370cabc5569f1cdb42a635523f7a1bf0b18764fccf6c50c3f2277436"
+    "MRCustom_P.utoc": "a356f0535fcd34f56ed265bcf5e9f5dfb1f4a22706a5f31635ae2b8a9995391f",
+    "MRCustom_P.ucas": "b13cf9453f056b4ac8bbe44761cfa2365e493f4446b040a2b43b1c23c305cf13"
   }
 }
