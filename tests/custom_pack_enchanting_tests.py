@@ -43,7 +43,7 @@ BLUEPRINTS = {
     "UI/Modern/GameMenuLayer/Common/WBP_ModernMenu_EnchanteStats": [(o, BROWN, "rowText") for o in (9941, 10012, 10078, 10145)],
     "UI/Modern/GameMenuLayer/enchantment/WBP_ModernMenu_EnchantmentEntry": [(o, INK, "rowText") for o in (5065, 5132, 5205)],
     "UI/Modern/GameMenuLayer/enchantment/WBP_ModernMenu_EnchantmentMenu": [
-        (63312, INK, "columnLine"), (73289, INK, "rowText"), (73395, INK, "rowText"), (73716, BROWN, "rowText"),
+        (63312, INK, "columnLine"), (73289, INK, "menuTitle"), (73395, INK, "menuTitle"), (73716, BROWN, "rowText"),
         (73789, GOLD, "rowText"), (73862, BROWN, "rowText"), (75158, INK, "panel"), (75493, INK, "panel")],   # banners: RMI-087
 }
 SHARED = ["Art/UI/Icons/Icon_Stats/T_Property_1_LesserPower", "Art/UI/Icons/Icon_Stats/T_Property_1_goodbad",

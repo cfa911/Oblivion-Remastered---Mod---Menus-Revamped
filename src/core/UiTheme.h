@@ -134,25 +134,6 @@ namespace uistyle
 		Color          buttonRule;        // the action button's colour-only rule middles (brush tint); alpha 0 = stock
 	};
 
-	inline constexpr ArtSwap kDarkArt[]{
-		// T_List_Default (row separator) and T_List_equip_V2 (equipped band): baked in the Custom pack (decision 28 phase 28a);
-		// the item details art (stat icons, title and sigil bands, sigil icons, ring centre, button arrows and rules): phase 28b
-		// Magic row spell-type icons (brown art, shared with Sigil Stone and the effect lists, so not baked): white shapes drawn
-		// in rowIcon (tools/make_dark_row_icons.py). The school icons, details stat icons and tabs are baked into MRDark_P.
-		{ "T_MagicMenuIcon_Ability_ListSmall", L"MagicRow-T_MagicMenuIcon_Ability_ListSmall.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Disease_ListSmall", L"MagicRow-T_MagicMenuIcon_Disease_ListSmall.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Enchantment_ListSmall", L"MagicRow-T_MagicMenuIcon_Enchantment_ListSmall.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_GreaterPower_ListSmall", L"MagicRow-T_MagicMenuIcon_GreaterPower_ListSmall.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_LesserPower_ListSmall", L"MagicRow-T_MagicMenuIcon_LesserPower_ListSmall.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Poison_ListSmall", L"MagicRow-T_MagicMenuIcon_Poison_ListSmall.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Potion_ListSmall", L"MagicRow-T_MagicMenuIcon_Potion_ListSmall.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Scroll_ListSmall", L"MagicRow-T_MagicMenuIcon_Scroll_ListSmall.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_SpellCustom_ListSmall", L"MagicRow-T_MagicMenuIcon_SpellCustom_ListSmall.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_Spell_ListSmall", L"MagicRow-T_MagicMenuIcon_Spell_ListSmall.png", &darkstyle::Style::rowIcon },
-		{ "T_MagicMenuIcon_WortCraft_ListSmall", L"MagicRow-T_MagicMenuIcon_WortCraft_ListSmall.png", &darkstyle::Style::rowIcon },
-		// the Magic page (also Quest/Help/Stats) is baked into MRCustom_P (page_invert, RMI-091): no swap
-	};
-
 	inline constexpr Skin kStockSkin{
 		false, false,
 		{ 0, 0, 0, 1 }, { 0, 0, 0, 1 }, { 0.20f, 0.14f, 0.09f, 0.55f }, { 0.20f, 0.14f, 0.09f, 0.13f },
@@ -170,7 +151,7 @@ namespace uistyle
 			true, true,
 			darkstyle::Arr(s.rowText), darkstyle::Arr(s.rowText),   // row and perk ink
 			s.skin.rule, s.skin.guide,
-			kDarkArt, int(sizeof(kDarkArt) / sizeof(kDarkArt[0])), s.skin.ring,
+			nullptr, 0, s.skin.ring,   // no run-time art swaps: the Magic row icons are baked (Step C.2)
 			s.detailsPage,   // the details page tint (Inventory and Magic)
 			s.skin.ornament, s.skin.pattern, s.skin.band, s.skin.buttonFill,
 			s.skin.scrollTrack, s.skin.scrollBorder, s.skin.scrollInside,

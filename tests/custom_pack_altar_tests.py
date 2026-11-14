@@ -294,7 +294,7 @@ INK, GOLD = [0.0723, 0.0382, 0.0284, 1.0], [0.0999, 0.0561, 0.0395, 1.0]
 SM, ES = "UI/Modern/GameMenuLayer/Spellmaking/", "UI/Modern/MenuLayer/EffectSettings/"
 BP_087 = {   # package: (menu json, asset path, [(offset, stock, colour)])
     "WBP_ModernMenu_SpellMakingMenu": ("spellmaking", SM + "WBP_ModernMenu_SpellMakingMenu", [
-        (55826, INK, "rowText"), (56046, GOLD, "rowText"), (56204, INK, "rowText"), (57138, INK, "panel")]),
+        (55826, INK, "menuTitle"), (56046, GOLD, "rowText"), (56204, INK, "menuTitle"), (57138, INK, "panel")]),
     "WBP_ModernMenu_SpellmakingEntry": ("spellmaking", SM + "WBP_ModernMenu_SpellmakingEntry", [(4659, INK, "rowText")]),
     "WBP_ModernMenu_EffectsSettings": ("spellmaking", ES + "WBP_ModernMenu_EffectsSettings", [(27340, INK, "rowText")]),
     "WBP_LegacyMenu_EffectsSettingsEntry": ("spellmaking", "UI/Legacy/MenuLayer/EffectSettings/WBP_LegacyMenu_EffectsSettingsEntry", [

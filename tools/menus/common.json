@@ -452,6 +452,46 @@
       "shared_with": [
         "every popup after the import swap (quantity, message box, Sleep/Wait, skill increase, quest added, haggle, skills selection, Settings popups, EULA); unused by stock widgets"
       ]
+    },
+    {
+      "asset": "UI/Original/GameMenuLayer/Quest/WBP_Modern_QuestListPanel",
+      "recipe": "bp_colour:WBP_Modern_QuestListPanel",
+      "colours": [
+        "menuTitle"
+      ],
+      "shared_with": [
+        "Quests only (page title, accent colours 2026-11-14)"
+      ]
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/Stats/Page2_Attributes/WBP_ModernMenu_StatsPage2",
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPage2",
+      "colours": [
+        "menuTitle"
+      ],
+      "shared_with": [
+        "Character only (page title, accent colours 2026-11-14)"
+      ]
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/Stats/Page4_Factions/WBP_ModernMenu_StatsPage4",
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPage4",
+      "colours": [
+        "menuTitle"
+      ],
+      "shared_with": [
+        "Character only (page title, accent colours 2026-11-14)"
+      ]
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/Stats/Page5_Details/WBP_ModernMenu_StatsPage5",
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPage5",
+      "colours": [
+        "menuTitle"
+      ],
+      "shared_with": [
+        "Character only (page title, accent colours 2026-11-14)"
+      ]
     }
   ],
   "blueprint_colours": {
@@ -1026,6 +1066,58 @@
         ],
         "colour": "rowText",
         "widget": "row RT_BlueMed"
+      }
+    ],
+    "WBP_Modern_QuestListPanel": [
+      {
+        "offset": 13743,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "QuestPageName"
+      }
+    ],
+    "WBP_ModernMenu_StatsPage2": [
+      {
+        "offset": 8983,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_AttributesText"
+      }
+    ],
+    "WBP_ModernMenu_StatsPage4": [
+      {
+        "offset": 2885,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_FactionsText"
+      }
+    ],
+    "WBP_ModernMenu_StatsPage5": [
+      {
+        "offset": 8325,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_DetailsText"
       }
     ]
   },

@@ -80,6 +80,12 @@ namespace darkstyle
 		Rgb enchantingCrystal{ 103, 159, 236 };
 		Rgb enchantingOrnament{ 72, 78, 90 };
 		Rgb spellmakingEye{ 86, 127, 181 };
+		// accent colours (owner 2026-11-14): baked only (blueprint text colours and the effect icon art)
+		Rgb menuTitle{ 61, 212, 250 };
+		Rgb accentValue{ 61, 212, 250 };
+		Rgb effectLabel{ 232, 187, 102 };
+		Rgb effectIcon{ 232, 187, 102 };
+		Rgb effectValue{ 185, 138, 69 };
 		Rgb enchantingTabPaper{ 27, 27, 29 };
 		Rgb enchantingTabIcon{ 255, 255, 255 };
 		Rgb tabPaperDark{ 17, 17, 17 };   // baked: Inventory/Magic category tab paper at stock luminance 80 (decision 34)

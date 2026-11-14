@@ -198,14 +198,14 @@ MAGIC_TABS = [f"Art/UI/Modern/GameMenuLayer/magic/Tabs/T_Magic_Tabs_{n}" for n i
 TABLE = "UI/Modern/GameMenuLayer/magic/DT_UI_MagicMenu"
 listed = dict(data_listed)
 check(all(listed.get(a) == "flat:rowIcon" for a in SCHOOLS), "phase 3: the six row school icons are baked flat rowIcon on the stock alpha")
-check(sorted(Path(a).name for a, r in listed.items() if r == "flat:rowIcon" and "T_MagicMenuIcon_" in a) == sorted(STATS),
+check(sorted(Path(a).name for a, r in listed.items() if r == "flat:rowIcon" and "T_MagicMenuIcon_" in a and "_ListSmall" not in a) == sorted(STATS),
       "phase 3: the ten details stat/type icons are baked flat rowIcon (Magic-only textures)")
 check([listed.get(a) for a in MAGIC_TABS] == ["charcoal:magic"] * 5, "RMI-097 (was decision 34): the five Magic tab atlases are recoloured from stock (charcoal:magic)")
 # RMI-086 (owner screenshot on 9828be38): the table's Default row baked blue left the line tan: the details blueprint sets the
 # line's default colour itself (SetDefaultColorAndOpacity), which replaces the Default row. The colour is set at run time.
 check(TABLE not in listed, "RMI-086: DT_UI_MagicMenu is not in the pack (its Default row never reaches the cast-frequency line)")
-check(not any("_ListSmall" in a for a in listed) and any(a.endswith("/T_MagicBackground") for a in listed),
-      "the shared _ListSmall icons stay out of the pack; the Magic page is baked (RMI-091: Quest/Help/Stats wanted)")
+check(sum(1 for a in listed if a.endswith("_ListSmall") and listed[a] == "flat:rowIcon") == 11 and any(a.endswith("/T_MagicBackground") for a in listed),
+      "C.2: the 11 shared _ListSmall icons are baked flat:rowIcon (owner-approved); the Magic page is baked (RMI-091)")
 check(set(listed) <= baked and colour_textures == set(listed),
       "the shipped pack holds every asset make_dark_pack.py lists (rebuilt), the table included")
 check(TABLE not in manifest.get("textures", {}), "RMI-086: the shipped pack has no DT_UI_MagicMenu")
@@ -240,23 +240,21 @@ if mdp is not None:
 dark_art = theme.split("inline constexpr ArtSwap kDarkArt[]{", 1)[1].split("};", 1)[0] if "kDarkArt[]{" in theme else ""
 check("T_Magic_Tabs_" not in dark_art and "MagicIcon-" not in dark_art and "T_MagicSchoolSimple_" not in dark_art,
       "phase 3: the baked Magic textures leave kDarkArt (no run-time swap)")
-check(dark_art.count("_ListSmall\", L\"") == 11 and "T_MagicBackground" not in dark_art,
-      "the shared row type icons stay run-time swaps; the Magic page is baked (RMI-091)")
+check("kDarkArt" not in theme, "C.2: no run-time art swaps left (row type icons baked)")
 skin_assets = root / "assets/Skin"
 gone = [p.name for p in skin_assets.glob("*.png") if p.name.startswith(("MagicTab-", "MagicIcon-", "MagicRow-T_MagicSchoolSimple_"))
         or p.name == "DetailsPage.png"]
 check(not gone, f"phase 3: the PNGs the pack replaces are removed ({gone[:4]})")
-check(len(list(skin_assets.glob("MagicRow-T_MagicMenuIcon_*_ListSmall.png"))) == 11 and not (skin_assets / "MagicPage.png").exists(),
-      "the run-time Magic PNGs are the 11 row type icons (the page is baked, RMI-091)")
+check(not list(skin_assets.glob("MagicRow-*.png")) and not (skin_assets / "MagicPage.png").exists(),
+      "C.2: no run-time Magic PNGs (row type icons and page baked)")
 for png in ("Sort-Cost", "Sort-Effect", "Sort-Type", "Sort-School", "Sort-Magnitude"):
     check((root / f"assets/Sorting/DarkSort/{png}.png").is_file(), f"{png} stays (the mod's own header art)")
 menu_skin = source_paths.read("picker")
 for name in ("PlaceMagicPage", "SyncMagicPaper", "OnMagicMenuTick", "MagicPaper", "OnIconTileEvent", "g_magicIcons",
              "g_iconTiles", "g_iconImages", "SwapIconMaterial", "OnMagicTabsEvent", "g_magicTabs", "DetailsPage.png"):
     check(name not in menu_skin, f"phase 3: {name} is gone (the pack draws the Magic details page, icons and tabs)")
-check("IsMagicPage(" not in source_paths.function(menu_skin, "void StyleMagicPage("), "the Magic page is baked, not swapped per widget (RMI-091)")
-light = source_paths.function(menu_skin, "bool LightIcon(")
-check("darkpack::Active()" in light, "LightIcon tints the baked icons white (their colour is baked), rowIcon only without the pack")
+check(not source_paths.function(menu_skin, "void StyleMagicPage("), "the Magic page is baked, not swapped per widget (RMI-091; C.2 no page pass)")
+check(not source_paths.function(menu_skin, "bool LightIcon("), "C.2: no LightIcon pass (row image tint is white; the icon colour is baked)")
 
 # Alchemy recolour (owner 2026-11-11): the four Alchemy parchments baked like the Dark details parchment (stock x detailsPage,
 # stock alpha kept). Shared: T_Spellmaking_LeftPaperBackground (Spellmaking), T_UI_MenuLeft (Container, Recharge, Repair,
@@ -375,9 +373,10 @@ check(listed.get("UI/Legacy/GameMenuLayer/Commun/WBP_LegacyMenu_AddedEffects") =
       "Alchemy r5: the effect line blueprint's brown ink is baked white")
 if mdp is not None:
     check([o for o, _, n in getattr(mdp, "BLUEPRINT_COLOURS", {}).get("WBP_LegacyMenu_AddedEffects", []) if n == "rowText"]
-          == [18182, 18251, 18320, 18409, 18478, 18554], "Alchemy r5 + 28a: the six brown ink literals of the effect line (MagicTypeName added)")
-for asset in ("Art/UI/Icons/Icon_Stats/T_Property_1_magnitude", "Art/UI/Icons/Icon_Stats/T_Property_1_time"):
-    check(listed.get(asset) == "flat:headerIcon" and asset in baked, f"Alchemy r5: {Path(asset).name} baked white")
+          == [18182, 18320, 18409], "Alchemy r5 + 28a: the effect line's body ink literals (accent colours 2026-11-14: MagicTypeName, magnitude and duration moved to effectLabel/effectValue)")
+for asset, recipe in (("Art/UI/Icons/Icon_Stats/T_Property_1_magnitude", "flat:effectIcon"),   # accent colours 2026-11-14: gold
+                      ("Art/UI/Icons/Icon_Stats/T_Property_1_time", "flat:headerIcon")):
+    check(listed.get(asset) == recipe and asset in baked, f"Alchemy r5: {Path(asset).name} baked {recipe}")
 
 
 for why in fails:

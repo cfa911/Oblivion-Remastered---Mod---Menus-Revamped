@@ -34,8 +34,8 @@ check("DisableTextColor" not in src and "EnableTextColor" not in src,
 headers = (source_paths.ROOT / "src/sorting/InventoryHeaders.cpp").read_text(encoding="utf-8-sig")
 check(not any(s in headers for s in ("kProbeInk", "detailsskin::k", "ruleInk", "0.65f,0.65f")),
       "the Inventory layout code holds no skin colours (styling separate from logic)")
-check("skin.recolor" in source_paths.function(src, "void StyleMagicRow("), "every remaining recolour is gated by the preset's skin")
-check("SwapArt(" in source_paths.function(src, "void StyleRowArt("), "Magic rows take the remaining art swaps (row icons; separators and equipped band are baked)")
+check(not source_paths.function(src, "void StyleMagicRow(") and not source_paths.function(src, "void StyleMagicPage("), "C.2: no run-time Magic recolour (rows, page, Spell Effectiveness baked)")
+check(not source_paths.function(src, "void StyleRowArt(") and not source_paths.function(src, "bool SwapArt("), "C.2: no run-time art swaps (row icons baked)")
 check(not source_paths.function(src, "void StyleDetailsButton("),
       "phase 28b (decision 28): the item details are baked in the Custom pack; the action button is the baked WBP_ModernPrefab_Button (RMI-087)")
 check('L"Color"' not in src and "Role::Ring" not in src, "phase 28b (decision 28): the item details are baked in the Custom pack; the skill ring colour is baked (MIC_UI_SkillCircularProgress)")
@@ -43,14 +43,13 @@ import re
 skin_h = (source_paths.ROOT / "src/core/UiTheme.h").read_text(encoding="utf-8")
 files = set(re.findall(r'L"([A-Za-z0-9_-]+\.png)"', skin_h))
 missing = [f for f in files if not (source_paths.ROOT / "assets/Skin" / f).is_file()]
-check(bool(files) and not missing, f"every Dark art file is shipped in assets/Skin (missing: {missing})")
+check(not files and not missing, f"C.2: the skin swaps no art files at run time ({sorted(files)})")
 popup = (source_paths.ROOT / "src/sorting/PickerPopup.cpp").read_text(encoding="utf-8-sig")
 check("SkinFor(" in popup, "the Inventory popup and toggle looks follow the preset")
 check(not any(source_paths.function(src, f) for f in ("void OnDetailsEntryEvent(", "void StyleDetailsEntry(", "unsigned StyleLevelDescription(")),
       "phase 28b (decision 28): the item details are baked in the Custom pack; no effect-line or perk-line pass")
 rebuild = source_paths.function(src, "bool RebuildEmphasis(")
-check(all(s in rebuild for s in ("SetTextStyleSet", "VisitRows(", "original")),
-      "the rich-text row rebuild stays for the Magic Spell Effectiveness line (28c)")
+check(not rebuild, "C.2: no rich-text row rebuild (the Spell Effectiveness table is baked)")
 try:
     from PIL import Image
     band = Image.open(source_paths.ROOT / "assets/Skin/RowEquipped.png").convert("RGBA")
@@ -61,7 +60,7 @@ try:
 except ImportError:
     check(False, "Pillow is needed to check the equipped-row art")
 check(not source_paths.function(src, "void StyleListEntries("), "phase 28b (decision 28): the item details are baked in the Custom pack; effect lines are baked (WBP_LegacyMenu_AddedEffects)")
-check("IsEmphasisRow(" in rebuild and "perkInk" in rebuild, "bold rows take the emphasis gray, regular rows the light perk ink")
+check(not rebuild, "C.2: no run-time emphasis rebuild left (its last user, the Magic Spell Effectiveness line, is baked)")
 try:
     from PIL import Image
     line = Image.open(source_paths.ROOT / "assets/Skin/ButtonLine.png").convert("RGBA")
@@ -76,8 +75,8 @@ layout_fn = source_paths.function(src, "bool Picker::LayoutInventoryHeaders(")
 check("PlaceTitleLabel(" not in src and "PlaceTitleLabel(" not in layout_fn,
       "no Inventory title label at run time (owner: no run-time title labels; the title is baked)")
 clear_fn = source_paths.function(src, "void Picker::ClearInventoryHeaderLayout(")
-check("titleLabel" in clear_fn and "RemoveFromParent" in clear_fn,
-      "leaving the layout removes the Magic title label and shows the native title again")
+check("titleLabel" not in clear_fn and "titleNative" not in clear_fn and "RemoveFromParent" in clear_fn,
+      "leaving the layout removes our guides; no Magic title label to restore (C.2: the title is baked)")
 check('"T_Line_02"' not in src, "phase 28b (decision 28): the item details are baked in the Custom pack; T_Line_02 is baked (skin_flat, shared: Sigil Stone, Recharge, Training, Alchemy)")
 tick = source_paths.function(src, "void Picker::Tick(")
 check("RefreshInventoryTitle" not in tick, "no per-tick Inventory title copy (the native title is drawn, baked)")
@@ -86,14 +85,13 @@ check("RefreshButtonRules" not in tick, "phase 28b (decision 28): the item detai
 skin_hdr = (source_paths.ROOT / "src/sorting/MenuSkin.h").read_text(encoding="utf-8-sig")
 check("WBP_ModernMenu_MagicDetails_C" in skin_hdr and "kMagic" in skin_hdr, "the skin has a Magic target (details class)")
 magic_row = source_paths.function(src, "void StyleMagicRow(")
-check(bool(magic_row) and "skin.recolor" in magic_row and "StyleRowArt(" in magic_row,
-      "Magic rows take light ink and the row art swaps, gated by the preset")
-check("OnMagicRowBound" in layout and "WatchDetails" not in layout,
-      "the Magic header layout hooks its rows (generated, not in the menu tree); its details are baked (phase 28b)")
+check(not magic_row, "C.2: Magic rows are baked (MagicEntry rowText, _ListSmall flat:rowIcon), no row pass")
+check("OnMagicRowBound" not in layout and "WatchDetails" not in layout,
+      "C.2: the Magic header layout hooks no rows for colour; its details are baked (phase 28b)")
 check("StyleListScrollbar" not in layout, "the Magic list scrollbar is not painted at run time (baked)")
 page = source_paths.function(src, "void StyleMagicPage(")
-check(bool(page) and "IsMagicPage(" not in page and "SwapArt(" not in page, "the Magic page is baked (RMI-091): no per-widget swap")
-check("menuskin::StyleMagicPage(" in layout, "the Magic layout applies the page tint")
+check(not page, "the Magic page is baked (RMI-091) and so is the Spell Effectiveness ink (C.2): no page pass")
+check("menuskin::StyleMagicPage(" not in layout, "C.2: the Magic layout applies no run-time ink")
 bar = (source_paths.ROOT / "src/search/SearchBar.cpp").read_text(encoding="utf-8-sig")
 check("SearchFor(" in bar and "menus::Menu::kMagic" in source_paths.function(bar, "const uistyle::Search& BarStyle("),
       "the Magic search bar uses the skinned bar colours")
@@ -104,11 +102,10 @@ check("SkinnedKind(kind)" in hdr_src, "Magic header icons and the active-sort ba
 check("IsDescriptionRule" not in src, "phase 28b (decision 28): the item details are baked in the Custom pack; the description rules (T_Line_Brown, T_Diamond_Brown_Separator, T_Character_Line_Long) are baked")
 own_sort = (source_paths.ROOT / "src/sorting/OwnSort.cpp").read_text(encoding="utf-8-sig")
 check(own_sort.count("MagicHeaderOpacity(") >= 2, "both the Magic sort icons and the Effect/Type/School picker icons use the Dark Magic opacity")
-check("SpellEffectiveness" in page and "InkRich(" in page, "the Spell Effectiveness line (rich text) takes the light ink")
+check("InkRich(" not in src, "C.2: the Spell Effectiveness line is baked (MagicMenu literals + its Magic-only table)")
 check('"BackgroundPaper"' not in page, "phase 3: the Magic details paper is the game's own (the pack bakes its parchment); not looked up")
 rebuild_now = source_paths.function(src, "bool RebuildEmphasis(")
-check("!allRows && !detailsskin::IsWarmInk(color)" in rebuild_now,
-      "the Spell Effectiveness rows take the light ink whatever their colour (they failed the warm test on 243ea76d)")
+check(not rebuild_now, "C.2: every Spell Effectiveness row is baked rowText whatever its stock colour (they failed the warm test on 243ea76d)")
 # ---- Dark sort icons as shipped PNGs (owner 2026-11-10: "both icon sets", not the local pak) ----
 rules = (source_paths.ROOT / "src/sorting/rules/ItemSort.h").read_text(encoding="utf-8")
 dark_files = re.findall(r'L"(DarkSort/[A-Za-z-]+\.png)"', rules)
@@ -145,19 +142,18 @@ except ImportError:
     check(False, "Pillow is needed for the white-shape check")
 swap = source_paths.function(src, "bool SwapArt(")
 paint_swap = source_paths.function(src, "void PaintSwap(")
-check("PaintSwap(" in swap and "tint" in paint_swap and "darkstyle::" in paint_swap, "an art swap takes its colour from DarkStyle.h")
+check(not swap and not paint_swap, "C.2: no art swap painter left")
 row_art = source_paths.function(src, "void StyleRowArt(")
-check(bool(row_art) and "StyleRowArt(" in magic_row, "Magic rows keep the row art pass until 28c")
+check(not row_art, "C.2: no row art pass (row icons baked)")
 check("darkstyle::" in hdr_src and "headerIcon" in hdr_src and "headerIcon" in popup, "the white sort icons are tinted by headerIcon")
-check("keepRows" in source_paths.function(src, "bool RebuildEmphasis(") and "keepRows" in source_paths.function(src, "bool InkRich("),
-      "the Spell Effectiveness table (Magic only) keeps its light rows; restoring them left the text dark (4bb22392)")
+check(not source_paths.function(src, "bool InkRich("), "C.2: the Spell Effectiveness table (Magic only) is baked rowText (run-time rows were read late, 4bb22392)")
 # ---- Round 6 (owner 2026-11-10); phase 3: the Magic tab atlases are baked into MRDark_P (no run-time tab swap) ----
 check(not any(f'"T_Magic_Tabs_{t}"' in skin_h for t in ("Self", "Touch", "Target", "All", "ActiveEffect")),
       "phase 3: the Magic tab textures come from the pack, not an art swap")
 check("OnMagicTabsEvent" not in src, "phase 3: no tab re-swap hook (the baked atlas is the game's own texture)")
 tool = (source_paths.ROOT / "tools/make_dark_tab_art.py")
 check(tool.is_file() and "DarkStyle.h" in tool.read_text(encoding="utf-8"), "the tab art generator takes panel/headerIcon from DarkStyle.h")
-check("MRMAGICDARK rich row" in src, "TEMP-DIAG: the Spell Effectiveness style rows are logged once (it stayed dark on 4c0fd98f)")
+check("MRMAGICDARK" not in src, "TEMP-DIAG MRMAGICDARK removed with the run-time rebuild (C.2)")
 # ---- Round 7 (owner 2026-11-10): the Inventory tab process for Magic (phase 3: baked by make_dark_pack.py magic_tab) ----
 tab_tool = (source_paths.ROOT / "tools/make_dark_tab_art.py").read_text(encoding="utf-8")
 check("T_Category_OnSelf" in (source_paths.ROOT / "tools/menus/magic.json").read_text(encoding="utf-8") and "tabSelected" not in tab_tool and "tab" in tab_tool and "compile-outlined-tabs" in tab_tool,
@@ -180,8 +176,7 @@ check("DetailsPage" not in tab_tool8 and "inventory_page" not in tab_tool8,
 # pack (Magic-only); the 11 _ListSmall type icons stay run-time swaps (Sigil Stone and the effect lists use them too). ----
 ROW_ICONS = ["T_MagicMenuIcon_" + n + "_ListSmall" for n in ("Ability", "Disease", "Enchantment", "GreaterPower", "LesserPower", "Poison",
                                                              "Potion", "Scroll", "SpellCustom", "Spell", "WortCraft")]
-check(all(f'"{n}", L"MagicRow-{n}.png", &darkstyle::Style::rowIcon' in skin_h for n in ROW_ICONS),
-      "every Magic row spell-type icon swaps to a white shape drawn in rowIcon")
+check(not any(n in skin_h for n in ROW_ICONS), "C.2: the row spell-type icons are baked flat:rowIcon, no swap")
 check("T_MagicSchoolSimple_" not in skin_h.split("kDarkArt[]{", 1)[-1].split("};", 1)[0], "phase 3: the school icons come from the pack")
 try:
     from PIL import Image
@@ -189,14 +184,13 @@ try:
     for n in ROW_ICONS:
         path = source_paths.ROOT / "assets/Skin" / f"MagicRow-{n}.png"
         white = white and path.is_file() and all(q[:3] == (255, 255, 255) for q in Image.open(path).convert("RGBA").get_flattened_data() if q[3] > 0)
-    check(white, "the 11 Magic row type icon PNGs ship as pure white shapes (stock alpha)")
+    check(not any((source_paths.ROOT / "assets/Skin" / f"MagicRow-{n}.png").exists() for n in ROW_ICONS), "C.2: the 11 MagicRow PNGs are gone")
 except ImportError:
     check(False, "Pillow is needed for the round 9 art checks")
 # ---- Language independence (owner 2026-11-10): the Spell Effectiveness texts are found by widget name, never by their words ----
 # Static scan of WBP_ModernMenu_MagicMenu: SpellEffectiveness_Box > Magic_SpellEffectivenes_Value (the line under the bars, the
 # game's spelling); Magic_Active_Effectiveness_Box > Magic_Active_SpellEffectiveness_Title (+ rich-text details).
-check('"Magic_SpellEffectivenes_Value"' in page and '"Magic_Active_SpellEffectiveness_Title"' in page,
-      "the Spell Effectiveness line and title are found by their widget names")
+check('"Magic_SpellEffectivenes_Value"' not in src, "C.2: the Spell Effectiveness texts are baked by offset, not found at run time")
 check(not re.search(r'GetText\([^)]*\)\s*\.find\("', src), "no styling decision reads a widget's visible text (other game languages)")
 # ---- Round 10 (RMI-083 page fade): retired in phase 3 with the overlay page (the game's own paper draws the baked page) ----
 updated = source_paths.function(src, "void OnDetailsUpdated(")

@@ -45,13 +45,13 @@ BLUEPRINTS = {   # package: (menu data file, asset path, [(offset, stock, colour
     "WBP_OriginalMenu_InventoryMainPart": ("inventory", IM + "WBP_OriginalMenu_InventoryMainPart",
                                            [(19221, INK, "rowText"), (19343, INK, "rowText"), (19460, INK, "rowText")]),
     "WBP_ModernMenu_ContainerInventory_MainContent": ("inventory", OR + "Container_Inventory/WBP_ModernMenu_ContainerInventory_MainContent",
-                                                      [(21276, INK, "rowText")]),
+                                                      [(21276, INK, "menuTitle")]),
     "WBP_ModernPrefab_Focusbox": ("common", "UI/Modern/Prefabs/WBP_ModernPrefab_Focusbox",
                                   [(5642, [0.49102, 0.42869, 0.36625, 0.35], "white")]),
     "WBP_ModernMenu_AlchemyMenu": ("alchemy", AL + "WBP_ModernMenu_AlchemyMenu",
-                                   [(67439, INK, "rowText"), (67540, WARM, "rowText"), (67764, WARM2, "rowText"), (67835, WARM2, "rowText")]),
+                                   [(67439, INK, "menuTitle"), (67540, WARM, "rowText"), (67764, WARM2, "rowText"), (67835, WARM2, "rowText")]),
     "WBP_ModernMenu_AlchemyFilters": ("alchemy", AL + "Filters/WBP_ModernMenu_AlchemyFilters",
-                                      [(14356, [0.07421, 0.0382, 0.02732, 1.0], "rowText")]),
+                                      [(14356, [0.07421, 0.0382, 0.02732, 1.0], "menuTitle")]),
     "WBP_ModernMenu_Alchemy_FilterEffectButton": ("alchemy", AL + "Filters/WBP_ModernMenu_Alchemy_FilterEffectButton", [(790, INK, "rowText")]),
     "WBP_ModernMenu_UstensilEntry": ("alchemy", AL + "WBP_ModernMenu_UstensilEntry", [(4170, INK, "rowText")]),
     "WBP_ModernMenu_AlchemyItemEntry": ("alchemy", AL + "WBP_ModernMenu_AlchemyItemEntry",
@@ -60,7 +60,7 @@ BLUEPRINTS = {   # package: (menu data file, asset path, [(offset, stock, colour
 ADDED = {   # literals added to blueprints the pack already patches
     "WBP_ModernMenu_FilterEffectEntry": ("alchemy", [(2617, INK, "rowText")]),
     "WBP_ModernPrefab_SelectableButton": ("alchemy", [(1494, INK, "rowText")]),
-    "WBP_LegacyMenu_AddedEffects": ("alchemy", [(18478, WARM, "rowText")]),
+    "WBP_LegacyMenu_AddedEffects": ("alchemy", [(18478, WARM, "effectLabel")]),
 }
 TEXTURES = {
     "Art/UI/Common/T_List_Default": ("common", "flat:rowSeparator", ["rowSeparator"]),

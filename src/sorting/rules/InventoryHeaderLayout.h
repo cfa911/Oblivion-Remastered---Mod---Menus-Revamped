@@ -243,9 +243,8 @@ namespace inventoryheaders
 			std::max(0.0, right - left), std::max(0.0, bottom.y - top.y - top.h)};
 	}
 
-	// RMI-079: width of the Magic page title label (the longest page name fits). The Inventory title is baked
-	// (ContainerInventory_MainContent title slot Auto, Min Desired Width 300), no label.
-	inline constexpr double kTitleLabelWidth=300;
+	// Page titles are baked (every preset, MRLayout_P/MRCustom_P): the Inventory's inv_cont_title (C.1) and Magic_TabName
+	// (C.2, RMI-079) have Auto slots and Min Desired Width 300; no run-time title label.
 	// Our own upper header rule: Magic only. The Inventory strip (Inventory, container/barter sides) shows the game's
 	// HeaderList_Separator instead, 2 units above it at full list width (owner 2026-11-13, probe MRSEP).
 	inline bool DrawsUpperRule(int kind) { return kind==1 || kind==6; }
