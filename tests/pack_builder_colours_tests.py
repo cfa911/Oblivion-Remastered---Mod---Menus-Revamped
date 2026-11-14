@@ -62,8 +62,8 @@ with tempfile.TemporaryDirectory() as temp:
     if ColourModel:
         m = ColourModel(temp / "missing/CustomColours.ini")
         sizes = {s: len(m.section(s)) for s in ("Colours", "Tab", "Skin")}
-        check(sizes == {"Colours": 45, "Tab": 6, "Skin": 12}, f"one entry per colour-file entry, by section ({sizes})")
-        check(len(m.entries) == 63, f"63 entries in all (2026-11-14: + 5 accent colours; Phase 7: +8 Enchanting/Spellmaking; 28a: rowEquipped; decision 34: 3 tab keys; 2026-11-13: stolenMark) ({len(m.entries)})")
+        check(sizes == {"Colours": 46, "Tab": 6, "Skin": 16}, f"one entry per colour-file entry, by section ({sizes})")
+        check(len(m.entries) == 68, f"68 entries in all (C.3: + filterOutline, + 4 Alchemy run-time colours; 2026-11-14: + 5 accent colours; Phase 7: +8 Enchanting/Spellmaking; 28a: rowEquipped; decision 34: 3 tab keys; 2026-11-13: stolenMark) ({len(m.entries)})")
         check(all(e.help for e in m.entries), "every entry has its help text (the window's label)")
         check([e.name for e in m.section("Colours")] == list(custom_colours.COLOURS) + list(custom_colours.NUMBERS)
               and [e.name for e in m.section("Skin")] == list(custom_colours.SKIN), "entries keep the colour file's order")

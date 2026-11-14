@@ -34,7 +34,7 @@ ROLES = getattr(cc, "ROLES", None)
 check(isinstance(ROLES, dict) and ROLES, "custom_colours.ROLES exists")
 ROLES = ROLES or {}
 RETIRED = {"pickerIcon"} | {f"Skin.{n}" for n in cc.RETIRED_SKIN} | set(cc.RETIRED_TAB_KEYS)   # RMI-097: the tab keys have no effect
-RUNTIME = {"Skin.rule", "Skin.guide"}
+RUNTIME = {"Skin.rule", "Skin.guide", "Skin.alchemyHeading", "Skin.alchemyBox", "Skin.alchemyBoxLine", "Skin.alchemyClearLine"}   # C.3 round 2: + the Alchemy filter widgets
 
 # ---- the role table (decision 39) ----
 fed = {}

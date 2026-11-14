@@ -24,9 +24,19 @@ namespace search::detail
 			// the skinned menus (Inventory, Magic) take the menu skin's bar in Dark (phase 2, owner 2026-11-10); Alchemy and its
 			// Filters panel too since their parchments are dark (owner 2026-11-11); the container/barter sides like the Inventory
 			// (Step C.1, owner 2026-11-12: "use the styling of the inv search bar, dark. It is brown rn")
-			return uistyle::SearchFor(a_menu == menus::Menu::kInventory || a_menu == menus::Menu::kMagic ||
+			const auto preset = mrconfig::Get().stylePreset;
+			const auto& base = uistyle::SearchFor(a_menu == menus::Menu::kInventory || a_menu == menus::Menu::kMagic ||
 				a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters ||
-				a_menu == menus::Menu::kContainerYours || a_menu == menus::Menu::kContainerTheirs, mrconfig::Get().stylePreset);
+				a_menu == menus::Menu::kContainerYours || a_menu == menus::Menu::kContainerTheirs, preset);
+			// Custom (C.3 round 2, owner 2026-11-14): the Filters "Search effects" box like the filter chips: the run-time box fill
+			// and outline (Pack Builder Runtime tab); the ingredient bar keeps the Inventory look
+			if (a_menu != menus::Menu::kAlchemyFilters || !uistyle::Recolors(preset)) return base;
+			static uistyle::Search s_filters{};
+			const auto& skin = darkstyle::Get().skin;
+			s_filters = base;
+			s_filters.fill = skin.alchemyBox;
+			s_filters.edge = skin.alchemyBoxLine;
+			return s_filters;
 		}
 
 		const float* BarTextInk(menus::Menu a_menu, bool hint, bool sel)

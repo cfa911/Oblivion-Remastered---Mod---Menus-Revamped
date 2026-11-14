@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from make_dark_skin_art import load  # noqa: E402
+from dds_image import load  # noqa: E402
 
 ICONS = {
     # the Inventory six (sorting, Health, Attack, defense, Weight, MoneyV2) are baked into MRDark_P (make_dark_pack.py)

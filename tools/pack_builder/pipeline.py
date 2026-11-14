@@ -1586,8 +1586,8 @@ def literal_rgba(value):
 
 
 def grey_scale(data, k):
-    """The art's own brightness as a neutral grey times k (clamped at white): the run-time swap art of make_dark_skin_art.py
-    gray(k) (the Effects/skill title band 0.45, sigil band 0.45, sigil icons 2.2/1.8, ring centre 1.0; decision 28 phase 28b).
+    """The art's own brightness as a neutral grey times k (clamped at white): the look of the former run-time swap art
+    (gray(k)) (the Effects/skill title band 0.45, sigil band 0.45, sigil icons 2.2/1.8, ring centre 1.0; decision 28 phase 28b).
     BC3/BC1 colour blocks re-encoded in neutral greys (grey_blocks), an uncompressed texture per pixel; alpha kept."""
     if bgra_layout(data):
         return map_colours(data, lambda c: (min(255.0, lum(c) * k),) * 3)

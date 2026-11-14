@@ -27,8 +27,9 @@ COLOURS = {
     "subTabDisc": [96.0, 96.0, 96.0], "subTabCircle": [72.0, 72.0, 72.0], "subTabIcon": [228.0, 228.0, 228.0],
     "pattern": [66.0, 99.0, 153.0], "enchantedDot": [66.0, 99.0, 153.0], "stolenMark": [210.0, 99.0, 91.0], "previewFrameLight": [150.0, 150.0, 150.0],
     "previewFrameDark": [30.0, 30.0, 30.0], "parchmentDark": [8.0, 8.0, 8.0], "parchmentLight": [33.0, 33.0, 33.0],
-    "effectBox": [66.0, 99.0, 153.0], "nameBox": [239.0, 239.0, 239.0], "filterRow": [66.0, 66.0, 66.0],
+    "effectBox": [66.0, 99.0, 153.0], "nameBox": [239.0, 239.0, 239.0], "filterRow": [40.0, 40.0, 40.0],
     "filterHover": [112.0, 112.0, 112.0], "filterSelected": [14.0, 22.0, 42.0], "filterMark": [92.0, 140.0, 214.0],
+    "filterOutline": [66.0, 99.0, 153.0],
     "alchemyMetal": [56.0, 83.0, 118.0], "alchemyStone": [22.0, 25.0, 31.0],
     "enchantingFrame": [67.0, 75.0, 91.0],
     "spellmakingFrame": [85.0, 130.0, 182.0],
@@ -40,8 +41,8 @@ COLOURS = {
     "enchantingTabIcon": [255.0, 255.0, 255.0],
     "tabPaperDark": [17.0, 17.0, 17.0], "tabPaperLight": [30.0, 30.0, 30.0], "tabGlyph": [255.0, 255.0, 255.0],
     # accent colours (owner 2026-11-14, labelled mock-ups): blue titles/values, gold effect details
-    "menuTitle": [61.0, 212.0, 250.0],
-    "accentValue": [61.0, 212.0, 250.0],
+    "menuTitle": [79.0, 124.0, 176.0],   # C.3-13 (owner 2026-11-14): #4f7cb0
+    "accentValue": [79.0, 124.0, 176.0],
     "effectLabel": [232.0, 187.0, 102.0],
     "effectIcon": [232.0, 187.0, 102.0],
     "effectValue": [185.0, 138.0, 69.0],
@@ -53,8 +54,13 @@ DEFAULTS = COLOURS | NUMBERS | TAB
 SKIN = {
     "rule": [0.65, 0.65, 0.65, 0.55], "guide": [0.55, 0.55, 0.55, 0.13], "ring": [0.55, 0.55, 0.55, 1.0],
     "ornament": [0.45, 0.45, 0.45, 1.0], "pattern": [1.0, 1.0, 1.0, 1.0], "band": [0.41, 0.65, 1.0, 1.0],
-    "buttonFill": [0.12, 0.12, 0.12, 1.0], "scrollTrack": 0.0052, "scrollBorder": 0.0052, "scrollInside": 0.0222,
+    "buttonFill": [0.12, 0.12, 0.12, 1.0], "scrollTrack": 0.0052, "scrollBorder": 0.0052, "scrollInside": 0.8632,
     "emphasisInk": [0.125, 0.12, 0.125, 1.0], "buttonRule": [0.83, 0.83, 0.83, 1.0],
+    # Alchemy Step C.3 round 2 (owner 2026-11-14): our own Alchemy filter widgets in Custom (Runtime tab)
+    "alchemyHeading": [0.0782, 0.2016, 0.4342, 1.0],
+    "alchemyBox": [0.0212, 0.0212, 0.0212, 1.0],
+    "alchemyBoxLine": [0.0545, 0.1248, 0.3185, 1.0],
+    "alchemyClearLine": [0.6445, 0.1248, 0.1046, 1.0],
 }
 # namespaced so the [Colours] base and [Skin] tint stay independent; the scrollbar values are baked into the stock
 # scrollbar materials (Phase 7, owner decision 18)
@@ -81,6 +87,10 @@ SKIN_HELP = {
     "scrollInside": "Scrollbar thumb fill in every menu but Settings",
     "emphasisInk": "Inventory and Magic details emphasized perk text",
     "buttonRule": "Inventory and Magic action button divider centres",
+    "alchemyHeading": "Alchemy Selected Filters heading (our own label)",
+    "alchemyBox": "Alchemy filter chips and Search effects box - fill",
+    "alchemyBoxLine": "Alchemy filter chips and Search effects box - outline",
+    "alchemyClearLine": "Alchemy Clear all chip - outline",
 }
 
 HELP = {
@@ -110,6 +120,7 @@ HELP = {
     "filterHover": "Alchemy hovered filter row background",
     "filterSelected": "Alchemy selected filter row background",
     "filterMark": "Alchemy filter row diamond",
+    "filterOutline": "Alchemy filter row and Must Contain button outline",
     "alchemyMetal": "Alchemy frame, ingredient slots and pot - metal",
     "alchemyStone": "Alchemy frame, ingredient slots and pot - stone",
     "enchantingFrame": "Enchanting right panel frame - metal",
@@ -160,7 +171,7 @@ ROLES = {
     "equipped": {"label": "Equipped item band (all lists)", "members": ["rowEquipped"]},
     "stolen": {"label": "Stolen item mark (Inventory, Container, Barter and Enchanting rows)", "members": ["stolenMark"]},
     "accent": {"label": "Accent blue (enchanted dot, Alchemy effect boxes and selected filters)",
-               "members": ["enchantedDot", "effectBox", "filterSelected", "filterMark", "filterRow"]},
+               "members": ["enchantedDot", "effectBox", "filterSelected", "filterMark", "filterOutline", "filterRow"]},
     "metal": {"label": "Metal frames and ornaments (Alchemy, Enchanting, Spellmaking)",
               "members": ["alchemyMetal", "alchemyStone", "enchantingFrame", "spellmakingFrame", "enchantingOrnament",
                           "spellmakingEye", "enchantingCrystal"]},
@@ -168,14 +179,15 @@ ROLES = {
     "laurels": {"label": "Laurels and flower ornaments (Inventory action button, popup titles)",
                 "members": ["pattern", "Skin.pattern"]},
     "ring": {"label": "Skill level ring (Inventory details, Character skills)", "members": ["Skin.ring"]},
-    "scrollbars": {"label": "Scrollbars (all menus but Settings)",
-                   "members": ["Skin.scrollTrack", "Skin.scrollBorder", "Skin.scrollInside"]},
+    "scrollbars": {"label": "Scrollbars - track and thumb border (all menus but Settings)",
+                   "members": ["Skin.scrollTrack", "Skin.scrollBorder"]},
+    "scrollThumb": {"label": "Scrollbar thumb (all menus but Settings)", "members": ["Skin.scrollInside"]},   # C.3-12
     "accentText": {"label": "Titles, headings and highlighted values (all menu titles, Magic costs and values)",
                    "members": ["menuTitle", "accentValue"]},
     "effectGold": {"label": "Effect details (effect type, magnitude label and icons, amounts and durations)",
                    "members": ["effectLabel", "effectIcon", "effectValue"]},
 }
-RUNTIME_SKIN = ("rule", "guide")   # our own widgets (decision 38: the Runtime tab)
+RUNTIME_SKIN = ("rule", "guide", "alchemyHeading", "alchemyBox", "alchemyBoxLine", "alchemyClearLine")   # our own widgets (decision 38: the Runtime tab; C.3: Alchemy filters)
 
 # [Sizes] (decisions 29, 33, 42, 45). Rows tab: per list, defaults = the compact rows (tools/menus/layout.json).
 ROW_LISTS = (

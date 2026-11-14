@@ -96,7 +96,7 @@ int main()
 
 	// Phase 7 (owner decision 18): the three [Skin] scrollbar values are baked into the scrollbar materials
 	const auto scrollPack = custompack::ParseManifest(
-		R"({"game_build":"1.512.105.0","style":{"Skin.scrollTrack":0.0052,"Skin.scrollBorder":0.0052,"Skin.scrollInside":0.0222}})");
+		R"({"game_build":"1.512.105.0","style":{"Skin.scrollTrack":0.0052,"Skin.scrollBorder":0.0052,"Skin.scrollInside":0.8632}})");
 	Check(scrollPack.ok && custompack::Known("Skin.scrollTrack") && custompack::Known("Skin.scrollBorder") && custompack::Known("Skin.scrollInside"),
 		"Skin.scrollTrack, Skin.scrollBorder and Skin.scrollInside are baked values the plugin reads");
 	Check(!custompack::Known("Skin.buttonFill") && !custompack::Known("Skin.rule"), "run-time [Skin] tints stay unknown to the stale check");

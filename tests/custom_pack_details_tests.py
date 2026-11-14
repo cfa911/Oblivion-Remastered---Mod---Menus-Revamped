@@ -10,7 +10,7 @@ image-tile-refs.py on the stock legacy export, build 1.512.105.0).
   run-time widget tint drew it over a neutral brush); the Effects/skill title band tiles: white (the run-time swap drew the
   art untinted); perk lines: rowText, the perk table's emphasis row: [Skin] emphasisInk; level ring: MIC_UI_SkillCircularProgress
   Color override: [Skin] ring;
-- art swaps become texture recipes: grey_scale:<k> (grey = Rec.709 brightness x k, alpha kept; the make_dark_skin_art gray(k)),
+- art swaps become texture recipes: grey_scale:<k> (grey = Rec.709 brightness x k, alpha kept; the former run-time swap art's gray(k)),
   skin_flat:ornament:235 (the description rules: the white 235 RowSeparator art times the ornament tint), flat:headerIcon
   (T_Property_1_Range, like its baked siblings);
 - [Skin] ornament, ring, emphasisInk become baked entries; band, buttonFill, buttonRule are retired (no effect: the band art and
@@ -127,7 +127,8 @@ try:
     shown = {e.key.split(".")[-1] for label, groups in m.pages() if label in ("Colours", "Runtime") for _, entries in groups for e in entries}
     check(not shown & {"band", "buttonFill", "buttonRule"}, f"window: the retired keys are not shown ({shown & {'band', 'buttonFill', 'buttonRule'}})")
     run_time = [entries for label, groups in m.pages() if label == "Runtime" for _, entries in groups]
-    check(sorted(e.name for entries in run_time for e in entries) == ["guide", "rule"], "window: only rule and guide stay run time")
+    check(sorted(e.name for entries in run_time for e in entries) == sorted(["guide", "rule", "alchemyHeading", "alchemyBox", "alchemyBoxLine", "alchemyClearLine"]),
+      "window: only our own widgets stay run time (header rule and guide; C.3 round 2: the Alchemy filter heading, boxes and outlines)")
     check({"Skin.ornament", "Skin.ring", "Skin.emphasisInk"} <= set(m.needs_build({})), "an older pack without the baked tints needs a Build")
 except Exception as error:   # noqa: BLE001
     check(False, f"model works ({type(error).__name__}: {error})")

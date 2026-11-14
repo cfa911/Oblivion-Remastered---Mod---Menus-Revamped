@@ -84,6 +84,14 @@ check("kDarkArt" not in theme and "_ListSmall" not in theme, "no run-time art sw
 check(not list((ROOT / "assets/Skin").glob("MagicRow-*.png")), "the 11 MagicRow PNGs are gone")
 check(not (ROOT / "tools/make_dark_row_icons.py").exists(), "their maker script is gone")
 
+# Cleanup after C.2 (owner plan 2026-11-14): no run-time art swaps are left, so the swap art and its maker go too.
+skin_dir = ROOT / "assets/Skin"
+check(not skin_dir.exists() or not any(skin_dir.iterdir()), "assets/Skin is empty (no run-time swap art)")
+check(not (ROOT / "tools/make_dark_skin_art.py").exists(), "tools/make_dark_skin_art.py is gone")
+importers = [p.name for p in (ROOT / "tools").rglob("*.py") if "make_dark_skin_art" in p.read_text(encoding="utf-8-sig")]
+check(not importers, f"no tool imports make_dark_skin_art ({importers})")
+check("make_dark_skin_art" not in theme, "UiTheme.h no longer points at make_dark_skin_art.py")
+
 for why in fails:
     print("FAIL", why)
 print(f"{count} checks, {len(fails)} failures")
