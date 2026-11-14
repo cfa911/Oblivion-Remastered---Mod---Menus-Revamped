@@ -26,7 +26,7 @@ GROUPS = {
              "data_table_rows_tests", "filter_toggle_paint_tests", "dark_skin_wiring_tests", "dark_pack_tests", "dark_pack_switch_tests", "enchanted_paint_tests",
              "ui_style_tests", "config_reader_tests", "inventory_header_transition_tests",
              "container_header_layout_tests"],
-    "custom-pack": ["accent_colours_tests", "alchemy_c3_bake_tests", "alchemy_c3_runtime_tests", "container_title_bake_tests", "custom_pack_data_tests", "custom_colours_tests", "custom_pack_speed_tests", "dark_pack_tests",
+    "custom-pack": ["accent_colours_tests", "alchemy_c3_bake_tests", "alchemy_c3_runtime_tests", "spell_purchase_c2p2_bake_tests", "container_title_bake_tests", "custom_pack_data_tests", "custom_colours_tests", "custom_pack_speed_tests", "dark_pack_tests",
                     "dark_pack_switch_tests", "dark_skin_wiring_tests", "custom_colours_reader_tests",
                     "custom_pack_switch_tests", "custom_pack_manifest_tests", "custom_pack_wiring_tests",
                     "pack_builder_colours_tests", "pack_builder_paths_tests", "pack_builder_build_tests",
