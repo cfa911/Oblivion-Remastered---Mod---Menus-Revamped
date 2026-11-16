@@ -7,7 +7,7 @@ Usage:
 load(path) returns {element: value}: [r, g, b] (sRGB 0-255) for the [Colours] entries, a number for detailsPage and the [Tab]
 greys. A missing file or key gives the built-in default (DEFAULTS, today's Dark values); an unknown key is ignored with a note;
 a broken value stops with a message that names the key. [Skin] holds the plugin's run-time tints (linear 0-1, red, green,
-blue, alpha; load_skin(path)). The builder also bakes [Skin] pattern, the scrollbar, ornament, ring and emphasisInk. The builder
+blue, alpha; load_skin(path)). The builder also bakes [Skin] pattern, the scrollbar, ornament and emphasisInk. The builder
 groups the elements into roles ([Roles], decision 39) and writes the layout sizes ([Sizes], load_sizes(path)); the plugin reads
 neither (KB mods/menus-revamped/evidence/custom-pack-builder-plan.md).
 """
@@ -66,18 +66,16 @@ SKIN = {
 # scrollbar materials (Phase 7, owner decision 18)
 BAKED_SKIN = {"pattern": "Skin.pattern", "scrollTrack": "Skin.scrollTrack", "scrollBorder": "Skin.scrollBorder",
               "scrollInside": "Skin.scrollInside",
-              # decision 28 phase 28b: the item details ornament lines and description rules, the skill level ring, the perk
-              # table's emphasis row
-              "ornament": "Skin.ornament", "ring": "Skin.ring", "emphasisInk": "Skin.emphasisInk"}
-# retired by phase 28b: kept in the file, no effect (the Effects/skill band art and the WBP_ModernPrefab_Button colours are baked)
-RETIRED_SKIN = ("band", "buttonFill", "buttonRule")
+              "ornament": "Skin.ornament", "emphasisInk": "Skin.emphasisInk"}
+# Keep legacy values in the file. C.7 moved the skill arc to effectIcon.
+RETIRED_SKIN = ("band", "buttonFill", "buttonRule", "ring")
 # retired by RMI-097: kept in the file, no effect (every tab texture bakes from the fixed charcoal palette, recipe charcoal)
 RETIRED_TAB_KEYS = ("tabPaperDark", "tabPaperLight", "tabGlyph", "enchantingTabPaper", "enchantingTabIcon")
-RETIRED_ROLES = ("tabShadow", "tabLight")   # RMI-097: their only members are retired; an older file's [Roles] entries are dropped quietly
+RETIRED_ROLES = ("tabShadow", "tabLight", "ring")   # their only members are retired
 SKIN_HELP = {
     "rule": "Inventory and Magic header horizontal lines",
     "guide": "Inventory and Magic header column guides",
-    "ring": "Inventory and Magic details skill level ring",
+    "ring": "Legacy skill level ring tint (use effectIcon for the arc)",
     "ornament": "Inventory and Magic details decorative dividers",
     "pattern": "Laurels (Inventory action button) - tint and opacity",
     "band": "Inventory and Magic details Effects heading strip (fallback)",
@@ -178,7 +176,6 @@ ROLES = {
     "preview": {"label": "Item preview frame (Inventory details)", "members": ["previewFrameDark", "previewFrameLight"]},
     "laurels": {"label": "Laurels and flower ornaments (Inventory action button, popup titles)",
                 "members": ["pattern", "Skin.pattern"]},
-    "ring": {"label": "Skill level ring (Inventory details, Character skills)", "members": ["Skin.ring"]},
     "scrollbars": {"label": "Scrollbars - track and thumb border (all menus but Settings)",
                    "members": ["Skin.scrollTrack", "Skin.scrollBorder"]},
     "scrollThumb": {"label": "Scrollbar thumb (all menus but Settings)", "members": ["Skin.scrollInside"]},   # C.3-12
@@ -267,10 +264,10 @@ def render(values, skin=None, roles=None, sizes=None):
     lines = ["; Menus Revamped - Custom colours.",
              "; [Colours]: red, green, blue (0-255) per element; detailsPage is one number. [Tab]: tab strip greys (0-255).",
              "; [Skin]: linear red, green, blue, alpha (0-1); the three scrollbar entries are single numbers.",
-             "; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern, ornament, ring, emphasisInk and the scrollbar.",
+             "; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern, ornament, emphasisInk and the scrollbar.",
              "; Other active [Skin] edits need a restart.",
              "; [Colours] pickerIcon, tabPaperDark, tabPaperLight, tabGlyph, enchantingTabPaper, enchantingTabIcon and the [Tab] entries are retained with no effect in this build (the tabs bake from a fixed charcoal palette).",
-             "; [Skin] band, buttonFill and buttonRule are retained with no effect in this build (baked into the game's art).",
+             "; [Skin] band, buttonFill, buttonRule and ring are retained with no effect in this build.",
              "", "[Colours]"]
     for name in list(COLOURS) + list(NUMBERS):
         value = values[name]

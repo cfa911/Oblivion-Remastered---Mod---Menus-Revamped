@@ -111,7 +111,8 @@ with tempfile.TemporaryDirectory() as temp:
     if hasattr(o, "is_own"):
         check(o.is_own("rowText") and o.value("Colours", "rowText") == [10.0, 20.0, 30.0], "an old per-element value loads as an own value")
         check(not o.is_own("altarPaper") and not o.is_own("nameBox"), "a value equal to its Dark default is not an own value")
-        check(o.is_own("Skin.ring"), "an old [Skin] baked value loads as an own value")
+        check(o.entry("Skin", "ring").applies == "Inactive" and not o.is_own("Skin.ring"),
+              "the old skill ring key no longer applies to Character")
     saved = o.save(temp / "old-saved.ini")
     check(cc.load(saved)["rowText"] == [10.0, 20.0, 30.0] and cc.load_skin(saved)["ring"] == [0.5, 0.5, 0.5, 1.0],
           "saving an old file keeps every value")

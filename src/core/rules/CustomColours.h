@@ -60,7 +60,7 @@ namespace customcolours
 		MR_CC_RGB(menuTitle, "Menu titles and headings in every menu (blue accent)"), MR_CC_RGB(accentValue, "Magic highlighted values: spell cost, spell effectiveness, active effect magnitude"), MR_CC_RGB(effectLabel, "Effect type and Magnitude label in effect lists and Magic details (gold)"), MR_CC_RGB(effectIcon, "Effect line magnitude and duration icons in every menu (gold)"), MR_CC_RGB(effectValue, "Effect amounts and durations in effect lists (darker gold)"),
 		Entry{ "Colours", "detailsPage", Kind::Unit, [](darkstyle::Style& s) -> float* { return &s.detailsPage; }, "Inventory, Magic and shared details page brightness" },
 		MR_CC_TAB(selected, "Inventory and Magic selected category tab fill"), MR_CC_TAB(unselected, "Inventory and Magic unselected category tab fill"), MR_CC_TAB(gap, "Inventory and Magic gaps between category tabs"), MR_CC_TAB(outline, "Inventory and Magic category tab outlines"), MR_CC_TAB(glyph, "Inventory and Magic selected category tab icons"), MR_CC_TAB(glyphDim, "Inventory and Magic unselected category tab icons"),
-		MR_CC_TINT(rule, "Inventory and Magic header horizontal lines"), MR_CC_TINT(guide, "Inventory and Magic header column guides"), MR_CC_TINT(ring, "Inventory and Magic details skill level ring"),
+		MR_CC_TINT(rule, "Inventory and Magic header horizontal lines"), MR_CC_TINT(guide, "Inventory and Magic header column guides"), MR_CC_TINT(ring, "Legacy skill level ring tint (use effectIcon for the arc)"),
 		MR_CC_TINT(ornament, "Inventory and Magic details decorative dividers"), MR_CC_TINT(pattern, "Laurels (Inventory action button) - tint and opacity"),
 		MR_CC_TINT(band, "Inventory and Magic details Effects heading strip (fallback)"), MR_CC_TINT(buttonFill, "Inventory and Magic details action button fill"),
 		MR_CC_LIN(scrollTrack, "Scrollbar track in every menu but Settings"), MR_CC_LIN(scrollBorder, "Scrollbar thumb border in every menu but Settings"), MR_CC_LIN(scrollInside, "Scrollbar thumb fill in every menu but Settings"),
@@ -174,10 +174,10 @@ namespace customcolours
 			"; Menus Revamped - Custom colours.\n"
 			"; [Colours]: red, green, blue (0-255) per element; detailsPage is one number. [Tab]: tab strip greys (0-255).\n"
 			"; [Skin]: linear red, green, blue, alpha (0-1); the three scrollbar entries are single numbers.\n"
-			"; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern, ornament, ring, emphasisInk and the scrollbar.\n"
+			"; Missing entries use Dark defaults. Rebuild for baked colours, including [Skin] pattern, ornament, emphasisInk and the scrollbar.\n"
 			"; Other active [Skin] edits need a restart.\n"
 			"; [Colours] pickerIcon, tabPaperDark, tabPaperLight, tabGlyph, enchantingTabPaper, enchantingTabIcon and the [Tab] entries are retained with no effect in this build (the tabs bake from a fixed charcoal palette).\n"
-			"; [Skin] band, buttonFill and buttonRule are retained with no effect in this build (baked into the game's art).\n";
+			"; [Skin] band, buttonFill, buttonRule and ring are retained with no effect in this build.\n";
 		std::string_view section;
 		for (const auto& e : kEntries) {
 			if (section != e.section) {

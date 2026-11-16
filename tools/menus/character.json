@@ -1,0 +1,965 @@
+{
+  "menu": "Character",
+  "order": 9,
+  "note": "Step C.7 (owner batch 2026-11-16, KB mods/menus-revamped/menus/Character/CHECKLIST.md): cream rows, blue titles and dividers (menuTitle), gold faction names and white ranks, brighter lowered-attribute red (statusRed), blue skill description emphasis; Character and attribute icons gold ink on black (ink_gold: the Art/UI copies the Stats page draws, see-through ink); gold title flourishes (shared T_PauseMenuDeco, owner approved); the four Knights of the Nine rank icons over white. Perk rank titles and perk emphasis live in inventory.json (shared details panel). Round two adds the blue-metal progress texture and large skill cards. Divider and arc literals are in inventory.json. Skill art uses character-skill-masks.png. Large cards use transparent parchment and ivory linework; short icons keep their stock art on the frame-coloured tile.",
+  "assets": [
+    {
+      "asset": "UI/Modern/GameMenuLayer/stats/Page1_Character/WBP_ModernMenu_StatsPage1",
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPage1",
+      "colours": [
+        "menuTitle"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/stats/Page1_Character/WBP_ModernMenu_StatsPlayerInfo",
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPlayerInfo",
+      "colours": [
+        "menuTitle",
+        "rowText"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/stats/Page1_Character/WBP_ModernMenu_StatsPrimaryAttribute",
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPrimaryAttribute",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/stats/Page2_Attributes/WBP_ModernMenu_StatsSecondaryAttribute",
+      "recipe": "bp_colour:WBP_ModernMenu_StatsSecondaryAttribute",
+      "colours": [
+        "menuTitle",
+        "rowText"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/stats/Page3_Skills/WBP_ModernMenu_StatsPage3",
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPage3",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/stats/Page3_Skills/WBP_ModernMenu_StatsSkillEntry",
+      "recipe": "bp_colour:WBP_ModernMenu_StatsSkillEntry",
+      "colours": [
+        "menuTitle",
+        "rowText"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/stats/Page4_Factions/WBP_ModernMenu_StatsFactionEntry",
+      "recipe": "bp_colour:WBP_ModernMenu_StatsFactionEntry",
+      "colours": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Legacy/GameMenuLayer/stats/WBP_LegacyMenu_StatsMiscEntry",
+      "recipe": "bp_colour:WBP_LegacyMenu_StatsMiscEntry",
+      "colours": [
+        "menuTitle",
+        "rowText"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Legacy/GameMenuLayer/stats/DataTables/DT_StatsMenu_SkillDescriptionRichTextStyle_MainDescription",
+      "recipe": "bp_colour:DT_StatsMenu_SkillDescriptionRichTextStyle_MainDescription",
+      "colours": [
+        "accentValue"
+      ],
+      "shared_with": [
+        "Inventory and Magic item details (skill description emphasis)"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Icon_Character/T_CharacterIcon_birthsign",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Icon_Character/T_CharacterIcon_class",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Icon_Character/T_CharacterIcon_fatigue",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Icon_Character/T_CharacterIcon_health",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Icon_Character/T_CharacterIcon_levelUp",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Icon_Character/T_CharacterIcon_magicka",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Icon_Character/T_CharacterIcon_race",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_agility",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": [
+        "Level Up"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_endurance",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": [
+        "Level Up"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_intelligence",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": [
+        "Level Up"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_luck",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": [
+        "Level Up"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_personality",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": [
+        "Level Up"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_speed",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": [
+        "Level Up"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_strength",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": [
+        "Level Up"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_willpower",
+      "recipe": "ink_gold",
+      "colours": [
+        "effectIcon",
+        "frame"
+      ],
+      "shared_with": [
+        "Level Up"
+      ]
+    },
+    {
+      "asset": "Art/UI/Common/T_PauseMenuDeco",
+      "recipe": "laurel_tint:effectIcon",
+      "colours": [
+        "effectIcon"
+      ],
+      "shared_with": [
+        "Pause",
+        "Message",
+        "Training",
+        "Level Up",
+        "Quest skill popup",
+        "Skills menu",
+        "Onboarding screens"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/ndquest/T_ndholycrusader",
+      "recipe": "white_backing",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/ndquest/T_ndknightcommander",
+      "recipe": "white_backing",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/ndquest/T_ndknighterrant",
+      "recipe": "white_backing",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/ndquest/T_ndpilgrim",
+      "recipe": "white_backing",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Common/T_UI_CircularProgress",
+      "recipe": "skill_ring",
+      "colours": [],
+      "shared_with": [
+        "Inventory",
+        "Container",
+        "Barter",
+        "Hold input progress"
+      ]
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_acrobatics",
+      "recipe": "skill_card:0",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_alchemy",
+      "recipe": "skill_card:1",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_alteration",
+      "recipe": "skill_card:2",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_armorer",
+      "recipe": "skill_card:3",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_athletics",
+      "recipe": "skill_card:4",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_blade",
+      "recipe": "skill_card:5",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_block",
+      "recipe": "skill_card:6",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_blunt",
+      "recipe": "skill_card:7",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_conjuration",
+      "recipe": "skill_card:8",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_destruction",
+      "recipe": "skill_card:9",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_hand_to_hand",
+      "recipe": "skill_card:10",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_heavy_armor",
+      "recipe": "skill_card:11",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_illusion",
+      "recipe": "skill_card:12",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_light_armor",
+      "recipe": "skill_card:13",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_Marksman",
+      "recipe": "skill_card:14",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_mercantile",
+      "recipe": "skill_card:15",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_mysticism",
+      "recipe": "skill_card:16",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_restoration",
+      "recipe": "skill_card:17",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_security",
+      "recipe": "skill_card:18",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_sneak",
+      "recipe": "skill_card:19",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_speechcraft",
+      "recipe": "skill_card:20",
+      "colours": [],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_acrobatics_small",
+      "recipe": "skill_icon:0",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_alchemy_small",
+      "recipe": "skill_icon:1",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_alteration_small",
+      "recipe": "skill_icon:2",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_armorer_small",
+      "recipe": "skill_icon:3",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_athletics_small",
+      "recipe": "skill_icon:4",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_blade_small",
+      "recipe": "skill_icon:5",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_block_small",
+      "recipe": "skill_icon:6",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_blunt_small",
+      "recipe": "skill_icon:7",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_conjuration_small",
+      "recipe": "skill_icon:8",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_destruction_small",
+      "recipe": "skill_icon:9",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_hand_to_hand_small",
+      "recipe": "skill_icon:10",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_heavy_armor_small",
+      "recipe": "skill_icon:11",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_illusion_small",
+      "recipe": "skill_icon:12",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_light_armor_small",
+      "recipe": "skill_icon:13",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_marksman_small",
+      "recipe": "skill_icon:14",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_mercantile_small",
+      "recipe": "skill_icon:15",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_mysticism_small",
+      "recipe": "skill_icon:16",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_restoration_small",
+      "recipe": "skill_icon:17",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_security_small",
+      "recipe": "skill_icon:18",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_sneak_small",
+      "recipe": "skill_icon:19",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_speechcraft_small",
+      "recipe": "skill_icon:20",
+      "colours": [
+        "frame"
+      ],
+      "shared_with": []
+    }
+  ],
+  "blueprint_colours": {
+    "WBP_ModernMenu_StatsPage1": [
+      {
+        "offset": 12213,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_p1_name"
+      },
+      {
+        "offset": 13353,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          0.4
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_p1_separator_1 (image tint, T_Line_white)"
+      },
+      {
+        "offset": 13412,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          0.4
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_p1_separator_2 (image tint, T_Line_white)"
+      }
+    ],
+    "WBP_ModernMenu_StatsPlayerInfo": [
+      {
+        "offset": 3703,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          0.74
+        ],
+        "colour": "rowText",
+        "widget": "stat_playerinfo_label"
+      },
+      {
+        "offset": 3774,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "stat_playerinfo_value"
+      },
+      {
+        "offset": 4219,
+        "stock": [
+          0.0953,
+          0.0578,
+          0.0409,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_playerinfo_line_bottom (image tint, T_Line_white)"
+      },
+      {
+        "offset": 4271,
+        "stock": [
+          0.0953,
+          0.0578,
+          0.0409,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_playerinfo_line_top (image tint, T_Line_white)"
+      }
+    ],
+    "WBP_ModernMenu_StatsPrimaryAttribute": [
+      {
+        "offset": 6306,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "stat_primaryattr_label"
+      },
+      {
+        "offset": 6376,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "stat_primaryattr_value"
+      },
+      {
+        "offset": 6534,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Default__WBP_ModernMenu_StatsPrimaryAttribute_C"
+      }
+    ],
+    "WBP_ModernMenu_StatsSecondaryAttribute": [
+      {
+        "offset": 6241,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "stat_p2_attribute"
+      },
+      {
+        "offset": 6291,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "stat_p2_attribute_label"
+      },
+      {
+        "offset": 6360,
+        "stock": [
+          0.0953,
+          0.0578,
+          0.0409,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_p2_attribute_line_bottom (image tint, T_Line_white)"
+      },
+      {
+        "offset": 6416,
+        "stock": [
+          0.0953,
+          0.0578,
+          0.0409,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_p2_attribute_line_top (image tint, T_Line_white)"
+      },
+      {
+        "offset": 6605,
+        "stock": [
+          0.0999,
+          0.0561,
+          0.0395,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Default__WBP_ModernMenu_StatsSecondaryAttribute_C"
+      },
+      {
+        "offset": 6621,
+        "stock": [
+          0.3467,
+          0.0262,
+          0.0262,
+          1.0
+        ],
+        "colour": "statusRed",
+        "widget": "Default__WBP_ModernMenu_StatsSecondaryAttribute_C"
+      }
+    ],
+    "WBP_ModernMenu_StatsPage3": [
+      {
+        "offset": 17892,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "stat_p3_current_level_text"
+      },
+      {
+        "offset": 17957,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "stat_p3_next_level_text"
+      }
+    ],
+    "WBP_ModernMenu_StatsSkillEntry": [
+      {
+        "offset": 4880,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_header_text"
+      },
+      {
+        "offset": 4931,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "stat_skillentry_label"
+      },
+      {
+        "offset": 5000,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "stat_skillentry_value"
+      },
+      {
+        "offset": 5732,
+        "stock": [
+          0.0953,
+          0.0578,
+          0.0409,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_skillentry_line_bottom (image tint, T_Line_white)"
+      },
+      {
+        "offset": 5801,
+        "stock": [
+          0.0953,
+          0.0578,
+          0.0409,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_skillentry_line_bottom_2 (image tint, T_Line_white)"
+      },
+      {
+        "offset": 5854,
+        "stock": [
+          0.0953,
+          0.0578,
+          0.0409,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_skillentry_line_top (image tint, T_Line_white)"
+      }
+    ],
+    "WBP_ModernMenu_StatsFactionEntry": [
+      {
+        "offset": 2768,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "effectIcon",
+        "widget": "stat_faction_item_name"
+      },
+      {
+        "offset": 2818,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "white",
+        "widget": "stat_faction_item_rank"
+      },
+      {
+        "offset": 3203,
+        "stock": [
+          0.0953,
+          0.0578,
+          0.0409,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_faction_line_bottom (image tint, T_Line_white)"
+      },
+      {
+        "offset": 3256,
+        "stock": [
+          0.0953,
+          0.0578,
+          0.0409,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "stat_faction_line_top (image tint, T_Line_white)"
+      }
+    ],
+    "WBP_LegacyMenu_StatsMiscEntry": [
+      {
+        "offset": 1909,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "stat_misc_label"
+      },
+      {
+        "offset": 2020,
+        "stock": [
+          0.0999,
+          0.0561,
+          0.0395,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "stat_misc_value"
+      },
+      {
+        "offset": 2093,
+        "stock": [
+          0.0953,
+          0.0578,
+          0.0409,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "Line (image tint, T_Line_white)"
+      },
+      {
+        "offset": 2149,
+        "stock": [
+          0.0953,
+          0.0578,
+          0.0409,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "Line_1 (image tint, T_Line_white)"
+      }
+    ],
+    "DT_StatsMenu_SkillDescriptionRichTextStyle_MainDescription": [
+      {
+        "offset": 425,
+        "stock": [
+          0.1195,
+          0.0704,
+          0.0369,
+          1.0
+        ],
+        "colour": "accentValue",
+        "widget": "row RT_BlueMed"
+      }
+    ]
+  }
+}
