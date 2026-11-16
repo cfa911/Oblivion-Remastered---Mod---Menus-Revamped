@@ -700,7 +700,31 @@ def decode_rgba(stock_dds):
 PANEL_MASKS = {"T_Enchantment_EnchantingBackground": ("T_Enchantment_Masks", 0)}
 
 
-def altar_panel_texture(stock_dds, metal, paper, work, mask=None):
+def neutral_paper_blocks(dds, rgba, tolerance=8):   # 8: the paper colour (24,25,28) x grain reaches 5-6; frame metal >= 16
+    """C4-4 / C4-7 (owner 2026-11-16: green specks in the right-panel paper, "use a previous technique"; "the same techniques
+    we used on the left parchment"): every top-mip BC3 block whose 16 source pixels are all neutral (max - min channel <=
+    tolerance) takes its colour half from neutral_grey_fs, the left page's encoder (exact neutral greys, Floyd-Steinberg
+    across blocks); Pillow's endpoints dropped red against green there ((16,24,24) specks). Blocks with frame metal or gems
+    keep Pillow's colour."""
+    head = header_size(dds)
+    width, height = rgba.size
+    bw, bh = (width + 3) // 4, (height + 3) // 4
+    top = bw * bh * 16
+    grey = Image.new("L", rgba.size)
+    grey.putdata([round(lum(p)) for p in rgba.get_flattened_data()])
+    fs = neutral_grey_fs(dds[head:head + top], grey)
+    out = bytearray(dds)
+    px = rgba.load()
+    for by in range(bh):
+        for bx in range(bw):
+            block = [px[min(bx * 4 + x, width - 1), min(by * 4 + y, height - 1)] for y in range(4) for x in range(4)]
+            if any(max(p[:3]) - min(p[:3]) > tolerance for p in block):
+                continue
+            at = (by * bw + bx) * 16
+            out[head + at + 8:head + at + 16] = fs[at + 8:at + 16]
+    return bytes(out)
+
+def altar_panel_texture(stock_dds, metal, paper, work, mask=None, invert=None):
     """A right-panel frame recoloured per pixel (owner run 2026-11-11: block-wise endpoints left metal-coloured specks in the
     paper, and the gems were recoloured): the paper weight map is median-filtered so grain specks stay paper, the paper keeps
     a soft grain, and stock blue/cyan gems keep their colour. BC3 re-encoded with the stock alpha; uncompressed written as is."""
@@ -719,12 +743,26 @@ def altar_panel_texture(stock_dds, metal, paper, work, mask=None):
     gem = gem.filter(ImageFilter.MedianFilter(3))
     paper_l = [v for v, w in zip(lums, weight.get_flattened_data()) if w > 200]
     mean = sum(paper_l) / len(paper_l) if paper_l else 200.0
+    inverted = None
+    if invert is not None:
+        # C4-7 (owner 2026-11-16, "use the same techniques we used on the left parchment on the right one"): the paper is
+        # the page's parchment standard - brightness clamped to the paper's own 2..98 %, blurred (non-paper pixels as the
+        # paper median), inverted and scaled so the paper median lands on the shared paper tone
+        tone, blur = invert
+        ordered = sorted(paper_l) or [200.0]
+        low, high, middle = ordered[len(ordered) * 2 // 100], ordered[len(ordered) * 98 // 100], ordered[len(ordered) // 2]
+        source = Image.new("L", image.size)
+        source.putdata([round(min(high, max(low, v))) if w > 128 else round(middle)
+                        for v, w in zip(lums, weight.get_flattened_data())])
+        soft = source.filter(ImageFilter.GaussianBlur(blur)).get_flattened_data() if blur else source.get_flattened_data()
+        inverted = [tone * (255 - v) / ((255 - middle) or 1) for v in soft]
     out = []
-    for p, v, w, g in zip(px, lums, weight.get_flattened_data(), gem.get_flattened_data()):
+    for i, (p, v, w, g) in enumerate(zip(px, lums, weight.get_flattened_data(), gem.get_flattened_data())):
         w, g = w / 255, g / 255
         grain = min(1.2, max(0.8, (v / mean) ** 0.6)) if v > 0 else 0.8
         m = altar_metal(p, metal)
-        c = [pc * grain * w + mc * (1 - w) for pc, mc in zip(paper, m)]
+        tint = [inverted[i]] * 3 if inverted is not None else [pc * grain for pc in paper]
+        c = [tc * w + mc * (1 - w) for tc, mc in zip(tint, m)]
         c = [cc * (1 - g) + sc * g for cc, sc in zip(c, p[:3])]
         out.append(tuple(max(0, min(255, round(x))) for x in c) + (p[3],))
     result = Image.new("RGBA", image.size)
@@ -732,7 +770,8 @@ def altar_panel_texture(stock_dds, metal, paper, work, mask=None):
     data = stock_dds.read_bytes()
     layout = bgra_layout(data)
     if not layout:
-        return colour_keep_alpha(stock_dds, result, work)
+        return neutral_paper_blocks(colour_keep_alpha(stock_dds, result, work), result)
+
     head, order = layout
     raw = bytearray(data)
     flat = result.tobytes()
@@ -1419,6 +1458,50 @@ def charcoal_texture(stock_dds, preset):
     return data[:head] + neutral_grey_colour(data[head:], grey, dither=False)
 
 
+# charcoal_paper:<preset> -> the page texture whose parchment the strips sit on (C4-2: the strips and the page are drawn by one
+# material, M_UI_Echantment_Tabs)
+CHARCOAL_PAPER = {"enchanting": "T_Enchantment_Tab_Paper"}
+CHARCOAL_PAPER_BLUR = 1.5   # C4-2 V1 (owner 2026-11-16): 3 softened the tab shapes away; C4-5: 1 -> 1.5
+
+
+def charcoal_paper_texture(stock_dds, preset, page_dds, tone, blur=CHARCOAL_PAPER_BLUR):
+    """charcoal_paper:<preset> (C4-2, owner 2026-11-16: "use the same technique for the tabs and the parchment"): the strip's
+    paper is the page's parchment standard (invert_paper) measured against the PAGE's stock brightness (its 2..98 % clamp and
+    median), so equal stock paper bakes to the same grey in the strip and the page; icons and arrows are the charcoal recipe's
+    ink (its mask and greys) on top. Encoded like charcoal (BC3 colour halves / BC1 four-colour blocks, stock alpha kept)."""
+    from PIL import ImageFilter
+    if preset not in charcoal_tabs.PRESETS:
+        raise SkipAsset(f"unknown charcoal preset {preset!r}")
+    data = stock_dds.read_bytes()
+    if int.from_bytes(data[28:32], "little") > 1:
+        raise SkipAsset("charcoal_paper recolours one mip level; the stock texture has more")
+    page = [lum(p) for p in decode_rgba(page_dds).get_flattened_data() if p[3] > 128] or [128.0]
+    page.sort()
+    low, high, middle = page[len(page) * 2 // 100], page[len(page) * 98 // 100], page[len(page) // 2]
+    image = decode_rgba(stock_dds)
+    px = list(image.get_flattened_data())
+    # V1 (owner 2026-11-16, "we lost the edges completely of the shapes"): the dark end is the strip's own 1 %, so the tab
+    # edges and shadows darker than the page's range keep their shape (the light end and the median stay the page's)
+    own = sorted(lum(p) for p in px if p[3] > 128) or [low]
+    low = min(low, own[len(own) // 100])
+    source = Image.new("L", image.size)
+    source.putdata([round(min(high, max(low, lum(p)))) if p[3] > 128 else round(middle) for p in px])
+    soft = source.filter(ImageFilter.GaussianBlur(blur)).get_flattened_data() if blur else source.get_flattened_data()
+    inv_middle = (255 - middle) or 1
+    ink, weight = charcoal_tabs.recolour(image, **charcoal_tabs.PRESETS[preset])
+    grey = Image.new("L", image.size)
+    grey.putdata([max(0, min(255, round(tone * (255 - v) / inv_middle * (1 - w / 255) + c * w / 255)))
+                  for v, c, w in zip(soft, ink.get_flattened_data(), weight.get_flattened_data())])
+    bc1 = bc1_header_size(data)
+    if bc1:
+        try:
+            return data[:bc1] + charcoal_tabs.neutral_grey_bc1(data[bc1:], grey)
+        except ValueError as error:
+            raise SkipAsset(str(error))
+    head = header_size(data)
+    return data[:head] + neutral_grey_colour(data[head:], grey, dither=False)
+
+
 def rich_row_colour(uexp, row, rgb, table="DT_UI_MagicMenu"):
     """A RichTextStyleRow's colour set to an sRGB colour (linear floats, alpha 1); refuses an unexpected stock value."""
     offset, expected = RICH_ROWS[table][row]
@@ -1693,6 +1776,15 @@ def recipe(name):
         return (), ("pattern",), lambda dds, v, work, stock: line_tint(dds, v["pattern"], float(arg))
     if kind == "laurel_tint":   # the popup title flowers and leaf border in the laurel colour (RMI-096 Laurels group)
         return (), ("pattern",), lambda dds, v, work, stock: laurel_tint(dds, v["pattern"])
+    if kind == "charcoal_paper":   # charcoal_paper:<preset> (C4-2): the strips on the page's parchment standard
+        if arg not in CHARCOAL_PAPER:
+            raise SkipAsset(f"no page texture for charcoal_paper preset {arg!r}")
+        def strip_on_paper(dds, v, work, stock):
+            if stock is None:
+                raise SkipAsset("charcoal_paper needs the stock page texture")
+            tone = paper_tone(v["parchmentDark"][0], v["parchmentLight"][0], v["panel"][0])
+            return charcoal_paper_texture(dds, arg, stock(CHARCOAL_PAPER[arg]), tone)
+        return (), ("panel", "parchmentDark", "parchmentLight"), strip_on_paper
     if kind == "charcoal":   # charcoal[:<preset>]: the charcoal tab recolour (palette fixed, no colour element)
         return (), (), lambda dds, v, work, stock: charcoal_texture(dds, arg)
     if kind == "flat":
@@ -1721,6 +1813,14 @@ def recipe(name):
         return TAB_STYLE, (), lambda dds, v, work, stock: magic_tab_atlas(dds, int(arg), v, work, stock)
     if kind == "altar_metal":
         return (), (arg,), lambda dds, v, work, stock: map_colours(dds.read_bytes(), lambda c: altar_metal(c, v[arg]))
+    if kind == "altar_panel_invert":   # altar_panel_invert:<metal key>:<blur> (C4-7): the paper on the parchment standard
+        metal_key, _, blur = arg.partition(":")
+        def panel_invert(dds, v, work, stock):
+            name, channel = PANEL_MASKS.get(Path(dds).stem, (None, 0))
+            mask = (stock(name), channel) if name and stock else None
+            tone = paper_tone(v["parchmentDark"][0], v["parchmentLight"][0], v["panel"][0])
+            return altar_panel_texture(dds, v[metal_key], None, work, mask, (tone, float(blur or 0)))
+        return (), (metal_key, "panel", "parchmentDark", "parchmentLight"), panel_invert
     if kind == "altar_panel":
         def panel(dds, v, work, stock):
             name, channel = PANEL_MASKS.get(Path(dds).stem, (None, 0))
@@ -1863,7 +1963,7 @@ def checked_texture(stock, baked):
 def format_supported(kind, stock):
     """Whether a recipe kind can recolour this stock DDS: every recipe takes BC3; parchment, altar_metal, altar_panel and
     tab_strip also BC1 and uncompressed 32-bit; flat also uncompressed 32-bit (the altar separators, RMI-087)."""
-    if kind == "charcoal" and bc1_header_size(stock):   # the two BC1 Enchanting strips
+    if kind in ("charcoal", "charcoal_paper") and bc1_header_size(stock):   # the two BC1 Enchanting strips
         return True
     try:
         header_size(stock)
@@ -1872,7 +1972,7 @@ def format_supported(kind, stock):
         pass
     if kind == "paper_scale" and r8_header_size(stock):   # the popup paper (PF_G8, RMI-096)
         return True
-    if kind in ("parchment", "paper_scale", "mask_peak", "laurel_tint", "altar_metal", "altar_panel", "tab_strip", "grey_scale"):
+    if kind in ("parchment", "paper_scale", "mask_peak", "laurel_tint", "altar_metal", "altar_panel", "altar_panel_invert", "tab_strip", "grey_scale"):
         return bool(bc1_header_size(stock) or bgra_layout(stock))
     return kind in ("flat", "skin_flat") and bool(bgra_layout(stock))
 

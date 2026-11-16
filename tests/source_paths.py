@@ -29,6 +29,7 @@ UNITS = {
     "alchemy": ["src/alchemy/AlchemyData.cpp", "src/alchemy/AlchemyLayout.cpp", "src/alchemy/AlchemyMenu.cpp",
                 "src/alchemy/AlchemyInput.cpp", "src/alchemy/AlchemyInternal.h"],
     "alchemy-rules": ["src/sorting/rules/AlchemyRules.h"],
+    "enchanting": ["src/enchanting/EnchantingName.cpp"],
     "own-sort": ["src/sorting/OwnSort.cpp"],
     "own-sort-rules": ["src/sorting/rules/ItemSort.h"],
     "reflect": ["src/engine/Reflect.cpp"],

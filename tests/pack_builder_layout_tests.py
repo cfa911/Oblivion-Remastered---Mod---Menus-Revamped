@@ -46,7 +46,8 @@ blueprints = ["WBP_ModernMenu_MagicEntry", "WBP_ModernMenu_MagicMenu", "WBP_Orig
               "WBP_ModernMenu_SpellPurchaseItem", "WBP_ModernMenu_SpellPurchase", "WBP_ModernMenu_StatsSkillEntry",
               "WBP_ModernMenu_Stats_LevelDescription", "WBP_ModernMenu_StatsPage3", "WBP_ModernMenu_StatsPage3_Details",
               "WBP_Modern_QuestEntry",
-              "WBP_ModernMenu_ContainerInventory_MainContent", "WBP_OriginalMenu_Inventory_FilterScrollbox"]
+              "WBP_ModernMenu_ContainerInventory_MainContent", "WBP_OriginalMenu_Inventory_FilterScrollbox",
+              "WBP_ModernMenu_GearEntry"]   # C4-10 (owner 2026-11-16): the Sigil Stone rows
 
 # ---- A. the data ----
 check(sorted(LAYOUT) == sorted(blueprints), f"layout.json covers the compact rows, MainContent and shared filter ({len(LAYOUT)})")
@@ -68,7 +69,7 @@ check(sorted(rewrites) == ["WBP_ModernMenu_AlchemyFilters", "WBP_ModernMenu_Alch
       f"all packages with unstored values have a rewrite ({sorted(rewrites)})")
 check(sum(len(f) for r in rewrites.values() for f in [x.get("add", []) for x in r]) == 5,
       "five unstored floats are added (Alchemy 3, RMI-092 the container title's and C.2 the Magic title's Min Desired Width)")
-check(sum(len(r.get("floats", [])) for r in LAYOUT.values()) == 75, "75 stored values (62 changes, squares and pairs counted)")
+check(sum(len(r.get("floats", [])) for r in LAYOUT.values()) == 82, "82 stored values (69 changes, squares and pairs counted; C4-1/C4-3 row icon pairs, C4-10 Sigil Stone row + icon)")
 
 # ---- B. bp_float ----
 bp_float = getattr(pipe, "bp_float", None)
@@ -232,8 +233,8 @@ with tempfile.TemporaryDirectory() as temp:
         with faked(fake):
             lay = pipe.build_layout(args, temp / "outL", sizes, log=None)
         staged = fake.stages.get("MRLayout_P", {})
-        check(len(staged) == 19 and lay.get("pack") == "MRLayout_P",
-              f"MRLayout_P stages the 19 layout packages that pass their checks ({len(staged)})")
+        check(len(staged) == 20 and lay.get("pack") == "MRLayout_P",
+              f"MRLayout_P stages the 20 layout packages that pass their checks ({len(staged)})")
         check(lay.get("sizes", {}).get("inventoryRowHeight") == 40.0, "the layout manifest records the sizes it baked")
         inv = [b for k, b in staged.items() if k.endswith("wbp_originalmenu_inventoryentry.uasset")]
         off = [f["offset"] for f in LAYOUT["WBP_OriginalMenu_InventoryEntry"]["floats"] if f.get("size") == "inventoryRowHeight"][0]

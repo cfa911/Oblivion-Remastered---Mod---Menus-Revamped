@@ -202,11 +202,6 @@
       75.0,
       91.0
     ],
-    "altarPaper": [
-      24.0,
-      25.0,
-      28.0
-    ],
     "enchantingCrystal": [
       103.0,
       159.0,
@@ -221,6 +216,11 @@
       85.0,
       130.0,
       182.0
+    ],
+    "altarPaper": [
+      24.0,
+      25.0,
+      28.0
     ],
     "spellmakingEye": [
       86.0,
@@ -1509,13 +1509,14 @@
       "baked_uexp_sha256": "15b653b3aeab81e08cab4c95cffd49158e4fb7c7b5343c0d4282ab36c249fc8a"
     },
     "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Paper": {
-      "recipe": "parchment:enchanting",
+      "recipe": "paper_invert:1.5",
       "style": [
+        "panel",
         "parchmentDark",
         "parchmentLight"
       ],
       "stock_uexp_sha256": "d90d5a30616bddad171f5f0385f1b9aa4f0dca680a14fa29ed5f8b4b9e67f6ef",
-      "baked_uexp_sha256": "773c309bbbb72db3e9dfe28fa784f73780c19bdc8004e2211e791b30b33d0510"
+      "baked_uexp_sha256": "44f69c036ef734326a9624c55144cfce7cc2876bd5c1f3957f294629125288aa"
     },
     "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Effects_icon": {
       "recipe": "flat:headerIcon",
@@ -1543,13 +1544,15 @@
       "baked_uexp_sha256": "14a00434d61c2b4dcfb298f5ac6f7b33af66c82cd8187548b5fb8c30b8339419"
     },
     "Art/UI/Modern/GameMenuLayer/enchantment/T_Enchantment_EnchantingBackground": {
-      "recipe": "altar_panel:enchantingFrame",
+      "recipe": "altar_panel_invert:enchantingFrame:1.5",
       "style": [
-        "altarPaper",
-        "enchantingFrame"
+        "enchantingFrame",
+        "panel",
+        "parchmentDark",
+        "parchmentLight"
       ],
       "stock_uexp_sha256": "67a8c28fac4db2fa5a81cd77412e141768a28171b910cb1e771e50c5e2b94781",
-      "baked_uexp_sha256": "f3258a75d9cfacd0eca908e0f7969e0e4dc2c25ccac159a9f441b6d9c2d55150"
+      "baked_uexp_sha256": "c918a65f77faef22826dd9a38bdeb4854ec8be785ca73b0a4fb5b40b51a5d844"
     },
     "Art/UI/Modern/GameMenuLayer/enchantment/T_UI_Crystal_Enchant": {
       "recipe": "altar_metal:enchantingCrystal",
@@ -1658,6 +1661,23 @@
       ],
       "stock_uexp_sha256": "8de054ed1ffd8ecaa5ccbc44a7a1c6023f782e183677a9936ab351f9b9a11049",
       "baked_uexp_sha256": "d686b6a07988c32a9d9fe306668480bc4fce7ab552be6953177dff5b011a4dca"
+    },
+    "UI/Modern/GameMenuLayer/sigilstone/WBP_ModernMenu_SigilStoneMenu": {
+      "recipe": "bp_colour:WBP_ModernMenu_SigilStoneMenu",
+      "style": [
+        "menuTitle",
+        "rowText"
+      ],
+      "stock_uexp_sha256": "6502c245ad8761e3c092a70d6c8f28bf9a84f1a1b55b3bde143911ffc54f37ea",
+      "baked_uexp_sha256": "6ab727156d9f4d8b8da1c51b5145104c4ddff6bf0b68459edef2c5af527e48ff"
+    },
+    "UI/Modern/GameMenuLayer/sigilstone/WBP_ModernMenu_GearEntry": {
+      "recipe": "bp_colour:WBP_ModernMenu_GearEntry",
+      "style": [
+        "rowText"
+      ],
+      "stock_uexp_sha256": "27ea5f1b2e55d3df12fc4956fa73996b2207f7b4c4825bafb07438fb9670acd4",
+      "baked_uexp_sha256": "d5a5885275cfa008ac2d4b9c3dae798b66c4748425ec4734558f8b0c5090d93c"
     },
     "Art/UI/Modern/GameMenuLayer/Spellmaking/T_UI_Spellmaking-Frame": {
       "recipe": "altar_panel:spellmakingFrame",
@@ -1779,22 +1799,34 @@
       "baked_uexp_sha256": "7d874284cbe8c9d63d978454ae34adb346ea471318408fa2120b058d89a036da"
     },
     "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Gear": {
-      "recipe": "charcoal:enchanting",
-      "style": [],
+      "recipe": "charcoal_paper:enchanting",
+      "style": [
+        "panel",
+        "parchmentDark",
+        "parchmentLight"
+      ],
       "stock_uexp_sha256": "e0ef854af366c390de9f9dbc29100b84d6d45068da73158f6c720a7bc903a437",
-      "baked_uexp_sha256": "c02daa511090d16a2ac1edaa7f98911b48917151f01aeb08e46dbe9408c5ad64"
+      "baked_uexp_sha256": "7e04613b93bb150d683a935df6a2a6a9531130fe5817acaa391e346f51b6c8f9"
     },
     "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_SoulGem": {
-      "recipe": "charcoal:enchanting",
-      "style": [],
+      "recipe": "charcoal_paper:enchanting",
+      "style": [
+        "panel",
+        "parchmentDark",
+        "parchmentLight"
+      ],
       "stock_uexp_sha256": "96ff3e40aab5dd677573b9a6e91712b6fc6445aed497af9c01378cddeb34656e",
-      "baked_uexp_sha256": "b09550e95477532de7e2e2c0818e3a2ec2d7c4de0c2162d82cf9d958ae9b63ed"
+      "baked_uexp_sha256": "9203b6287c986322d72e23c4b9cd1ae81456bc3345145c173c4c82064bd257a4"
     },
     "Art/UI/Modern/GameMenuLayer/enchantment/Tabs/T_Enchantment_Tab_Effect": {
-      "recipe": "charcoal:enchanting",
-      "style": [],
+      "recipe": "charcoal_paper:enchanting",
+      "style": [
+        "panel",
+        "parchmentDark",
+        "parchmentLight"
+      ],
       "stock_uexp_sha256": "24b1836206ec9314ae2a1f5cd773e6701a9bce22dfed08c7f72fd60764cf322c",
-      "baked_uexp_sha256": "a3eba2bce1642cacd1a8ffaeb18d43a274af17a3ca03701421c2565cbdb835ae"
+      "baked_uexp_sha256": "1ee0c3ff7eabf87432ce0486014d2d9448a770aa3284d0c9b419ea804904d571"
     },
     "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_AvailableQuestTabSelected": {
       "recipe": "charcoal:quests",
@@ -1950,7 +1982,7 @@
   "skipped": [],
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "a356f0535fcd34f56ed265bcf5e9f5dfb1f4a22706a5f31635ae2b8a9995391f",
-    "MRCustom_P.ucas": "b13cf9453f056b4ac8bbe44761cfa2365e493f4446b040a2b43b1c23c305cf13"
+    "MRCustom_P.utoc": "fc14b528f9722d9aab7badca239112a3e8c03c69c87339257db587d76e1416d4",
+    "MRCustom_P.ucas": "d2c4315ea2e09e84598ccfb0c1c2acf0f7646fa6f5fc8a50a2d5fef50a2a7d01"
   }
 }

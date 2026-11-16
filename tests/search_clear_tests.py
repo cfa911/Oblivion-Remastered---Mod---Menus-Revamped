@@ -19,7 +19,7 @@ prefix = r'''
 using Clock = std::chrono::steady_clock;
 using namespace std::chrono_literals;
 namespace menus {
-enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests , kWorldMap, kAlchemy,kAlchemyName,kAlchemyFilters};
+enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests , kWorldMap, kAlchemy,kAlchemyName,kAlchemyFilters,kEnchantName,kSpellName};
 constexpr std::size_t kMenuCount = 10;
 bool menuMode = false;
 bool AnyOpen() { return menuMode; }
