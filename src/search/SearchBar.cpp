@@ -26,7 +26,7 @@ namespace search::detail
 			// (Step C.1, owner 2026-11-12: "use the styling of the inv search bar, dark. It is brown rn")
 			const auto preset = mrconfig::Get().stylePreset;
 			const auto& base = uistyle::SearchFor(a_menu == menus::Menu::kInventory || a_menu == menus::Menu::kMagic ||
-				a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters ||
+				a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters || a_menu == menus::Menu::kSpellmaking ||
 				a_menu == menus::Menu::kContainerYours || a_menu == menus::Menu::kContainerTheirs, preset);
 			// Custom (C.3 round 2, owner 2026-11-14): the Filters "Search effects" box like the filter chips: the run-time box fill
 			// and outline (Pack Builder Runtime tab); the ingredient bar keeps the Inventory look
@@ -64,7 +64,7 @@ namespace search::detail
 	{
 		auto* menuW = MenuWidget(a_menu);
 		if (!menuW || !reflect::Ok()) return nullptr;
-		auto* wrapper = IsSide(a_menu) || a_menu == menus::Menu::kQuests || a_menu == menus::Menu::kWorldMap ? nullptr : ui::FindInTree(menuW, a_menu == menus::Menu::kMagic ? "Magic_Spell_List" : "inv_cont_listview");
+		auto* wrapper = IsSide(a_menu) || a_menu == menus::Menu::kQuests || a_menu == menus::Menu::kWorldMap || a_menu == menus::Menu::kSpellmaking ? nullptr : ui::FindInTree(menuW, a_menu == menus::Menu::kMagic ? "Magic_Spell_List" : "inv_cont_listview");
 		auto* owner = wrapper ? OwnerWidget(wrapper) : nullptr;
 		std::vector<UE::UObject*> cands{ menuW, owner };
 		if (a_menu == menus::Menu::kQuests || a_menu == menus::Menu::kWorldMap || a_menu == menus::Menu::kAlchemyFilters) {
@@ -159,6 +159,23 @@ namespace search::detail
 			return ui::AddToCanvas(a_canvas, a_class, a_name.c_str(), a_slot);
 		}
 
+		bool SpellmakingBarRect(UE::UObject* a_canvas, double& x, double& y, double& w, double& h)
+		{
+			auto* menu = MenuWidget(menus::Menu::kSpellmaking);
+			auto* title = menu ? ui::FindInTree(menu, "SpellMaking_TabName") : nullptr;
+			auto* sort = menu ? ui::FindInTree(menu, "SpellMaking_Filters") : nullptr;
+			double tx{}, ty{}, tw{}, th{}, sx{}, sy{}, sw{}, sh{}, cx{}, cy{}, cw{}, ch{};
+			if (!title || !sort || !ui::Measure(title, tx, ty, tw, th) || !ui::Measure(sort, sx, sy, sw, sh) ||
+				!ui::Measure(a_canvas, cx, cy, cw, ch)) return false;
+
+			constexpr double gap = 10;
+			x = tx + tw + gap - cx;
+			w = sx - cx - gap - x;
+			h = std::min(th, 36.0);
+			y = ty + (th - h) * 0.5 - cy;
+			return w >= 50 && h >= 10;
+		}
+
 		bool BuildBar(menus::Menu a_menu, UE::UObject* a_canvas)
 		{
 			static int         s_n = 0;
@@ -169,6 +186,7 @@ namespace search::detail
 			double             barY = place.y;
 			if (IsSide(a_menu) && !ContainerBarRect(a_menu, a_canvas, barX, barY, barW, barH, true)) return false;
 			if ((a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) && !alchemy::SearchRect(a_canvas, barX, barY, barW, barH, a_menu == menus::Menu::kAlchemyFilters)) return false;
+			if (a_menu == menus::Menu::kSpellmaking && !SpellmakingBarRect(a_canvas, barX, barY, barW, barH)) return false;
 			if (a_menu == menus::Menu::kQuests) LogQuestLayout(a_canvas);
 			UE::UObject* slot = nullptr;
 			auto*        frame = BarPart(a_canvas, L"/Script/UMG.Image", L"IwmBarFrame" + n, &slot);
@@ -213,7 +231,7 @@ namespace search::detail
 			B.h = barH;
 			B.visible = true;
 			if (a_menu == menus::Menu::kAlchemy) B.hint = "Search ingredients or effects";
-			if (a_menu == menus::Menu::kAlchemyFilters) B.hint = "Search effects";
+			if (a_menu == menus::Menu::kAlchemyFilters || a_menu == menus::Menu::kSpellmaking) B.hint = "Search effects";
 			B.shown = "\x01";   // matches nothing real: the first update draws it
 			B.typing = false;
 			logger::debug("own bar: built in the {}", menus::Name(a_menu));
@@ -314,7 +332,7 @@ namespace search::detail
 		const bool drawn = a_menu == menus::Menu::kAlchemy ? searchcfg::Get().alchemy && alchemy::SearchShown() : MenuEnabled(a_menu);
 		if (!drawn || ((a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) && !alchemy::Open())) {
 			if (g_typingMenu.load() == static_cast<int>(a_menu)) g_typing = false;
-			if (IsSide(a_menu) || a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) {
+			if (IsSide(a_menu) || a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters || a_menu == menus::Menu::kSpellmaking) {
 				HideBar(a_menu);
 				std::scoped_lock lock(g_qMutex);
 				g_barPx[static_cast<int>(a_menu)] = {};
@@ -323,7 +341,8 @@ namespace search::detail
 		}
 		BarWidgets& B = g_bar[static_cast<int>(a_menu)];
 		const bool  have = reflect::Get(B.frame) && reflect::Get(B.label);
-		if (!have || a_now >= B.nextLook) {   // built, and looked at twice a second: it must still sit in the menu's canvas (a menu that was rebuilt or replaced does not take it along)
+		const bool remeasure = a_now >= B.nextLook;
+		if (!have || remeasure) {   // built, and looked at twice a second: it must still sit in the menu's canvas (a menu that was rebuilt or replaced does not take it along)
 			B.nextLook = a_now + 500ms;
 			auto* canvas = BarCanvasFor(a_menu, !have);
 			if (!canvas) {
@@ -339,10 +358,12 @@ namespace search::detail
 				if (!BuildBar(a_menu, canvas)) return;
 			}
 		}
-		if (a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) {
+		const bool alchemyBar = a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters;
+		if (alchemyBar || (remeasure && a_menu == menus::Menu::kSpellmaking)) {
 			auto* canvas = reflect::Get(B.canvas);
 			double x = 0, y = 0, w = 0, h = 0;
-			if (canvas && alchemy::SearchRect(canvas, x, y, w, h, a_menu == menus::Menu::kAlchemyFilters)) {
+			if (canvas && (alchemyBar ? alchemy::SearchRect(canvas, x, y, w, h, a_menu == menus::Menu::kAlchemyFilters) :
+				SpellmakingBarRect(canvas, x, y, w, h))) {
 				if (auto* slot = reflect::Get(B.frameSlot)) { ui::Vec2(slot, L"SetPosition", x, y); ui::Vec2(slot, L"SetSize", w, h); }
 				if (auto* slot = reflect::Get(B.labelSlot)) ui::Vec2(slot, L"SetPosition", x + w * 0.5, y + h * 0.5);
 				B.x = x; B.y = y; B.w = w; B.h = h;

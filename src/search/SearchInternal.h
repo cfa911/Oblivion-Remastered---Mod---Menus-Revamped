@@ -59,7 +59,6 @@ namespace search::detail
 	// ---- names and matching (ItemNames.cpp) ----
 	std::string ItemName(UE::UObject* a_item, menus::Menu a_menu, const char** a_route = nullptr);
 	std::string Lower(const std::string& a_s);
-	bool        Matches(UE::UObject* a_item, menus::Menu a_menu, const std::string& a_query);
 
 	// ---- typing (SearchInput.cpp) ----
 	bool AppendTyped(std::string& a_q, char32_t a_cp);

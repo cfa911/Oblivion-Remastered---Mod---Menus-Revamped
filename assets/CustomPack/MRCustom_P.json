@@ -982,13 +982,14 @@
       "baked_uexp_sha256": "203ec7cf97fa318ddaecc933a68ec35e60963f58680092bea5091adbed1e6c3b"
     },
     "Art/UI/Modern/GameMenuLayer/Spellmaking/T_Spellmaking_LeftPaperBackground": {
-      "recipe": "parchment",
+      "recipe": "paper_invert:1.5",
       "style": [
+        "panel",
         "parchmentDark",
         "parchmentLight"
       ],
       "stock_uexp_sha256": "6eb187293d3ff5ffaae8720267604e5c79576b1f3e6116acb3483566be060bdb",
-      "baked_uexp_sha256": "74bee9c4d564d8a6d3dfc729b9db3f4fac906ae863f8562e0a702c3e8b6f5879"
+      "baked_uexp_sha256": "6934bb7649d090940f92a958a684afa4d7716c1b2fb74dcd37cfaa86352ea4ec"
     },
     "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_paper_bg": {
       "recipe": "parchment",
@@ -1982,7 +1983,7 @@
   "skipped": [],
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "fc14b528f9722d9aab7badca239112a3e8c03c69c87339257db587d76e1416d4",
-    "MRCustom_P.ucas": "d2c4315ea2e09e84598ccfb0c1c2acf0f7646fa6f5fc8a50a2d5fef50a2a7d01"
+    "MRCustom_P.utoc": "96de71f65c5e25d0b69b815132f9f910ad805e7f3686f29d247d684ca61ef8a5",
+    "MRCustom_P.ucas": "00ac38be55ee480c358c45a06b0b22e7498c0288c707b798236d969ce8a0a3c0"
   }
 }

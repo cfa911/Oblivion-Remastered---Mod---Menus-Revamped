@@ -67,6 +67,7 @@ namespace search
 			Clock::time_point nextLook{};
 			revamped::ListLifecycle<UE::UObject*> lifecycle;
 			std::vector<reflect::Handle> roots;
+			std::string appliedQuery;
 			bool watching = false;
 			void Reset()
 			{
@@ -119,6 +120,18 @@ namespace search
 
 	static void RegisterMenuHooks();
 
+	static bool FilterableMenu(menus::Menu menu)
+	{
+		return menu == menus::Menu::kInventory || menu == menus::Menu::kMagic ||
+			IsSide(menu) || menu == menus::Menu::kQuests || menu == menus::Menu::kSpellmaking;
+	}
+
+	static void OnSpellmakingListPublished(UE::UObject*, UE::UFunction* fn, void*)
+	{
+		if (!g_filtering && pe::FunctionName(fn) == "UpdateListView")
+			FilterTick(menus::Menu::kSpellmaking, Clock::now());
+	}
+
 	static void OnListPost(UE::UObject* object, UE::UFunction* fn, void*)
 	{
 		if (g_filtering) return;
@@ -138,18 +151,20 @@ namespace search
 		for (int i = 1; i < static_cast<int>(menus::kMenuCount); ++i)
 			if (!Present(static_cast<menus::Menu>(i), context) && g_filter[i].watching) g_filter[i].Reset();
 		const int id = static_cast<int>(menu);
-		if (id < 1 || id > 5 || !Present(menu, context)) return;
+		if (!FilterableMenu(menu) || !Present(menu, context)) return;
+		if (menu == menus::Menu::kSpellmaking && !MenuEnabled(menu)) return;
 		if (IsSide(menu) && !SideShownNow(menu)) return;
 		auto& state = g_filter[id];
 		auto* owner = IsSide(menu) ? container::SideContent(menu) :
-			menu == menus::Menu::kQuests ? quests::ListWrapper() : menus::Widget(menu);
+			menu == menus::Menu::kQuests ? quests::ListWrapper() : MenuWidget(menu);
 		if (!owner) return;
 		if (state.watching && reflect::Get(state.owner) != owner) state.Reset();
 		if (!reflect::Get(state.list)) {
 			if (now < state.nextLook) return;
 			state.nextLook = now + 500ms;
 			auto* wrapper = menu == menus::Menu::kQuests ? quests::ListWrapper() :
-				ui::FindInTree(owner, menu == menus::Menu::kMagic ? "Magic_Spell_List" : "inv_cont_listview");
+				ui::FindInTree(owner, menu == menus::Menu::kMagic ? "Magic_Spell_List" :
+					menu == menus::Menu::kSpellmaking ? "SpellMaking_ListView" : "inv_cont_listview");
 			auto* view = wrapper ? ListViewOf(wrapper) : nullptr;
 			auto* canvas = BarCanvasFor(menu, false);
 			if (!view || !canvas) return;
@@ -162,11 +177,13 @@ namespace search
 			state.list = reflect::Hold(view); state.owner = reflect::Hold(owner);
 			state.watching = true;
 			pe::WatchPost(view->GetClass(), &OnListPost);
+			if (menu == menus::Menu::kSpellmaking) pe::WatchPost(wrapper->GetClass(), &OnSpellmakingListPublished);
 		}
 		auto* list = reflect::Get(state.list);
 		if (!list || ItemCount(list) < 0 || ItemCount(list) > 4000) return;
 		const auto live = ListItemsOf(list);
-		if (state.lifecycle.Observe(live)) {
+		const bool nativeChanged = state.lifecycle.Observe(live);
+		if (nativeChanged) {
 			state.roots.clear();
 			for (auto* item : live) state.roots.push_back(reflect::Hold(item));
 			auto* cache = reflect::Get(state.cache);
@@ -174,23 +191,31 @@ namespace search
 			ui::Call clear(cache, L"ClearListItems"); clear.Run();
 			for (auto* item : live) ui::CallFirst(cache, L"AddItem", &item, sizeof(item));
 		}
+		const auto query = searchcfg::Get().ownFilter && MenuEnabled(menu) ? Lower(QueryOf(menu)) : std::string();
+		if (menu == menus::Menu::kSpellmaking && !nativeChanged && state.appliedQuery == query) return;
 		std::vector<UE::UObject*> source;
 		for (const auto& root : state.roots) {
 			auto* item = reflect::Get(root);
 			if (!item) { state.Reset(); return; }
 			source.push_back(item);
 		}
-		const auto query = searchcfg::Get().ownFilter && MenuEnabled(menu) ? Lower(QueryOf(menu)) : std::string();
 		const auto& categories = id <= 4 ? sorting::Evaluate(id, source, state.lifecycle.generation) : source;
 		std::vector<UE::UObject*> keep;
-		bool readable = query.empty() || menu != menus::Menu::kQuests;
+		const bool guardNames = menu == menus::Menu::kQuests || menu == menus::Menu::kSpellmaking;
+		bool readable = query.empty() || !guardNames;
 		for (auto* item : categories) {
-			if (menu == menus::Menu::kQuests && !ItemName(item, menu).empty()) readable = true;
-			if (query.empty() || Matches(item, menu, query)) keep.push_back(item);
+			if (query.empty()) {
+				keep.push_back(item);
+			} else {
+				const auto name = ItemName(item, menu);
+				readable = readable || !name.empty();
+				if (textutil::Contains(name, query, searchcfg::Get().ignoreAccents)) keep.push_back(item);
+			}
 		}
-		if (!readable) keep = source; // Unreadable quest names fail open.
+		if (!readable) keep = source; // An unreadable list stays usable.
 		if (keep != live) ApplyItems(list, keep);
 		state.lifecycle.Commit(keep);
+		state.appliedQuery = query;
 	}
 
 	static void FilterQuick(menus::Menu menu, ListEvent after)

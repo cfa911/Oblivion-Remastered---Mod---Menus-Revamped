@@ -90,13 +90,24 @@ namespace search::detail
 		}
 		if (a_menu == menus::Menu::kQuests) return GenericItemName(a_item, a_route);
 		auto* props = a_menu == menus::Menu::kMagic ? magicProps : invProps;
+		const char* nameField = "Name";
+		if (a_menu == menus::Menu::kSpellmaking) {
+			static auto* spellmakingProps = reinterpret_cast<UE::UStruct*>(UE::StaticFindObject<UE::UObject>(nullptr, nullptr,
+				L"/Script/Altar.LegacyEffectsItemProperties"));
+			props = spellmakingProps;
+			nameField = "NameText";
+		}
 		ui::Call g(a_item, L"GetProperties");
 		void*    ret = g && props ? g.At("ReturnValue") : nullptr;
-		const auto nameOff = props ? reflect::Offset(props, "Name") : -1;
-		if (!ret || nameOff < 0 || g.Size("ReturnValue") != props->propertiesSize || !g.Run()) return {};
+		const auto nameOff = props ? reflect::Offset(props, nameField) : -1;
+		if (!ret || nameOff < 0 || nameOff + sizeof(UE::FText) > static_cast<std::size_t>(props->propertiesSize) || g.Size("ReturnValue") != props->propertiesSize || !g.Run()) return {};
 		auto*       t = reinterpret_cast<UE::FText*>(static_cast<std::uint8_t*>(ret) + nameOff);
 		std::string s = reflect::Text(*t);
 		t->~FText();
+		if (a_menu == menus::Menu::kSpellmaking) {
+			for (auto placeholder = s.find("{0}"); placeholder != std::string::npos; placeholder = s.find("{0}", placeholder))
+				s.erase(placeholder, 3);
+		}
 		if (a_route && !s.empty()) *a_route = "GetProperties";
 		return s;
 	}
@@ -106,9 +117,4 @@ namespace search::detail
 		return textutil::Lower(a_s);
 	}
 
-	// does an item's name hold the search text (a_query is Lower() of what was typed)?
-	bool Matches(UE::UObject* a_item, menus::Menu a_menu, const std::string& a_query)
-	{
-		return textutil::Contains(ItemName(a_item, a_menu), a_query, searchcfg::Get().ignoreAccents);
-	}
 }

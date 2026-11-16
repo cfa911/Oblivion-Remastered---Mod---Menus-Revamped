@@ -172,6 +172,7 @@ namespace search
 				if (!cont && menu == menus::Menu::kNone && worldmap::Open()) menu = menus::Menu::kWorldMap;
 				if (!cont && menu == menus::Menu::kNone && quests::Open()) menu = menus::Menu::kQuests;
 				if (!cont && menu == menus::Menu::kNone && alchemy::Open()) menu = alchemy::FilterSearchAvailable() ? menus::Menu::kAlchemyFilters : menus::Menu::kAlchemy;
+				if (menu == menus::Menu::kNone && MenuEnabled(menus::Menu::kSpellmaking)) menu = menus::Menu::kSpellmaking;
 				if (MenuEnabled(menu)) {
 					if (g_typing.load()) {
 						switch (a_m) {
