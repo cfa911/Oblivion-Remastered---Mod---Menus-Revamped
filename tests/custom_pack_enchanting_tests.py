@@ -34,7 +34,7 @@ from PIL import Image  # noqa: E402
 
 ENCH = "Art/UI/Modern/GameMenuLayer/enchantment/"
 TEXTURES = {
-    ENCH + "Tabs/T_Enchantment_Tab_Paper": "parchment:enchanting",
+    ENCH + "Tabs/T_Enchantment_Tab_Paper": "paper_invert:1.5",   # C4-2 (owner 2026-11-16): the parchment standard, tone B; C4-6 blur 1.5
     ENCH + "Tabs/T_Effects_icon": "flat:headerIcon", ENCH + "T_Enchantment_DecoratedSeparator": "flat:columnLine",
     ENCH + "T_Enchantment_Gold_Preview_Background": "parchment",
 }

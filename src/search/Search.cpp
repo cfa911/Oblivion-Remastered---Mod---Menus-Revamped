@@ -2,6 +2,7 @@
 
 #include "search/SearchConfig.h"
 #include "alchemy/AlchemyMenu.h"
+#include "enchanting/EnchantingName.h"
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
 #include "engine/WorldMap.h"
@@ -85,6 +86,7 @@ namespace search
 	menus::Menu Context()
 	{
 		if (alchemy::Naming()) return menus::Menu::kAlchemyName;
+		if (const auto name = enchanting::NamingMenu(); name != menus::Menu::kNone) return name;
 		const auto m = menus::Active();
 		if (m != menus::Menu::kNone) return m;
 		if (alchemy::FilterSearchAvailable() && MenuEnabled(menus::Menu::kAlchemyFilters)) return menus::Menu::kAlchemyFilters;

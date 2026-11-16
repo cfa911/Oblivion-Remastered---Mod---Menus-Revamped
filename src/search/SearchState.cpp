@@ -2,6 +2,7 @@
 
 #include "search/SearchConfig.h"
 #include "alchemy/AlchemyMenu.h"
+#include "enchanting/EnchantingName.h"
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
 #include "engine/WorldMap.h"
@@ -30,7 +31,7 @@ namespace search::detail
 	bool MenuEnabled(menus::Menu a_menu)
 	{
 
-		return (a_menu == menus::Menu::kAlchemyFilters && searchcfg::Get().alchemy && alchemy::FilterSearchAvailable()) || (a_menu == menus::Menu::kAlchemyName && alchemy::Naming()) || (a_menu == menus::Menu::kAlchemy && searchcfg::Get().alchemy && alchemy::SearchAvailable()) || (a_menu == menus::Menu::kInventory && searchcfg::Get().inventory) || (a_menu == menus::Menu::kMagic && searchcfg::Get().magic)|| (IsSide(a_menu) && searchcfg::Get().container && g_sideShown[static_cast<int>(a_menu)].load()) || (a_menu == menus::Menu::kQuests && searchcfg::Get().quests) || (a_menu == menus::Menu::kWorldMap && searchcfg::Get().worldMap);
+		return (a_menu == menus::Menu::kAlchemyFilters && searchcfg::Get().alchemy && alchemy::FilterSearchAvailable()) || (a_menu == menus::Menu::kAlchemyName && alchemy::Naming()) || ((a_menu == menus::Menu::kEnchantName || a_menu == menus::Menu::kSpellName) && enchanting::NamingMenu() == a_menu) || (a_menu == menus::Menu::kAlchemy && searchcfg::Get().alchemy && alchemy::SearchAvailable()) || (a_menu == menus::Menu::kInventory && searchcfg::Get().inventory) || (a_menu == menus::Menu::kMagic && searchcfg::Get().magic)|| (IsSide(a_menu) && searchcfg::Get().container && g_sideShown[static_cast<int>(a_menu)].load()) || (a_menu == menus::Menu::kQuests && searchcfg::Get().quests) || (a_menu == menus::Menu::kWorldMap && searchcfg::Get().worldMap);
 	}
 	bool OwnBarOn() { return (searchcfg::Get().alchemy || searchcfg::Get().inventory || searchcfg::Get().magic || searchcfg::Get().container || searchcfg::Get().quests || searchcfg::Get().worldMap); }
 	// a menu is present when it is the open one; in the container / barter menu both sides are

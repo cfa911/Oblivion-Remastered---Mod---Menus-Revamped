@@ -515,6 +515,20 @@
      "offset": 4959,
      "stock": 54.0,
      "size": "enchantingRowHeight"
+    },
+    {
+     "widget": "Entry_Icon",
+     "offset": 5348,
+     "stock": 50.0,
+     "type": "double",
+     "size": "enchantingIconSize"
+    },
+    {
+     "widget": "Entry_Icon",
+     "offset": 5356,
+     "stock": 50.0,
+     "type": "double",
+     "size": "enchantingIconSize"
     }
    ]
   },
@@ -529,6 +543,31 @@
     }
    ]
   },
+  "WBP_ModernMenu_GearEntry": {
+   "asset": "UI/Modern/GameMenuLayer/sigilstone/WBP_ModernMenu_GearEntry",
+   "floats": [
+    {
+     "widget": "SizeBox_0",
+     "offset": 5676,
+     "stock": 54.0,
+     "size": "sigilStoneRowHeight"
+    },
+    {
+     "widget": "sigil_entry_icon",
+     "offset": 6508,
+     "stock": 48.0,
+     "type": "double",
+     "size": "sigilStoneIconSize"
+    },
+    {
+     "widget": "sigil_entry_icon",
+     "offset": 6516,
+     "stock": 48.0,
+     "type": "double",
+     "size": "sigilStoneIconSize"
+    }
+   ]
+  },
   "WBP_ModernMenu_SpellmakingEntry": {
    "asset": "UI/Modern/GameMenuLayer/Spellmaking/WBP_ModernMenu_SpellmakingEntry",
    "floats": [
@@ -537,6 +576,20 @@
      "offset": 4621,
      "stock": 54.0,
      "size": "spellmakingRowHeight"
+    },
+    {
+     "widget": "Entry_Icon",
+     "offset": 4801,
+     "stock": 50.0,
+     "type": "double",
+     "size": "spellmakingIconSize"
+    },
+    {
+     "widget": "Entry_Icon",
+     "offset": 4809,
+     "stock": 50.0,
+     "type": "double",
+     "size": "spellmakingIconSize"
     }
    ]
   },

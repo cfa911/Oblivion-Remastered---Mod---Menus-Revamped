@@ -40,13 +40,13 @@ KEYS = {
 }
 E, S = "Art/UI/Modern/GameMenuLayer/enchantment/", "Art/UI/Modern/GameMenuLayer/Spellmaking/"
 ROWS = {
-    E + "T_Enchantment_EnchantingBackground": ("enchanting", "altar_panel:enchantingFrame", ["altarPaper", "enchantingFrame"]),
+    E + "T_Enchantment_EnchantingBackground": ("enchanting", "altar_panel_invert:enchantingFrame:1.5", ["enchantingFrame", "panel", "parchmentDark", "parchmentLight"]),   # C4-7 (owner 2026-11-16)
     E + "T_UI_Crystal_Enchant": ("enchanting", "altar_metal:enchantingCrystal", ["enchantingCrystal"]),
     E + "T_UI_Frame_Enchant": ("enchanting", "altar_metal:enchantingOrnament", ["enchantingOrnament"]),
-    # RMI-097: the three tab strips moved to tabs.json (charcoal:enchanting, no colour element); tab_strip stays tested below
-    E + "Tabs/T_Enchantment_Tab_Effect": ("tabs", "charcoal:enchanting", []),
-    E + "Tabs/T_Enchantment_Tab_Gear": ("tabs", "charcoal:enchanting", []),
-    E + "Tabs/T_Enchantment_Tab_SoulGem": ("tabs", "charcoal:enchanting", []),
+    # RMI-097: the three tab strips moved to tabs.json; C4-2 (owner 2026-11-16): charcoal_paper:enchanting on the page tone; tab_strip stays tested below
+    E + "Tabs/T_Enchantment_Tab_Effect": ("tabs", "charcoal_paper:enchanting", ["panel", "parchmentDark", "parchmentLight"]),
+    E + "Tabs/T_Enchantment_Tab_Gear": ("tabs", "charcoal_paper:enchanting", ["panel", "parchmentDark", "parchmentLight"]),
+    E + "Tabs/T_Enchantment_Tab_SoulGem": ("tabs", "charcoal_paper:enchanting", ["panel", "parchmentDark", "parchmentLight"]),
     S + "T_UI_Spellmaking-Frame": ("spellmaking", "altar_panel:spellmakingFrame", ["altarPaper", "spellmakingFrame"]),
     S + "T_UI_SpellMaking_Frame": ("spellmaking", "altar_metal:spellmakingEye", ["spellmakingEye"]),
 }
@@ -244,13 +244,15 @@ with tempfile.TemporaryDirectory() as temp:
         inside = sum(abs(r[x] - r[x - 1]) for r in rows for x in range(1, 64) if x % 4) / (64 * 48)
         check(across <= inside + 0.6, f"parchment: no steps at the 4x4 block edges (across {across:.2f}, inside {inside:.2f})")
         page = E + "Tabs/T_Enchantment_Tab_Paper"
-        colours = {"parchmentDark": [8.0] * 3, "parchmentLight": [33.0] * 3}
+        # C4-2 (owner 2026-11-16, "Regen parchment", tone B): the parchment standard (paper_invert:3) at the shared paper
+        # tone replaces the Phase 7 darker curve (the old "darker reference tone" check)
+        colours = {"parchmentDark": [8.0] * 3, "parchmentLight": [33.0] * 3, "panel": [41.0] * 3}
         _, keys, bake = pipe.recipe(pipe.TEXTURES[page])
         fitted = decoded(bake(path, colours, temp, None), temp, "enchanting_page.dds")
-        check(set(keys) == set(colours), "Enchanting left page uses the existing parchment controls")
-        old_tone = out.getpixel((36, 32))[1]
-        fitted_tone = fitted.getpixel((36, 32))[1]
-        check(3 <= old_tone - fitted_tone <= 8, f"Enchanting left page has the darker reference tone ({old_tone} to {fitted_tone})")
+        check(set(keys) == set(colours), "Enchanting left page uses the shared paper tone's controls")
+        greys = sorted(fitted.getpixel((x, y))[1] for y in range(64) for x in range(64))
+        fitted_tone = greys[len(greys) // 2]
+        check(abs(fitted_tone - 30.75) <= 2, f"Enchanting left page median on the shared paper tone ({fitted_tone}, 30.75)")
         check(out.getchannel("A").tobytes() == fitted.getchannel("A").tobytes(), "Enchanting left page keeps stock alpha")
         bright = decoded(bake(path, dict(colours, parchmentLight=[60.0] * 3), temp, None), temp, "enchanting_bright.dds")
         check(bright.getpixel((36, 32))[1] > fitted_tone, "Enchanting left page responds to parchmentLight")

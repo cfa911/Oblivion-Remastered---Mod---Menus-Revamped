@@ -44,7 +44,7 @@ EXPECTED = {}
 EXPECTED.update({INV + n: "charcoal:inventory" for n in ("T_Tab_weapons", "T_Tab_armor", "T_Tab_alchemy", "T_Tab_misc", "T_Tab_all")})
 EXPECTED.update({MAG + n: "charcoal:magic" for n in ("T_Magic_Tabs_Self", "T_Magic_Tabs_Touch", "T_Magic_Tabs_Target",
                                                      "T_Magic_Tabs_All", "T_Magic_Tabs_ActiveEffect")})
-EXPECTED.update({ENC + n: "charcoal:enchanting" for n in ("T_Enchantment_Tab_Gear", "T_Enchantment_Tab_SoulGem", "T_Enchantment_Tab_Effect")})
+EXPECTED.update({ENC + n: "charcoal_paper:enchanting" for n in ("T_Enchantment_Tab_Gear", "T_Enchantment_Tab_SoulGem", "T_Enchantment_Tab_Effect")})
 EXPECTED.update({QST + n: "charcoal:quests" for n in ("T_QuestPage_AvailableQuestTabSelected", "T_QuestPage_CompletedQuestTabSelected")})
 EXPECTED.update({COM + "Tabs/" + n: "charcoal:arrows" for n in ("T_Tab_1", "T_Tab_2", "T_Tab_3", "T_Tab_4", "T_Tab_5")})
 EXPECTED.update({COM + n: "charcoal:glyph" for n in ("T_Tab_arrow_on", "T_Tab_arrow_off")})
@@ -65,14 +65,15 @@ for path in sorted((root / "tools/menus").glob("*.json")):
 for asset, preset in EXPECTED.items():
     row = rows.get(asset, {})
     check(row.get("recipe") == preset, f"{Path(asset).name}: recipe {preset} ({row.get('recipe')})")
-    check(row.get("colours", None) == [], f"{Path(asset).name}: reads no colour element (palette fixed; {row.get('colours')})")
+    paper = ["panel", "parchmentDark", "parchmentLight"] if preset.startswith("charcoal_paper:") else []   # C4-2: the strips read the page tone
+    check(row.get("colours", None) == paper, f"{Path(asset).name}: reads {paper or 'no colour element (palette fixed)'} ({row.get('colours')})")
 check(not any(r.get("recipe") in ("tab_paper", "tab_strip") or str(r.get("recipe", "")).startswith(("tab:", "magic_tab:"))
               for r in rows.values()), "no data row uses the old tab recipes")
 check("custom_pack_charcoal_tabs_tests" in (root / "tests/run_suites.py").read_text(encoding="utf-8"),
       "the custom-pack group runs this suite")
 
 # ---- 2. the recipe table ----
-presets = sorted(set(EXPECTED.values()))
+presets = sorted(set(EXPECTED.values()) - {"charcoal_paper:enchanting"} | {"charcoal:enchanting"})   # C4-2: charcoal_paper is tested in enchanting_c4_tests; its ink stays charcoal:enchanting
 fns = {}
 for name in presets:
     try:

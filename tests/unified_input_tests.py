@@ -28,6 +28,7 @@ prefix = r"""
 #include <Windows.h>
 namespace mapsearch { bool Controller(WORD&,SHORT&,SHORT&,SHORT&,SHORT&,bool) { return false; } }
 namespace alchemy { void Controller(WORD&,SHORT&,SHORT&) {} }
+namespace enchanting { void Controller(WORD&,SHORT&,SHORT&) {} }
 #include <Xinput.h>
 #include <chrono>
 #include <cstdint>
@@ -40,7 +41,7 @@ struct FakeClock {
     static time_point now() { return time_point{}+std::chrono::milliseconds(milliseconds); }
 };
 namespace menus {
-enum class Menu { kNone,kInventory,kMagic,kContainerYours,kContainerTheirs,kQuests , kWorldMap,kAlchemy,kAlchemyName,kAlchemyFilters};
+enum class Menu { kNone,kInventory,kMagic,kContainerYours,kContainerTheirs,kQuests , kWorldMap,kAlchemy,kAlchemyName,kAlchemyFilters,kEnchantName,kSpellName};
 constexpr std::size_t kMenuCount = 6;
 }
 menus::Menu context=menus::Menu::kInventory, openedFor=menus::Menu::kNone;

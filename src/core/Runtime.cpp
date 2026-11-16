@@ -13,6 +13,7 @@
 #include "engine/WorldMap.h"
 #include "search/WorldMapSearch.h"
 #include "alchemy/AlchemyMenu.h"
+#include "enchanting/EnchantingName.h"
 #ifdef MR_DEVTOOLS
 #include "devtools/Census.h"
 #endif
@@ -118,6 +119,7 @@ namespace core
 			}
 		}
 		alchemy::Tick();
+		enchanting::Tick();
 		hoverfix::Tick(menus::Active());
 		search::Tick(menus::Active());
 		mapsearch::Tick();
