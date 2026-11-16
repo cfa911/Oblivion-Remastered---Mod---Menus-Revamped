@@ -8,13 +8,12 @@ image-tile-refs.py on the stock legacy export, build 1.512.105.0).
 - details texts: prefab-instance overrides in the owning blueprint, bp_colour to rowText (the run-time ink);
 - ornament lines (T_StatsMenu_Line_R, T_decoration_line tile tints): bp_colour to the [Skin] ornament value (linear, as the
   run-time widget tint drew it over a neutral brush); the Effects/skill title band tiles: white (the run-time swap drew the
-  art untinted); perk lines: rowText, the perk table's emphasis row: [Skin] emphasisInk; level ring: MIC_UI_SkillCircularProgress
-  Color override: [Skin] ring;
+  art untinted); C.7 uses white skill dividers, effectIcon for title ornaments, perk rank titles and the skill ring
+  material, and accentValue for perk emphasis;
 - art swaps become texture recipes: grey_scale:<k> (grey = Rec.709 brightness x k, alpha kept; the former run-time swap art's gray(k)),
   skin_flat:ornament:235 (the description rules: the white 235 RowSeparator art times the ornament tint), flat:headerIcon
   (T_Property_1_Range, like its baked siblings);
-- [Skin] ornament, ring, emphasisInk become baked entries; band, buttonFill, buttonRule are retired (no effect: the band art and
-  the button prefab are baked)."""
+- [Skin] ornament and emphasisInk stay baked; ring is retired alongside band, buttonFill and buttonRule."""
 import json
 import struct
 import sys
@@ -69,14 +68,17 @@ BLUEPRINTS = {   # package: (menu data file, asset path, [(offset, stock, colour
                                           [(2687, INK, "rowText"), (2834, INK, "rowText")]),
     "WBP_ModernMenu_StatsPage3_Details": ("inventory", P3 + "WBP_ModernMenu_StatsPage3_Details",
                                           [(23699, WARM, "rowText"), (24034, INK, "rowText"), (24104, INK, "rowText"),
-                                           (24266, INK, "rowText"), (24284, INK, "rowText"), (24431, ORN, "Skin.ornament"),
-                                           (24519, ORN, "Skin.ornament"), (24947, BAND, "white")]),
+                                           (24266, INK, "rowText"), (24284, INK, "rowText"), (24431, ORN, "effectIcon"),
+                                           (24519, ORN, "effectIcon"), (24643, [0.0844, 0.0452, 0.0307, 1.0], "white"),
+                                           (24761, INK, "white"), (24947, BAND, "white")]),
     "WBP_ModernMenu_Stats_LevelDescription": ("inventory", P3 + "WBP_ModernMenu_Stats_LevelDescription",
-                                              [(5352, INK, "rowText"), (5415, INK, "rowText"), (5485, INK, "rowText"),
-                                               (5581, WARM, "rowText"), (5600, WARM[:3] + [0.5], "rowText")]),
+                                              [(5352, INK, "rowText"), (5415, INK, "effectIcon"), (5485, INK, "rowText"),   # C.7: perk rank titles gold
+                                               (5581, WARM, "rowText"), (5600, WARM[:3] + [0.5], "rowText"),
+                                               (5651, [0.0844, 0.0452, 0.0307, 1.0], "white"),
+                                               (5704, [0.0844, 0.0452, 0.0307, 1.0], "white")]),
     "DT_StatsMenu_SkillDescriptionRichTextStyle_PerLevelDescription": (
         "inventory", "UI/Legacy/GameMenuLayer/stats/DataTables/DT_StatsMenu_SkillDescriptionRichTextStyle_PerLevelDescription",
-        [(69, WARM, "rowText"), (425, WARM, "Skin.emphasisInk")]),
+        [(69, WARM, "rowText"), (425, WARM, "accentValue")]),   # C.7 (owner 2026-11-16): perk emphasis blue
     "WBP_ModernMenu_MagicDetails": ("magic", "UI/Modern/GameMenuLayer/Magic/WBP_ModernMenu_MagicDetails",
                                     [(18693, INK, "menuTitle"), (18806, INK, "accentValue"), (18875, INK, "effectLabel"), (18982, INK, "menuTitle"),
                                      (19064, INK, "rowText"), (19374, INK, "menuTitle"), (19592, INK, "menuTitle")]
@@ -86,7 +88,7 @@ BLUEPRINTS = {   # package: (menu data file, asset path, [(offset, stock, colour
 }
 MATERIALS = {   # material instance: (menu, asset, [(offset, stock, colour)])
     "MIC_UI_SkillCircularProgress": ("inventory", "UI/Materials/Instances/MIC_UI_SkillCircularProgress",
-                                     [(169, [0.86316, 0.3564, 0.13014, 1.0], "Skin.ring")]),
+                                     [(169, [0.86316, 0.3564, 0.13014, 1.0], "effectIcon")]),
 }
 RULE = "skin_flat:ornament:235"
 TEXTURES = {   # asset: (menu, recipe, colour keys)
@@ -105,32 +107,34 @@ TEXTURES = {   # asset: (menu, recipe, colour keys)
 menus = {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in sorted((root / "tools/menus").glob("*.json"))}
 rows = {row["asset"]: (menu, row) for menu, data in menus.items() for row in data.get("assets", [])}
 
-# ---- 1. the colour keys: three [Skin] tints baked, three retired ----
-for name in ("ornament", "ring", "emphasisInk"):
+# ---- 1. the colour keys: two details [Skin] tints baked, four retired ----
+for name in ("ornament", "emphasisInk"):
     check(custom_colours.BAKED_SKIN.get(name) == f"Skin.{name}", f"[Skin] {name} is baked (Skin.{name})")
     check(any(f"Skin.{name}" in r["members"] for r in custom_colours.ROLES.values()), f"Skin.{name} is fed by a builder role")
 retired = getattr(custom_colours, "RETIRED_SKIN", ())
-check(tuple(retired) == ("band", "buttonFill", "buttonRule"), f"retired [Skin] keys ({retired})")
+check(tuple(retired) == ("band", "buttonFill", "buttonRule", "ring"), f"retired [Skin] keys ({retired})")
 values = custom_colours.pack_values()
-for key in ("Skin.ornament", "Skin.ring", "Skin.emphasisInk"):
+for key in ("Skin.ornament", "Skin.emphasisInk"):
     check(key in values, f"pack_values has {key}")
 rendered = custom_colours.render(custom_colours.DEFAULTS)
 reader = (root / "src/core/rules/CustomColours.h").read_text(encoding="utf-8")
-NOTE = "[Skin] band, buttonFill and buttonRule are retained with no effect"
-check(NOTE in rendered and NOTE in reader, "the default file (Python and plugin) says the three retired [Skin] keys do nothing")
+NOTE = "[Skin] band, buttonFill, buttonRule and ring are retained with no effect"
+check(NOTE in rendered and NOTE in reader, "both default generators say the retired [Skin] keys do nothing")
 check((root / "config/CustomColours.ini").read_text(encoding="utf-8") == rendered, "config/CustomColours.ini is the rendered default file")
 try:
     m = pbmodel.ColourModel(Path(tempfile.gettempdir()) / "mr-28b-missing.ini")
-    for name in ("band", "buttonFill", "buttonRule"):
+    for name in retired:
         check(m.entry("Skin", name).applies == "Inactive", f"model: [Skin] {name} Inactive ({m.entry('Skin', name).applies})")
-    for name in ("ornament", "ring", "emphasisInk"):
+    for name in ("ornament", "emphasisInk"):
         check(m.entry("Skin", name).applies == "Build pack", f"model: [Skin] {name} needs a Build ({m.entry('Skin', name).applies})")
     shown = {e.key.split(".")[-1] for label, groups in m.pages() if label in ("Colours", "Runtime") for _, entries in groups for e in entries}
-    check(not shown & {"band", "buttonFill", "buttonRule"}, f"window: the retired keys are not shown ({shown & {'band', 'buttonFill', 'buttonRule'}})")
+    check(not shown.intersection(retired), f"window: the retired keys are not shown ({shown.intersection(retired)})")
     run_time = [entries for label, groups in m.pages() if label == "Runtime" for _, entries in groups]
     check(sorted(e.name for entries in run_time for e in entries) == sorted(["guide", "rule", "alchemyHeading", "alchemyBox", "alchemyBoxLine", "alchemyClearLine"]),
       "window: only our own widgets stay run time (header rule and guide; C.3 round 2: the Alchemy filter heading, boxes and outlines)")
-    check({"Skin.ornament", "Skin.ring", "Skin.emphasisInk"} <= set(m.needs_build({})), "an older pack without the baked tints needs a Build")
+    check({"Skin.ornament", "Skin.emphasisInk"} <= set(m.needs_build({})), "an older pack without the baked tints needs a Build")
+    check("Skin.ring" not in m.needs_build({"Skin.ring": [0.1, 0.1, 0.1, 1.0]}),
+          "old packs can still list the legacy ring tint without making the builder stale")
 except Exception as error:   # noqa: BLE001
     check(False, f"model works ({type(error).__name__}: {error})")
 
@@ -234,15 +238,16 @@ try:
     check(abs(t[0] - pipe.linear(239)) < 1e-6, f"bp_colour: an sRGB [Colours] value still linearised ({t})")
     mic = bytearray(9542)
     struct.pack_into("<4f", mic, 169, 0.86316, 0.3564, 0.13014, 1.0)
-    r = struct.unpack_from("<4f", pipe.recipe("material_colour:MIC_UI_SkillCircularProgress")[2](bytes(mic), {"Skin.ring": [0.55, 0.55, 0.55, 1.0]}, None, None), 169)
-    check(all(abs(a - b) < 1e-6 for a, b in zip(r, (0.55, 0.55, 0.55, 1.0))), f"material_colour: the ring override ({r})")
+    gold = [232, 187, 102]
+    r = struct.unpack_from("<4f", pipe.recipe("material_colour:MIC_UI_SkillCircularProgress")[2](bytes(mic), {"effectIcon": gold}, None, None), 169)
+    check(all(abs(a - b) < 1e-6 for a, b in zip(r, (*map(pipe.linear, gold), 1.0))), f"material_colour: the ring override ({r})")
     dt = bytearray(730)
     struct.pack_into("<4f", dt, 69, *WARM)
     struct.pack_into("<4f", dt, 425, *WARM)
     d = pipe.bp_colour(bytes(dt), "DT_StatsMenu_SkillDescriptionRichTextStyle_PerLevelDescription",
-                       {"rowText": [239.0, 239.0, 239.0], "Skin.emphasisInk": [0.125, 0.12, 0.125, 1.0]})
-    check(abs(struct.unpack_from("<f", d, 425)[0] - 0.125) < 1e-6 and abs(struct.unpack_from("<f", d, 69)[0] - pipe.linear(239)) < 1e-6,
-          "the perk table: Default = rowText, RT_BlueMed = emphasisInk")
+                       {"rowText": [239.0, 239.0, 239.0], "accentValue": [79.0, 124.0, 176.0]})
+    check(abs(struct.unpack_from("<f", d, 425)[0] - pipe.linear(79)) < 1e-6 and abs(struct.unpack_from("<f", d, 69)[0] - pipe.linear(239)) < 1e-6,
+          "the perk table: Default = rowText, RT_BlueMed = accentValue (C.7)")
 except Exception as error:   # noqa: BLE001
     check(False, f"bp_colour with [Skin] values ({type(error).__name__}: {error})")
 

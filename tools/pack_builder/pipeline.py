@@ -29,6 +29,7 @@ listed in the manifest's "skipped" (the game's stock asset shows); the rest is b
 import hashlib
 import gc
 import json
+from math import hypot
 import re
 import shutil
 import struct
@@ -37,7 +38,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageChops
 
 TOOLS = Path(__file__).resolve().parents[1]
 if str(TOOLS) not in sys.path:
@@ -1584,6 +1585,112 @@ def quest_icon_texture(stock_dds, blue, gold, work):
     return bytes(recoloured)
 
 
+def full_rgba(stock_dds, image, work):
+    """An RGBA image (stock size) into the stock texture, colour and alpha: raw for uncompressed BGRA, else every mip level
+    BC3-encoded by Pillow, whole blocks replaced; the stock header (size, mips, format) stays."""
+    stock = stock_dds.read_bytes()
+    layout = bgra_layout(stock)
+    if layout and layout[1] == (2, 1, 0, 3):
+        return stock[:layout[0]] + image.convert("RGBA").tobytes("raw", "BGRA")
+    head = header_size(stock)
+    height, width = int.from_bytes(stock[12:16], "little"), int.from_bytes(stock[16:20], "little")
+    blocks = bytearray(stock[head:])
+    at = 0
+    for size in mip_sizes(width, height, max(1, int.from_bytes(stock[28:32], "little"))):
+        level = work / "level-full.dds"
+        image.convert("RGBA").resize(size, Image.LANCZOS).save(level, pixel_format="DXT5")
+        encoded = level.read_bytes()[header_size(level.read_bytes()):]
+        blocks[at:at + len(encoded)] = encoded
+        at += len(encoded)
+    assert at == len(blocks), "size mismatch"
+    return stock[:head] + bytes(blocks)
+
+
+def ink_gold_texture(stock_dds, gold, black, work):
+    """C.7 (owner 2026-11-16, "perfect"): the Character and attribute icons are an opaque tile with see-through ink. The ink
+    (1 - alpha) becomes gold, the tile black, and the tile's bounding box opaque; the empty margin stays clear."""
+    image = decode_rgba(stock_dds)
+    coverage = image.getchannel("A")
+    box = coverage.point(lambda a: 255 if a else 0).getbbox()
+    if box is None:
+        raise SkipAsset("icon has no opaque tile")
+    ink = coverage.point(lambda a: 255 - a)
+    composed = Image.composite(Image.new("RGBA", image.size, tuple(map(round, gold)) + (255,)),
+                               Image.new("RGBA", image.size, tuple(map(round, black)) + (255,)), ink)
+    alpha = Image.new("L", image.size, 0)
+    alpha.paste(255, box)
+    composed.putalpha(alpha)
+    return full_rgba(stock_dds, composed, work)
+
+
+def white_backing_texture(stock_dds, work):
+    """C.7 (owner 2026-11-16): a translucent faction rank icon precomposited over opaque white."""
+    image = decode_rgba(stock_dds)
+    backed = Image.alpha_composite(Image.new("RGBA", image.size, (255, 255, 255, 255)), image)
+    return full_rgba(stock_dds, backed, work)
+
+
+SKILL_RING_STOPS = (
+    (40, (14, 20, 32)), (110, (38, 58, 88)), (150, (60, 90, 130)),
+    (190, (105, 140, 184)), (235, (178, 204, 234)),
+)
+
+
+def skill_ring_image(image):
+    """Character ring B: blue steel over the disc and outer ring, with a top-left sheen."""
+    image = image.convert("RGB")
+    width, height = image.size
+    ramp = [SKILL_RING_STOPS[0][1]] * 706
+    for (low, shadow), (high, highlight) in zip(SKILL_RING_STOPS, SKILL_RING_STOPS[1:]):
+        for total in range(3 * low, 3 * high):
+            fraction = (total - 3 * low) / (3 * (high - low))
+            ramp[total] = tuple(a + (b - a) * fraction for a, b in zip(shadow, highlight))
+    ramp.extend([SKILL_RING_STOPS[-1][1]] * (766 - len(ramp)))
+    pixels = []
+    for index, rgb in enumerate(image.get_flattened_data()):
+        y, x = divmod(index, width)
+        if hypot(x - (width - 1) / 2, y - (height - 1) / 2) < width / 2:
+            sheen = 18 * (1 - (x + y) / (width + height)) - 9
+            rgb = tuple(int(max(0, min(255, c + sheen))) for c in ramp[sum(rgb)])
+        pixels.append(rgb)
+    out = Image.new("RGB", image.size)
+    out.putdata(pixels)
+    return out
+
+
+def skill_art_texture(stock_dds, slot, work, frame=None):
+    """Composite stock illustrations with transparent linework or an opaque short-icon tile."""
+    image = decode_rgba(stock_dds)
+    small = frame is not None
+    size = 128 if slot == 0 else 64  # Acrobatics has the only 128×128 small icon.
+    expected_size = (size, size) if small else (256, 512)
+    if image.size != expected_size:
+        raise SkipAsset(f"skill art size {image.size} does not match its {expected_size} illustration mask")
+    if not 0 <= slot < 21:
+        raise SkipAsset(f"invalid skill art mask slot {slot}")
+    row, col = divmod(slot, 7)
+    left = col * 256
+    top = row * 640 + (512 if small else 0)
+    try:
+        with Image.open(Path(MENUS) / "character-skill-masks.png") as atlas:
+            if atlas.size != (1792, 1920) or atlas.mode != "LA":
+                raise SkipAsset("unexpected skill art mask atlas size or mode")
+            # L marks original illustration pixels. A holds the large card's decorative linework.
+            illustration, linework = atlas.crop((left, top, left + image.width, top + image.height)).split()
+    except OSError as error:
+        raise SkipAsset(f"could not read skill art mask atlas: {error}") from error
+    if small:
+        backing = Image.new("RGB", image.size, tuple(round(channel) for channel in frame))
+        return colour_bc1(stock_dds, Image.composite(image.convert("RGB"), backing, illustration), work)
+    ornament = Image.new("RGBA", image.size, (230, 213, 183, 255))
+    ornament.putalpha(linework)
+    art = image.copy()
+    art.putalpha(illustration)
+    card = Image.alpha_composite(ornament, art)
+    card.putalpha(ImageChops.multiply(card.getchannel("A"), image.getchannel("A")))
+    return full_rgba(stock_dds, card, work)
+
+
 def rich_row_colour(uexp, row, rgb, table="DT_UI_MagicMenu"):
     """A RichTextStyleRow's colour set to an sRGB colour (linear floats, alpha 1); refuses an unexpected stock value."""
     offset, expected = RICH_ROWS[table][row]
@@ -1767,7 +1874,8 @@ def skin_flat(data, base, tint):
 
 # fixed literal colours a data row can name instead of a colour-file key (the Focusbox equip tint: white, as the run-time
 # swap drew it; decision 28)
-CONSTANT_COLOURS = {"white": [255.0, 255.0, 255.0]}
+CONSTANT_COLOURS = {"white": [255.0, 255.0, 255.0],
+                    "statusRed": [205.0, 62.0, 62.0]}   # C.7: the Attributes page's lowered values, brighter than stock 159,45,45
 
 
 def bp_colour(uexp, package, values):
@@ -1876,6 +1984,16 @@ def recipe(name):
     if kind == "quest_icon":
         return (), ("menuTitle", "effectIcon"), lambda dds, v, work, stock: quest_icon_texture(
             dds, v["menuTitle"], v["effectIcon"], work)
+    if name == "ink_gold":   # C.7: Character and attribute icons, gold ink on a black (frame) tile
+        return (), ("effectIcon", "frame"), lambda dds, v, work, stock: ink_gold_texture(dds, v["effectIcon"], v["frame"], work)
+    if name == "white_backing":   # C.7: translucent faction rank icons over opaque white
+        return (), (), lambda dds, v, work, stock: white_backing_texture(dds, work)
+    if name == "skill_ring":
+        return (), (), lambda dds, v, work, stock: colour_keep_alpha(dds, skill_ring_image(decode_rgba(dds)), work)
+    if kind == "skill_card":
+        return (), (), lambda dds, v, work, stock: skill_art_texture(dds, int(arg), work)
+    if kind == "skill_icon":
+        return (), ("frame",), lambda dds, v, work, stock: skill_art_texture(dds, int(arg), work, frame=v["frame"])
     if kind == "charcoal":   # charcoal[:<preset>]: the charcoal tab recolour (palette fixed, no colour element)
         return (), (), lambda dds, v, work, stock: charcoal_texture(dds, arg)
     if kind == "flat":
@@ -2054,6 +2172,8 @@ def checked_texture(stock, baked):
 def format_supported(kind, stock):
     """Whether a recipe kind can recolour this stock DDS: every recipe takes BC3; parchment, altar_metal, altar_panel and
     tab_strip also BC1 and uncompressed 32-bit; flat also uncompressed 32-bit (the altar separators, RMI-087)."""
+    if kind == "skill_icon":
+        return bool(bc1_header_size(stock))
     if kind in ("charcoal", "charcoal_paper") and bc1_header_size(stock):   # the two BC1 Enchanting strips
         return True
     try:
@@ -2065,7 +2185,7 @@ def format_supported(kind, stock):
         return True
     if kind in ("parchment", "paper_scale", "mask_peak", "laurel_tint", "altar_metal", "altar_panel", "altar_panel_invert", "tab_strip", "grey_scale"):
         return bool(bc1_header_size(stock) or bgra_layout(stock))
-    if kind == "quest_icon":
+    if kind in ("quest_icon", "ink_gold", "white_backing"):
         layout = bgra_layout(stock)
         return bool(layout and layout[1] == (2, 1, 0, 3))
     return kind in ("flat", "skin_flat") and bool(bgra_layout(stock))

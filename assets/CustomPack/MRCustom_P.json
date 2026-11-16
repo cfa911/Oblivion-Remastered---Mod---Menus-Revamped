@@ -102,27 +102,20 @@
       0.45,
       1.0
     ],
-    "Skin.emphasisInk": [
-      0.125,
-      0.12,
-      0.125,
-      1.0
-    ],
-    "Skin.ring": [
-      0.55,
-      0.55,
-      0.55,
-      1.0
-    ],
-    "rowIcon": [
-      239.0,
-      239.0,
-      239.0
+    "effectIcon": [
+      232.0,
+      187.0,
+      102.0
     ],
     "accentValue": [
       79.0,
       124.0,
       176.0
+    ],
+    "rowIcon": [
+      239.0,
+      239.0,
+      239.0
     ],
     "effectLabel": [
       232.0,
@@ -163,11 +156,6 @@
       14.0,
       22.0,
       42.0
-    ],
-    "effectIcon": [
-      232.0,
-      187.0,
-      102.0
     ],
     "effectValue": [
       185.0,
@@ -226,6 +214,12 @@
       86.0,
       127.0,
       181.0
+    ],
+    "Skin.emphasisInk": [
+      0.125,
+      0.12,
+      0.125,
+      1.0
     ]
   },
   "textures": {
@@ -564,36 +558,37 @@
     "UI/Modern/GameMenuLayer/Stats/Page3_Skills/WBP_ModernMenu_StatsPage3_Details": {
       "recipe": "bp_colour:WBP_ModernMenu_StatsPage3_Details",
       "style": [
-        "Skin.ornament",
+        "effectIcon",
         "rowText"
       ],
       "stock_uexp_sha256": "36b72de1f4154198c7b55923e8f280e92ba86176ee71dfbd816edc79001a1749",
-      "baked_uexp_sha256": "1a3ef736b4da5ac31e862d27dfa705270ff1a8fe8ddf299bb9d59057a087587c"
+      "baked_uexp_sha256": "ea7a78fb3894a33f654077bf2ed9fa03a86f39c46b34eb8071df8bc5c4ff8c99"
     },
     "UI/Modern/GameMenuLayer/Stats/Page3_Skills/WBP_ModernMenu_Stats_LevelDescription": {
       "recipe": "bp_colour:WBP_ModernMenu_Stats_LevelDescription",
       "style": [
+        "effectIcon",
         "rowText"
       ],
       "stock_uexp_sha256": "50306776cdf82e6cda9d29a25bee75b7208a71e514a2985197950628514e34f4",
-      "baked_uexp_sha256": "fe11c9c57a8bc9c1cac722f2cf6753ee1e000d779d4f933029454f89b4104a0e"
+      "baked_uexp_sha256": "2bb0a309a8112a33d8b5067b181420f67dddd643514914ea059a1be4d011d8ab"
     },
     "UI/Legacy/GameMenuLayer/stats/DataTables/DT_StatsMenu_SkillDescriptionRichTextStyle_PerLevelDescription": {
       "recipe": "bp_colour:DT_StatsMenu_SkillDescriptionRichTextStyle_PerLevelDescription",
       "style": [
-        "Skin.emphasisInk",
+        "accentValue",
         "rowText"
       ],
       "stock_uexp_sha256": "46da07e56d5507d9aa130c79783c055a512e6f91a24a87f3155c9a20c86bffcf",
-      "baked_uexp_sha256": "5e5885a11375bb2d42707f606af0e6e2dfa07069965235426ae5128631245676"
+      "baked_uexp_sha256": "bbce2a12f80f6fa72c1f71f8b52d95bd64ec02d07118df02685b5b764569f86c"
     },
     "UI/Materials/Instances/MIC_UI_SkillCircularProgress": {
       "recipe": "material_colour:MIC_UI_SkillCircularProgress",
       "style": [
-        "Skin.ring"
+        "effectIcon"
       ],
       "stock_uexp_sha256": "1511e3fd5f5b69742ce7b051ea55239864346284311fd6fcd44a3bf2164d4d25",
-      "baked_uexp_sha256": "244796367c0d5f8739f8386f30984c69e57be9fa25d7532daf2f60e10341d679"
+      "baked_uexp_sha256": "7e51007a3741cf1d40cff8771eed24470d93bb162bcbcdbff0aae27ffcef4fdf"
     },
     "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_details_effects_title_BG": {
       "recipe": "grey_scale:0.45",
@@ -1988,6 +1983,550 @@
       "stock_uexp_sha256": "df037c3ad9ddcecfc63388774dce8dd8c769aae5825cf917f7728d53b16f4535",
       "baked_uexp_sha256": "b0cc2b941a28f97121bea77e346af4b00c4911116b0767173a786cafd045e136"
     },
+    "UI/Modern/GameMenuLayer/stats/Page1_Character/WBP_ModernMenu_StatsPage1": {
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPage1",
+      "style": [
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "a1a965ace045f0de2cff5e982df2e83521822c6d95e23e64b0a7732347616ecb",
+      "baked_uexp_sha256": "5679376ebd4eb9ec6bb30e08bd5a82eb5b442e4cee6f2b538abd78b8e1b1ec49"
+    },
+    "UI/Modern/GameMenuLayer/stats/Page1_Character/WBP_ModernMenu_StatsPlayerInfo": {
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPlayerInfo",
+      "style": [
+        "menuTitle",
+        "rowText"
+      ],
+      "stock_uexp_sha256": "280ddb2073f9bfc0d0e262f942e7352a1b5e988da2e8e199c497ae86f8ba6d08",
+      "baked_uexp_sha256": "c9ff6dc9eddfd6e9eabdec9d6b7f644a6fde23354ae6f24c155787b4f6997734"
+    },
+    "UI/Modern/GameMenuLayer/stats/Page1_Character/WBP_ModernMenu_StatsPrimaryAttribute": {
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPrimaryAttribute",
+      "style": [
+        "rowText"
+      ],
+      "stock_uexp_sha256": "e6caf48247cad99a94a1541656a5a1901f0dd460203edf3d0c74d3afecd63962",
+      "baked_uexp_sha256": "59efb921d7483ffd68dd65ecaf1d557e7c10b98cb11dc6eee77e6a14f14eb5cb"
+    },
+    "UI/Modern/GameMenuLayer/stats/Page2_Attributes/WBP_ModernMenu_StatsSecondaryAttribute": {
+      "recipe": "bp_colour:WBP_ModernMenu_StatsSecondaryAttribute",
+      "style": [
+        "menuTitle",
+        "rowText"
+      ],
+      "stock_uexp_sha256": "b3e4f2c71a5288b9ce94876cfeaad1aef5bc532f8e9ff7da05409c538effeac0",
+      "baked_uexp_sha256": "20c04e50a55d7ffde6ddf48e400e8aa28045158b9b7fff9c38fa330e784ed470"
+    },
+    "UI/Modern/GameMenuLayer/stats/Page3_Skills/WBP_ModernMenu_StatsPage3": {
+      "recipe": "bp_colour:WBP_ModernMenu_StatsPage3",
+      "style": [
+        "rowText"
+      ],
+      "stock_uexp_sha256": "739fa1dbfc550f1809bb7cc8e9ebfc9b259dc958fcceb9faedf3ee87b053b759",
+      "baked_uexp_sha256": "4ca490eb2e983636836cf0e57c735f82926e81ff01dfa3153bc9165eea1cdbc1"
+    },
+    "UI/Modern/GameMenuLayer/stats/Page3_Skills/WBP_ModernMenu_StatsSkillEntry": {
+      "recipe": "bp_colour:WBP_ModernMenu_StatsSkillEntry",
+      "style": [
+        "menuTitle",
+        "rowText"
+      ],
+      "stock_uexp_sha256": "7020bc92766a83bd7d086f3400a5323b8fca40ab240b932826bbfba089e93c24",
+      "baked_uexp_sha256": "3abc1194edc917d29f2eeb61adff71fcfbde0519c7a7a0c181df553614aa72a4"
+    },
+    "UI/Modern/GameMenuLayer/stats/Page4_Factions/WBP_ModernMenu_StatsFactionEntry": {
+      "recipe": "bp_colour:WBP_ModernMenu_StatsFactionEntry",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "af033ec2e81db2390056d560cdac889a053d8a44b233b2f7c4a3e682f124afe3",
+      "baked_uexp_sha256": "a8fde75a1d4dd5c52f0a2913726a5ec103732da6a7932554e3e7e96bd29fbfdd"
+    },
+    "UI/Legacy/GameMenuLayer/stats/WBP_LegacyMenu_StatsMiscEntry": {
+      "recipe": "bp_colour:WBP_LegacyMenu_StatsMiscEntry",
+      "style": [
+        "menuTitle",
+        "rowText"
+      ],
+      "stock_uexp_sha256": "de13e12234540fe7af35f0ee608797c45cce76f860bfa3dafe0924c98544a7ef",
+      "baked_uexp_sha256": "53e8a5af0822f9f38dec86ac59432abe5f4b31557cb5bb20dfa2e7819bb4da9e"
+    },
+    "UI/Legacy/GameMenuLayer/stats/DataTables/DT_StatsMenu_SkillDescriptionRichTextStyle_MainDescription": {
+      "recipe": "bp_colour:DT_StatsMenu_SkillDescriptionRichTextStyle_MainDescription",
+      "style": [
+        "accentValue"
+      ],
+      "stock_uexp_sha256": "50c314bee601d27ad0dbdb15eef4f32304c9eba07acefabb823f41928691c0a1",
+      "baked_uexp_sha256": "d180e2991734a1eb2ece2bdb3b9391b72c2fed4a6890a26e9bfbccd8d32aa96d"
+    },
+    "Art/UI/Icons/Icon_Character/T_CharacterIcon_birthsign": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "7369225153bf091cea160e42f8d4d4b7c99da5697cc9c2bea14584c92051b214",
+      "baked_uexp_sha256": "9b15fe6d14d9ee1fe9a2afd2246128b718106b493bc9f1b51673ca420048eab7"
+    },
+    "Art/UI/Icons/Icon_Character/T_CharacterIcon_class": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "34c56ced8474223f40bf69dcb7238ec239def7f323410df5a14dca2a2eab4e4d",
+      "baked_uexp_sha256": "be6b1694991ac8676cea2cf248c37a0d3801a0e86f17bcb2ca4e98b54967a78e"
+    },
+    "Art/UI/Icons/Icon_Character/T_CharacterIcon_fatigue": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "2f83ddfb16c6c88fa645bbe0ce39ffce187d5a007bb68ceca2d63860a60a91a4",
+      "baked_uexp_sha256": "7339d197ff43049f72dc21bb9b92870c7ab292cd3462d2d2de8c69b0e4c1e364"
+    },
+    "Art/UI/Icons/Icon_Character/T_CharacterIcon_health": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "da9195f969c816869182fb016bd3fe9fb06501ada14f2e1b8d0dc0375bb294eb",
+      "baked_uexp_sha256": "5e30655ab6d275f4d1e74aa76397993e8d7ad18a3dbb62254896592439ebd73f"
+    },
+    "Art/UI/Icons/Icon_Character/T_CharacterIcon_levelUp": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "89da401c3cb2fbbc9147d015f1a1ed78b089d9249f4ab67e9882f8cf66ea94c0",
+      "baked_uexp_sha256": "f21c36210f92f5f90b21894fb516a4a33fa06b42d3b1a124b6cdf3af3973e8cc"
+    },
+    "Art/UI/Icons/Icon_Character/T_CharacterIcon_magicka": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "45dbececabcc12650f138cc5d91473d7c386b4c060475bd264424a25e149e938",
+      "baked_uexp_sha256": "810d1fec8a7b73046e9a90a41c43072e507321a2b8872392029f28b2fae3abaf"
+    },
+    "Art/UI/Icons/Icon_Character/T_CharacterIcon_race": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "466010e606bf3103dba03c721e9167817d57877324a1b5c12e31c830dff64d31",
+      "baked_uexp_sha256": "5921570db5e405ce8be654ed0e24d06f3f61e604b2ed5eeafb355df7578238e7"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_agility": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "b0817d843b69ba8ef210b03dae8b672e57a83f68bb15ad82f039dc576953deb4",
+      "baked_uexp_sha256": "8d9221bf09e8d7648a6b2bb0036eab1f7575ebffce8042972c37a1ea92a1bf41"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_endurance": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "bbd1600c4f1b6edc293103e337aa2df7153907379ca18cac91d879545c7e88fc",
+      "baked_uexp_sha256": "17b4d2bd2cfc7bc1086c40f084539d5dca4cc8332c3bc4879cc313662dc50f3b"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_intelligence": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "989de6dbb5ca182d375da73093bcd91fa36c497c754c5d739e527e279f66cc47",
+      "baked_uexp_sha256": "b37dc34fd2d3536126e5a562f82bbf4d5c19b9b5d3279ebb59e1135b109507ce"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_luck": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "1ee7e25d5afcdf4d9bb63bcc2351626a71fba7d34d55eac6d2bdde1fc68dc68e",
+      "baked_uexp_sha256": "4ba111deac85d7a457d0d45a4755cbf864fe23e2558bbf178e0fd6bf304e7a4f"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_personality": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "df3b25073e1cc6e4d895d22d0e96b24d739fc2782e89915a7192469a75ccbb2f",
+      "baked_uexp_sha256": "0aefcafe66c57f76abe68ae9a0bca7294624bd5223a7f126049d7a96eb83fd96"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_speed": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "149867907ad96a03a89a380803aeebf8ce64b3aac12daf793be7481071422b31",
+      "baked_uexp_sha256": "2c4eaff9d58786561a827fc7f5b85878aef3337303e0a5902222d218176d2f01"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_strength": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "6a0cef9b0fab31799eaf3d8e7e90e678631596421e818bc2183dbfdb643b1c1c",
+      "baked_uexp_sha256": "f5bee705424713d82a5147edba0696ebac7a62bce50ee3e0d28c42c28695d24c"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/level_up/attributes_icons/T_attributes_icon_willpower": {
+      "recipe": "ink_gold",
+      "style": [
+        "effectIcon",
+        "frame"
+      ],
+      "stock_uexp_sha256": "e2611fcbaa7f16778682f118a77a1f526cdcff07f7b02818dc5318de82cef0ca",
+      "baked_uexp_sha256": "f69b4542f58a0f83b1d19ff88c277095af8ee98b0330ab7ab43ffc62c74243e6"
+    },
+    "Art/UI/Common/T_PauseMenuDeco": {
+      "recipe": "laurel_tint:effectIcon",
+      "style": [
+        "effectIcon"
+      ],
+      "stock_uexp_sha256": "cafdd7d7c4c9a5335983868f1de44248d4e6768484545c58dceb609a9d60d973",
+      "baked_uexp_sha256": "668039adabb31c04e1aebbd397fa6420c3259fb8b69fe04dbdde0b826fd2c887"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/ndquest/T_ndholycrusader": {
+      "recipe": "white_backing",
+      "style": [],
+      "stock_uexp_sha256": "7ea4458f1697d991b45cb07f21c56103cba2c0667a3d81d03cabef060d93d929",
+      "baked_uexp_sha256": "d76396f280ee18d7068e77f9db21530fa7e03f518d9d10cec7f91f77c8abf3d1"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/ndquest/T_ndknightcommander": {
+      "recipe": "white_backing",
+      "style": [],
+      "stock_uexp_sha256": "94cf2f2fb6bd79775e2b0d8456ce0105f0a526f4ecc5905b0c346bd9c303162f",
+      "baked_uexp_sha256": "bbc51638331a38928659274513c6e023a5a4021377f10c539c363b158a47988b"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/ndquest/T_ndknighterrant": {
+      "recipe": "white_backing",
+      "style": [],
+      "stock_uexp_sha256": "b56ca468e438a36a66e3246b9c9b75ba8e2b5bdc95a0ef9f529fce338daa0168",
+      "baked_uexp_sha256": "61dd8492313fbc860d26007eb1537b1541bef69961392f320baf0ece05ae09ac"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/ndquest/T_ndpilgrim": {
+      "recipe": "white_backing",
+      "style": [],
+      "stock_uexp_sha256": "5748bb5e5fa38e94393fcffe4468bbf60d14b3a69c83b2a8b51ed4e32c36986f",
+      "baked_uexp_sha256": "f8760d7ca9ba3c2d8cb7d1d4c359361218ccdbda6fab4dd8834d09e0ae316a87"
+    },
+    "Art/UI/Common/T_UI_CircularProgress": {
+      "recipe": "skill_ring",
+      "style": [],
+      "stock_uexp_sha256": "ce94934b8be051a9fd75ce230f574bb25e7c8715b3cf01a10bf3c182d6293c9d",
+      "baked_uexp_sha256": "599790af21d7783a6ebe490f20867d1a55d6ea86e22785f0275e8d97fc30fd57"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_acrobatics": {
+      "recipe": "skill_card:0",
+      "style": [],
+      "stock_uexp_sha256": "d1a3042ea7c1eeb2ff421548d358bf9fe9ad7eca9da8d36b1e1f63db8138c53a",
+      "baked_uexp_sha256": "838e10c2a0f01980dd50e42d6ac3896289b4ae6082798ddb0872d0435522cdcc"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_alchemy": {
+      "recipe": "skill_card:1",
+      "style": [],
+      "stock_uexp_sha256": "ae581da69113ed8957ee4c96a3d01ed996b7405feabff09d1f3caf0b627a14c1",
+      "baked_uexp_sha256": "42117f96cd6f7b10e240d8b4f7d69045e6c83ce84eebbd24170623295d68e817"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_alteration": {
+      "recipe": "skill_card:2",
+      "style": [],
+      "stock_uexp_sha256": "83a1d57a38067365edce80aa6dfca474e6c44b664659089a4b42b009cbc55d43",
+      "baked_uexp_sha256": "69a00fef64afbcbe0050f34aed2551d8f1677f725e6f5e06bd0a090ce2c2ba4c"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_armorer": {
+      "recipe": "skill_card:3",
+      "style": [],
+      "stock_uexp_sha256": "5952944a8e9592a67cde32b22b1fe384315c530a48c51d7161285fbf6011557f",
+      "baked_uexp_sha256": "98726b4cbfc074512e056596c446cc2519b394ea44f14d9b3bad094d221e244f"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_athletics": {
+      "recipe": "skill_card:4",
+      "style": [],
+      "stock_uexp_sha256": "fbbff1ec8faa699b0da7add87e30ad5c8503ec718b6769b07f122d4a4ecb6254",
+      "baked_uexp_sha256": "b385fdeb297198e4e95be62e1a75a9c03d38ec40337e5a113f3da89c72890bb1"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_blade": {
+      "recipe": "skill_card:5",
+      "style": [],
+      "stock_uexp_sha256": "a291eaafb86bff4a53ddf33e7b3973490424321ec7edf721954394dc3e020c1e",
+      "baked_uexp_sha256": "a2be0827efe0399c635aae6c80c12d51b28848e1f223b890c3924b106dfa69a4"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_block": {
+      "recipe": "skill_card:6",
+      "style": [],
+      "stock_uexp_sha256": "2dcf8a1a99ad936be0308b696ae40c1c5eaca10947c146562426b00a12c1da2c",
+      "baked_uexp_sha256": "60f19096bb4dc356d892a08bb51ef7c4b0f1a69460d546ba76a3734cd3ec2be9"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_blunt": {
+      "recipe": "skill_card:7",
+      "style": [],
+      "stock_uexp_sha256": "151d1788bac6fa5ddfd091160d50bf3c5e6f70ca2c7ad8c68be84411e37dac89",
+      "baked_uexp_sha256": "660bd53451e089322c7acab1117518e396f641fb775a877a18d9541283562fc4"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_conjuration": {
+      "recipe": "skill_card:8",
+      "style": [],
+      "stock_uexp_sha256": "40b6ab688f590cbbeaeb9dfe2666afbfd242bee5459bfa93e65bc63f616624cf",
+      "baked_uexp_sha256": "3797621e98bab3b98bc427bbfd3d08ea457dc4a5cf079412a7dfe0d7f1a77e68"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_destruction": {
+      "recipe": "skill_card:9",
+      "style": [],
+      "stock_uexp_sha256": "047b0f083a47f5685a2f94c9ab2ac76edc32253d5d5a95a8c952a659659a4506",
+      "baked_uexp_sha256": "878cdaa284a1db7222231310f9c3122d29f2d7a749dde12e8b494d3a92d6071d"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_hand_to_hand": {
+      "recipe": "skill_card:10",
+      "style": [],
+      "stock_uexp_sha256": "cbede059374f4e91b7805e943da00f72698608d61a83e16df60ee546a634679e",
+      "baked_uexp_sha256": "573b04f1146d3534f8f5623aa92ba71056a48f4082e8c73b019c4cc9dec519e4"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_heavy_armor": {
+      "recipe": "skill_card:11",
+      "style": [],
+      "stock_uexp_sha256": "e96f0c8e1f67d9f06a05587b2327ddb7c358b24e3f0032e092464862e3169f4e",
+      "baked_uexp_sha256": "3a974a7ae15af759d194919b6dba2217e2fbc3d2172981ed757e8ff3b6a9d859"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_illusion": {
+      "recipe": "skill_card:12",
+      "style": [],
+      "stock_uexp_sha256": "224b3f2959c75eda88a4511be0be4de298dab275891be0c6cac80d044b2d8bb4",
+      "baked_uexp_sha256": "4633facbf7e5350bf60bc227278662a6ca1f86ff93a0c4f5c3db1a4871009203"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_light_armor": {
+      "recipe": "skill_card:13",
+      "style": [],
+      "stock_uexp_sha256": "1d09d6e16dd46ed14bf55b545639bbfc29289633a5cf6ac6e61a8e7b9eb17eb6",
+      "baked_uexp_sha256": "4d1b9ce460b3bdde76174bd72b8c90139493e99b814d444eb409bb4bc2bc7f9f"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_Marksman": {
+      "recipe": "skill_card:14",
+      "style": [],
+      "stock_uexp_sha256": "1da66832d0a6b994e50fd0f730a959f5e23ab22a0e0ad8216b2dbe8d5608385d",
+      "baked_uexp_sha256": "bd0e1c6075e362b70c277fa92289fc5a7d71be8ef9eaf1b01751235e589fbf75"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_mercantile": {
+      "recipe": "skill_card:15",
+      "style": [],
+      "stock_uexp_sha256": "912b9b77894d7e69c76f87b7f061ae93595630d6f6ab175f0d1d3fcb3acefaae",
+      "baked_uexp_sha256": "b44106d71ae55ac2555e5071fa1633aaf9c75bb0369d191e895c8e39a84129c3"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_mysticism": {
+      "recipe": "skill_card:16",
+      "style": [],
+      "stock_uexp_sha256": "be2c5a4092fe0f93e957325a7dd738cc58e882a45144d379184e9cd59ac3e91a",
+      "baked_uexp_sha256": "25f8b80c62d3a3f6367491f88878966875023d2ed07577b732b877d2dd631c4b"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_restoration": {
+      "recipe": "skill_card:17",
+      "style": [],
+      "stock_uexp_sha256": "03c671b0d3b1d400e162f6697c79da30abf8f697c035409d7d7f49356866095d",
+      "baked_uexp_sha256": "34b079666790e7f189aec7af20cc314c81a5df8364ef678e0add6a1573f654de"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_security": {
+      "recipe": "skill_card:18",
+      "style": [],
+      "stock_uexp_sha256": "4b4a911998f1c2ebe63bb31857214e2da1f03d45aa6e1e403706b774cbe57e24",
+      "baked_uexp_sha256": "fdc20f2304e4cd0031f3d2ff130c25b57a51cba987d12051dcda045280135894"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_sneak": {
+      "recipe": "skill_card:19",
+      "style": [],
+      "stock_uexp_sha256": "6ee15af722e780692c53c91a6e0778a87d7d8bff7df9e377f04ba7763339e275",
+      "baked_uexp_sha256": "5a21a434d7e11cddb4e2dc1d2da75569f1330bc56c7e8bf355ce8ca8d64f4caf"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_speechcraft": {
+      "recipe": "skill_card:20",
+      "style": [],
+      "stock_uexp_sha256": "1cc46ed83a9af0c06286b785297b088fe1cd3b46a4c7e163986fa16ddda8154f",
+      "baked_uexp_sha256": "a4baaba8761da3a5360024046b71d66601204339a36a71697b574127308c11de"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_acrobatics_small": {
+      "recipe": "skill_icon:0",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "8ad76834e1686a47adb03b2a75016d6c6de38751ee7d5593f26c69a9691bc6ac",
+      "baked_uexp_sha256": "eeb6321bf9075dcb33fe2b8a626221324c9bb0c461ff88756689defea688b1a6"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_alchemy_small": {
+      "recipe": "skill_icon:1",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "d82a0c3d152c22c39731a87055f7922fbb585102ec0b846ad84e92aabf8907eb",
+      "baked_uexp_sha256": "2a6af54c2022214437a1ed2b69a27eb90fd5acf709be17ff16f22b65e92c016f"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_alteration_small": {
+      "recipe": "skill_icon:2",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "0de6957e05c6ec5682111f26767595034e253ff18be8d489179b10e72ef17189",
+      "baked_uexp_sha256": "c1cab11b5f506526ee268a47944a6ff407b65b34fbd014184aa4f7d5283041c8"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_armorer_small": {
+      "recipe": "skill_icon:3",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "e95259f301f062371c1a377aba7184933018c9efd40b9d1a4c93c2f978c89cbf",
+      "baked_uexp_sha256": "67cba2a9d27f4ea985675419e07bdd68ce3734eea7e66ea7f5dc9e05ba4b7e79"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_athletics_small": {
+      "recipe": "skill_icon:4",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "f06f07ead55acc96f35df6d189e04d5ae5055074ba6059a567ef79bcbc2bd614",
+      "baked_uexp_sha256": "5bbc1e3c193e62bfbedf1f1575fa715ef478e37b958e147708878fc63e434a3e"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_blade_small": {
+      "recipe": "skill_icon:5",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "c92add54b23e83e266775d39a97fa839f62bf253d6b0435fd2a7c673c892c22b",
+      "baked_uexp_sha256": "24dd3835ca84ebf208c62d6e9413266363aeb3be4f36a37d11957bd68c6752a7"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_block_small": {
+      "recipe": "skill_icon:6",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "c3559f1579d192a21580b985769143a7e03137cf610eb7121c235efecc0f90b9",
+      "baked_uexp_sha256": "d9d0ea7c14e2b8c37031076b65beec76a3f0313b6698acf5d22d0ec92c7354cb"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_blunt_small": {
+      "recipe": "skill_icon:7",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "433c98efda68d555187ea98609113ebfb10f728a116ad0009abe401bcce7b34f",
+      "baked_uexp_sha256": "e9c10a20c0e7da322b47dfcc4777e14bb840cfa8f7cb27c83506416865312dc0"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_conjuration_small": {
+      "recipe": "skill_icon:8",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "ec63fe92c1eb19fe6512fb8787f30e8d04201c5edf8d7d6dadf648f52798636b",
+      "baked_uexp_sha256": "2b067d3a8696b92a187dc79a5d1ab01659090a28b7c0aa653e729cc4657a93e9"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_destruction_small": {
+      "recipe": "skill_icon:9",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "0e6856aa1010dfa8cc61d128a8f1466e32e39cd5d41c4c51ab5757e6ceb3e978",
+      "baked_uexp_sha256": "44096bc402c4be0c3caf411e75bcf77932b625438d162edca5550399910d635f"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_hand_to_hand_small": {
+      "recipe": "skill_icon:10",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "87e199c2aedbeab384e6429d8064840df19fac411b1f8d6fbc1382454b853efa",
+      "baked_uexp_sha256": "b2576bab8b48236c3835628a30c3c254faccd8d264c9ab3da777c62e677217fe"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_heavy_armor_small": {
+      "recipe": "skill_icon:11",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "ab361540e5c46b0481af3e8e6a5e1e343569b8fd85b6f6da0848ff10d7a1388b",
+      "baked_uexp_sha256": "668eb9c6056e5d198b500f002bdd58c57a5c3cbc1fb4b284072ef93eaa32b50c"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_illusion_small": {
+      "recipe": "skill_icon:12",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "78d1a04e7213660d8042b916b9be9007653960d707bbeebeb137b462167ca021",
+      "baked_uexp_sha256": "ec8a3f53f2befcbdebb591b898089aabf270c93a69ce33efa3f0e97bea354511"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_light_armor_small": {
+      "recipe": "skill_icon:13",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "987746ee95a4f273ce01eb09437acc1ec80af29bbf14dfc442324785345ca62a",
+      "baked_uexp_sha256": "633c1099c3b7ef769fbfb942d44b70ed8162c57a7b7d755dbc050af59653d554"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_marksman_small": {
+      "recipe": "skill_icon:14",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "f423b83e6a4d99f996409b4d80311b4318ece7beaed89e2380a1b2e693e1a8a1",
+      "baked_uexp_sha256": "ce66de5b232669554f4a269d684208aa5021cb7865290f2a309c79d09fedc2b6"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_mercantile_small": {
+      "recipe": "skill_icon:15",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "ef3aa84057cd93f961ba3d89a08a3f8cd5e3d67f9d48672a46bf35e1d1a2da5f",
+      "baked_uexp_sha256": "89d26d22e5c923b52f45c3ef5920550ce4280c5a0550cb0a2f5f2867b15dccff"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_mysticism_small": {
+      "recipe": "skill_icon:16",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "8a849d0e55280c9905865ba2d2383bc14a99231052d3367591c4d3486749c67b",
+      "baked_uexp_sha256": "1e7c548539e24b2ff9276b4f73e112a9e9b8f1bce259281793c1a1740f73de6c"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_restoration_small": {
+      "recipe": "skill_icon:17",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "fa033617eed9971febd96adcd8a4ec35ae8dcea0928a64d97c80de61be188dea",
+      "baked_uexp_sha256": "d6d8767a3577ede7aef2942a87f4bd6fdc81e5ee256a4464959de3c0d9375da8"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_security_small": {
+      "recipe": "skill_icon:18",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "b3f10383e3cd748a29fc2166acc7dfe250fc87580906200d9ce4c970a9e479f9",
+      "baked_uexp_sha256": "9ec094abd145721fe909ae29bf73e8f94f2feef616351913f4fbc01d083caf47"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_sneak_small": {
+      "recipe": "skill_icon:19",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "60497d8716dc47356da3da47d9607b1fe3bf9fd9fd5e3a40ff5df2adca2c4b1d",
+      "baked_uexp_sha256": "2936393803399ff9bb2e93480e9b409cc8f4e4f92b27c6e6fba33b3948ab7d8c"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_speechcraft_small": {
+      "recipe": "skill_icon:20",
+      "style": [
+        "frame"
+      ],
+      "stock_uexp_sha256": "58aecbab5b1525dd17c323e6f5e83f49d3f499af89ca781d7a51b377ba3c57c2",
+      "baked_uexp_sha256": "4a2fd2ec51f2bdfa9d04ad2c11b78f205579276cbb9e2d40aadd91956a2ac4a5"
+    },
     "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_amulet_of_king": {
       "recipe": "quest_icon",
       "style": [
@@ -2529,7 +3068,7 @@
   "skipped": [],
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "413312b275f88815d62d1137fb1f2800e460e7f3227d92ba6d8427be6cf7aa74",
-    "MRCustom_P.ucas": "9510b218479dca6495894d5fc2d7322d673d6fd2bdfbd8263aa88ec89566d8b7"
+    "MRCustom_P.utoc": "56446176d71f8744debafb011941f951b6588bf80aae5978d370f2e3be18be77",
+    "MRCustom_P.ucas": "e9bd5a202e88a343c5045343ded1a3edced7068cbbb761d1615ee0c516804d10"
   }
 }

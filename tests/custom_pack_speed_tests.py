@@ -33,6 +33,7 @@ sys.path.insert(0, str(root / "tools"))
 import pack_builder.pipeline as mdp  # noqa: E402
 
 BC3_DDS = b"DDS " + bytes(8) + (4).to_bytes(4, "little") * 2 + bytes(64) + b"DXT5" + bytes(40) + bytes(16)
+BC1_DDS = BC3_DDS[:84] + b"DXT1" + BC3_DDS[88:128] + bytes(8)
 MASK_DIR = "Art/UI/FakeMasks"   # where the fake retoc puts the glyph masks (they are listed by name only)
 NEEDED = sorted({Path(a).name for a in mdp.TEXTURES} | {n for names in mdp.GLYPH_MASKS.values() for n in names}
                 | {m for m, _ in getattr(mdp, "PANEL_MASKS", {}).values()})   # Phase 7: the Enchanting panel's paper mask
@@ -88,7 +89,9 @@ class FakeTools:
     def export(self, uasset, dds):
         self.exports.append(Path(uasset))
         Path(dds).parent.mkdir(parents=True, exist_ok=True)
-        Path(dds).write_bytes(BC3_DDS)   # Phase 4 checks the stock texture is BC3 and the result keeps its size
+        name = Path(uasset).stem
+        short_skill_icon = name.startswith("T_load_image_") and name.endswith("_small")
+        Path(dds).write_bytes(BC1_DDS if short_skill_icon else BC3_DDS)
 
     def inject(self, uasset, dds, out_uasset):
         self.injects.append(Path(uasset))

@@ -75,7 +75,7 @@ check(sorted(alchemy_rows) == sorted(ALCHEMY), "the three Alchemy textures are s
 for name, (menu, row) in alchemy_rows.items():
     check(menu == "alchemy" and row["recipe"] == "alchemy", f"{name}: alchemy.json, recipe alchemy ({menu}, {row['recipe']})")
     check(row["colours"] == ["alchemyMetal", "alchemyStone"], f"{name}: reads alchemyMetal and alchemyStone ({row['colours']})")
-check(len(rows) == 283, f"283 assets (C.6: + 61 Quests rows; C4-9: + the Sigil Stone menu and row blueprints; C2P2: + the Spell Purchase menu and row blueprints; C.3: + 4 Alchemy filter textures; accent colours: + 4 title blueprints) after 28b, C.2 (+14), the 2026-11-13 Inventory bakes, RMI-096 popups and RMI-097 tabs, RMI-091 (+5) ({len(rows)})")
+check(len(rows) == 355, f"355 assets (C.7 Character adds 72 rows; found {len(rows)})")
 
 # ---- 3. the recipe on a synthetic BC3 texture: bronze top half, green-grey stone bottom half, a soft alpha ----
 try:
@@ -191,6 +191,7 @@ with tempfile.TemporaryDirectory() as temp:
 
 # ---- 6. 69 baked, 0 skipped, without owner art (fakes of custom_pack_speed_tests.py) ----
 BC3_DDS = b"DDS " + bytes(8) + (4).to_bytes(4, "little") * 2 + bytes(64) + b"DXT5" + bytes(40) + bytes(16)
+BC1_DDS = BC3_DDS[:84] + b"DXT1" + BC3_DDS[88:128] + bytes(8)
 
 
 def write_asset(folder, asset):
@@ -226,7 +227,9 @@ class Fake:
 
     def export(self, uasset, dds):
         Path(dds).parent.mkdir(parents=True, exist_ok=True)
-        Path(dds).write_bytes(BC3_DDS)
+        name = Path(uasset).stem
+        short_skill_icon = name.startswith("T_load_image_") and name.endswith("_small")
+        Path(dds).write_bytes(BC1_DDS if short_skill_icon else BC3_DDS)
 
     def inject(self, uasset, dds, out):
         Path(out).parent.mkdir(parents=True, exist_ok=True)
@@ -256,8 +259,8 @@ try:
         with contextlib.redirect_stdout(io.StringIO()):
             manifest = pipe.build(SimpleNamespace(retoc=retoc, paks=temp / "Paks", ddstools=None), temp / "out",
                                   art=temp / "no-art")
-        check(len(manifest["textures"]) == 283 and manifest["skipped"] == [],
-              f"a build without owner art: 283 baked, 0 skipped ({len(manifest['textures'])}, {len(manifest['skipped'])} skipped)")
+        check(len(manifest["textures"]) == 355 and manifest["skipped"] == [],
+              f"a build without owner art: 355 baked, 0 skipped ({len(manifest['textures'])}, {len(manifest['skipped'])} skipped)")
         check(manifest["style"].get("alchemyMetal") == METAL and manifest["style"].get("alchemyStone") == STONE,
               "the manifest style records alchemyMetal and alchemyStone")
 except Exception as error:   # noqa: BLE001

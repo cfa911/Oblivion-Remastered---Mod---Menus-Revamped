@@ -134,6 +134,7 @@ with tempfile.TemporaryDirectory() as temp:
 
 # ---- 5. a faked build bakes both materials and records the three keys ----
 BC3_DDS = b"DDS " + bytes(8) + (4).to_bytes(4, "little") * 2 + bytes(64) + b"DXT5" + bytes(40) + bytes(16)
+BC1_DDS = BC3_DDS[:84] + b"DXT1" + BC3_DDS[88:128] + bytes(8)
 
 
 def write_asset(folder, asset):
@@ -166,7 +167,9 @@ class Fake:
 
     def export(self, uasset, dds):
         Path(dds).parent.mkdir(parents=True, exist_ok=True)
-        Path(dds).write_bytes(BC3_DDS)
+        name = Path(uasset).stem
+        short_skill_icon = name.startswith("T_load_image_") and name.endswith("_small")
+        Path(dds).write_bytes(BC1_DDS if short_skill_icon else BC3_DDS)
 
     def inject(self, uasset, dds, out):
         Path(out).parent.mkdir(parents=True, exist_ok=True)

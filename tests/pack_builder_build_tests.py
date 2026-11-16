@@ -127,7 +127,9 @@ class FakeTools:
 
     def export(self, uasset, out):
         Path(out).parent.mkdir(parents=True, exist_ok=True)
-        Path(out).write_bytes(dds(b"DX10", 71) if Path(uasset).stem == Path(BAD).name else dds())
+        name = Path(uasset).stem
+        short_skill_icon = name.startswith("T_load_image_") and name.endswith("_small")
+        Path(out).write_bytes(dds(b"DX10", 71) if short_skill_icon or name == Path(BAD).name else dds())
 
     def inject(self, uasset, dds_path, out_uasset):
         self.injects.append(Path(uasset).stem)
