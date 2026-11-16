@@ -14,6 +14,8 @@
 
 namespace enchanting
 {
+	bool SpellmakingSearchAvailable();
+	UE::UObject* SpellmakingWidget(); // game thread
 	void Tick();                                                          // every frame, from core::Tick
 	void Controller(std::uint16_t& a_buttons, short& a_lx, short& a_ly); // L3 on an open altar = our keyboard on its name box
 	menus::Menu NamingMenu();                                             // kEnchantName / kSpellName while naming, else kNone

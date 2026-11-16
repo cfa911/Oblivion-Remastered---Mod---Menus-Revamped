@@ -42,11 +42,13 @@ namespace search
 		}
 		const bool alch = !cont && a_menu == menus::Menu::kNone && alchemy::Open();
 		if (!alch) { BarTick(menus::Menu::kAlchemy, now); BarTick(menus::Menu::kAlchemyFilters, now); } // clear hidden bar and cursor hit box after closing
+		const bool spellmaking = a_menu == menus::Menu::kNone && MenuEnabled(menus::Menu::kSpellmaking);
+		BarTick(menus::Menu::kSpellmaking, now);
 		const bool map = !cont && a_menu == menus::Menu::kNone && worldmap::Open();
 		const bool quest = !cont && a_menu == menus::Menu::kNone && quests::Open();   // the quests tab: a bar and the quest list
 		if (g_typing.load()) {
 			const auto typed = static_cast<menus::Menu>(g_typingMenu.load());
-			if ((typed != a_menu && !(cont && IsSide(typed)) && !(quest && typed == menus::Menu::kQuests) && !(map && typed == menus::Menu::kWorldMap) && !(alch && (typed == menus::Menu::kAlchemy || typed == menus::Menu::kAlchemyFilters))) || g_external.load()) g_typing = false;
+			if ((typed != a_menu && !(spellmaking && typed == menus::Menu::kSpellmaking) && !(cont && IsSide(typed)) && !(quest && typed == menus::Menu::kQuests) && !(map && typed == menus::Menu::kWorldMap) && !(alch && (typed == menus::Menu::kAlchemy || typed == menus::Menu::kAlchemyFilters))) || g_external.load()) g_typing = false;
 		}
 		if (cont) {
 			for (const auto side : { menus::Menu::kContainerYours, menus::Menu::kContainerTheirs }) {
@@ -56,6 +58,8 @@ namespace search
 		} else if (alch) {
 			BarTick(menus::Menu::kAlchemy, now);
 			BarTick(menus::Menu::kAlchemyFilters, now);
+		} else if (spellmaking) {
+			FilterTick(menus::Menu::kSpellmaking, now);
 		} else if (map) {
 			BarTick(menus::Menu::kWorldMap, now);
 		} else if (quest) {
@@ -91,6 +95,7 @@ namespace search
 		if (m != menus::Menu::kNone) return m;
 		if (alchemy::FilterSearchAvailable() && MenuEnabled(menus::Menu::kAlchemyFilters)) return menus::Menu::kAlchemyFilters;
 		if (alchemy::Open()) return MenuEnabled(menus::Menu::kAlchemy) ? menus::Menu::kAlchemy : menus::Menu::kNone;
+		if (MenuEnabled(menus::Menu::kSpellmaking)) return menus::Menu::kSpellmaking;
 		if (searchcfg::Get().container && container::Open()) return menus::Menu::kContainerYours;
 		if (searchcfg::Get().worldMap && worldmap::Open()) return menus::Menu::kWorldMap;
 		return searchcfg::Get().quests && quests::Open() ? menus::Menu::kQuests : menus::Menu::kNone;

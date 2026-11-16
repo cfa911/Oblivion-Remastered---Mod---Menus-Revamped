@@ -40,6 +40,9 @@ for path in (ROOT / "tools/menus").glob("*.json"):
 
 PAGE_COLOURS = ["frame", "panel", "parchmentDark", "parchmentLight"]
 WANT = {
+    "Art/UI/Modern/GameMenuLayer/Spellmaking/T_Spellmaking_LeftPaperBackground": (
+        "paper_invert:1.5", ["panel", "parchmentDark", "parchmentLight"]
+    ),
     "Art/UI/Common/Backgrounds/T_UI_MenuLeft": ("paper_invert:3:0.7", ["panel", "parchmentDark", "parchmentLight"]),
     "Art/UI/Common/Backgrounds/T_UI_PlayerMenu_Background": ("page_invert:3:0.7", PAGE_COLOURS),
     "Art/UI/Modern/GameMenuLayer/magic/T_MagicBackground": ("page_invert:3:0.7", PAGE_COLOURS),

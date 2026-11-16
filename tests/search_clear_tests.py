@@ -19,8 +19,8 @@ prefix = r'''
 using Clock = std::chrono::steady_clock;
 using namespace std::chrono_literals;
 namespace menus {
-enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests , kWorldMap, kAlchemy,kAlchemyName,kAlchemyFilters,kEnchantName,kSpellName};
-constexpr std::size_t kMenuCount = 10;
+enum class Menu { kNone, kInventory, kMagic, kContainerYours, kContainerTheirs, kQuests , kWorldMap, kAlchemy,kAlchemyName,kAlchemyFilters,kEnchantName,kSpellName,kSpellmaking};
+constexpr std::size_t kMenuCount = 13;
 bool menuMode = false;
 bool AnyOpen() { return menuMode; }
 const char* Name(Menu) { return "menu"; }
@@ -39,10 +39,11 @@ namespace worldmap { bool Open() { return false; } }
 namespace alchemy { bool Open() { return false; } }
 namespace quests { bool open=false; bool Open() { return open; } }
 namespace search {
-std::string queries[10], visible[10];
+std::string queries[menus::kMenuCount], visible[menus::kMenuCount];
 std::atomic<bool> g_sideShown[6], g_typing{false}, g_external{false};
 std::atomic<int> g_typingMenu{0};
-bool enabled=true;
+bool enabled=true, spellmaking=false;
+bool MenuEnabled(menus::Menu m) { return m == menus::Menu::kSpellmaking && spellmaking; }
 bool IsSide(menus::Menu m) { return m==menus::Menu::kContainerYours || m==menus::Menu::kContainerTheirs; }
 bool SideShownNow(menus::Menu) { return true; }
 bool Enabled(menus::Menu) { return enabled; }
@@ -135,6 +136,23 @@ check(keyboard::g_mirror,"effect-search keyboard opens on left so effects stay v
 keyboard::g_open=false;
 keyboard::Open(Menu::kAlchemy,8);
 check(!keyboard::g_mirror,"ingredient-search keyboard keeps its existing right-side placement");
+search::SetExternalInput(false);
+search::spellmaking=true;
+menus::menuMode=true;
+search::SetText(Menu::kSpellmaking,"bound");
+search::SetText(Menu::kSpellName,"My Spell");
+search::g_typing=true;
+search::g_typingMenu=int(Menu::kSpellmaking);
+search::Tick(Menu::kNone);
+check(search::visible[int(Menu::kSpellmaking)]=="bound","Spellmaking routes the query to the Effects filter");
+check(search::g_typing,"Spellmaking keeps text capture while the Effects search is available");
+search::spellmaking=false;
+search::Tick(Menu::kNone);
+check(!search::g_typing,"opening Spellmaking's editor releases search text capture");
+check(search::GetText(Menu::kSpellName)=="My Spell","the Effects search keeps the spell name separate");
+menus::menuMode=false;
+search::Tick(Menu::kNone);
+check(search::GetText(Menu::kSpellmaking).empty(),"returning to gameplay clears the Effects search");
 std::cout<<checks<<" checks, "<<failed<<" failures\n";
 return failed ? 1 : 0;
 }

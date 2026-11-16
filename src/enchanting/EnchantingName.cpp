@@ -30,6 +30,7 @@ namespace enchanting
 			{ L"/Game/UI/Modern/GameMenuLayer/sigilstone/WBP_ModernMenu_SigilStoneMenu.WBP_ModernMenu_SigilStoneMenu_C",
 			  "EnchantedItem_NameBox", menus::Menu::kEnchantName },   // C4-11: the same rename switch and name box
 		};
+		std::atomic<bool> g_spellmakingSearch{ false };
 		std::atomic<int>  g_openAltar{ -1 };
 		std::atomic<bool> g_canName{ false }, g_nameMode{ false }, g_nameKeyboardRequest{ false };
 		std::string       g_nameApplied, g_nameInitial;
@@ -44,9 +45,9 @@ namespace enchanting
 			return p && reflect::IsLive(p) ? p : nullptr;
 		}
 
-		bool Active(UE::UObject* a_menu)
+		bool Flag(UE::UObject* a_menu, const char* a_name)
 		{
-			const auto off = a_menu && a_menu->GetClass() ? reflect::Offset(a_menu->GetClass(), "bIsActive") : -1;
+			const auto off = a_menu && a_menu->GetClass() ? reflect::Offset(a_menu->GetClass(), a_name) : -1;
 			return off >= 0 && *reflect::At<bool>(a_menu, off);
 		}
 
@@ -136,7 +137,7 @@ namespace enchanting
 				if (!a_altar.cls) return nullptr;
 				pe::WatchPost(a_altar.cls, &OnMenuEvent);
 				for (auto* w : reflect::Instances(a_altar.cls)) {   // once: already open when its class first loads
-					if (Active(w)) { a_altar.menu = reflect::Hold(w); break; }
+					if (Flag(w, "bIsActive")) { a_altar.menu = reflect::Hold(w); break; }
 				}
 			}
 			return reflect::Get(a_altar.menu);
@@ -149,6 +150,15 @@ namespace enchanting
 		return open >= 0 && g_nameMode.load() ? g_altars[open].target : menus::Menu::kNone;
 	}
 
+	bool SpellmakingSearchAvailable() { return g_spellmakingSearch.load(); }
+
+	UE::UObject* SpellmakingWidget()
+	{
+		const int open = g_openAltar.load();
+		return open >= 0 && g_altars[open].target == menus::Menu::kSpellName ?
+			reflect::Get(g_altars[open].menu) : nullptr;
+	}
+
 	void Tick()
 	{
 		if (!reflect::Ok()) return;
@@ -156,14 +166,15 @@ namespace enchanting
 		UE::UObject* menu = nullptr;
 		for (int i = 0; i < static_cast<int>(std::size(g_altars)) && open < 0; ++i) {
 			auto* m = Menu(g_altars[i]);
-			if (m && Active(m)) { open = i; menu = m; }
+			if (Flag(m, "bIsActive")) { open = i; menu = m; }
 		}
 		if (open != g_openAltar.load()) {
 			g_openAltar = open;
 			g_nameMode = false; g_nameKeyboardRequest = false; g_canName = false;
 		}
-		if (open < 0) return;
-		EnchantNameTick(menu, Field(menu, g_altars[open].box), g_altars[open].target);
+		if (open >= 0) EnchantNameTick(menu, Field(menu, g_altars[open].box), g_altars[open].target);
+		g_spellmakingSearch = open >= 0 && g_altars[open].target == menus::Menu::kSpellName &&
+			!g_nameMode.load() && !Flag(menu, "bIsEditingEffect") && !Flag(menu, "Is RenameBoxFocused");
 	}
 
 	void Controller(std::uint16_t& a_buttons, short&, short&)

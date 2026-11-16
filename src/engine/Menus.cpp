@@ -139,6 +139,7 @@ namespace menus
 		case Menu::kAlchemyName: return "potion name";
 		case Menu::kEnchantName: return "enchanted item name";
 		case Menu::kSpellName: return "spell name";
+		case Menu::kSpellmaking: return "spellmaking effects";
 		case Menu::kAlchemy: return "alchemy";
 		case Menu::kAlchemyFilters: return "alchemy effect filters";
 		case Menu::kWorldMap: return "world map";

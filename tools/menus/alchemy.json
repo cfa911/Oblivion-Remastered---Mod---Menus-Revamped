@@ -20,7 +20,7 @@
     {"asset": "UI/Modern/GameMenuLayer/Alchemy/Filters/WBP_ModernMenu_Alchemy_FilterEffectButton", "recipe": "bp_colour:WBP_ModernMenu_Alchemy_FilterEffectButton", "colours": ["rowText"], "shared_with": ["Alchemy only"]},
     {"asset": "UI/Modern/GameMenuLayer/Alchemy/WBP_ModernMenu_UstensilEntry", "recipe": "bp_colour:WBP_ModernMenu_UstensilEntry", "colours": ["rowText"], "shared_with": ["Alchemy only"]},
     {"asset": "UI/Modern/GameMenuLayer/Alchemy/WBP_ModernMenu_AlchemyItemEntry", "recipe": "bp_colour:WBP_ModernMenu_AlchemyItemEntry", "colours": ["rowText"], "shared_with": ["Alchemy only"]},
-    {"asset": "Art/UI/Modern/GameMenuLayer/Spellmaking/T_Spellmaking_LeftPaperBackground", "recipe": "parchment", "colours": ["parchmentDark", "parchmentLight"], "shared_with": ["Spellmaking"]},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Spellmaking/T_Spellmaking_LeftPaperBackground", "recipe": "paper_invert:1.5", "colours": ["panel", "parchmentDark", "parchmentLight"], "shared_with": ["Spellmaking"]},
     {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_paper_bg", "recipe": "parchment", "colours": ["parchmentDark", "parchmentLight"], "shared_with": []},
     {"asset": "Art/UI/Modern/GameMenuLayer/Alchemy/T_Alchemy_Right_apparatis", "recipe": "parchment", "colours": ["parchmentDark", "parchmentLight"], "shared_with": []},
     {"asset": "Art/UI/Common/Backgrounds/T_UI_MenuLeft", "recipe": "paper_invert:3:0.7", "colours": ["panel", "parchmentDark", "parchmentLight"], "shared_with": ["Container", "Recharge", "Repair", "Sigil Stone", "Training", "Help"]},
