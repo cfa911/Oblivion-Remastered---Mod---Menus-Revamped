@@ -26,7 +26,8 @@ namespace search::detail
 			// (Step C.1, owner 2026-11-12: "use the styling of the inv search bar, dark. It is brown rn")
 			const auto preset = mrconfig::Get().stylePreset;
 			const auto& base = uistyle::SearchFor(a_menu == menus::Menu::kInventory || a_menu == menus::Menu::kMagic ||
-				a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters || a_menu == menus::Menu::kSpellmaking ||
+				a_menu == menus::Menu::kQuests || a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters ||
+				a_menu == menus::Menu::kSpellmaking ||
 				a_menu == menus::Menu::kContainerYours || a_menu == menus::Menu::kContainerTheirs, preset);
 			// Custom (C.3 round 2, owner 2026-11-14): the Filters "Search effects" box like the filter chips: the run-time box fill
 			// and outline (Pack Builder Runtime tab); the ingredient bar keeps the Inventory look
@@ -139,7 +140,7 @@ namespace search::detail
 			return true;
 		}
 
-		// the quests tab's bar sits where the Magic menu's does; what the canvas it went into and the quest panels measure is logged, to check that
+		// the Quests search bar sits in the list title row; log its canvas and the panel measures for layout checks
 		void LogQuestLayout(UE::UObject* a_canvas)
 		{
 			double x = 0, y = 0, w = 0, h = 0;
@@ -329,10 +330,12 @@ namespace search::detail
 		if (!OwnBarOn() || !reflect::Ok()) return;
 
 		// RMI-039: the ingredient bar stays drawn while LB/RB focus chips or sort icons; typing into it stays blocked there
-		const bool drawn = a_menu == menus::Menu::kAlchemy ? searchcfg::Get().alchemy && alchemy::SearchShown() : MenuEnabled(a_menu);
+		const bool drawn = a_menu == menus::Menu::kAlchemy ? searchcfg::Get().alchemy && alchemy::SearchShown() :
+			a_menu == menus::Menu::kQuests ? g_questSearchShown.load() : MenuEnabled(a_menu);
 		if (!drawn || ((a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) && !alchemy::Open())) {
 			if (g_typingMenu.load() == static_cast<int>(a_menu)) g_typing = false;
-			if (IsSide(a_menu) || a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters || a_menu == menus::Menu::kSpellmaking) {
+			if (IsSide(a_menu) || a_menu == menus::Menu::kQuests || a_menu == menus::Menu::kAlchemy ||
+				a_menu == menus::Menu::kAlchemyFilters || a_menu == menus::Menu::kSpellmaking) {
 				HideBar(a_menu);
 				std::scoped_lock lock(g_qMutex);
 				g_barPx[static_cast<int>(a_menu)] = {};

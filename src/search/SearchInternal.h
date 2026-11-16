@@ -21,6 +21,7 @@ namespace search::detail
 	extern bool              g_selAll[menus::kMenuCount];   // Ctrl+A: the whole text is selected - under g_qMutex
 	extern std::atomic<bool> g_typing;
 	extern std::atomic<int>  g_typingMenu;
+	extern std::atomic<bool> g_questSearchShown;   // the Quest list is visible and its search is enabled
 	extern std::atomic<bool> g_sideShown[menus::kMenuCount];   // the container / barter menu's sides that are on the screen now
 	extern double            g_canvasW;   // the container menu's root canvas, menu units
 	extern std::atomic<bool> g_external;   // the controller keyboard has the text: typed keys are not taken

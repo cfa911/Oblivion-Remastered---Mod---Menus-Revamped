@@ -1,0 +1,103 @@
+{
+  "menu": "Quests",
+  "note": "Step C.6: use the Quests-specific text writers. The icon manifest contains the blue stock emblems with substantial alpha coverage. Existing gold art and quest-object illustrations keep their stock packages.",
+  "assets": [
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_amulet_of_king", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_arena", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_bruma", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_daedra", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_dark_brotherhood", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_dragonfires", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_fighters_guild", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_imperial_city", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_kvatch", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_leyawiin", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_mages_guild", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_master_trainer", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_miscarcand", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_miscellaneous", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_mythic_dawn", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_oblivion_gate", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_paradise", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_settlements_quest_icon", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_thieves_guild", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_tiber_septim_s_armor", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_weynon_priory", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/ndquest/T_iconndivines", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_icon_deak01", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_icon_deak02", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_icon_dem01", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_icon_dem02", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse01", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse02", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse03", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse04", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse05", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse06", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse07", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse08", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse09", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse10", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse11", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse12", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse13", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconsemisc", "recipe": "quest_icon", "colours": ["effectIcon", "menuTitle"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_ListViewItem_Decorator", "recipe": "laurel_tint:effectIcon", "colours": ["effectIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_DecoratedSeparator", "recipe": "laurel_tint:effectIcon", "colours": ["effectIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestEntry_FocusMarker", "recipe": "laurel_tint:listHighlight:255", "colours": ["listHighlight"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_ActiveQuest_Icon", "recipe": "laurel_tint:effectIcon", "colours": ["effectIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_ActiveQuest_Decorator", "recipe": "laurel_tint:effectIcon:42", "colours": ["effectIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_SelectedDarkBackgroundFull", "recipe": "flat:accentValue", "colours": ["accentValue"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_FlowerDecoration_Left_TODELETE", "recipe": "laurel_tint:effectIcon", "colours": ["effectIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_FlowerDecoration_Right_TODELETE", "recipe": "laurel_tint:effectIcon", "colours": ["effectIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_DecoratedSeparator", "recipe": "laurel_tint:effectIcon", "colours": ["effectIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_Separator", "recipe": "laurel_tint:effectIcon", "colours": ["effectIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_VerticalSeparator_Left", "recipe": "laurel_tint:effectIcon", "colours": ["effectIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_VerticalSeparator_Right", "recipe": "laurel_tint:effectIcon", "colours": ["effectIcon"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_PaperBackground", "recipe": "paper_invert:1.5:0.7", "colours": ["panel", "parchmentDark", "parchmentLight"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_FramedBackground2", "recipe": "paper_invert:1.5:0.7", "colours": ["panel", "parchmentDark", "parchmentLight"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_PaperBackground", "recipe": "paper_invert:1.5:0.7", "colours": ["panel", "parchmentDark", "parchmentLight"], "shared_with": []},
+    {"asset": "UI/Original/GameMenuLayer/Quest/Prefabs/WBP_Modern_QuestEntry", "recipe": "bp_colour:WBP_Modern_QuestEntry", "colours": ["rowText"], "shared_with": []},
+    {"asset": "UI/Original/GameMenuLayer/Quest/WBP_Modern_QuestDetailPanel", "recipe": "bp_colour:WBP_Modern_QuestDetailPanel", "colours": ["menuTitle", "rowText"], "shared_with": []},
+    {"asset": "UI/Original/GameMenuLayer/Quest/WBP_Modern_QuestHistoryPanel", "recipe": "bp_colour:WBP_Modern_QuestHistoryPanel", "colours": ["menuTitle"], "shared_with": []},
+    {"asset": "UI/Original/GameMenuLayer/Quest/Prefabs/WBP_Modern_QuestHistoryCarouselEntry", "recipe": "bp_colour:WBP_Modern_QuestHistoryCarouselEntry", "colours": ["rowText"], "shared_with": []},
+    {"asset": "UI/Original/GameMenuLayer/Quest/data/DT_QuestMenu_RichTextStyle_DetailsPanel", "recipe": "bp_colour:DT_QuestMenu_RichTextStyle_DetailsPanel", "colours": ["Skin.emphasisInk", "rowText"], "shared_with": []},
+    {"asset": "UI/Original/GameMenuLayer/Quest/data/DT_QuestMenu_RichTextStyle_CarouselEntry", "recipe": "bp_colour:DT_QuestMenu_RichTextStyle_CarouselEntry", "colours": ["Skin.emphasisInk", "rowText"], "shared_with": []}
+  ],
+  "blueprint_literals": {
+    "WBP_Modern_QuestListPanel": [{"offset": 36, "type": "int32", "stock": 6, "value": 4, "widget": "QuestListPanel root Slots[1] (round four, owner 2026-11-16: tabs drawn on top of the parchment; stock slots 5,6,7,4,3 -> 5,4,6,7,3)"}, {"offset": 40, "type": "int32", "stock": 7, "value": 6, "widget": "QuestListPanel root Slots[2] (tab switcher after the parchment)"}, {"offset": 44, "type": "int32", "stock": 4, "value": 7, "widget": "QuestListPanel root Slots[3] (tab inputs after the parchment)"}]
+  },
+  "import_swaps": {
+    "WBP_Modern_QuestHistoryPanel": [
+      {"from_package": "/Game/Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_FlowerDecoration_Left", "from_object": "T_QuestHistory_FlowerDecoration_Left", "from_class": "Texture2D", "to_package": "/Game/Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_FlowerDecoration_Left_TODELETE", "to_object": "T_QuestHistory_FlowerDecoration_Left_TODELETE", "to_class": "Texture2D"},
+      {"from_package": "/Game/Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_FlowerDecoration_Right", "from_object": "T_QuestHistory_FlowerDecoration_Right", "from_class": "Texture2D", "to_package": "/Game/Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_FlowerDecoration_Right_TODELETE", "to_object": "T_QuestHistory_FlowerDecoration_Right_TODELETE", "to_class": "Texture2D"}
+    ]
+  },
+  "blueprint_colours": {
+    "WBP_Modern_QuestEntry": [
+      {"offset": 6740, "stock": [0.0999, 0.0561, 0.0395, 1.0], "colour": "rowText", "widget": "QuestName"}
+    ],
+    "WBP_Modern_QuestDetailPanel": [
+      {"offset": 8524, "stock": [0.1195, 0.0704, 0.0369, 1.0], "colour": "rowText", "widget": "QuestDetails default colour"},
+      {"offset": 9146, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText", "widget": "QuestDate"},
+      {"offset": 9199, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText", "widget": "QuestDate_1"},
+      {"offset": 9299, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "menuTitle", "widget": "QuestName"}
+    ],
+    "WBP_Modern_QuestHistoryPanel": [
+      {"offset": 20624, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "menuTitle", "widget": "QuestName"}
+    ],
+    "WBP_Modern_QuestHistoryCarouselEntry": [
+      {"offset": 11268, "stock": [0.1195, 0.0704, 0.0369, 1.0], "colour": "rowText", "widget": "QuestDetails default colour"},
+      {"offset": 11735, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText", "widget": "Date"},
+      {"offset": 11855, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText", "widget": "Year"}
+    ],
+    "DT_QuestMenu_RichTextStyle_DetailsPanel": [
+      {"offset": 69, "stock": [0.1195, 0.0704, 0.0369, 1.0], "colour": "rowText", "widget": "row Default"},
+      {"offset": 425, "stock": [0.1195, 0.0704, 0.0369, 1.0], "colour": "Skin.emphasisInk", "widget": "row RT_BlueMed"}
+    ],
+    "DT_QuestMenu_RichTextStyle_CarouselEntry": [
+      {"offset": 69, "stock": [0.1195, 0.0704, 0.0369, 1.0], "colour": "rowText", "widget": "row Default"},
+      {"offset": 425, "stock": [0.1195, 0.0704, 0.0369, 1.0], "colour": "Skin.emphasisInk", "widget": "row RT_BlueMed"}
+    ]
+  }
+}

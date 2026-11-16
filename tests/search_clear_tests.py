@@ -27,7 +27,7 @@ const char* Name(Menu) { return "menu"; }
 }
 namespace logger { template<class... T> void debug(T&&...) {} }
 namespace searchcfg {
-struct Values { bool clearTextOnGameplay = true; } config;
+struct Values { bool clearTextOnGameplay = true, quests = true; } config;
 const Values& Get() { return config; }
 }
 namespace kbcfg {
@@ -37,10 +37,11 @@ const Values& Get() { return config; }
 namespace container { bool open=false; bool Open() { return open; } }
 namespace worldmap { bool Open() { return false; } }
 namespace alchemy { bool Open() { return false; } }
-namespace quests { bool open=false; bool Open() { return open; } }
+namespace quests { bool open=false, inspecting=false; bool Open() { return open; }
+bool ListPanel() { return open && !inspecting; } }
 namespace search {
 std::string queries[menus::kMenuCount], visible[menus::kMenuCount];
-std::atomic<bool> g_sideShown[6], g_typing{false}, g_external{false};
+std::atomic<bool> g_sideShown[6], g_typing{false}, g_external{false}, g_questSearchShown{false};
 std::atomic<int> g_typingMenu{0};
 bool enabled=true, spellmaking=false;
 bool MenuEnabled(menus::Menu m) { return m == menus::Menu::kSpellmaking && spellmaking; }
@@ -52,7 +53,10 @@ void SetQuery(menus::Menu m, const std::string& text) { queries[int(m)]=text; }
 void SetText(menus::Menu m, const std::string& text) { SetQuery(m,text); }
 std::string GetText(menus::Menu m) { return queries[int(m)]; }
 void SetExternalInput(bool b) { g_external=b; }
-void BarTick(menus::Menu, Clock::time_point) {}
+bool questBar = false;
+void BarTick(menus::Menu menu, Clock::time_point) {
+    if (menu == menus::Menu::kQuests) questBar = g_questSearchShown;
+}
 void FilterTick(menus::Menu m, Clock::time_point) { visible[int(m)]=queries[int(m)]; }
 '''
 middle = r'''
@@ -89,6 +93,18 @@ check(search::queries[1]=="old" && search::queries[2]=="old","switching Inventor
 search::Tick(Menu::kNone);
 check(search::queries[1]=="old","another in-game menu page does not count as gameplay");
 quests::open=true; search::Tick(Menu::kNone);
+check(search::visible[int(Menu::kQuests)]=="old","Quest list runs the existing filter");
+check(search::questBar,"the Quest list shows its search bar");
+search::g_typing=true;
+search::g_typingMenu=int(Menu::kQuests);
+quests::inspecting=true;
+search::Tick(Menu::kNone);
+check(!search::questBar,"Inspect hides the Quest search bar");
+check(!search::g_typing,"Inspect releases Quest text capture");
+check(search::GetText(Menu::kQuests)=="old","Inspect retains the query");
+quests::inspecting=false;
+search::Tick(Menu::kNone);
+check(search::questBar,"returning from Inspect shows the Quest search bar");
 quests::open=false; menus::menuMode=false; search::Tick(Menu::kNone);
 check(allEmpty(),"return from Quest/menu mode clears all stored searches");
 menus::menuMode=true; search::Tick(Menu::kInventory); fill();

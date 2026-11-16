@@ -19,6 +19,7 @@ namespace search::detail
 	bool              g_selAll[menus::kMenuCount] = {};
 	std::atomic<bool> g_typing{ false };
 	std::atomic<int>  g_typingMenu{ 0 };
+	std::atomic<bool> g_questSearchShown{ false };
 	std::atomic<bool> g_sideShown[menus::kMenuCount];
 	double            g_canvasW = 1920;
 	std::atomic<bool> g_external{ false };

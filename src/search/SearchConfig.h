@@ -35,7 +35,7 @@ namespace searchcfg
 		Place inventoryBar{ 293, 109.5, 482, 36 }, magicBar{ 440, 258, 460, 36 };   // Magic revamp: title row
 		Place yoursBar{ 0, 0, 0, 0 }, theirsBar{ 0, 0, 0, 0 };   // Step C.1: x/y offsets from the side's title-row place; size = the Inventory bar's
 		Place mapBar{ 200, 78, 440, 36 }; // [Map] search bar placement
-		Place questBar{ 294, 110.25, 481, 36 };   // the quests tab: the Magic bar's place before the Magic revamp (above the tabs) unless [Quest] says otherwise
+		Place questBar{ 508, 269, 392, 36 };   // Quest list title row
 		Place takeBar{ 0, 0, 0, 0 };   // the container's own list alone on the screen (nothing to give): same title-row place
 
 		bool ownFilter = true;  // [Filter] bEnabled: filter the lists (and filter again at once when the game rebuilds one)
