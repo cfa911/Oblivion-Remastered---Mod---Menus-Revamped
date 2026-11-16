@@ -1480,10 +1480,11 @@
     "UI/Original/GameMenuLayer/Quest/WBP_Modern_QuestListPanel": {
       "recipe": "bp_colour:WBP_Modern_QuestListPanel",
       "style": [
-        "menuTitle"
+        "menuTitle",
+        "rowText"
       ],
       "stock_uexp_sha256": "3adecc5b8c56982b089d31312b6bcde7dfb531be32be5e343da321ad49186c66",
-      "baked_uexp_sha256": "b304f6d17f985b88419dbed482e9114325776659a45e83158acacbeba2f720c3"
+      "baked_uexp_sha256": "74497d61dbc60c481df9628383f3fce3c8c6cfafdae99de363f13c1e2a6a71d4"
     },
     "UI/Modern/GameMenuLayer/Stats/Page2_Attributes/WBP_ModernMenu_StatsPage2": {
       "recipe": "bp_colour:WBP_ModernMenu_StatsPage2",
@@ -1830,16 +1831,24 @@
       "baked_uexp_sha256": "1ee0c3ff7eabf87432ce0486014d2d9448a770aa3284d0c9b419ea804904d571"
     },
     "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_AvailableQuestTabSelected": {
-      "recipe": "charcoal:quests",
-      "style": [],
+      "recipe": "charcoal_paper:quests",
+      "style": [
+        "panel",
+        "parchmentDark",
+        "parchmentLight"
+      ],
       "stock_uexp_sha256": "63775a1a01f64c4224454b120223b8678afba2dd7e217cf7452b9ad3305fd048",
-      "baked_uexp_sha256": "196bb1eb3e6ebee658f8b9a83a2cfe1dc1576723bfb890a01b0025705ad020ed"
+      "baked_uexp_sha256": "a05c62c375c6996630acf4024f945626bd8838607b9fd840d47f463a07c60f8c"
     },
     "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_CompletedQuestTabSelected": {
-      "recipe": "charcoal:quests",
-      "style": [],
+      "recipe": "charcoal_paper:quests",
+      "style": [
+        "panel",
+        "parchmentDark",
+        "parchmentLight"
+      ],
       "stock_uexp_sha256": "24ade52360e5e60dd12f92c1122e46b955f9c8fc8b64dc90097b34202650a931",
-      "baked_uexp_sha256": "536b405079416cd0594a35a679ba1ace3c33d3671ca49bbf7fafbd3bcf8579aa"
+      "baked_uexp_sha256": "adae70c135f6d4d6f0486e8c93c68a864ff358e651ec73387d446d8925f263bf"
     },
     "Art/UI/Common/Tabs/T_Tab_1": {
       "recipe": "charcoal:arrows",
@@ -1978,12 +1987,549 @@
       "style": [],
       "stock_uexp_sha256": "df037c3ad9ddcecfc63388774dce8dd8c769aae5825cf917f7728d53b16f4535",
       "baked_uexp_sha256": "b0cc2b941a28f97121bea77e346af4b00c4911116b0767173a786cafd045e136"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_amulet_of_king": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "37685dda09bced179b8eca1ab74074bd97b60a1199f6d1cb561f31413c289e8a",
+      "baked_uexp_sha256": "9e3e7837a1a7cb0f1769f906781f97e8a737c1cae0e2e5a53c2766ef9302b1da"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_arena": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "721379efd97057c3d5dda204f515b59d3b3b52678a5f2e7b0a66f744c79d98b3",
+      "baked_uexp_sha256": "5de2023533284c98db6233ef5d726dc3d3252e4045629b3c553359af089f847d"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_bruma": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "0a45714c38990083acf84a88f9e7204b229f468d1a5632e4baeb649bb492f997",
+      "baked_uexp_sha256": "2a7e6559c8cfd5a6d40679cd8bd051f957900ef888681c3b9fd16afe5dc98801"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_daedra": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "6393ddf12167dc00061ca28ad3309d156c92d83a23061bce14655c91c9f530af",
+      "baked_uexp_sha256": "bd16039471d994ac65503928abed03490a2015f694acd97964a9406422f94615"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_dark_brotherhood": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "8eb7caf932c74c1546279a8125ca530c38545789367da509f4c1c589a4975b6f",
+      "baked_uexp_sha256": "5044e0ffb980c8d073fdcb5d70957935522b1b0c81fc6ae9ca1df43f71f86117"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_dragonfires": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "8f0d33aedeb25faef7b2b57583880bb17d3549176f7d7e264d2bed5ee9aa0ca1",
+      "baked_uexp_sha256": "ef1dc8bf5e0cc7167ab6542ab9466041386ba53990006c11809a2ae9023972dc"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_fighters_guild": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "e20f5236cc13ad799e683092f03713b1d03a094d31c5afce384293775bfc5aef",
+      "baked_uexp_sha256": "62a6fe7b87e86280db6284649c62ffc6c59dc5654f583da0298e51c5bde489e6"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_imperial_city": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "821ffecae6ca46f0608f2a88a14db76f7240a743f9dd12fd702129139ce27d4f",
+      "baked_uexp_sha256": "9ca8e240fa357051033bf9672ddb2ebe5a570cf0c65daccd1d91facb937c70dd"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_kvatch": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "0203b07f4c5ff1966ac07413c836bf9931d1fd0706046e8d1300cca4d31432bc",
+      "baked_uexp_sha256": "779b66477de20e1a0d6cc509e6170ed3f5a13119a1e85a8831dbfb77feb3b014"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_leyawiin": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "8ed06800e31e2bede40c07a5cb280114f449e83f1b7a220458422aeaf019edfd",
+      "baked_uexp_sha256": "2bdd0610e074977ba0628002230f63a02099c3f5b4622cb8413178d7dee4f759"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_mages_guild": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "4fa05eb4515a3d98741446bf88be6d0dca0c519580d6752860a52061028b6112",
+      "baked_uexp_sha256": "abd73c81f9b032d50f302fe4fa9f78cce879ee26b7977948a3f208f76810bf57"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_master_trainer": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "6e7b1cee28a31d1999e3c83992c1715af07830acf78cf749afacc9a8243ed22e",
+      "baked_uexp_sha256": "e5c2ec989a4e6b3493b2b9294e6c3618cf8b010422ea4bf0e45853ab2165e26f"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_miscarcand": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "db7b1c3819eb0f0ff3d559579f3cdb9ae60f781f01a426ba1ac4cb376d21503d",
+      "baked_uexp_sha256": "bf6a5d4b4376f4e99c3be23c1fb1eb66b8f484e8b22fb797b30c2fda070baf44"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_miscellaneous": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "4945b4739975fcffe472e8876944bbdf7e177f2f3d3314f9940db881e6194bd6",
+      "baked_uexp_sha256": "50fa801fb43a71519af4172f85aab26ece2741e3e19a1bd5e5d66fb30de10235"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_mythic_dawn": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "f18afc6b46cd7414de5f5ae15885356f005a92983934730052c812d62a6b4841",
+      "baked_uexp_sha256": "b3877ab05c54468a38882fa379f25d6376a3b26a850895d2c145f9ccb5b36b76"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_oblivion_gate": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "22caca11210acb9921da9404f62a7bbbe7268602b5cd5d3ec914df847ae72df6",
+      "baked_uexp_sha256": "103fa899d7509b24648057a15bbb883ab9fdec38b768e66e3468a9bf63920b28"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_paradise": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "6d10b04fe5ecc6ebcfbea563738840829ea84b58704f95d02918150facec1066",
+      "baked_uexp_sha256": "55e69822e137371419f10783eec6f356d3bfa6e70786a831ece6cd8dddb555a3"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_settlements_quest_icon": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "3919dc928f8285da23a2ecec84d0cc72588f276e04ee17d81e42b4aa57f37039",
+      "baked_uexp_sha256": "7ec17b3f9423eff327eb5ed8115d4e0d8b8c789da68842e9ae9350ac805068c8"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_thieves_guild": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "4e703e8187faf9eb2c9392e97e04cc51a33637939d58970de9279522554c4083",
+      "baked_uexp_sha256": "5f30753e2b86f3ce3f4526d9ac35f27641e6bfdf15c59258a5cf08be3b9cbc06"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_tiber_septim_s_armor": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "30bb24e73ea7dc0dc47b890a51b97bdc696fa7ebbcc4a9211d122f3310875c89",
+      "baked_uexp_sha256": "7716b8394aea999a2d02057f4790fe72b2b810eb96bf43081d19d45f7ecb51fc"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_weynon_priory": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "dea2ae0d06616ccd856600b73d0b081d8c0e02d13983d1f405817afeade7ec9d",
+      "baked_uexp_sha256": "7697ee8c8229a1bdd0e287215f90b4c096a2080758b64eb43b1ac3f8f0574df1"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/ndquest/T_iconndivines": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "21f00d6271164443c31e9c38725442ff2c7721ec168ab52ff29afcd4dc500179",
+      "baked_uexp_sha256": "aae5ab13cf02c98656d8cdecd2dd9100a0f27c3aaedbdb78be8f5153ed3bf625"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_icon_deak01": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "89822202af42fe883b60d19772395a0267ea97977ee4cd0068c1b5512221c690",
+      "baked_uexp_sha256": "14e4565f0e97667c509759b79fc077e555bedc4c4d7a192b8841d35ceb6fcf5e"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_icon_deak02": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "9abdba78857078d8e6e1806005b04f52e86517af8ece9a6cf48b6e9851e66a25",
+      "baked_uexp_sha256": "3e778c41c82cc6a1eedff9136c59fd48baf92b9daf475a6ad1fddd4a8b7cce96"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_icon_dem01": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "5f4ba4d97ad5646dfae5d593ed7298892ed96b07056123aafece03b041698a5a",
+      "baked_uexp_sha256": "e817a83bb44dd2f919fd61d671fc7b501ec794f38bb14ebc590a574ed4f8c354"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_icon_dem02": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "89725f78756198cad19bcd9829948632a19bf702f50d94bbf7f73446f259643b",
+      "baked_uexp_sha256": "c759e1c620ca6ff7b234b28e04692718a5770ed8a6ff61249fc8e98d947082e5"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse01": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "c49c80b04a175f595fa455117583e01977fed40b05e76d24b482594e0bc12f4a",
+      "baked_uexp_sha256": "99b8e7650465b4caf429293f5341cf07e4f9c00718f13ce9101f34418f16645a"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse02": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "7e39ec7096376d463f4a502cc155593c39cdea8eba9ad03fbcd2776c8943a1f1",
+      "baked_uexp_sha256": "29452214a0949ba3497096860000a940bd24a433636da787f807c7085f8c9153"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse03": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "55dbaed690d7a8f308d4e6e72d7fe8de7d9f46e698440cf946a64d74338a7114",
+      "baked_uexp_sha256": "4a8101dda92c60cd9a979a35eed907838ddfa05ffe079854e435104240e0fbdf"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse04": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "0a769925b08a4a11a399ad07df304d2d468abfa3f96692f1b01a4bfc50b94084",
+      "baked_uexp_sha256": "c9a5c17acac06424cc563a986bb7a12c74028e6c76f3e13c7f09a727098b6fd1"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse05": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "e83cf2839903f84e19026dfa3286907c6ddc7493dba7201398709a5c56f4de04",
+      "baked_uexp_sha256": "b04cc28e98d971391cc273785341a8ad6061c29fbe8b6aade7c5c9a7aab9fec8"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse06": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "e3d3b0e853ef02cd487037780146fc5c4767a4a75cd01b4dc25e760c3c9af169",
+      "baked_uexp_sha256": "21b567ffda2c8bd66277f34b002a7e62e1a0f5f04f4f722179147562025d29e6"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse07": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "d1d5b3c118a754aa892c7f122e3204d4d92d215e19472526d227c87d30598fd5",
+      "baked_uexp_sha256": "3aa8093576bc4eb526bededc474786c4cd4d7bc0ac34daf8f1698f9e8ee63eff"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse08": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "6860c107e11cd7b19bf6ed827f2b2c2da9b011be5029958b0448e4bed7c84254",
+      "baked_uexp_sha256": "6f73977c39546ab84d103dc5dda44c2ffacadecd7861f5d572051f686cada4ec"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse09": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "faef6eda0ab8d767f9c3eb9e774302219cf45c530ed72900b152281283401221",
+      "baked_uexp_sha256": "662aace4c0da4a09a471f4f74142973ca6fda0bf64fee631d473e51aceba0133"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse10": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "05b26e56ecd972fd47d1856282b103ed5b0c4875f2ea94be6e274e6832caeac0",
+      "baked_uexp_sha256": "cebf86a8f902ee685ec326af7c1359b7a3548f3b418e4d91d8875bc34ed42988"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse11": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "58191b63ea5c7666014e9c1d86156f59321fe74f15561cf58eeb94c09257d685",
+      "baked_uexp_sha256": "7cf7d4ddfc0215733c24b9e908bbdae0195700eba9d7d87e3c8ba8a6599b8931"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse12": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "7193eadba7cfa2b9bc036de43e5be77645168c22dd4af9370f21c1f3614ab577",
+      "baked_uexp_sha256": "a63b02fc7d4cd8b04e155a342228fd81bb39c723a4adb763b9be0485f55fc0f1"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconse13": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "ee4108dfea66bf94e7204ba99fa7b4cebc1a9892b227262fb6f6420b269407da",
+      "baked_uexp_sha256": "392084d1ab8e6ce8fd9f68c2ff561f5f0a99baf60574c3a7c12eea7d726fb6f2"
+    },
+    "Art/UI/Icons/Dynamic_Icons/menus/Icons/quests/T_iconsemisc": {
+      "recipe": "quest_icon",
+      "style": [
+        "effectIcon",
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "2a3eb41d5978bd317e9cea706e113032038f28762ec3cb6b09671ea8af87bd3c",
+      "baked_uexp_sha256": "0da650b6a65ee0011940ebb0e4eb9e371da8ff5aeec46f06fe273f3b4683a481"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_ListViewItem_Decorator": {
+      "recipe": "laurel_tint:effectIcon",
+      "style": [
+        "effectIcon"
+      ],
+      "stock_uexp_sha256": "31e1ef65b2f4e1bc8bb60449e284f7ccb8358a360457c08613a76a581d51d7a5",
+      "baked_uexp_sha256": "4b713a18ef4e97f496db249a6a1b6848fc8f42b113e1e18a33d66cad1005b1ec"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_DecoratedSeparator": {
+      "recipe": "laurel_tint:effectIcon",
+      "style": [
+        "effectIcon"
+      ],
+      "stock_uexp_sha256": "fc901fb56543f9d574c7175662178932899e1696abd2891c34691ed0b71d1e48",
+      "baked_uexp_sha256": "fd695abf01dabd5ace21bb5f375151b2bacd12362d6ab2e74aaf4437d7e4c360"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestEntry_FocusMarker": {
+      "recipe": "laurel_tint:listHighlight:255",
+      "style": [
+        "listHighlight"
+      ],
+      "stock_uexp_sha256": "587276d9ba560fc6a9140de3502bc9482161344c680857703e957565e8d8d231",
+      "baked_uexp_sha256": "7ee0c532864ccee3534ae0c11ade8ca2f774d8ee5339069071c8b1477fbe9a9d"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_ActiveQuest_Icon": {
+      "recipe": "laurel_tint:effectIcon",
+      "style": [
+        "effectIcon"
+      ],
+      "stock_uexp_sha256": "c7ee5ad291aa2d2fbfe7f7e74da90e3a5297a81574533df82e1c0e2247aef83c",
+      "baked_uexp_sha256": "91c97cc03122722dc4cf95e62bc0fd59399459ecfd6e0eb104064f1e522d515c"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_ActiveQuest_Decorator": {
+      "recipe": "laurel_tint:effectIcon:42",
+      "style": [
+        "effectIcon"
+      ],
+      "stock_uexp_sha256": "98dcb5b73e0e7ff3244f7be2ad7a2efd141ba49a6d6397f50739a7460c454fac",
+      "baked_uexp_sha256": "36e6f19b0961601838607c0e96385bbfb867e4534c87a6c9e94fe19efecc0e71"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_SelectedDarkBackgroundFull": {
+      "recipe": "flat:accentValue",
+      "style": [
+        "accentValue"
+      ],
+      "stock_uexp_sha256": "640d89422367726433532e365043ac4c29ed257b4cbe401f4a93ea32cd41ae9c",
+      "baked_uexp_sha256": "e7e564edd39f1e63a82ed4ea95aa2f1e48d0177a421160f30dc6b8539caa3958"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_FlowerDecoration_Left_TODELETE": {
+      "recipe": "laurel_tint:effectIcon",
+      "style": [
+        "effectIcon"
+      ],
+      "stock_uexp_sha256": "208b5253b18494ef2b181572b561ddd95738404c629007cc6afb6100d32d9c84",
+      "baked_uexp_sha256": "5fb4c9549209147b8f4e00ccd8136611ea7e85480ebb471c8e7bba06e1d5c3f0"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_FlowerDecoration_Right_TODELETE": {
+      "recipe": "laurel_tint:effectIcon",
+      "style": [
+        "effectIcon"
+      ],
+      "stock_uexp_sha256": "66514d4fa023be3db1c0d72535b749cfd53c7049a39b8b319664f7684dcb4b72",
+      "baked_uexp_sha256": "ba89c8a41356082f7c9177dd8c92490651159199a53c75a6b9dae381bc8294a5"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_DecoratedSeparator": {
+      "recipe": "laurel_tint:effectIcon",
+      "style": [
+        "effectIcon"
+      ],
+      "stock_uexp_sha256": "fbcba281b4d4316ff0962b66c268536ae1f7b701ef6981b2eb82e097e3df9af6",
+      "baked_uexp_sha256": "bb4fd1560300af29fe4e71fab5cb9d952402270e8ed44baab0d4bc8dafd859c9"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_Separator": {
+      "recipe": "laurel_tint:effectIcon",
+      "style": [
+        "effectIcon"
+      ],
+      "stock_uexp_sha256": "3cba9417cdb8862b7b5a803d289479778c9457cb288c742ea667928a416384e8",
+      "baked_uexp_sha256": "1f017343fefb88ab1faa0b6fb81730f5f43a3896c20dd94725d83e50e13e6afe"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_VerticalSeparator_Left": {
+      "recipe": "laurel_tint:effectIcon",
+      "style": [
+        "effectIcon"
+      ],
+      "stock_uexp_sha256": "0c26354cf66ff27f57fff7aed639764b96e05d9ae6616195223babff0ca73afa",
+      "baked_uexp_sha256": "00718a1584748d1ce2a1d07978cf8220ba44a1df8fae27f80bf94eb3bcbf3891"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_VerticalSeparator_Right": {
+      "recipe": "laurel_tint:effectIcon",
+      "style": [
+        "effectIcon"
+      ],
+      "stock_uexp_sha256": "5383157b5ae9f50a078b4cff0ec2d0272b9734caae127955cb6662f3845f831e",
+      "baked_uexp_sha256": "ac622cb01e2a05b875c04b403c8e007cd0c3234e4d3774f8727c390a49c9c2cc"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestPage/T_QuestPage_PaperBackground": {
+      "recipe": "paper_invert:1.5:0.7",
+      "style": [
+        "panel",
+        "parchmentDark",
+        "parchmentLight"
+      ],
+      "stock_uexp_sha256": "5fd5f874fe5efe52e918a245da88e9b5ceaa727b93fe1937e98eceda0689f4a3",
+      "baked_uexp_sha256": "f9bcdf6d8ced771fa8d39988b4c698f36f4852b13a8c50022bc2fbf829e8e79c"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_FramedBackground2": {
+      "recipe": "paper_invert:1.5:0.7",
+      "style": [
+        "panel",
+        "parchmentDark",
+        "parchmentLight"
+      ],
+      "stock_uexp_sha256": "f5bd9c70411e9e29efc84f0a002b101815651989a7279b110b9be8b4f6acd615",
+      "baked_uexp_sha256": "1d7ee75526782975743960bcca2b606e554f43b1be9650316f66ea0d14999094"
+    },
+    "Art/UI/Modern/GameMenuLayer/Quest/QuestHistory/T_QuestHistory_PaperBackground": {
+      "recipe": "paper_invert:1.5:0.7",
+      "style": [
+        "panel",
+        "parchmentDark",
+        "parchmentLight"
+      ],
+      "stock_uexp_sha256": "fd962cd14e3311a93450f5fd02bdd2f20d7f9313cb63806c5a1b560039038d00",
+      "baked_uexp_sha256": "328db6bb5a4ddc9ae2db89f3ecb1ceafe0cadd898d4388176b1f1171c9daf939"
+    },
+    "UI/Original/GameMenuLayer/Quest/Prefabs/WBP_Modern_QuestEntry": {
+      "recipe": "bp_colour:WBP_Modern_QuestEntry",
+      "style": [
+        "rowText"
+      ],
+      "stock_uexp_sha256": "2896276a59ed0f4f4e1d5b193dd873552ecc472485bd9ebe8efe51b7e722b5d8",
+      "baked_uexp_sha256": "c3c620cbcbfa3203a640706f260f59667627176353ee33c262c7bfce48ebf9a1"
+    },
+    "UI/Original/GameMenuLayer/Quest/WBP_Modern_QuestDetailPanel": {
+      "recipe": "bp_colour:WBP_Modern_QuestDetailPanel",
+      "style": [
+        "menuTitle",
+        "rowText"
+      ],
+      "stock_uexp_sha256": "2f176eaeed948138ea57490097d0f71c88fede23168d2bd6c541ec474d70d639",
+      "baked_uexp_sha256": "c66dd03856f3ecec022e59b4ed9ce552d925da4ebb00196a76f4d568aece928c"
+    },
+    "UI/Original/GameMenuLayer/Quest/WBP_Modern_QuestHistoryPanel": {
+      "recipe": "bp_colour:WBP_Modern_QuestHistoryPanel",
+      "style": [
+        "menuTitle"
+      ],
+      "stock_uexp_sha256": "aa3f2f5ee3ff076a55d1841a5dc9f0816997363510b0be55701c02229d1d27e1",
+      "baked_uexp_sha256": "4b673596c08c0ea9bac4eeeac5fc598d102c6a494cd8c8845379c63a0a7d149d"
+    },
+    "UI/Original/GameMenuLayer/Quest/Prefabs/WBP_Modern_QuestHistoryCarouselEntry": {
+      "recipe": "bp_colour:WBP_Modern_QuestHistoryCarouselEntry",
+      "style": [
+        "rowText"
+      ],
+      "stock_uexp_sha256": "c976ba3758d99b68b2ff636338f70149bbb57c4f88db7f8ca87aaaf8286c2ef3",
+      "baked_uexp_sha256": "5680f6bab5c179d8b4c3321026fbf08c775b65a4a565b22de1cded31553d3174"
+    },
+    "UI/Original/GameMenuLayer/Quest/data/DT_QuestMenu_RichTextStyle_DetailsPanel": {
+      "recipe": "bp_colour:DT_QuestMenu_RichTextStyle_DetailsPanel",
+      "style": [
+        "Skin.emphasisInk",
+        "rowText"
+      ],
+      "stock_uexp_sha256": "035380275cbaf0e975412005887c8a5d0c151f51cec7fd4265fe6892c7a8651c",
+      "baked_uexp_sha256": "279daf7810fbc1a279fc69d0864bc37836b6b67755d42188760a0c60f561342d"
+    },
+    "UI/Original/GameMenuLayer/Quest/data/DT_QuestMenu_RichTextStyle_CarouselEntry": {
+      "recipe": "bp_colour:DT_QuestMenu_RichTextStyle_CarouselEntry",
+      "style": [
+        "Skin.emphasisInk",
+        "rowText"
+      ],
+      "stock_uexp_sha256": "71d1968844896cc0ada58aa68304236a7fb139031973b3a37d05ad770dee5df2",
+      "baked_uexp_sha256": "a2557e81d59fc7bdb56984f05a35eb3db749f5dc889692ee4007b1a81152beb6"
     }
   },
   "skipped": [],
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "96de71f65c5e25d0b69b815132f9f910ad805e7f3686f29d247d684ca61ef8a5",
-    "MRCustom_P.ucas": "00ac38be55ee480c358c45a06b0b22e7498c0288c707b798236d969ce8a0a3c0"
+    "MRCustom_P.utoc": "413312b275f88815d62d1137fb1f2800e460e7f3227d92ba6d8427be6cf7aa74",
+    "MRCustom_P.ucas": "9510b218479dca6495894d5fc2d7322d673d6fd2bdfbd8263aa88ec89566d8b7"
   }
 }

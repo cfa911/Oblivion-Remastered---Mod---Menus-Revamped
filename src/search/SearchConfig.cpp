@@ -56,8 +56,7 @@ namespace searchcfg
 				v.theirsBar = rowOffset(L"ContainerTheirs");
 				v.mapBar = place(L"Map", v.mapBar, false);
 				v.takeBar = rowOffset(L"ContainerTake");
-				// The quests tab keeps the Magic bar's earlier place (above the tabs) unless [Quest] says otherwise.
-				v.questBar = place(L"Quest", { v.barX + 3, v.barY + v.barYMagic, v.barW - 3, v.barH }, false);
+				v.questBar = place(L"Quest", v.questBar, false);
 			}
 			v.ownFilter = ReadInt(ini, L"Filter", L"bEnabled", v.ownFilter ? 1 : 0, 0, 1) != 0;
 			logger::info("config: {} read", ini.string());

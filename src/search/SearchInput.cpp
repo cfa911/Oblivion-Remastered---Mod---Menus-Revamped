@@ -5,7 +5,6 @@
 #include "engine/ContainerMenu.h"
 #include "engine/PEHook.h"
 #include "engine/WorldMap.h"
-#include "engine/QuestsMenu.h"
 #include "engine/Reflect.h"
 #include "engine/TextUtil.h"
 #include "engine/Ui.h"
@@ -170,7 +169,7 @@ namespace search
 				const bool cont = menu == menus::Menu::kNone && container::Open();
 				if (cont) menu = g_typing.load() ? static_cast<menus::Menu>(g_typingMenu.load()) : SideUnderCursor();   // the container / barter menu: the side typed into, else the one the mouse is on
 				if (!cont && menu == menus::Menu::kNone && worldmap::Open()) menu = menus::Menu::kWorldMap;
-				if (!cont && menu == menus::Menu::kNone && quests::Open()) menu = menus::Menu::kQuests;
+				if (!cont && menu == menus::Menu::kNone && g_questSearchShown.load()) menu = menus::Menu::kQuests;
 				if (!cont && menu == menus::Menu::kNone && alchemy::Open()) menu = alchemy::FilterSearchAvailable() ? menus::Menu::kAlchemyFilters : menus::Menu::kAlchemy;
 				if (menu == menus::Menu::kNone && MenuEnabled(menus::Menu::kSpellmaking)) menu = menus::Menu::kSpellmaking;
 				if (MenuEnabled(menu)) {

@@ -45,7 +45,7 @@ EXPECTED.update({INV + n: "charcoal:inventory" for n in ("T_Tab_weapons", "T_Tab
 EXPECTED.update({MAG + n: "charcoal:magic" for n in ("T_Magic_Tabs_Self", "T_Magic_Tabs_Touch", "T_Magic_Tabs_Target",
                                                      "T_Magic_Tabs_All", "T_Magic_Tabs_ActiveEffect")})
 EXPECTED.update({ENC + n: "charcoal_paper:enchanting" for n in ("T_Enchantment_Tab_Gear", "T_Enchantment_Tab_SoulGem", "T_Enchantment_Tab_Effect")})
-EXPECTED.update({QST + n: "charcoal:quests" for n in ("T_QuestPage_AvailableQuestTabSelected", "T_QuestPage_CompletedQuestTabSelected")})
+EXPECTED.update({QST + n: "charcoal_paper:quests" for n in ("T_QuestPage_AvailableQuestTabSelected", "T_QuestPage_CompletedQuestTabSelected")})
 EXPECTED.update({COM + "Tabs/" + n: "charcoal:arrows" for n in ("T_Tab_1", "T_Tab_2", "T_Tab_3", "T_Tab_4", "T_Tab_5")})
 EXPECTED.update({COM + n: "charcoal:glyph" for n in ("T_Tab_arrow_on", "T_Tab_arrow_off")})
 EXPECTED.update({SKC + n: "charcoal:flourish" for n in ("T_UI_SkillClass_PaperTab_Selected", "T_UI_SkillClass_LeftPaperTab_Active")})
@@ -73,7 +73,7 @@ check("custom_pack_charcoal_tabs_tests" in (root / "tests/run_suites.py").read_t
       "the custom-pack group runs this suite")
 
 # ---- 2. the recipe table ----
-presets = sorted(set(EXPECTED.values()) - {"charcoal_paper:enchanting"} | {"charcoal:enchanting"})   # C4-2: charcoal_paper is tested in enchanting_c4_tests; its ink stays charcoal:enchanting
+presets = sorted(set(EXPECTED.values()) - {"charcoal_paper:enchanting", "charcoal_paper:quests"} | {"charcoal:enchanting", "charcoal:quests"})   # C4-2: charcoal_paper is tested in enchanting_c4_tests; its ink stays charcoal:enchanting
 fns = {}
 for name in presets:
     try:

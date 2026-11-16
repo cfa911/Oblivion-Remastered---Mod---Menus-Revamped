@@ -1273,13 +1273,15 @@ def popup_paper(stock_dds, dark, light, laurel, strength, work):
     return colour_keep_alpha(stock_dds, result, work)
 
 
-def laurel_tint(stock_dds, rgb):
+def laurel_tint(stock_dds, rgb, reference=None):
     """The laurel colour scaled by each colour's brightness over the texture's 98th-percentile brightness (opaque pixels): the
     brightest part lands on rgb, darker parts stay darker, black stays black (the leaf border's background); BC3/BC1 colour
-    endpoints mapped (indices and alpha kept). RMI-096, owner 2026-11-13: all laurels grouped and blue."""
-    values = sorted(lum(p) for p in decode_rgba(stock_dds).get_flattened_data() if p[3] > 128) or [255]
-    high = values[len(values) * 98 // 100] or 255
-    return map_colours(stock_dds.read_bytes(), lambda c: tuple(min(255.0, x * lum(c) / high) for x in rgb))
+    endpoints mapped (indices and alpha kept). A fixed stock reference also supports translucent ornaments and hover art.
+    RMI-096: popup laurels use the 98th percentile. C.6: quest rows use a fixed reference."""
+    if reference is None:
+        values = sorted(lum(p) for p in decode_rgba(stock_dds).get_flattened_data() if p[3] > 128) or [255]
+        reference = values[len(values) * 98 // 100] or 255
+    return map_colours(stock_dds.read_bytes(), lambda c: tuple(min(255.0, x * lum(c) / reference) for x in rgb))
 
 
 def panel_gray(v, frame=None, panel=None):
@@ -1460,11 +1462,11 @@ def charcoal_texture(stock_dds, preset):
 
 # charcoal_paper:<preset> -> the page texture whose parchment the strips sit on (C4-2: the strips and the page are drawn by one
 # material, M_UI_Echantment_Tabs)
-CHARCOAL_PAPER = {"enchanting": "T_Enchantment_Tab_Paper"}
+CHARCOAL_PAPER = {"enchanting": "T_Enchantment_Tab_Paper", "quests": "T_QuestPage_PaperBackground"}
 CHARCOAL_PAPER_BLUR = 1.5   # C4-2 V1 (owner 2026-11-16): 3 softened the tab shapes away; C4-5: 1 -> 1.5
 
 
-def charcoal_paper_texture(stock_dds, preset, page_dds, tone, blur=CHARCOAL_PAPER_BLUR):
+def charcoal_paper_texture(stock_dds, preset, page_dds, tone, blur=CHARCOAL_PAPER_BLUR, unquantised=False):
     """charcoal_paper:<preset> (C4-2, owner 2026-11-16: "use the same technique for the tabs and the parchment"): the strip's
     paper is the page's parchment standard (invert_paper) measured against the PAGE's stock brightness (its 2..98 % clamp and
     median), so equal stock paper bakes to the same grey in the strip and the page; icons and arrows are the charcoal recipe's
@@ -1489,9 +1491,14 @@ def charcoal_paper_texture(stock_dds, preset, page_dds, tone, blur=CHARCOAL_PAPE
     soft = source.filter(ImageFilter.GaussianBlur(blur)).get_flattened_data() if blur else source.get_flattened_data()
     inv_middle = (255 - middle) or 1
     ink, weight = charcoal_tabs.recolour(image, **charcoal_tabs.PRESETS[preset])
+    shades = [max(0.0, min(255.0, tone * (255 - v) / inv_middle * (1 - w / 255) + c * w / 255))
+              for v, c, w in zip(soft, ink.get_flattened_data(), weight.get_flattened_data())]
+    if unquantised:   # C.6 round four: the caller blends further and encodes once
+        grey = Image.new("F", image.size)
+        grey.putdata(shades)
+        return grey
     grey = Image.new("L", image.size)
-    grey.putdata([max(0, min(255, round(tone * (255 - v) / inv_middle * (1 - w / 255) + c * w / 255)))
-                  for v, c, w in zip(soft, ink.get_flattened_data(), weight.get_flattened_data())])
+    grey.putdata([round(v) for v in shades])
     bc1 = bc1_header_size(data)
     if bc1:
         try:
@@ -1500,6 +1507,81 @@ def charcoal_paper_texture(stock_dds, preset, page_dds, tone, blur=CHARCOAL_PAPE
             raise SkipAsset(str(error))
     head = header_size(data)
     return data[:head] + neutral_grey_colour(data[head:], grey, dither=False)
+
+
+QUEST_PAPER_BLUR = 1.5   # C.6 round four (owner-approved preview 2026-11-16): list, Inspect and both tabs; 3 lost the detail
+QUEST_TAB_FADE = (12, 0.0)   # C.6 round five (owner-approved 2026-11-16): tabs drawn on top; bottom rows' alpha -> 0
+
+
+def fade_bc3_bottom(data, rows, floor, work):
+    """A BC3 texture's bottom <rows> faded: alpha x smoothstep from 1 to <floor> at the last row; only those alpha blocks are
+    re-encoded (colour halves and every other block kept)."""
+    path = work / "fade-source.dds"
+    path.write_bytes(data)
+    alpha = decode_rgba(path).getchannel("A")
+    width, height = alpha.size
+    out = bytearray(data)
+    head = header_size(data)
+    first = height - rows
+    for by in range(first // 4 * 4, height, 4):
+        for bx in range(0, width, 4):
+            values = []
+            for y in range(4):
+                for x in range(4):
+                    t = max(0.0, (by + y - first + 1) / rows)
+                    t = t * t * (3 - 2 * t)
+                    values.append(round(alpha.getpixel((bx + x, by + y)) * (1 - (1 - floor) * t)))
+            at = head + ((by // 4) * (width // 4) + bx // 4) * 16
+            out[at:at + 8] = bc3_alpha_block(values)
+    return bytes(out)
+
+
+def quest_tab_texture(stock_dds, page_dds, tone, work):
+    """The Quest parchment recipe at the list's blur, shaded in float, the lower edge (rows 75+) blended to the baked list
+    parchment's colour profile, then encoded ONCE with Floyd-Steinberg (RMI-105: rounding before and after the blend drew
+    wavy contour lines). Glyphs keep their ink; stock BC3 alpha kept."""
+    data = stock_dds.read_bytes()
+    if bc1_header_size(data):
+        raise SkipAsset("quest tab is expected as BC3")
+    grey = charcoal_paper_texture(stock_dds, "quests", page_dds, tone, QUEST_PAPER_BLUR, unquantised=True)
+    _, glyph = charcoal_tabs.recolour(decode_rgba(stock_dds), **charcoal_tabs.PRESETS["quests"])
+    page_path = work / "quest-parchment.dds"
+    page_path.write_bytes(invert_paper(page_dds, tone, QUEST_PAPER_BLUR))
+    parchment = decode_rgba(page_path).convert("L")
+    width, height = grey.size
+    profile = list(parchment.crop((0, 38, parchment.width, 86)).resize((width, 1), Image.Resampling.BOX).get_flattened_data())
+    shades = list(grey.get_flattened_data())
+    coverage = list(glyph.get_flattened_data())
+    for y in range(75, height):
+        mix = min(1.0, (y - 74) / 31)
+        mix = mix * mix * (3 - 2 * mix)
+        for x, target in enumerate(profile):
+            at = y * width + x
+            shades[at] += (target - shades[at]) * mix * (1 - coverage[at] / 255)
+    grey.putdata(shades)
+    head = header_size(data)
+    return fade_bc3_bottom(data[:head] + neutral_grey_fs(data[head:], grey), *QUEST_TAB_FADE, work)
+
+
+def quest_icon_texture(stock_dds, blue, gold, work):
+    """One blue silhouette from stock alpha, precomposited on an opaque gold tile. One BC3 or BGRA8 mip."""
+    stock = stock_dds.read_bytes()
+    if int.from_bytes(stock[28:32], "little") > 1:
+        raise SkipAsset("quest icon has more than one mip")
+    image = decode_rgba(stock_dds)
+    coverage = image.getchannel("A")
+    if coverage.getextrema() == (255, 255):
+        raise SkipAsset("quest icon is opaque artwork")
+    silhouette = Image.new("RGBA", image.size, tuple(map(round, blue)) + (255,))
+    backing = Image.new("RGBA", image.size, tuple(map(round, gold)) + (255,))
+    composed = Image.composite(silhouette, backing, coverage)
+    layout = bgra_layout(stock)
+    if layout and layout[1] == (2, 1, 0, 3):
+        return stock[:layout[0]] + composed.tobytes("raw", "BGRA")
+    recoloured = bytearray(splice_colour(stock_dds, composed, work))
+    for offset in range(header_size(stock), len(stock), 16):
+        recoloured[offset:offset + 8] = bytes((255, 255)) + bytes(6)
+    return bytes(recoloured)
 
 
 def rich_row_colour(uexp, row, rgb, table="DT_UI_MagicMenu"):
@@ -1774,8 +1856,11 @@ def recipe(name):
         return (), (), lambda dds, v, work, stock: gray_smooth(dds, float(arg))
     if kind == "line_tint":   # line_tint:<scale> (RMI-091: the glow lines around the container name)
         return (), ("pattern",), lambda dds, v, work, stock: line_tint(dds, v["pattern"], float(arg))
-    if kind == "laurel_tint":   # the popup title flowers and leaf border in the laurel colour (RMI-096 Laurels group)
-        return (), ("pattern",), lambda dds, v, work, stock: laurel_tint(dds, v["pattern"])
+    if kind == "laurel_tint":   # laurel_tint[:<colour role>[:<stock luminance reference>]]
+        key, _, reference = arg.partition(":")
+        key = key or "pattern"
+        reference = float(reference) if reference else None
+        return (), (key,), lambda dds, v, work, stock: laurel_tint(dds, v[key], reference)
     if kind == "charcoal_paper":   # charcoal_paper:<preset> (C4-2): the strips on the page's parchment standard
         if arg not in CHARCOAL_PAPER:
             raise SkipAsset(f"no page texture for charcoal_paper preset {arg!r}")
@@ -1783,8 +1868,14 @@ def recipe(name):
             if stock is None:
                 raise SkipAsset("charcoal_paper needs the stock page texture")
             tone = paper_tone(v["parchmentDark"][0], v["parchmentLight"][0], v["panel"][0])
-            return charcoal_paper_texture(dds, arg, stock(CHARCOAL_PAPER[arg]), tone)
+            page = stock(CHARCOAL_PAPER[arg])
+            if arg == "quests":
+                return quest_tab_texture(dds, page, tone * 0.7, work)
+            return charcoal_paper_texture(dds, arg, page, tone)
         return (), ("panel", "parchmentDark", "parchmentLight"), strip_on_paper
+    if kind == "quest_icon":
+        return (), ("menuTitle", "effectIcon"), lambda dds, v, work, stock: quest_icon_texture(
+            dds, v["menuTitle"], v["effectIcon"], work)
     if kind == "charcoal":   # charcoal[:<preset>]: the charcoal tab recolour (palette fixed, no colour element)
         return (), (), lambda dds, v, work, stock: charcoal_texture(dds, arg)
     if kind == "flat":
@@ -1974,6 +2065,9 @@ def format_supported(kind, stock):
         return True
     if kind in ("parchment", "paper_scale", "mask_peak", "laurel_tint", "altar_metal", "altar_panel", "altar_panel_invert", "tab_strip", "grey_scale"):
         return bool(bc1_header_size(stock) or bgra_layout(stock))
+    if kind == "quest_icon":
+        layout = bgra_layout(stock)
+        return bool(layout and layout[1] == (2, 1, 0, 3))
     return kind in ("flat", "skin_flat") and bool(bgra_layout(stock))
 
 
