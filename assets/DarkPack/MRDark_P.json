@@ -890,7 +890,7 @@
       ],
       "layout": true,
       "stock_uexp_sha256": "cc24f55b123d346148cba8b41ad3b6a9f1d516ab7ef5fe8d0407a160627951e9",
-      "baked_uexp_sha256": "c37495a99efb9a607c9be7709fc1142a442eb0157255f778e85c47e764eb6836"
+      "baked_uexp_sha256": "97e59b984175dc3ee54117c1c43cbb02302cda519e3b9e2cd5547aade31dab29"
     },
     "UI/Modern/GameMenuLayer/SpellPurchase/WBP_ModernMenu_SpellPurchase": {
       "recipe": "bp_colour:WBP_ModernMenu_SpellPurchase",
@@ -3289,7 +3289,7 @@
   "header_overflow": {},
   "files": {
     "MRDark_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRDark_P.utoc": "ae326b169d027878fe966cb2979a8e647b4558c82e9822567bfde9411b23f1ae",
-    "MRDark_P.ucas": "995687750315d2e99a9ee7109f956759eaf1034f791a5584bf955c37bd8c6c1b"
+    "MRDark_P.utoc": "7000f6cd07e28cb57fc24d273a316d1e446783028c186edab2eeeac23dfb1e4d",
+    "MRDark_P.ucas": "21ec5a3649ba278f8a54c92229b0cf735b0af20b05e56a8d9bd436c0894defce"
   }
 }

@@ -22,17 +22,14 @@ namespace searchcfg
 		bool hotkeyCtrl = true; // [Search] bHotkeyCtrl: 1 = Ctrl + the key, 0 = the key alone
 
 		int    barFontSize = 19;   // [Bar] uFontSize
-		double barX = 289, barY = 111, barW = 486, barH = 36;   // where the bar sits in the menu's root canvas (menu units), and its size
-		double barYInventory = -1.5, barYMagic = -0.75;         // added to uY in that menu only (negative = up)
 
-		// where each bar sits and how big it is (menu units, the menu's root canvas): [Inventory] and [Magic] hold the bar's top-left corner and size;
-		// [ContainerYours] and [ContainerTheirs] (the two sides of the container / barter menu) hold an offset from the place above the side's header,
-		// and a size (width 0 = as wide as the header). The older [Bar] keys are the defaults of the first two.
+		// where each bar sits and how big it is (menu units, the menu's root canvas): [Inventory], [Magic], [Quest] and [Map] hold the bar's
+		// top-left corner and size; [ContainerYours], [ContainerTheirs] and [ContainerTake] hold an offset from the side's title-row place.
 		struct Place
 		{
 			double x = 0, y = 0, w = 0, h = 0;
 		};
-		Place inventoryBar{ 293, 109.5, 482, 36 }, magicBar{ 440, 258, 460, 36 };   // Magic revamp: title row
+		Place inventoryBar{ 440, 262, 476, 36 }, magicBar{ 440, 258, 460, 36 };   // Magic revamp: title row
 		Place yoursBar{ 0, 0, 0, 0 }, theirsBar{ 0, 0, 0, 0 };   // Step C.1: x/y offsets from the side's title-row place; size = the Inventory bar's
 		Place mapBar{ 200, 78, 440, 36 }; // [Map] search bar placement
 		Place questBar{ 508, 269, 392, 36 };   // Quest list title row

@@ -24,13 +24,7 @@ namespace searchcfg
 			v.hotkey = ReadInt(ini, L"Search", L"uHotkey", v.hotkey, 0, 0xFE);
 			v.hotkeyCtrl = ReadInt(ini, L"Search", L"bHotkeyCtrl", v.hotkeyCtrl ? 1 : 0, 0, 1) != 0;
 			v.barFontSize = ReadInt(ini, L"Bar", L"uFontSize", v.barFontSize, 8, 60);
-			v.barX = ReadDouble(ini, L"Bar", L"uX", v.barX, 0, 3000);
-			v.barY = ReadDouble(ini, L"Bar", L"uY", v.barY, 0, 3000);
-			v.barYInventory = ReadDouble(ini, L"Bar", L"uYInventory", v.barYInventory, -200, 200);
-			v.barYMagic = ReadDouble(ini, L"Bar", L"uYMagic", v.barYMagic, -200, 200);
-			v.barW = ReadDouble(ini, L"Bar", L"uWidth", v.barW, 50, 3000);
-			v.barH = ReadDouble(ini, L"Bar", L"uHeight", v.barH, 10, 400);
-			{   // each bar has its own place; the [Bar] keys (what 1.0.0 had) are the defaults of the Inventory and the Magic menu
+			{   // each bar has its own place (the 1.x [Bar] uX/uY/uWidth/uHeight/uYInventory/uYMagic fallback keys were removed in 2.0.0)
 				const auto place = [&](const wchar_t* a_section, searchcfg::Values::Place a_default, bool a_offset) {
 					searchcfg::Values::Place p = a_default;
 					const double lo = a_offset ? -1500 : 0, hi = a_offset ? 1500 : 3000;
@@ -40,7 +34,7 @@ namespace searchcfg
 					p.h = ReadDouble(ini, a_section, L"uHeight", p.h, 10, 400);
 					return p;
 				};
-				v.inventoryBar = place(L"Inventory", { v.barX + 2, v.barY + v.barYInventory, v.barW - 2, v.barH }, false);   // 2 off the left edge
+				v.inventoryBar = place(L"Inventory", v.inventoryBar, false);   // the title row, right of the tab title
 				// Magic revamp: the bar sits in the title row, right of the page title (probe 2026-11-09: title row 248.2-304.4,
 				// list right edge 904.3), like the Inventory bar.
 				v.magicBar = place(L"Magic", { 440, 258, 460, 36 }, false);

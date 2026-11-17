@@ -1,5 +1,10 @@
 # Menus Revamped
 
+## 2.0.0
+
+2.0.0 adds three colour presets (`[Style] uPreset`: 0 Classic, 1 Dark, 2 Custom) with the Pack Builder for your own
+colours and compact rows (see "Presets: Classic, Dark and Custom" below and `CHANGELOG.md`). `uPreset=1` is now Dark.
+
 ## 1.5.0
 
 1.5.0 replaces every native sort with the mod's own sort buttons and adds a category sort on the
@@ -178,7 +183,7 @@ One include root, `src/`; includes are paths from it (`"engine/Ui.h"`).
 
 ## Validation status
 
-This is release 1.5.0; release-default acceptance is tracked in the KB. The owner has accepted the integrated development build (SearchLight, SearchLight - Controller Keyboard, Sorting Overhaul and the Smooth Menus hover fix as one plugin) in the ordinary integration scenarios, including container/barter performance and the idle-focus flicker. Exhaustive input-device and lifecycle coverage is not claimed.
+This is release 2.0.0; release-default acceptance is tracked in the KB. The owner has accepted the integrated development build (SearchLight, SearchLight - Controller Keyboard, Sorting Overhaul and the Smooth Menus hover fix as one plugin) in the ordinary integration scenarios, including container/barter performance and the idle-focus flicker. Exhaustive input-device and lifecycle coverage is not claimed.
 
 Open and fixed issues are tracked per bug in the knowledge-base repository (`bugs/menus-revamped`, `RMI-` series; older entries `SL-` and `SO-`). Do not rely on this README for the list of open problems. No research probe sources are part of this repository and no diagnostic is deployed.
 

@@ -1,11 +1,31 @@
 # Changelog
 
-## Unreleased
+## 2.0.0 - 2026-11-17
 
+- Three colour presets, `[Style] uPreset`: 0 Classic (the game's colours), 1 Dark, 2 Custom. **`uPreset=1` is now
+  Dark**; the earlier Light preset is gone.
+- Dark: a dark look for the Inventory, Magic, Alchemy, Enchanting, Sigil Stones, Spellmaking, Spell Purchase, Quests,
+  Character, Repair, Recharge, Help, containers, shops and their pop-ups, through a texture pack shipped in
+  `Plugins/MenusRevamped/DarkPack` (`MRDark_P`). The plugin copies it into `Content/Paks/~mods` at start-up and removes
+  it again with Classic. Before uninstalling, set `uPreset=0` and start the game once.
+- Custom: your own colours. The new Pack Builder (`Plugins/MenusRevamped/PackBuilder/MenusRevampedPackBuilder.exe`)
+  builds `MRCustom_P` into `Plugins/MenusRevamped/CustomPack` from `CustomColours.ini`; until you build one, Custom
+  shows Dark. A mod update never replaces your colours or your pack.
+- Classic search bars are a light parchment box in every menu; the search bar pictures (`MenusRevamped/Search/*.png`)
+  are no longer used.
+- Search bars sit in the title rows of the Inventory, Magic, Quests and container sides.
+- The sort bar is framed by the game's own line above and below, at the full list width, in every menu that has it
+  (Inventory, containers, shops, Magic, Active Effects, Spell Purchase).
+- Controller keyboard for naming at the Enchanting and Spellmaking altars (L3).
 - Compact rows (new INI option `[Layout] bLayoutPack`, default 1): shorter list rows, smaller icons and text and taller
   lists in Magic, Inventory, Alchemy, Enchanting, Spellmaking, Spell Purchase, Stats skills and Quest, without separate
-  layout mods, baked by the Pack Builder into a sizes pack (MRLayout_P) for every preset; sizes are set in the builder's
-  Text and Rows tabs. 0 keeps the game's own layout.
+  layout mods, baked by the Pack Builder (Build writes the sizes pack `MRLayout_P`, used with Classic, and puts them in your Custom
+  pack; Dark has the default sizes); sizes are set in the builder's Text and Rows tabs. 0 keeps the game's own layout.
+- Fixed: an occasional crash while the game starts (a wrong field in the Magic menu's layout change, in every release
+  since 1.3.0).
+- Fixed: the Inventory and Magic filter pop-ups had no mouse hover, and the hover could stick to an old row.
+- INI: removed `[Bar] uX`, `uY`, `uWidth`, `uHeight`, `uYInventory` and `uYMagic` (no longer used: every bar has its
+  own section); comments updated.
 - Pack Builder: Colours, Text, Rows and Runtime tabs; colour roles with an Advanced switch for single elements; a Vanilla
   colours button (the game's own colours, the sizes stay; Build switches back to Custom).
 - Alchemy: the ingredient page's own parchment now reaches the top of the screen; the separate parchment strip image
