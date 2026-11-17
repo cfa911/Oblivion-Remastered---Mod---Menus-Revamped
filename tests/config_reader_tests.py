@@ -37,6 +37,9 @@ uHotkey=191
 bHotkeyCtrl=0
 [Bar]
 uFontSize=200
+uX=999
+uWidth=100
+uYInventory=50
 [Inventory]
 uX=300.5
 uY=abc
@@ -87,7 +90,8 @@ int main() {
     check(v.search.inventory && !v.search.magic && !v.search.ime,"search switches read, absent ones default on");
     check(v.search.barFontSize==60,"font size clamps to 60");
     check(v.search.inventoryBar.x==300.5,"decimal place parses");
-    check(v.search.inventoryBar.y==109.5,"unparsable value keeps the default");
+    check(v.search.inventoryBar.y==262,"unparsable value keeps the default (the title row)");
+    check(v.search.inventoryBar.w==476 && v.search.inventoryBar.h==36,"the removed [Bar] placement keys are not read (release 2.0.0)");
     check(v.search.yoursBar.x==-1500,"offset clamps to -1500");
     check(v.search.yoursBar.y==0 && v.search.yoursBar.w==0,"the old container keys (place above the header) are not read (Step C.1)");
     check(v.search.ownFilter,"absent filter key defaults on");

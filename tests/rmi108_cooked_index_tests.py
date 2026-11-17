@@ -1,6 +1,6 @@
 """RMI-108 (startup crash, KB bugs/menus-revamped/RMI-108-startup-crash-async-load-write.md): the Magic separator's baked
-Visibility must use the cooked field the stock game uses for WBP_OriginalImageTile_C (52), never 62."""
-import struct
+Visibility wrote cooked field 62 (the real field is 52). Since RMI-111 (owner 2026-11-17) the separator is not baked at all:
+it is the sort bar's upper line. No layout rewrite may touch it again."""
 import sys
 import unittest
 
@@ -10,29 +10,17 @@ ROOT = source_paths.ROOT
 sys.path.insert(0, str(ROOT / "tools"))
 from pack_builder import pipeline
 
-VISIBILITY = 52        # Default__WBP_OriginalImageTile_C stores 52; stock instances store ESlateVisibility 4/2/1/0 there
-HIGHEST_STOCK = 53     # the highest field any of the 785 stock WBP_OriginalImageTile_C exports stores
-
-
-def separator_rewrite():
-    rows = [r for r in pipeline.LAYOUT["WBP_ModernMenu_MagicMenu"]["rewrites"] if r["widget"].startswith("HeaderList_Separator")]
-    assert len(rows) == 1, rows
-    return rows[0]
-
 
 class CookedIndexTests(unittest.TestCase):
-    def test_separator_visibility_is_field_52(self):
-        r = separator_rewrite()
-        self.assertEqual(r["add_bytes"], [[VISIBILITY, "01"]])   # Collapsed
-        self.assertEqual(r["field_sizes"][VISIBILITY], 1)
-        self.assertLessEqual(len(r["field_sizes"]) - 1, HIGHEST_STOCK)
+    def test_no_separator_rewrite(self):
+        for asset, recipe in pipeline.LAYOUT.items():
+            rows = [r for r in recipe.get("rewrites", []) if r["widget"].startswith("HeaderList_Separator")]
+            self.assertEqual(rows, [], asset)
 
-    def test_separator_export_gains_only_field_52(self):
-        r = separator_rewrite()
-        header = pipeline.build_header(sorted(set(r["stock_fields"]) | {VISIBILITY}))
-        fields, zeroes, _ = pipeline.parse_header(header + bytes(4), 0)
-        self.assertEqual(fields, [4, 12, 35, 45, 52])
-        self.assertEqual(zeroes, set())
+    def test_no_rewrite_adds_field_62(self):
+        for asset, recipe in pipeline.LAYOUT.items():
+            for r in recipe.get("rewrites", []):
+                self.assertNotIn(62, [index for index, _ in r.get("add_bytes", [])], (asset, r["widget"]))
 
 
 if __name__ == "__main__":

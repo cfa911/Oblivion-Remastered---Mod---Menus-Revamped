@@ -1,4 +1,4 @@
-Menus Revamped 1.5.0
+Menus Revamped 2.0.0
 Oblivion Remastered - OBSE64 plugin
 
 REQUIREMENTS
@@ -33,6 +33,15 @@ Weight, Value or Colors; click again to reverse. Selected Filters removes one fi
 with a click or all with Clear all. Selected effects get colours shown as circles on
 matching ingredients. Controller: L3 names the potion, LB Selected Filters, RB sort;
 X, Y and hold Y stay native. RT toggles Caps Lock on the controller keyboard.
+COLOUR PRESETS
+[Style] uPreset in MenusRevamped.ini: 0 Classic (the game's colours), 1 Dark,
+2 Custom (your own colours). Restart the game after changing it.
+Dark and Custom recolour the menus through a texture pack that the plugin copies
+into Content/Paks/~mods at start-up (Classic removes it).
+Custom: run MenusRevamped/PackBuilder/MenusRevampedPackBuilder.exe, pick colours,
+sizes and text, press Build. Until you build a pack, Custom shows Dark.
+Compact rows ([Layout] bLayoutPack=1): Dark has them built in. For Classic and
+Custom, set them in the Pack Builder's Text and Rows tabs and press Build.
 SORTING
 Inventory, containers, shops and Magic use the mod's own sort buttons: click to
 sort, again to reverse (controller: Up/Down on a focused sort). Left click a
@@ -57,7 +66,8 @@ Set either clearing option to 0 to keep previous text. Menu-page switching retai
 [Picker], [Search] uHotkey, [SearchKeyboard], [Controller], [Alchemy] and [Hover]
 uSettleMs hold the 1.4.0 options; [Picker] bCategorySort=1 (1.5.0) starts every
 tab grouped by category, 0 starts A-Z. Each option is explained in the INI.
-Default artwork lives in MenusRevamped/Search, Keyboard and Sorting.
+2.0.0: uPreset=1 is now Dark (Light is gone); the unused [Bar] position keys are
+removed. Default artwork lives in MenusRevamped/Keyboard and Sorting.
 Runtime reads the unified configuration only, not the old standalone INIs.
 For custom legacy settings/artwork, use tools/stage_menus_revamped.py from the
 source archive with --plugins OLD_PLUGINS --destination EMPTY_STAGING_FOLDER.
@@ -65,7 +75,10 @@ Inspect its output before installing it. Existing unified settings/artwork win.
 Keep backups; copying old INIs under a new filename is not a supported migration.
 
 UNINSTALL
-Close the game, disable/remove the package through Vortex and redeploy.
+With Dark or Custom: set [Style] uPreset=0 and start the game once, so the plugin
+removes its pack from Content/Paks/~mods (or delete MRDark_P.*, MRCustom_P.* and
+MRLayout_P.* there yourself). Then close the game, disable/remove the package
+through Vortex and redeploy.
 Restore backed-up standalone packages/settings if returning to the old setup.
 
 SUPPORT AND SOURCE

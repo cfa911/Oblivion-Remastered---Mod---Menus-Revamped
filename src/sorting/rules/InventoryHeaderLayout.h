@@ -272,7 +272,7 @@ namespace inventoryheaders
 
 	// Page titles are baked (every preset, MRLayout_P/MRCustom_P): the Inventory's inv_cont_title (C.1) and Magic_TabName
 	// (C.2, RMI-079) have Auto slots and Min Desired Width 300; no run-time title label.
-	// Our own upper header rule: Magic only. The Inventory strip (Inventory, container/barter sides) shows the game's
-	// HeaderList_Separator instead, 2 units above it at full list width (owner 2026-11-13, probe MRSEP).
-	inline bool DrawsUpperRule(int kind) { return kind==1 || kind==6; }
+	// RMI-111 (owner 2026-11-17): the sort bar's two lines are both the game's line. Above: the menu's own HeaderList_Separator,
+	// 2 units above the strip at full list width (probe MRSEP), in every menu; our upper rule (guide kGuides-2) is never drawn.
+	// Below: a copy of that line at the lower rule's place (InventoryHeaders.cpp NativeLine).
 }

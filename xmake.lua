@@ -23,7 +23,7 @@ option_end()
 
 -- One development plugin: search, category pickers and controller keyboard.
 target("MenusRevamped")
-    set_version("1.5.0")
+    set_version("2.0.0")
     add_rules("commonlibob64.plugin", {
         name = "MenusRevamped",
         author = "cfa911",

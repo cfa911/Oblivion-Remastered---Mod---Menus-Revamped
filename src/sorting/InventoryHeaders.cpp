@@ -14,6 +14,19 @@ namespace sorting::detail
 
 	namespace
 	{
+		// RMI-111: the sort bar's lower line is a copy of the game's HeaderList_Separator: an Image with the brush of the
+		// separator's inner `Image` (art T_Line_Brown and its preset colour).
+		UE::UObject* NativeLine(UE::UObject* a_canvas, UE::UObject* a_separator, const wchar_t* a_name)
+		{
+			auto* source = a_separator ? ui::FindInTree(a_separator, "Image") : nullptr;
+			if (!a_canvas || !source) return nullptr;
+			const auto off = reflect::Offset(source->GetClass(), "Brush");
+			const auto size = ui::SizeOf(source->GetClass(), "Brush");
+			if (off < 0 || size <= 0 || size > 1024) return nullptr;
+			auto* image = CanvasChild(a_canvas, L"/Script/UMG.Image", a_name, 0, 0, 1, 1);
+			if (image) ui::CallFirst(image, L"SetBrush", reinterpret_cast<const std::uint8_t*>(source) + off, static_cast<std::size_t>(size));
+			return image;
+		}
 		UE::UObject* InventoryList(UE::UObject* menu)
 		{
 			if (auto* list = ui::FindInTree(menu, "inv_cont_listview")) return list;
@@ -329,9 +342,10 @@ namespace sorting::detail
 		const bool magic=kind==1 || kind==6;   // Magic spell pages (School host) or Active Effects; else the Inventory strip
 		const bool bakedInset = darkpack::HeaderLayoutBaked();
 		const bool bakedOverflow = darkpack::HeaderOverflowBaked();
-		// The shared Inventory separator is its upper rule. Magic's own separator is collapsed by the new pack.
-		if (magic && measureColumns && !bakedOverflow)
-			ui::Visible(ui::FindInTree(a_menu, "HeaderList_Separator"), false);
+		// RMI-111: the menu's own HeaderList_Separator is the sort bar's upper line in every menu (Magic too); its copy is the lower.
+		auto* separator = ui::FindInTree(a_menu, "HeaderList_Separator");
+		inventoryheaders::Box separatorBox;
+		const bool separatorPlaced = separator && Bounds(separator, separatorBox) && separatorBox.w > 0;
 		static bool announced=false, announcedMagic=false, announcedContainer=false;
 		if (kind==0 && !announced) { announced=true; logger::info("Menus Revamped MR-INVENTORY-TITLE-BAKED-T4"); }
 		if ((kind==3 || kind==4) && !announcedContainer) { announcedContainer=true; logger::info("Menus Revamped MR-CONTAINER-SINGLE-HEADER-C1K"); }
@@ -550,9 +564,21 @@ namespace sorting::detail
 				const auto& rect=plan.guides[i];
 				auto& handle=inventoryHeaderGuides[i];
 				auto* guide=reflect::Get(handle);
-				const bool nativeUpper=i==std::size_t(inventoryheaders::kGuides-2) && !inventoryheaders::DrawsUpperRule(kind);
-				if (rect.w<=0 || rect.h<=0 || nativeUpper) {   // the game's separator is the Inventory strip's upper rule
+				const bool nativeUpper=i==std::size_t(inventoryheaders::kGuides-2);
+				const bool nativeLower=i==std::size_t(inventoryheaders::kGuides-1);
+				if (rect.w<=0 || rect.h<=0 || nativeUpper || (nativeLower && !separatorPlaced)) {   // the game's separator is the upper line
 					if (guide) ui::Visible(guide,false);
+					continue;
+				}
+				if (!guide && nativeLower) {
+					const auto name=L"MrHeaderNativeLine"+std::to_wstring(kind)+L"_"+std::to_wstring(g_widgetSerial++);
+					guide=NativeLine(a_canvas,separator,name.c_str());
+					if (!guide) continue;
+					handle=reflect::Hold(guide);
+				}
+				if (nativeLower) {   // the separator's own x, width and height, at the lower rule's place
+					LayoutChild(guide,separatorBox.x-canvasBounds.x,rect.y-canvasBounds.y,separatorBox.w,separatorBox.h);
+					ui::Visible(guide,settled || inventoryHeaderReady);
 					continue;
 				}
 				if (!guide) {
