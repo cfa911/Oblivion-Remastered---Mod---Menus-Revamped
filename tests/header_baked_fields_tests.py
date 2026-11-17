@@ -9,7 +9,7 @@ from pack_builder.pipeline import add_field, parse_header
 
 layout = json.loads((ROOT / "tools/menus/layout.json").read_text())["layout"]
 cases = (
-    ("WBP_ModernMenu_MagicMenu", "HeaderList_Separator Visibility", 62, 1,
+    ("WBP_ModernMenu_MagicMenu", "HeaderList_Separator Visibility", 52, 1,   # RMI-108: cooked Visibility is 52, not 62
      "0402070216020903000000000000404000000000000000400602030300003b4400008040e2feffffbf0000000000000000"),
     ("WBP_OriginalMenu_Inventory_FilterScrollbox", "ScrollBox Clipping", 38, 0, "82022403010400000000"),
 )

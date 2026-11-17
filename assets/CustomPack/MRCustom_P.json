@@ -328,12 +328,12 @@
       "baked_uexp_sha256": "11cb2a113e679cd8c180ad7aedb928f7025e1a923392f99386fa416c898880e6"
     },
     "Art/UI/Common/T_List_highlight_V3": {
-      "recipe": "flat:listHighlight",
+      "recipe": "flat_alpha:listHighlight:0.35",
       "style": [
         "listHighlight"
       ],
       "stock_uexp_sha256": "bf47bce85e5705500886c6ab3f5d0df532031fa87a0b0831cc83a9187d71501a",
-      "baked_uexp_sha256": "030effda040ee107ee8c2c65a27b45ed5920af6005585aaa790e065b9b8b4b1c"
+      "baked_uexp_sha256": "7e30970799ef21fe50b5435f400e2d961c176aa5086dd38b9fc1e1a1cfffef65"
     },
     "Art/UI/Icons/Dynamic_Icons/menus/Icons/T_Icon_stolen": {
       "recipe": "stolen_mark",
@@ -890,7 +890,7 @@
       ],
       "layout": true,
       "stock_uexp_sha256": "cc24f55b123d346148cba8b41ad3b6a9f1d516ab7ef5fe8d0407a160627951e9",
-      "baked_uexp_sha256": "7fedfc63ec89a7861fe2631ce0cbf8a4b3527dc6281fdcc1136d14246712f075"
+      "baked_uexp_sha256": "c37495a99efb9a607c9be7709fc1142a442eb0157255f778e85c47e764eb6836"
     },
     "UI/Modern/GameMenuLayer/SpellPurchase/WBP_ModernMenu_SpellPurchase": {
       "recipe": "bp_colour:WBP_ModernMenu_SpellPurchase",
@@ -2543,6 +2543,41 @@
       "stock_uexp_sha256": "58aecbab5b1525dd17c323e6f5e83f49d3f499af89ca781d7a51b377ba3c57c2",
       "baked_uexp_sha256": "4a2fd2ec51f2bdfa9d04ad2c11b78f205579276cbb9e2d40aadd91956a2ac4a5"
     },
+    "UI/Modern/GameMenuLayer/Help/WBP_ModernMenu_HelpEntry": {
+      "recipe": "bp_colour:WBP_ModernMenu_HelpEntry",
+      "style": [
+        "effectIcon",
+        "menuTitle",
+        "rowText"
+      ],
+      "stock_uexp_sha256": "8786b3064e2553f64748833a985225c72964ddd00a00fa3fe7ada733df4becba",
+      "baked_uexp_sha256": "d2f5f0b5d7ccd1c7f342e670681904ec4a104dd48aa72afefafea929be5a10db"
+    },
+    "UI/Modern/GameMenuLayer/Help/WBP_ModernMenu_Help": {
+      "recipe": "bp_colour:WBP_ModernMenu_Help",
+      "style": [
+        "menuTitle",
+        "rowText"
+      ],
+      "stock_uexp_sha256": "3f574873e1173ab65cb8ec3aaefed8cc39c5e3b80d1d1531091324f2fa0b6aab",
+      "baked_uexp_sha256": "49bcb8a8147841180d69e010d3f26b0bd080a4b394714735768da48af8e03107"
+    },
+    "UI/Modern/GameMenuLayer/Help/data/DT_HelpMenuRichStyle": {
+      "recipe": "bp_colour:DT_HelpMenuRichStyle",
+      "style": [
+        "rowText"
+      ],
+      "stock_uexp_sha256": "5bc989f3527e322f091da592a5fd65264f1b40d9f3df9e848a3057af1bebc568",
+      "baked_uexp_sha256": "a268f05c06204acf6ff6fc4a5124a5595766a2c2aeb9d16aa5c8f778fc8b57e6"
+    },
+    "Art/UI/Modern/GameMenuLayer/Help/T_UI_HelpSeparator": {
+      "recipe": "flat:effectIcon",
+      "style": [
+        "effectIcon"
+      ],
+      "stock_uexp_sha256": "b1cbb0e6c07efeb9a04d0b24f6c73257651e280ca5e4a42e540a1394a6cab041",
+      "baked_uexp_sha256": "ddc7adce70f985beeabb25ca6afb08e445a35e1133a76e9a0af2b6eb020d260b"
+    },
     "Art/UI/Icons/Dynamic_Icons/menus/Icons/Quest/T_icon_amulet_of_king": {
       "recipe": "quest_icon",
       "style": [
@@ -3254,7 +3289,7 @@
   "header_overflow": {},
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "29d07cecf4554ae835ea3640e80206638aeeeb70be16e57bdc24c3014234894c",
-    "MRCustom_P.ucas": "dd70b8f20e8874bc863748b026322a7cca1c44e96123d35c3da20a71c4070c69"
+    "MRCustom_P.utoc": "f4b689410eaba90dc895af12c69c94b01f5af990671545f31d3a624f2bafc119",
+    "MRCustom_P.ucas": "a59a3c59a4c631c190a2ce33e5bc85e3277ad80f6645fef071a83c081c853546"
   }
 }

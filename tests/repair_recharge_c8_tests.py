@@ -102,7 +102,7 @@ class RepairRechargeTests(unittest.TestCase):
         swaps = pipeline.IMPORT_SWAPS.get("WBP_LegacyPrefab_FocusBox")
         self.assertEqual([(s["from_object"], s["to_object"], s["to_class"]) for s in swaps or []],
                          [("T_LevelUp_Frame_Light", "T_List_highlight_V3", "Texture2D")])
-        self.assertEqual(pipeline.TEXTURES.get("Art/UI/Common/T_List_highlight_V3"), "flat:listHighlight")
+        self.assertEqual(pipeline.TEXTURES.get("Art/UI/Common/T_List_highlight_V3"), "flat_alpha:listHighlight:0.35")   # Help H.3
         stock = LEGACY_UI / (FOCUS_BOX + ".uasset")
         if not stock.is_file():
             self.skipTest("stock legacy UI export not present")
