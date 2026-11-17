@@ -26,8 +26,8 @@ config = (root / "src" / "core" / "Config.cpp").read_text(encoding="utf-8-sig")
 check('L"Style", L"uPreset"' in config, "config reader loads the style preset")
 theme = (root / "src" / "core" / "UiTheme.h").read_text(encoding="utf-8-sig")
 check("kClassic" in theme and "enum class Preset" in theme, "classic palette exists")
-for preset in ("Light", "Dark"):
-    check(f"k{preset}" in theme and f"Preset::{preset}" in theme, f"{preset.lower()} palette exists")
+check("kDark" in theme and "Preset::Dark" in theme and "Preset::Custom" in theme, "dark palette exists; Dark and Custom presets exist")
+check("kLight" not in theme and "Preset::Light" not in theme, "the Light preset is removed (preset rework 2026-11-17)")
 for rel in ("search/SearchBar.cpp", "sorting/PickerPopup.cpp", "sorting/OwnSort.cpp", "alchemy/AlchemyLayout.cpp"):
     source = (root / "src" / rel).read_text(encoding="utf-8-sig")
     check(any(t in source for t in ("uistyle::Get", "UiPalette()", "uistyle::SearchFor(", "uistyle::PickerFor(")), f"{rel} consumes shared style tokens")

@@ -121,8 +121,8 @@ int main()
 
 	// the shipped development pack's manifest: every style key maps onto a plugin value, and it matches the defaults
 	const auto repo = fs::path(__FILE__).parent_path().parent_path();
-	const auto shipped = custompack::ParseManifest(ReadFile(repo / "assets/CustomPack/MRCustom_P.json"));
-	Check(shipped.ok && shipped.gameBuild == "1.512.105.0", "assets/CustomPack/MRCustom_P.json is read (game build 1.512.105.0)");
+	const auto shipped = custompack::ParseManifest(ReadFile(repo / "assets/DarkPack/MRDark_P.json"));
+	Check(shipped.ok && shipped.gameBuild == "1.512.105.0", "assets/DarkPack/MRDark_P.json is read (game build 1.512.105.0)");
 	bool known = !shipped.style.empty();
 	for (const auto& [key, value] : shipped.style) {
 		if (!custompack::Known(key)) { known = false; std::printf("  unknown manifest key %s\n", key.c_str()); }

@@ -84,8 +84,8 @@ def summary(manifest, target, layout=None):
     if layout:
         lines.append(f"{layout['pack']} built: {len(layout['textures'])} package(s) with the sizes, {len(layout['skipped'])} skipped.")
         skipped = skipped + layout["skipped"]
-    lines.append(f"Installed in {target}. Start the game: the plugin installs the colour pack for the Custom preset (uPreset=2), "
-                 f"otherwise the sizes pack.")
+    lines.append(f"Installed in {target}. Start the game: the plugin installs this colour pack for the Custom preset (uPreset=2), "
+                 f"the shipped Dark pack for Dark (uPreset=1) and the sizes pack for Classic (uPreset=0).")
     if skipped:
         lines.append("Skipped (the game's stock look shows for these):")
         lines += [f"  {Path(e['asset']).name}: {e['reason']}" for e in skipped]

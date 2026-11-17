@@ -2,7 +2,7 @@
 
 Frozen (the exe in Plugins/MenusRevamped/PackBuilder): retoc/, menus/, art/ and PackBuilder.log next to the exe; the colour file
 and CustomPack/ in the plugin folder above it; the game's Content/Paks found by walking up from the exe. From source: the
-repo's own folders (tools/menus, assets-src/DarkPack, config/CustomColours.ini, assets/CustomPack).
+repo's own folders (tools/menus, assets-src/DarkPack, config/CustomColours.ini, build/CustomPack).
 """
 import sys
 import tempfile
@@ -62,7 +62,7 @@ def defaults():
                 "art": here / "art", "colours": plugin / "CustomColours.ini", "out": plugin / "CustomPack",
                 "log": here / "PackBuilder.log"}
     return {"paks": None, "retoc": None, "ddstools": None, "menus": TOOLS / "menus", "art": ROOT / "assets-src/DarkPack",
-            "colours": ROOT / "config/CustomColours.ini", "out": ROOT / "assets/CustomPack", "log": ROOT / "build/PackBuilder.log"}
+            "colours": ROOT / "config/CustomColours.ini", "out": ROOT / "build/CustomPack", "log": ROOT / "build/PackBuilder.log"}
 
 
 def folder_writable(folder):

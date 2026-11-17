@@ -97,7 +97,7 @@ with tempfile.TemporaryDirectory() as temp:
         check(m.value("Colours", "panel") == [10.0, 20.0, 30.0], "a picked colour sets a [Colours] entry")
 
         # a Build is needed for baked values only
-        manifest = json.loads((root / "assets/CustomPack/MRCustom_P.json").read_text(encoding="utf-8"))
+        manifest = json.loads((root / "assets/DarkPack/MRDark_P.json").read_text(encoding="utf-8"))
         fresh = ColourModel(temp / "none.ini")
         fresh.set_text("Skin", "rule", "1, 0, 0, 1")
         fresh.set_text("Skin", "band", "1, 0, 0, 1")   # retired by phase 28b: no effect

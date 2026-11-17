@@ -133,7 +133,7 @@ LAYOUT = load_layout()
 def load_literals(folder=MENUS):
     """{package: [{offset, type: float|double, stock, value, widget}]} from the data files' "blueprint_literals": fixed
     non-colour literals of a colour-patched blueprint, baked in the colour pack only (RMI-089: the Inventory details page
-    drop shadow UseShadow? 1.0 -> 0.0; Classic/Light and MRLayout_P keep the stock value)."""
+    drop shadow UseShadow? 1.0 -> 0.0; Classic and MRLayout_P keep the stock value)."""
     literals = {}
     for path in Path(folder).glob("*.json"):
         try:

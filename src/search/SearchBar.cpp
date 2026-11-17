@@ -82,28 +82,6 @@ namespace search::detail
 
 	namespace
 	{
-		// the bar's panel: a PNG from the plugin's folder (black for the Inventory and the Magic menu, green for your side of the container / barter menu, red
-		// for the other side), else the black one, else a plain rounded box
-		UE::UObject* BarTexture(menus::Menu a_menu)
-		{
-			const int slot = (a_menu == menus::Menu::kAlchemy || a_menu == menus::Menu::kAlchemyFilters) ? 3 : a_menu == menus::Menu::kContainerYours ? 1 : a_menu == menus::Menu::kContainerTheirs ? 2 : 0;
-			static reflect::Handle s_tex[4];
-			static bool            s_failed[4] = {};
-			if (auto* t = reflect::Get(s_tex[slot])) return t;
-			if (s_failed[slot]) return slot ? BarTexture(menus::Menu::kInventory) : nullptr;
-			const wchar_t* file = slot == 3 ? L"SearchBarAlchemy.png" : slot == 1 ? L"SearchBarYours.png" : slot == 2 ? L"SearchBarTheirs.png" : L"SearchBar.png";
-			const auto     path = mrconfig::PluginFolder() / L"MenusRevamped" / L"Search" / file;
-			auto*          tex = ui::ImportTexture(path);
-			if (!tex) {
-				s_failed[slot] = true;
-				logger::warn("own bar: the bar image could not be loaded ({}{}) - {}", path.string(), std::filesystem::exists(path) ? "" : ", missing", slot ? "the black one is used" : "a plain box is used");
-				return slot ? BarTexture(menus::Menu::kInventory) : nullptr;
-			}
-			s_tex[slot] = reflect::Hold(tex);
-			logger::debug("own bar: the bar image is loaded from {}", path.filename().string());
-			return tex;
-		}
-
 		// the container / barter menu's bar (menu units, local to the menu's root canvas). Step C.1 (owner on A0A6D6BA: "the search bar is not in
 		// the same position as in the inv"; accepted on C8FB448F, "the bars are correctly positioned"): like the Inventory and Magic bars it
 		// sits in the side's title row (centred on inv_cont_title), right of the tab name, its right edge kSideBarRightInset inside the side's
@@ -196,18 +174,9 @@ namespace search::detail
 			ui::Vec2(slot, L"SetSize", barW, barH);
 			const std::int32_t z = 1000;
 			ui::CallFirst(slot, L"SetZOrder", &z, sizeof(z));
-			bool textured = false;
-			const auto preset = mrconfig::Get().stylePreset;
-			if (preset == uistyle::Preset::Classic) {
-				if (auto* tex = BarTexture(a_menu)) {
-					ui::Call b(frame, L"SetBrushFromTexture");
-					b.Set("Texture", tex);
-					b.Set("bMatchSize", false);
-					textured = b.Run();
-				}
-			}
+			// the built-in box in every preset (owner 2026-11-17: Classic takes the former Light bar; the SearchBar PNGs are gone)
 			const auto& style = BarStyle(a_menu);
-			if (!textured) ui::RoundedBox(frame, false, style.fill.data(), style.edge.data(), 2.0f);
+			ui::RoundedBox(frame, false, style.fill.data(), style.edge.data(), 2.0f);
 			ui::Visible(frame, true);
 			UE::UObject* lslot = nullptr;
 			auto*        label = BarPart(a_canvas, L"/Script/UMG.TextBlock", L"IwmBarText" + n, &lslot);
@@ -223,7 +192,6 @@ namespace search::detail
 			B.canvas = reflect::Hold(a_canvas);
 			B.frame = reflect::Hold(frame);
 			B.frameSlot = reflect::Hold(slot);
-			B.textured = textured;
 			B.label = reflect::Hold(label);
 			B.labelSlot = reflect::Hold(lslot);
 			B.x = barX;
@@ -279,10 +247,8 @@ namespace search::detail
 				B.shown = key;
 			}
 			if (typing != B.typing) {   // the bronze edge while it is being typed into
-				if (!B.textured) {
-					const auto& style = BarStyle(a_menu);
-					ui::RoundedBox(frame, false, style.fill.data(), (typing ? style.focus : style.edge).data(), 2.0f);
-				}
+				const auto& style = BarStyle(a_menu);
+				ui::RoundedBox(frame, false, style.fill.data(), (typing ? style.focus : style.edge).data(), 2.0f);
 				B.typing = typing;
 			}
 			if (a_now >= B.nextMeasure) {   // where it is in window pixels, for a click on it

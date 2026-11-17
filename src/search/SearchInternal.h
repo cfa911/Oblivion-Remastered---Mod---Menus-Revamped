@@ -41,7 +41,6 @@ namespace search::detail
 	struct BarWidgets
 	{
 		reflect::Handle   canvas, frame, edge, label, frameSlot, labelSlot;
-		bool              textured = false;
 		std::string       shown;
 		std::string       hint = "Search";   // what the empty bar says (the container / barter menu's say whose list it is)
 		bool              typing = false;

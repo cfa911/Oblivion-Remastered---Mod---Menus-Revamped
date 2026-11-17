@@ -6,7 +6,9 @@
 
 namespace uistyle
 {
-	enum class Preset : int { Classic = 0, Light = 1, Dark = 2 };
+	// [Style] uPreset (owner 2026-11-17, decision 48 extension): 0 Classic, 1 Dark (the shipped pack, default colours), 2 Custom
+	// (the player's Pack Builder colours; Dark until a pack is built). The former preset 1 was removed (never released).
+	enum class Preset : int { Classic = 0, Dark = 1, Custom = 2 };
 
 	using Color = std::array<float, 4>;
 
@@ -46,36 +48,18 @@ namespace uistyle
 		{0.96f,0.96f,0.96f,1}, {0.24f,0.24f,0.24f,0.85f}, 18.0, 14.0, 0.72f, 0.72f
 	};
 
+	// Classic's search bar is the removed preset 1's built-in box (owner 2026-11-17, approved on the NOW/MINE sheet): the
+	// SearchBar PNGs are gone.
 	inline constexpr Palette kClassic{
-		{
-			{ 0.16f, 0.09f, 0.04f, 1.0f }, { 0.06f, 0.035f, 0.018f, 1.0f }, { 0.78f, 0.62f, 0.28f, 1.0f },
-			{ 0.93f, 0.90f, 0.82f, 1.0f }, { 0.58f, 0.53f, 0.45f, 1.0f }, { 0.78f, 0.62f, 0.28f, 1.0f },
-			{ 0.0585f, 0.0313f, 0.0235f, 1.0f }
-		},
-		{
-			{ 0.672443f, 0.630757f, 0.577580f, 1.0f }, { 0.20f, 0.14f, 0.09f, 1.0f },
-			{ 0.20f, 0.14f, 0.09f, 1.0f }, { 0.06f, 0.035f, 0.016f, 1.0f },
-			{ 0.7912979403f, 0.7758222183f, 0.7379104088f, 1.0f }, 18.0, 14.0, 0.45f, 0.5f
-		},
-		{
-			{ 0.55f, 0.35f, 0.20f, 1.0f }, { 1.0f, 1.0f, 1.0f, 0.55f },
-			{ 0.035f, 0.025f, 0.015f, 1.0f }, { 0.30f, 0.012f, 0.008f, 1.0f },
-			{ 0.30f, 0.24f, 0.16f, 0.30f }, { 0.62f, 0.50f, 0.30f, 0.65f },
-			{ 0.30f, 0.012f, 0.008f, 1.0f }, { 0.0f, 0.0f, 0.0f, 1.0f },
-			{ 0.0723f, 0.0382f, 0.0284f, 1.0f }, 19.0, 13.0, 0.4f
-		}
-	};
-
-	inline constexpr Palette kLight{
 		{
 			{ 0.82f, 0.77f, 0.68f, 1.0f }, { 0.24f, 0.17f, 0.10f, 1.0f }, { 0.78f, 0.56f, 0.22f, 1.0f },
 			{ 0.12f, 0.08f, 0.045f, 1.0f }, { 0.34f, 0.27f, 0.19f, 1.0f }, { 0.40f, 0.22f, 0.06f, 1.0f },
 			{ 0.0585f, 0.0313f, 0.0235f, 1.0f }
 		},
 		{
-			{ 0.82f, 0.77f, 0.68f, 1.0f }, { 0.24f, 0.17f, 0.10f, 1.0f },
-			{ 0.16f, 0.11f, 0.06f, 1.0f }, { 0.07f, 0.04f, 0.02f, 1.0f },
-			{ 0.90f, 0.77f, 0.50f, 0.85f }, 18.0, 14.0, 0.45f, 0.5f
+			{ 0.672443f, 0.630757f, 0.577580f, 1.0f }, { 0.20f, 0.14f, 0.09f, 1.0f },
+			{ 0.20f, 0.14f, 0.09f, 1.0f }, { 0.06f, 0.035f, 0.016f, 1.0f },
+			{ 0.7912979403f, 0.7758222183f, 0.7379104088f, 1.0f }, 18.0, 14.0, 0.45f, 0.5f
 		},
 		{
 			{ 0.55f, 0.35f, 0.20f, 1.0f }, { 1.0f, 1.0f, 1.0f, 0.55f },
@@ -169,9 +153,10 @@ namespace uistyle
 		return skin;
 	}
 
-	// Only Dark recolours (constexpr, for the layout helpers below); the colours themselves come from SkinFor.
-	inline constexpr bool Recolors(Preset a_preset) { return a_preset == Preset::Dark; }
-	inline const Skin& SkinFor(Preset a_preset) { return a_preset == Preset::Dark ? DarkSkin() : kStockSkin; }
+	// Dark and Custom recolour (constexpr, for the layout helpers below); the colours themselves come from SkinFor (the
+	// defaults in Dark, the player's in Custom with a built pack: darkpack::Apply sets them).
+	inline constexpr bool Recolors(Preset a_preset) { return a_preset != Preset::Classic; }
+	inline const Skin& SkinFor(Preset a_preset) { return Recolors(a_preset) ? DarkSkin() : kStockSkin; }
 
 #define UISTYLE_INVENTORY_CONTROL_PAINT 1
 	struct InventoryControlStyle
@@ -189,8 +174,8 @@ namespace uistyle
 	inline constexpr const Palette& Get(Preset a_preset)
 	{
 		switch (a_preset) {
-		case Preset::Light: return kLight;
-		case Preset::Dark: return kDark;
+		case Preset::Dark:
+		case Preset::Custom: return kDark;
 		default: return kClassic;
 		}
 	}
