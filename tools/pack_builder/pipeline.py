@@ -1678,14 +1678,14 @@ def white_backing_texture(stock_dds, work):
     return full_rgba(stock_dds, backed, work)
 
 
-SKILL_RING_STOPS = (
-    (40, (14, 20, 32)), (110, (38, 58, 88)), (150, (60, 90, 130)),
-    (190, (105, 140, 184)), (235, (178, 204, 234)),
+SKILL_RING_STOPS = (   # owner 2026-11-17: gold metal (was blue steel); the arc took the blue (menuTitle)
+    (40, (36, 24, 8)), (110, (104, 72, 26)), (150, (156, 114, 44)),
+    (190, (206, 164, 80)), (235, (246, 220, 150)),
 )
 
 
 def skill_ring_image(image):
-    """Character ring B: blue steel over the disc and outer ring, with a top-left sheen."""
+    """Character ring: gold metal over the disc and outer ring, with a top-left sheen."""
     image = image.convert("RGB")
     width, height = image.size
     ramp = [SKILL_RING_STOPS[0][1]] * 706

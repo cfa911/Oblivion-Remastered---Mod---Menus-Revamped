@@ -27,7 +27,7 @@
     "DT_StatsMenu_SkillDescriptionRichTextStyle_PerLevelDescription": [{"offset": 69, "stock": [0.1195, 0.0704, 0.0369, 1.0], "colour": "rowText", "widget": "row Default (perk text; a data table, patched like a blueprint literal)"}, {"offset": 425, "stock": [0.1195, 0.0704, 0.0369, 1.0], "colour": "accentValue", "widget": "row RT_BlueMed (the highlighted words; C.7: blue)"}]
   },
   "material_colours": {
-    "MIC_UI_SkillCircularProgress": [{"offset": 169, "stock": [0.86316, 0.3564, 0.13014, 1.0], "colour": "effectIcon", "parameter": "Color (instance override)"}]
+    "MIC_UI_SkillCircularProgress": [{"offset": 169, "stock": [0.86316, 0.3564, 0.13014, 1.0], "colour": "menuTitle", "parameter": "Color (instance override)"}]
   },
   "assets": [
     {"asset": "Art/UI/Common/Buttons/T_UI_Scribble", "recipe": "clear", "colours": [], "shared_with": ["only M_UI_Scribble, only the Inventory/Container/Barter row (the equipped pen scribble, hidden)"]},
@@ -74,7 +74,7 @@
     {"asset": "UI/Modern/GameMenuLayer/Stats/Page3_Skills/WBP_ModernMenu_StatsPage3_Details", "recipe": "bp_colour:WBP_ModernMenu_StatsPage3_Details", "colours": ["effectIcon", "rowText"], "shared_with": ["Character skills (the same skill panel, decision 30)", "Container"]},
     {"asset": "UI/Modern/GameMenuLayer/Stats/Page3_Skills/WBP_ModernMenu_Stats_LevelDescription", "recipe": "bp_colour:WBP_ModernMenu_Stats_LevelDescription", "colours": ["effectIcon", "rowText"], "shared_with": ["Character skills (perk lines)"]},
     {"asset": "UI/Legacy/GameMenuLayer/stats/DataTables/DT_StatsMenu_SkillDescriptionRichTextStyle_PerLevelDescription", "recipe": "bp_colour:DT_StatsMenu_SkillDescriptionRichTextStyle_PerLevelDescription", "colours": ["accentValue", "rowText"], "shared_with": ["Character skills (perk lines)"]},
-    {"asset": "UI/Materials/Instances/MIC_UI_SkillCircularProgress", "recipe": "material_colour:MIC_UI_SkillCircularProgress", "colours": ["effectIcon"], "shared_with": ["Character skills (skill level ring)"]},
+    {"asset": "UI/Materials/Instances/MIC_UI_SkillCircularProgress", "recipe": "material_colour:MIC_UI_SkillCircularProgress", "colours": ["menuTitle"], "shared_with": ["Character skills (skill level ring)"]},
     {"asset": "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_details_effects_title_BG", "recipe": "grey_scale:0.45", "colours": [], "shared_with": ["Character skills (skill panel title band)", "Container"]},
     {"asset": "Art/UI/Modern/GameMenuLayer/SigilStone/T_SigilStone_SubNameBG", "recipe": "grey_scale:0.45", "colours": [], "shared_with": ["Sigil Stone menu"]},
     {"asset": "Art/UI/Icons/Icon_Category/T_Category_Armor", "recipe": "grey_scale:2.2", "colours": [], "shared_with": ["Sigil Stone menu (the tab_paper recipe reads only the stock alpha)"]},

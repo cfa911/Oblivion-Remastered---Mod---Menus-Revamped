@@ -585,10 +585,10 @@
     "UI/Materials/Instances/MIC_UI_SkillCircularProgress": {
       "recipe": "material_colour:MIC_UI_SkillCircularProgress",
       "style": [
-        "effectIcon"
+        "menuTitle"
       ],
       "stock_uexp_sha256": "1511e3fd5f5b69742ce7b051ea55239864346284311fd6fcd44a3bf2164d4d25",
-      "baked_uexp_sha256": "7e51007a3741cf1d40cff8771eed24470d93bb162bcbcdbff0aae27ffcef4fdf"
+      "baked_uexp_sha256": "f082b2ad1aea8972e7c897b88d0d6a503f888ebcfcb32430afe015dba404a971"
     },
     "Art/UI/Modern/GameMenuLayer/Inventory/T_inv_details_effects_title_BG": {
       "recipe": "grey_scale:0.45",
@@ -2247,7 +2247,7 @@
       "recipe": "skill_ring",
       "style": [],
       "stock_uexp_sha256": "ce94934b8be051a9fd75ce230f574bb25e7c8715b3cf01a10bf3c182d6293c9d",
-      "baked_uexp_sha256": "599790af21d7783a6ebe490f20867d1a55d6ea86e22785f0275e8d97fc30fd57"
+      "baked_uexp_sha256": "0002fef564949d7764097beaa3ba27f9cc8a56da473adc1487b98644b02962cd"
     },
     "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_acrobatics": {
       "recipe": "skill_card:0",
@@ -2271,7 +2271,7 @@
       "recipe": "skill_card:3",
       "style": [],
       "stock_uexp_sha256": "5952944a8e9592a67cde32b22b1fe384315c530a48c51d7161285fbf6011557f",
-      "baked_uexp_sha256": "98726b4cbfc074512e056596c446cc2519b394ea44f14d9b3bad094d221e244f"
+      "baked_uexp_sha256": "5632f9c75da29efadd1ab9b6d54bb84e474288b1c8c831e989a55cac70e33f1d"
     },
     "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_athletics": {
       "recipe": "skill_card:4",
@@ -2283,19 +2283,19 @@
       "recipe": "skill_card:5",
       "style": [],
       "stock_uexp_sha256": "a291eaafb86bff4a53ddf33e7b3973490424321ec7edf721954394dc3e020c1e",
-      "baked_uexp_sha256": "a2be0827efe0399c635aae6c80c12d51b28848e1f223b890c3924b106dfa69a4"
+      "baked_uexp_sha256": "0e4ff78adc80a8b5bfc09cfc5b24941a210745e1a9bc5424cae0c38abc5e71b3"
     },
     "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_block": {
       "recipe": "skill_card:6",
       "style": [],
       "stock_uexp_sha256": "2dcf8a1a99ad936be0308b696ae40c1c5eaca10947c146562426b00a12c1da2c",
-      "baked_uexp_sha256": "60f19096bb4dc356d892a08bb51ef7c4b0f1a69460d546ba76a3734cd3ec2be9"
+      "baked_uexp_sha256": "d750fa553663710a99f835e60ed33c8c8796ea54f7cb4a1ade5e3f69907928d4"
     },
     "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_blunt": {
       "recipe": "skill_card:7",
       "style": [],
       "stock_uexp_sha256": "151d1788bac6fa5ddfd091160d50bf3c5e6f70ca2c7ad8c68be84411e37dac89",
-      "baked_uexp_sha256": "660bd53451e089322c7acab1117518e396f641fb775a877a18d9541283562fc4"
+      "baked_uexp_sha256": "877aaae821c6371a7f0bcbdfc258e5ec4e746697d9822e52cfbfdc639d0c85e9"
     },
     "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_conjuration": {
       "recipe": "skill_card:8",
@@ -2319,7 +2319,7 @@
       "recipe": "skill_card:11",
       "style": [],
       "stock_uexp_sha256": "e96f0c8e1f67d9f06a05587b2327ddb7c358b24e3f0032e092464862e3169f4e",
-      "baked_uexp_sha256": "3a974a7ae15af759d194919b6dba2217e2fbc3d2172981ed757e8ff3b6a9d859"
+      "baked_uexp_sha256": "756f7fd50bbb11eab11468355ed0369dcbb726de6b8dfbcf89e423cfa3a3f356"
     },
     "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_illusion": {
       "recipe": "skill_card:12",
@@ -2331,7 +2331,7 @@
       "recipe": "skill_card:13",
       "style": [],
       "stock_uexp_sha256": "1d09d6e16dd46ed14bf55b545639bbfc29289633a5cf6ac6e61a8e7b9eb17eb6",
-      "baked_uexp_sha256": "4d1b9ce460b3bdde76174bd72b8c90139493e99b814d444eb409bb4bc2bc7f9f"
+      "baked_uexp_sha256": "4a95bb8c557079b1ef268bb9a57c487d926e4586732bd61891673300d5448b79"
     },
     "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_Marksman": {
       "recipe": "skill_card:14",
@@ -2343,7 +2343,7 @@
       "recipe": "skill_card:15",
       "style": [],
       "stock_uexp_sha256": "912b9b77894d7e69c76f87b7f061ae93595630d6f6ab175f0d1d3fcb3acefaae",
-      "baked_uexp_sha256": "b44106d71ae55ac2555e5071fa1633aaf9c75bb0369d191e895c8e39a84129c3"
+      "baked_uexp_sha256": "60f2ba31e655ca21619bbba7ace15e8b0bf22de600e66c4bc476a78c4cc9ff4b"
     },
     "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_mysticism": {
       "recipe": "skill_card:16",
@@ -2361,19 +2361,19 @@
       "recipe": "skill_card:18",
       "style": [],
       "stock_uexp_sha256": "4b4a911998f1c2ebe63bb31857214e2da1f03d45aa6e1e403706b774cbe57e24",
-      "baked_uexp_sha256": "fdc20f2304e4cd0031f3d2ff130c25b57a51cba987d12051dcda045280135894"
+      "baked_uexp_sha256": "e40a84a56be3522bef7e3f7dc5b7dd334d0f2e630d9f8443d3115d2050432536"
     },
     "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_sneak": {
       "recipe": "skill_card:19",
       "style": [],
       "stock_uexp_sha256": "6ee15af722e780692c53c91a6e0778a87d7d8bff7df9e377f04ba7763339e275",
-      "baked_uexp_sha256": "5a21a434d7e11cddb4e2dc1d2da75569f1330bc56c7e8bf355ce8ca8d64f4caf"
+      "baked_uexp_sha256": "7a8f0202079f5200ca125a9e2238dad7d920bc82d8ef22155908ae40fb8c8666"
     },
     "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_speechcraft": {
       "recipe": "skill_card:20",
       "style": [],
       "stock_uexp_sha256": "1cc46ed83a9af0c06286b785297b088fe1cd3b46a4c7e163986fa16ddda8154f",
-      "baked_uexp_sha256": "a4baaba8761da3a5360024046b71d66601204339a36a71697b574127308c11de"
+      "baked_uexp_sha256": "5f56f6af45d9ca1e88365d5ee4321f90376ebc55ef692716fe6800bc085c70f4"
     },
     "Art/UI/Icons/Dynamic_Icons/menus/class/attributes/T_load_image_acrobatics_small": {
       "recipe": "skill_icon:0",
@@ -3254,7 +3254,7 @@
   "header_overflow": {},
   "files": {
     "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "176a910498eae3a70b91c717c60107a2ce13edf6661ca33fe359e72a32dc4fc3",
-    "MRCustom_P.ucas": "7cb1fa6c7bdda576101df2a064a2249c9e373ee0a1045a843e89c045ce708037"
+    "MRCustom_P.utoc": "29d07cecf4554ae835ea3640e80206638aeeeb70be16e57bdc24c3014234894c",
+    "MRCustom_P.ucas": "dd70b8f20e8874bc863748b026322a7cca1c44e96123d35c3da20a71c4070c69"
   }
 }

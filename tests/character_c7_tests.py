@@ -149,15 +149,15 @@ class CharacterTests(unittest.TestCase):
                                          GOLD if role == "effectIcon" else (255,) * 3)
                         self.assertEqual(rgba[3], 1.0)
 
-    def test_skill_ring_material_uses_effect_icon_colour(self):
+    def test_skill_ring_material_uses_the_blue_accent(self):
         name = "MIC_UI_SkillCircularProgress"
         recipe = pipeline.recipe(f"material_colour:{name}")
-        self.assertEqual(recipe[1], ("effectIcon",))
+        self.assertEqual(recipe[1], ("menuTitle",))
         stock = bytearray(185)
         struct.pack_into("<4f", stock, 169, 0.86316, 0.3564, 0.13014, 1.0)
-        baked = recipe[2](stock, {"effectIcon": GOLD}, None, None)
+        baked = recipe[2](stock, {"menuTitle": BLUE}, None, None)
         rgba = struct.unpack_from("<4f", baked, 169)
-        self.assertEqual(tuple(round(pipeline.srgb(c)) for c in rgba[:3]), GOLD)
+        self.assertEqual(tuple(round(pipeline.srgb(c)) for c in rgba[:3]), BLUE)
         self.assertEqual(rgba[3], 1.0)
 
     def test_both_skill_art_sizes_and_shared_ring_are_selected(self):
@@ -198,12 +198,12 @@ class CharacterTests(unittest.TestCase):
                         self.assertTrue(all(abs(a - b) <= 9 for a, b in zip(paper, BLACK)))
                         self.assertEqual(paper[3], 255)
 
-    def test_skill_ring_b_colours_the_disc_and_outer_ring(self):
+    def test_skill_ring_colours_the_disc_and_outer_ring_gold(self):
         stock = Image.new("RGB", (32, 32), (150,) * 3)
         baked = pipeline.skill_ring_image(stock)
         for point in ((16, 16), (16, 1)):
             red, green, blue = baked.getpixel(point)
-            self.assertTrue(red < green < blue)
+            self.assertTrue(red > green > blue)
         self.assertEqual(baked.getpixel((0, 0)), stock.getpixel((0, 0)))
         self.assertGreater(baked.getpixel((8, 8))[0], baked.getpixel((23, 23))[0])
 
