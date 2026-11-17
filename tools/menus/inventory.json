@@ -43,7 +43,7 @@
     {"asset": "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertMiddleNew_D", "recipe": "flat_white", "colours": [], "shared_with": ["every scrolling menu (common art)"]},
     {"asset": "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertTop_D", "recipe": "flat_white", "colours": [], "shared_with": ["every scrolling menu (common art)"]},
     {"asset": "Art/UI/Common/T_Line_V", "recipe": "flat:columnLine", "colours": ["columnLine"], "shared_with": ["other list menus (common art)"]},
-    {"asset": "Art/UI/Common/T_List_highlight_V3", "recipe": "flat:listHighlight", "colours": ["listHighlight"], "shared_with": ["other list menus (common art)"]},
+    {"asset": "Art/UI/Common/T_List_highlight_V3", "recipe": "flat_alpha:listHighlight:0.35", "colours": ["listHighlight"], "shared_with": ["other list menus (common art): Inventory, Level Up, Alchemy effects, Repair (import swap), Help; alpha x 0.35 = Help H.3, owner 2026-11-17"]},
     {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/T_Icon_stolen", "recipe": "stolen_mark", "colours": ["stolenMark"], "shared_with": ["Container", "Barter", "Enchanting (rows: WBP_ModernMenu_EnchantmentEntry)"]},
     {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/T_Icon_enchanted", "recipe": "enchanted_dot", "colours": ["enchantedDot"], "shared_with": ["other item lists (common icon)"]},
     {"asset": "Art/UI/Icons/Icon_Stats/T_Property_1_Attack", "recipe": "flat:headerIcon", "colours": ["headerIcon"], "shared_with": ["other stat displays (common icon)"]},

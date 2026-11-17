@@ -1,0 +1,32 @@
+{
+  "menu": "Help",
+  "note": "Help round 1 (owner batch 2026-11-17, KB mods/menus-revamped/menus/Help/CHECKLIST.md H.1-H.10; offsets from the static scan there, game 1.512.105.0): category header band blue (menuTitle, stock alpha 0.5), its text and dropdown triangle gold (effectIcon); focused header band white x 0.45 (stock alpha 0.6); Tutorials, summary and details titles blue; tutorial names, summary text, details text (instance colour and every DT_HelpMenuRichStyle row) and the page counter white (rowText); the ornament separator gold. H.3 (dimmer selected row, owner: every list menu) is the T_List_highlight_V3 recipe in inventory.json.",
+  "assets": [
+    {"asset": "UI/Modern/GameMenuLayer/Help/WBP_ModernMenu_HelpEntry", "recipe": "bp_colour:WBP_ModernMenu_HelpEntry", "colours": ["effectIcon", "menuTitle", "rowText"], "shared_with": []},
+    {"asset": "UI/Modern/GameMenuLayer/Help/WBP_ModernMenu_Help", "recipe": "bp_colour:WBP_ModernMenu_Help", "colours": ["menuTitle", "rowText"], "shared_with": []},
+    {"asset": "UI/Modern/GameMenuLayer/Help/data/DT_HelpMenuRichStyle", "recipe": "bp_colour:DT_HelpMenuRichStyle", "colours": ["rowText"], "shared_with": []},
+    {"asset": "Art/UI/Modern/GameMenuLayer/Help/T_UI_HelpSeparator", "recipe": "flat:effectIcon", "colours": ["effectIcon"], "shared_with": []}
+  ],
+  "blueprint_colours": {
+    "WBP_ModernMenu_HelpEntry": [
+      {"offset": 9342, "stock": [0.2918, 0.159, 0.0908, 0.5], "colour": "menuTitle", "widget": "HeaderBackground (T_Category_BG tint)"},
+      {"offset": 8986, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "effectIcon", "widget": "TextBlock (category header label)"},
+      {"offset": 9247, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "effectIcon", "widget": "Arrow (T_UI_Simple_Arrow tint)"},
+      {"offset": 9390, "stock": [1.0, 1.0, 1.0, 0.6], "colour": "white", "scale": 0.45, "widget": "HeaderFocusBackground (T_Category_BG tint)"},
+      {"offset": 9038, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText", "widget": "TextBlock_1 (tutorial name)"}
+    ],
+    "WBP_ModernMenu_Help": [
+      {"offset": 44438, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "menuTitle", "widget": "ListHeader (Tutorials)"},
+      {"offset": 44371, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "menuTitle", "widget": "EntryName (summary title)"},
+      {"offset": 44221, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "menuTitle", "widget": "DetailName (details title)"},
+      {"offset": 44116, "stock": [0.0976, 0.0545, 0.0395, 1.0], "colour": "rowText", "widget": "EntryDescription (summary text)"},
+      {"offset": 43477, "stock": [0.0976, 0.0545, 0.0395, 1.0], "colour": "rowText", "widget": "DetailText (details default colour)"},
+      {"offset": 44299, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText", "widget": "DetailsIndex (page counter)"}
+    ],
+    "DT_HelpMenuRichStyle": [
+      {"offset": 69, "stock": [0.0976, 0.0545, 0.0395, 1.0], "colour": "rowText", "widget": "row Header"},
+      {"offset": 425, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText", "widget": "row RT_BlueMed (bold)"},
+      {"offset": 781, "stock": [0.0723, 0.0382, 0.0284, 1.0], "colour": "rowText", "widget": "row Default"}
+    ]
+  }
+}
