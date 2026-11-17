@@ -90,7 +90,7 @@ with tempfile.TemporaryDirectory() as temp:
         check(m.swatch("Skin", "buttonFill") == f"#{fill:02x}{fill:02x}{fill:02x}",
               f"a [Skin] swatch shows the linear tint in sRGB ({m.swatch('Skin', 'buttonFill')})")
         m.set_rgb("Skin", "rule", (255, 0, 0))
-        check(m.value("Skin", "rule") == [1.0, 0.0, 0.0, 0.55], f"a picked [Skin] colour is linear and keeps its alpha ({m.value('Skin', 'rule')})")
+        check(m.value("Skin", "rule") == [1.0, 0.0, 0.0, 1.0], f"a picked [Skin] colour is linear and keeps its alpha ({m.value('Skin', 'rule')})")
         m.set_rgb("Tab", "selected", (60, 60, 60))
         check(m.value("Tab", "selected") == 60.0, "a picked grey sets a [Tab] entry")
         m.set_rgb("Colours", "panel", (10, 20, 30))
@@ -160,7 +160,7 @@ with tempfile.TemporaryDirectory() as temp:
         check(all(s in text for s in ("[Colours]", "[Tab]", "[Skin]")), "the saved file has all three sections")
         check(custom_colours.load(target)["rowText"] == [255.0, 80.0, 80.0] and custom_colours.load(target)["selected"] == 60.0,
               "the saved values read back through custom_colours.load")
-        check(custom_colours.load_skin(target)["rule"] == [1.0, 0.0, 0.0, 0.55], "the saved [Skin] values read back")
+        check(custom_colours.load_skin(target)["rule"] == [1.0, 0.0, 0.0, 1.0], "the saved [Skin] values read back")
         again = ColourModel(target)
         check([again.value(e.section, e.name) for e in again.entries] == [m.value(e.section, e.name) for e in m.entries],
               "a saved file loads back with the same values")
@@ -168,7 +168,7 @@ with tempfile.TemporaryDirectory() as temp:
         # Reset to Dark
         m.reset_to_dark()
         check(all(m.value(e.section, e.name) == e.default for e in m.entries), "Reset to Dark gives every default")
-        check(m.value("Colours", "rowText") == [239.0, 239.0, 239.0] and m.value("Skin", "rule") == [0.65, 0.65, 0.65, 0.55],
+        check(m.value("Colours", "rowText") == [239.0, 239.0, 239.0] and m.value("Skin", "rule") == [0.1248, 0.1248, 0.1248, 1.0],
               "Reset to Dark restores today's values")
         m.save(target)
         check(target.read_text(encoding="utf-8") == custom_colours.render(custom_colours.DEFAULTS, None, m.roles, custom_colours.SIZES)

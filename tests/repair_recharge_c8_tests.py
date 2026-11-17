@@ -18,7 +18,7 @@ LEGACY_UI = source_paths.Path("F:/modbuild/reports/mr-tab-outlines-20261109/ui-a
 FOCUS_BOX = "UI/Legacy/Prefabs/WBP_LegacyPrefab_FocusBox"
 
 TEXTURES = {
-    "Art/UI/Modern/GameMenuLayer/Repair/T_repair_frame": "altar_panel_invert:enchantingFrame:1.5",
+    "Art/UI/Modern/GameMenuLayer/Repair/T_repair_frame": "altar_panel_invert:enchantingFrame:1.5:12:25",   # C.8b: stains cleaned
     "Art/UI/Modern/GameMenuLayer/Repair/T_Repair_Hammer_Frame": "altar_metal:enchantingFrame",
     "Art/UI/Modern/GameMenuLayer/Recharge/T_UI_Recharge_Frame_No_Glow": "frame_metal:enchantingFrame",
     "Art/UI/Modern/GameMenuLayer/Recharge/T_UI_Paper_Background": "paper_invert:3",

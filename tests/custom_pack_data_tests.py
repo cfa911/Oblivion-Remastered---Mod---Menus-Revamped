@@ -50,7 +50,7 @@ for menu in MENUS:
         check(isinstance(row.get("shared_with"), list), f"{name}: has a shared-with list (empty when the menu owns it alone)")
 
 assets = [row.get("asset") for row in rows]
-check(len(assets) == 369, f"the data files describe 369 assets (C.8 Repair and Recharge add 14 rows; found {len(assets)})")
+check(len(assets) == 370, f"the data files describe 370 assets (C.8b adds the M_UI_Repair anvil material row, RMI-110; found {len(assets)})")
 check(len(set(assets)) == len(assets), "no asset is listed twice across the data files")
 check(set(assets) == set(shipped), "the data files list exactly the assets of the shipped MRCustom_P")
 check(assets == list(shipped), "the data files keep the build order in MENUS")

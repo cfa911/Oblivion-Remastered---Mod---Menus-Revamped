@@ -95,14 +95,14 @@ namespace darkstyle
 		// Run-time tints of the Dark skin (uistyle::kDarkSkin): linear 0-1 as Slate takes them, alpha last.
 		struct SkinTints
 		{
-			std::array<float, 4> rule{ 0.65f, 0.65f, 0.65f, 0.55f };     // header rules
+			std::array<float, 4> rule{ 0.1248f, 0.1248f, 0.1248f, 1.0f };   // header rules: the column-divider grey 99 (C.8b, owner 2026-11-17)
 			std::array<float, 4> guide{ 0.55f, 0.55f, 0.55f, 0.13f };    // header guides
 			std::array<float, 4> ring{ 0.55f, 0.55f, 0.55f, 1 };         // the skill level ring
 			std::array<float, 4> ornament{ 0.45f, 0.45f, 0.45f, 1 };     // T_StatsMenu_Line_R (white art)
 			std::array<float, 4> pattern{ 1, 1, 1, 1 };                  // T_Inventory_pattern (baked gray: untinted)
 			std::array<float, 4> band{ 0.41f, 0.65f, 1.0f, 1 };          // per-channel inverse of T_inv_details_effects_title_BG's brown
 			std::array<float, 4> buttonFill{ 0.12f, 0.12f, 0.12f, 1 };   // action button fill and arrows
-			float scrollTrack = 0.0052f, scrollBorder = 0.0052f, scrollInside = 0.8632f;   // C.3-12: white thumb (sRGB 239)   // scrollbar material (linear gray)
+			float scrollTrack = 0.6445f, scrollBorder = 0.8632f, scrollInside = 0.025f;   // C.8b: light-grey track (sRGB 210), white thumb outline (239), search-bar grey fill   // scrollbar material (linear gray)
 			std::array<float, 4> emphasisInk{ 0.125f, 0.120f, 0.125f, 1 };   // owner swatch, sRGB 99 97 99
 			std::array<float, 4> buttonRule{ 0.83f, 0.83f, 0.83f, 1 };   // rule middles match the end pieces (ButtonLine.png, sRGB 235)
 			std::array<float, 4> alchemyHeading{ 0.0782f, 0.2016f, 0.4342f, 1 };   // sRGB 79 124 176 (#4f7cb0), the menu-title blue (Alchemy C.3 round 2)

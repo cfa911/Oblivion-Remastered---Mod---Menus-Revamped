@@ -73,7 +73,7 @@ for package, colours in ((TRACK, ["Skin.scrollTrack"]), (THUMB, ["Skin.scrollBor
         for (o, s, c), (eo, es, ec) in zip(entries, EXPECTED[package])), f"{package}: the probed offsets and stock values ({entries})")
     check(pipe.BLUEPRINT_COLOURS.get(package) is not None, f"{package}: the pipeline loads its literals")
 material_rows = [a for a, (_, r) in rows.items() if r["recipe"].startswith("material_colour")]
-check(sorted(material_rows) == sorted([f"UI/Materials/Common/{p}" for p in EXPECTED] + ["UI/Materials/Instances/MIC_UI_SkillCircularProgress"]),
+check(sorted(material_rows) == sorted([f"UI/Materials/Common/{p}" for p in EXPECTED] + ["UI/Materials/Instances/MIC_UI_SkillCircularProgress", "UI/Materials/Repair/M_UI_Repair"]),
       f"material_colour: the two scrollbar materials and (phase 28b) the skill ring instance ({material_rows})")
 for name in ("MIC_UI_Scrollbar_Vert_Dark", "MIC_UI_ScrollbarVert_Handle_Dark"):
     check(not any(Path(a).name == name for a in rows), f"{name} is not shipped (it holds no colour)")

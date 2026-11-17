@@ -39,9 +39,9 @@
     {"asset": "UI/Modern/GameMenuLayer/Container_Inventory/WBP_ModernMenu_ContainerInventory_MainContent", "recipe": "bp_colour:WBP_ModernMenu_ContainerInventory_MainContent", "colours": ["menuTitle"], "shared_with": ["Container", "Barter", "Spell Purchase"]},
     {"asset": "Art/UI/Modern/GameMenuLayer/SpellPurchase/T_SpellPurchase_LeftPageBG", "recipe": "details_invert:3", "colours": ["detailsPage"], "shared_with": ["Magic", "Help", "Spell Purchase", "Stats", "Quest"]},
     {"asset": "Art/UI/Common/Backgrounds/T_UI_PlayerMenu_Background", "recipe": "page_invert:3:0.7", "colours": ["frame", "panel", "parchmentDark", "parchmentLight"], "shared_with": []},
-    {"asset": "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertBtm_D", "recipe": "flat:frame", "colours": ["frame"], "shared_with": ["every scrolling menu (common art)"]},
-    {"asset": "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertMiddleNew_D", "recipe": "flat:frame", "colours": ["frame"], "shared_with": ["every scrolling menu (common art)"]},
-    {"asset": "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertTop_D", "recipe": "flat:frame", "colours": ["frame"], "shared_with": ["every scrolling menu (common art)"]},
+    {"asset": "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertBtm_D", "recipe": "flat_white", "colours": [], "shared_with": ["every scrolling menu (common art)"]},
+    {"asset": "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertMiddleNew_D", "recipe": "flat_white", "colours": [], "shared_with": ["every scrolling menu (common art)"]},
+    {"asset": "Art/UI/Common/Scrollbar/NewTextures/T_UI_Scrollbar_VertTop_D", "recipe": "flat_white", "colours": [], "shared_with": ["every scrolling menu (common art)"]},
     {"asset": "Art/UI/Common/T_Line_V", "recipe": "flat:columnLine", "colours": ["columnLine"], "shared_with": ["other list menus (common art)"]},
     {"asset": "Art/UI/Common/T_List_highlight_V3", "recipe": "flat:listHighlight", "colours": ["listHighlight"], "shared_with": ["other list menus (common art)"]},
     {"asset": "Art/UI/Icons/Dynamic_Icons/menus/Icons/T_Icon_stolen", "recipe": "stolen_mark", "colours": ["stolenMark"], "shared_with": ["Container", "Barter", "Enchanting (rows: WBP_ModernMenu_EnchantmentEntry)"]},
@@ -80,7 +80,7 @@
     {"asset": "Art/UI/Icons/Icon_Category/T_Category_Armor", "recipe": "grey_scale:2.2", "colours": [], "shared_with": ["Sigil Stone menu (the tab_paper recipe reads only the stock alpha)"]},
     {"asset": "Art/UI/Icons/Icon_Category/T_Category_Weapons", "recipe": "grey_scale:1.8", "colours": [], "shared_with": ["Sigil Stone menu (the tab_paper recipe reads only the stock alpha)"]},
     {"asset": "Art/UI/Modern/GameMenuLayer/Stats/T_CircularProgress_bg", "recipe": "grey_scale:1.0", "colours": [], "shared_with": ["Character skills (ring centre)"]},
-    {"asset": "Art/UI/Common/T_Line_Brown", "recipe": "skin_flat:ornament:235", "colours": ["Skin.ornament"], "shared_with": ["Container", "Magic (header separators, hidden by Menus Revamped)", "Inventory details tooltips"]},
+    {"asset": "Art/UI/Common/T_Line_Brown", "recipe": "flat:columnLine", "colours": ["columnLine"], "shared_with": ["Container", "Magic (header separators, hidden by Menus Revamped)", "Inventory details tooltips"]},
     {"asset": "Art/UI/Common/T_Line_02", "recipe": "skin_flat:ornament:235", "colours": ["Skin.ornament"], "shared_with": ["Sigil Stone menu", "Recharge", "Training", "Alchemy"]}
   ]
 }
