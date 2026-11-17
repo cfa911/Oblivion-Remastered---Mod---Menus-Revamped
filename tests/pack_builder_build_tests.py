@@ -54,7 +54,10 @@ PACK_FILES = ("MRCustom_P.pak", "MRCustom_P.utoc", "MRCustom_P.ucas", "MRCustom_
 REAL_RECIPE = pipe.recipe
 TEXTURES = pipe.TEXTURES
 PNG = [a for a, r in TEXTURES.items() if r == "png"]
-BLUEPRINTS = [a for a, r in TEXTURES.items() if r.startswith("bp_colour:")]
+BLUEPRINTS = [a for a, r in TEXTURES.items() if r.startswith("bp_colour:")
+              and pipe.BLUEPRINT_COLOURS.get(r.partition(":")[2])]
+# C.8: a package baked only for its import swap (the legacy FocusBox) has no literals; the fake package cannot be swapped
+SWAP_ONLY = [a for a, r in TEXTURES.items() if r.startswith("bp_colour:") and a not in BLUEPRINTS]
 FLAT = [a for a, r in TEXTURES.items() if r.startswith("flat:")]
 check(not PNG, f"no data file row uses the owner-art png recipe (Phase 6: the alchemy recipe) ({len(PNG)})")
 ALCHEMY = [a for a, r in TEXTURES.items() if r == "alchemy"]
@@ -193,7 +196,8 @@ with tempfile.TemporaryDirectory() as temp:
               "a blueprint whose stock colour literals differ is skipped, the reason names the stock value")
         check(BAD in skipped and "BC3" in skipped.get(BAD, ""), "a texture that is not BC3 is skipped")
         check(GROWS in skipped and "size" in skipped.get(GROWS, ""), "a recipe result of another size is skipped")
-        expected = [a for a in TEXTURES if a not in set(PNG) | set(BLUEPRINTS) | {BAD, GROWS}]
+        check(set(SWAP_ONLY) <= set(skipped), "a swap-only package the fake build cannot parse is skipped")
+        expected = [a for a in TEXTURES if a not in set(PNG) | set(BLUEPRINTS) | set(SWAP_ONLY) | {BAD, GROWS}]
         check(set(skipped) == set(TEXTURES) - set(expected), f"only the failing assets are skipped ({len(skipped)})")
         check(list(manifest.get("textures", {})) == expected, "every other asset is built, in build order")
         check(not any(Path(a).name in fake.injects for a in skipped), "nothing is injected for a skipped asset")

@@ -20,7 +20,7 @@ def check(ok, why):
 
 root = source_paths.ROOT
 menus_dir = root / "tools/menus"
-MENUS = ("inventory", "magic", "alchemy", "common", "enchanting", "spellmaking", "tabs", "character", "quests")  # Quests uses the fallback order
+MENUS = ("inventory", "magic", "alchemy", "common", "enchanting", "spellmaking", "tabs", "character", "quests", "repair")  # Quests uses the fallback order
 manifest = json.loads((root / "assets/CustomPack/MRCustom_P.json").read_text(encoding="utf-8"))
 shipped = {k: v for k, v in manifest["textures"].items() if v.get("recipe") != "layout"}   # decision 46: the layout packages ride along (layout.json)
 
@@ -50,7 +50,7 @@ for menu in MENUS:
         check(isinstance(row.get("shared_with"), list), f"{name}: has a shared-with list (empty when the menu owns it alone)")
 
 assets = [row.get("asset") for row in rows]
-check(len(assets) == 355, f"the data files describe 355 assets (C.7 Character adds 72 rows; found {len(assets)})")
+check(len(assets) == 369, f"the data files describe 369 assets (C.8 Repair and Recharge add 14 rows; found {len(assets)})")
 check(len(set(assets)) == len(assets), "no asset is listed twice across the data files")
 check(set(assets) == set(shipped), "the data files list exactly the assets of the shipped MRCustom_P")
 check(assets == list(shipped), "the data files keep the build order in MENUS")

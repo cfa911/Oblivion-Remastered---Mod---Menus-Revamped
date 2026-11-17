@@ -121,7 +121,7 @@ HELP = {
     "filterOutline": "Alchemy filter row and Must Contain button outline",
     "alchemyMetal": "Alchemy frame, ingredient slots and pot - metal",
     "alchemyStone": "Alchemy frame, ingredient slots and pot - stone",
-    "enchantingFrame": "Enchanting right panel frame - metal",
+    "enchantingFrame": "Enchanting, Repair and Recharge right frames - metal",
     "spellmakingFrame": "Spellmaking right panel frame - metal",
     "altarPaper": "Enchanting and Spellmaking right panel paper",
     "enchantingCrystal": "Enchanting crystal under the right panel",
