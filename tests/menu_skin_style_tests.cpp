@@ -65,8 +65,8 @@ unsigned checks=0,failures=0;
 void Check(bool ok,const char* why){++checks;if(!ok){++failures;std::printf("FAIL %s\n",why);}}
 int main(){
  using namespace uistyle;
- const auto& classic=SkinFor(Preset::Classic); const auto& light=SkinFor(Preset::Light); const auto& dark=SkinFor(Preset::Dark);
- Check(!classic.recolor&&!light.recolor,"Classic and Light keep the game's colours");
+ const auto& classic=SkinFor(Preset::Classic); const auto& custom=SkinFor(Preset::Custom); const auto& dark=SkinFor(Preset::Dark);
+ Check(!classic.recolor&&custom.recolor,"Classic keeps the game's colours; Custom recolours like Dark (preset rework 2026-11-17)");
  Check(dark.recolor,"Dark recolours the menu");
  Check(!classic.invertToggles&&dark.invertToggles,"inverted filter toggles are a Dark look");
  // decision 28 (28a): the equipped scribble is cleared in the Custom pack (T_UI_Scribble), no run-time flag
@@ -102,15 +102,15 @@ int main(){
  Check(dark.scrollBorder>dark.scrollTrack&&dark.scrollInside<0.05f,"dark scrollbar: light-grey track, white thumb outline, search-bar grey fill (C.8b)");
 #endif
  const auto classicControls = InventoryControls(true, Preset::Classic);
-const auto lightControls = InventoryControls(true, Preset::Light);
+const auto customControls = InventoryControls(true, Preset::Custom);
 const auto darkControls = InventoryControls(true, Preset::Dark);
 Check(!classicControls.darkArt && classicControls.selectedSortTint == 1.0f,
  "Classic keeps the original status and filter art and the full stock selected-sort background");
-Check(!lightControls.darkArt && lightControls.selectedSortTint == 1.0f,
- "Light uses the same original Inventory art");
+Check(customControls.darkArt && customControls.selectedSortTint == 0.24f,
+ "Custom uses the Dark Inventory art (preset rework 2026-11-17)");
 Check(darkControls.darkArt && darkControls.selectedSortTint == 0.24f && !InventoryControls(false, Preset::Dark).darkArt,
- "only Dark Inventory selects the dark artwork and dimmed sort background");
- // Phase 2 (owner 2026-11-10): the Magic menu takes the same Dark look; Classic and Light keep their palettes.
+ "only the recoloured Inventory selects the dark artwork and dimmed sort background");
+ // Phase 2 (owner 2026-11-10): the Magic menu takes the same Dark look; Classic keeps its palette.
  Check(SkinnedKind(0)&&SkinnedKind(1)&&SkinnedKind(2)&&SkinnedKind(5)&&SkinnedKind(6),
   "Inventory and every Magic picker (School, Effect, Type, Active Effects) use the menu skin");
  // C.1 (owner 2026-11-12): the container/barter sides take the Inventory bar, its look included.
@@ -155,8 +155,8 @@ Check(darkControls.darkArt && darkControls.selectedSortTint == 0.24f && !Invento
 #endif
  // Round 2 (owner screenshot 2026-11-10): Effect, Type and Cost white like the A-Z and School icons; the details page dark.
  Check(MagicHeaderOpacity(Preset::Dark,0.5f)==1.0f,"Dark Magic header icons are full white even while inactive");
- Check(MagicHeaderOpacity(Preset::Classic,0.5f)==0.5f&&MagicHeaderOpacity(Preset::Light,0.45f)==0.45f,
-  "Classic and Light keep the dimmed inactive header icons");
+ Check(MagicHeaderOpacity(Preset::Classic,0.5f)==0.5f&&MagicHeaderOpacity(Preset::Custom,0.45f)==1.0f,
+  "Classic keeps the dimmed inactive header icons; Custom is full white like Dark");
  // Round 7 (owner 2026-11-10): Magic tabs follow the Inventory tab process; pages keep their detail around the header colour.
  const auto tabs=darkstyle::Tabs();
  Check(tabs.selected==41&&tabs.unselected==33&&tabs.gap==24&&tabs.outline==134&&tabs.glyph==242&&tabs.glyphDim==162,

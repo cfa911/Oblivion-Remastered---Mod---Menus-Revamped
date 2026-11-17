@@ -36,25 +36,27 @@ def load_module(name):
 root = source_paths.ROOT
 
 # --- the pack files ---
-custom = root / "assets/CustomPack"
-check(all((custom / f"MRCustom_P.{e}").is_file() for e in ("pak", "utoc", "ucas", "json")),
-      "the development pack MRCustom_P (.pak/.utoc/.ucas/.json) is in assets/CustomPack (owner decision 7)")
-check(not (root / "assets/DarkPack").exists(), "assets/DarkPack (MRDark_P) is gone: MRCustom_P replaces it")
+# preset rework (owner 2026-11-17): the zip ships the Dark pack MRDark_P (assets/DarkPack); MRCustom_P is the player's own
+# Pack Builder output (Plugins/MenusRevamped/CustomPack) and is never shipped
+dark = root / "assets/DarkPack"
+check(all((dark / f"MRDark_P.{e}").is_file() for e in ("pak", "utoc", "ucas", "json")),
+      "the shipped pack MRDark_P (.pak/.utoc/.ucas/.json) is in assets/DarkPack")
+check(not (root / "assets/CustomPack").exists(), "assets/CustomPack is gone: the Custom pack is the player's build")
 
 sys.path.insert(0, str(root / "tools"))
 files = load_module("plugin_files").entries(root)
 prefix = "OblivionRemastered/Binaries/Win64/OBSE/Plugins/MenusRevamped/"
-for ext in ("pak", "utoc", "ucas"):
-    check(files.get(prefix + f"CustomPack/MRCustom_P.{ext}") == custom / f"MRCustom_P.{ext}",
-          f"the zip ships MRCustom_P.{ext} in Plugins/MenusRevamped/CustomPack")
-check(prefix + "CustomPack/MRCustom_P.json" in files, "the zip ships the manifest MRCustom_P.json (the plugin checks it at load)")
-check(not any("MRDark_P" in k or "/DarkPack/" in k for k in files), "the zip no longer ships MRDark_P")
+for ext in ("pak", "utoc", "ucas", "json"):
+    check(files.get(prefix + f"DarkPack/MRDark_P.{ext}") == dark / f"MRDark_P.{ext}",
+          f"the zip ships MRDark_P.{ext} in Plugins/MenusRevamped/DarkPack")
+check(not any("MRCustom_P" in k or "/CustomPack/" in k for k in files), "the zip ships no MRCustom_P (the player builds it)")
 check(not any(k.endswith("CustomColours.ini") for k in files),
       "the zip ships no CustomColours.ini (a Vortex update would replace the user's colours; the plugin writes it)")
 
 mdp = load_module("make_dark_pack")
-check(getattr(mdp, "DEFAULT_PACK", None) == "MRCustom_P", "make_dark_pack.py builds MRCustom_P by default")
-check('ROOT / "assets/CustomPack"' in text("tools/make_dark_pack.py"), "make_dark_pack.py writes into assets/CustomPack by default")
+check(getattr(mdp, "DEFAULT_PACK", None) == "MRCustom_P", "the Pack Builder builds MRCustom_P by default")
+check('ROOT / "assets/DarkPack"' in text("tools/make_dark_pack.py") and '"MRDark_P"' in text("tools/make_dark_pack.py"),
+      "make_dark_pack.py from source builds the shipped MRDark_P into assets/DarkPack by default")
 
 # --- the colour file: [Skin] section ---
 style = text("src/core/DarkStyle.h")
@@ -92,7 +94,8 @@ check("customcolours::Parse(" in pack and "darkstyle::Set(" in pack, "DarkPack.c
 check("customcolours::Render(" in pack, "DarkPack.cpp writes the default colour file when it is missing")
 check("custompack::ParseManifest(" in pack and "custompack::Decide(" in pack and 'L"MRCustom_P.json"' in pack,
       "DarkPack.cpp checks MRCustom_P.json before the switch")
-check("layoutpack::Switch(" in pack and 'L"CustomPack"' in pack, "DarkPack.cpp switches MRCustom_P from Plugins/MenusRevamped/CustomPack")
+check("presetpacks::Switch(" in pack and 'L"CustomPack"' in pack and 'L"DarkPack"' in pack,
+      "DarkPack.cpp switches MRCustom_P from CustomPack and MRDark_P from DarkPack")
 check("TEMP-DIAG" not in pack, "no temporary diagnostics in DarkPack.cpp")
 theme = text("src/core/UiTheme.h")
 check("inline constexpr Skin kDarkSkin" not in theme and "darkstyle::Get()" in theme,
@@ -100,7 +103,7 @@ check("inline constexpr Skin kDarkSkin" not in theme and "darkstyle::Get()" in t
 check("inline const Style& Get() { return kDefaults; }" not in style, "darkstyle::Get() no longer returns the compiled-in defaults only")
 readme, defaults_ini = text("README.md"), text("config/MenusRevamped.defaults.ini")
 check("MRCustom_P" in readme and "CustomColours.ini" in readme and "MRDark_P" in readme,
-      "README names MRCustom_P and CustomColours.ini (and the old MRDark_P for the upgrade)")
+      "README names MRCustom_P, CustomColours.ini and the shipped MRDark_P")
 check("MRCustom_P" in defaults_ini.split("uPreset", 1)[0][-700:], "the INI preset comment names the MRCustom_P pack")
 
 for why in fails:

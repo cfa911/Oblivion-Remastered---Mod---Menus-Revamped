@@ -35,7 +35,7 @@ layout = defaults.split("[Layout]", 1)[1].split("\n[", 1)[0] if "[Layout]" in de
 check("bLayoutPack=1" in layout and "MRLayout_P" in layout, "the defaults file documents bLayoutPack=1 and MRLayout_P in [Layout]")
 
 dark_cpp, dark_h = read("src/core/DarkPack.cpp"), read("src/core/DarkPack.h")
-check('#include "core/rules/LayoutPack.h"' in dark_cpp and "layoutpack::Switch(" in dark_cpp, "darkpack::Apply switches through layoutpack::Switch")
+check('#include "core/rules/PresetPacks.h"' in dark_cpp and "presetpacks::Switch(" in dark_cpp, "darkpack::Apply switches through presetpacks::Switch (preset rework 2026-11-17)")
 check("MRLayout_P.json" in dark_cpp and "layoutpack::LayoutManifestOk(" in dark_cpp, "the layout manifest's game build is checked")
 check("mrconfig::Get().layoutPack" in dark_cpp, "bLayoutPack decides whether the layout pack may be installed")
 check("darkpackswitch::SwitchCustom(" not in dark_cpp, "the colour pack is no longer switched on its own (never both packs)")

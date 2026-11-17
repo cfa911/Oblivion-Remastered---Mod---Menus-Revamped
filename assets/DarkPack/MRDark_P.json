@@ -1,5 +1,5 @@
 {
-  "pack": "MRCustom_P",
+  "pack": "MRDark_P",
   "game_build": "1.512.105.0",
   "built_by": "tools/make_dark_pack.py",
   "builder_version": "0.5.0",
@@ -3288,8 +3288,8 @@
   "header_layout": {},
   "header_overflow": {},
   "files": {
-    "MRCustom_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
-    "MRCustom_P.utoc": "f4b689410eaba90dc895af12c69c94b01f5af990671545f31d3a624f2bafc119",
-    "MRCustom_P.ucas": "a59a3c59a4c631c190a2ce33e5bc85e3277ad80f6645fef071a83c081c853546"
+    "MRDark_P.pak": "75e7144577253917f6da7312ef5e585b12fb728226a22b0938323751a6b555cd",
+    "MRDark_P.utoc": "ae326b169d027878fe966cb2979a8e647b4558c82e9822567bfde9411b23f1ae",
+    "MRDark_P.ucas": "995687750315d2e99a9ee7109f956759eaf1034f791a5584bf955c37bd8c6c1b"
   }
 }

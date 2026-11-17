@@ -98,8 +98,8 @@ with tempfile.TemporaryDirectory() as temp:
         d = defaults()
         check(d.get("menus") == root / "tools/menus" and d.get("art") == root / "assets-src/DarkPack",
               "from source: the repo's tools/menus and assets-src/DarkPack")
-        check(d.get("out") == root / "assets/CustomPack" and d.get("colours") == root / "config/CustomColours.ini",
-              "from source: assets/CustomPack and config/CustomColours.ini")
+        check(d.get("out") == root / "build/CustomPack" and d.get("colours") == root / "config/CustomColours.ini",
+              "from source: build/CustomPack (never shipped, preset rework) and config/CustomColours.ini")
 
     if oodle_problem:
         retoc_dir = temp / "retoc"

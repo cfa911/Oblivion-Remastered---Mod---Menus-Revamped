@@ -21,7 +21,7 @@ def check(ok, why):
 root = source_paths.ROOT
 menus_dir = root / "tools/menus"
 MENUS = ("inventory", "magic", "alchemy", "common", "enchanting", "spellmaking", "tabs", "character", "help", "quests", "repair")  # Help, Quests and Repair use the fallback order (by menu name)
-manifest = json.loads((root / "assets/CustomPack/MRCustom_P.json").read_text(encoding="utf-8"))
+manifest = json.loads((root / "assets/DarkPack/MRDark_P.json").read_text(encoding="utf-8"))
 shipped = {k: v for k, v in manifest["textures"].items() if v.get("recipe") != "layout"}   # decision 46: the layout packages ride along (layout.json)
 
 data = {}

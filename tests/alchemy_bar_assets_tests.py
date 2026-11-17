@@ -1,4 +1,4 @@
-"""Real bar texture routing plus the active/hover constants."""
+"""The Alchemy bar ink plus the active/hover constants (the SearchBar PNGs are gone: preset rework 2026-11-17)."""
 from pathlib import Path
 import re,subprocess,sys
 import source_paths
@@ -28,12 +28,6 @@ if not ink:
     ink='const float* BarTextInk(menus::Menu menu,bool hint,bool sel){return '+expression+';}'
 main=r'''
 int main(){int checks=0,failed=0;auto check=[&](bool ok,const char* why){++checks;if(!ok){++failed;std::cerr<<"FAIL "<<why<<"\n";}};
-auto* base=BarTexture(menus::Menu::kInventory);
-auto* ingredient=BarTexture(menus::Menu::kAlchemy);
-auto* filters=BarTexture(menus::Menu::kAlchemyFilters);
-check(base->file==L"SearchBar.png","other menus keep existing artwork");
-check(ingredient->file==L"SearchBarAlchemy.png","Alchemy uses owner-supplied artwork");
-check(filters->file==L"SearchBarAlchemy.png","filter panel shares Alchemy artwork");
 check(kActiveTint[0]>kActiveTint[1] && kActiveTint[1]>kActiveTint[2] && kActiveTint[0]<0.7f,"active sort is brown");
 check(kFocusTint[0]==1 && kFocusTint[1]==1 && kFocusTint[2]==1 && kFocusTint[3]==0.55f,"hover/focus stays unchanged");
 const auto dark=[](const float* c){return c[0]<0.4f && c[0]>c[1] && c[1]>c[2];};
@@ -43,7 +37,7 @@ check(dark(BarTextInk(menus::Menu::kAlchemyFilters,false,true)),"selected effect
 check(BarTextInk(menus::Menu::kInventory,false,false)==kBarInk.data(),"other menus retain existing text colors");
 std::cout<<checks<<" checks, "<<failed<<" failures\n";return failed?1:0;}
 '''
-cpp=out/'alchemy_bar_assets_tests.cpp';cpp.write_text(prefix+colors+ink+source_paths.function(barsrc,'UE::UObject* BarTexture(')+main)
+cpp=out/'alchemy_bar_assets_tests.cpp';cpp.write_text(prefix+colors+ink+main)
 exe=out/'alchemy_bar_assets_tests.exe'
 subprocess.run(['cl','/nologo','/EHsc','/std:c++latest',*source_paths.include_flags(),str(cpp),f'/Fe:{exe}',f'/Fo:{out}/'],check=True)
 sys.exit(subprocess.run([str(exe)]).returncode)

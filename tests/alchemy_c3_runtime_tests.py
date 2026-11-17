@@ -79,7 +79,7 @@ with tempfile.TemporaryDirectory() as tmp:
     check(all(n in names for n in WANT), f"the Runtime tab shows the four Alchemy colours ({names})")
     check(any("Alchemy" in heading and all(e.name in WANT for e in entries) for heading, entries in runtime),
           "the four sit in their own Alchemy group on the Runtime tab")
-    manifest = json.loads((ROOT / "assets/CustomPack/MRCustom_P.json").read_text(encoding="utf-8"))
+    manifest = json.loads((ROOT / "assets/DarkPack/MRDark_P.json").read_text(encoding="utf-8"))
     try:
         m.set_text("Skin", "alchemyBox", "0.1, 0.1, 0.1, 1")
         m.set_text("Skin", "alchemyClearLine", "1, 0, 0, 1")

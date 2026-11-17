@@ -13,9 +13,9 @@ def check(ok, why):
         fails.append(why)
 
 root = source_paths.ROOT
-# Custom pack builder Phase 3 (owner 2026-11-11): the shipped pack is MRCustom_P in assets/CustomPack (it replaced MRDark_P)
-pack = root / "assets/CustomPack"
-check(all((pack / f"MRCustom_P.{ext}").is_file() for ext in ("pak", "utoc", "ucas")), "the Custom pack ships (MRCustom_P .pak/.utoc/.ucas in assets/CustomPack)")
+# Custom pack builder Phase 3 (owner 2026-11-11): the shipped pack is MRDark_P in assets/DarkPack (it replaced MRDark_P)
+pack = root / "assets/DarkPack"
+check(all((pack / f"MRDark_P.{ext}").is_file() for ext in ("pak", "utoc", "ucas")), "the Custom pack ships (MRDark_P .pak/.utoc/.ucas in assets/DarkPack)")
 tool = root / "tools/make_dark_pack.py"
 tool_text = tool.read_text(encoding="utf-8") if tool.is_file() else ""
 # Phase 4: the pipeline moved into tools/pack_builder (make_dark_pack.py is its CLI): read both
@@ -36,9 +36,9 @@ check("darkpack::Apply(" in load and load.index("mrconfig::Load()") < load.index
 dp_path = root / "src/core/DarkPack.cpp"
 dp = dp_path.read_text(encoding="utf-8") if dp_path.is_file() else ""
 rules_path = root / "src/core/rules/DarkPackSwitch.h"
-switch_text = dp + (rules_path.read_text(encoding="utf-8") if rules_path.is_file() else "")
-check("~mods" in switch_text and "MRDark_P" in switch_text and "Preset::Dark" in dp and "remove" in switch_text and "copy_file" in switch_text,
-      "Dark copies the pack into Content/Paks/~mods, the other presets remove it")
+switch_text = dp + (rules_path.read_text(encoding="utf-8") if rules_path.is_file() else "") + ((root / "src/core/rules/PresetPacks.h").read_text(encoding="utf-8") if (root / "src/core/rules/PresetPacks.h").is_file() else "")
+check("~mods" in switch_text and "MRDark_P" in switch_text and "presetpacks::Switch(" in dp and "remove" in switch_text and "copy_file" in switch_text,
+      "Dark (and Custom until built) copies MRDark_P into Content/Paks/~mods, Classic removes it (preset rework 2026-11-17)")
 
 skin = source_paths.read("picker")
 page = source_paths.function(skin, "void StyleMagicPage(")
@@ -53,9 +53,9 @@ import json
 
 check("--paks" in tool_text and "to-legacy" in tool_text and ".get_dds().save(" in tool_text,
       "make_dark_pack.py extracts the stock textures from the game's Paks itself (retoc to-legacy, UE4-DDS-Tools export)")
-manifest_path = pack / "MRCustom_P.json"
+manifest_path = pack / "MRDark_P.json"
 manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
-check(bool(manifest), "the pack has a build manifest (assets/CustomPack/MRCustom_P.json) written by make_dark_pack.py")
+check(bool(manifest), "the pack has a build manifest (assets/DarkPack/MRDark_P.json) written by make_dark_pack.py")
 style_text = (root / "src/core/DarkStyle.h").read_text(encoding="utf-8")
 for name, value in manifest.get("style", {}).items():
     if isinstance(value, list) or name.startswith("Skin."):
@@ -65,15 +65,15 @@ for name, value in manifest.get("style", {}).items():
           f"the pack was baked from the current DarkStyle.h {name} (rebuild the pack after a colour change)")
 check(bool(manifest.get("style")), "the manifest records the DarkStyle.h values the pack was baked from")
 for ext in ("pak", "utoc", "ucas"):
-    path = pack / f"MRCustom_P.{ext}"
+    path = pack / f"MRDark_P.{ext}"
     digest = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else ""
-    check(manifest.get("files", {}).get(f"MRCustom_P.{ext}") == digest, f"MRCustom_P.{ext} is the file the manifest's build wrote")
+    check(manifest.get("files", {}).get(f"MRDark_P.{ext}") == digest, f"MRDark_P.{ext} is the file the manifest's build wrote")
 colour_textures = {k for k, v in manifest.get("textures", {}).items() if v.get("recipe") != "layout"}   # decision 46: layout packages ride along
 check(colour_textures == set(data_listed) and colour_textures,
       "the manifest lists exactly the textures make_dark_pack.py bakes")
 
 dp_rules = root / "src/core/rules/DarkPackSwitch.h"
-check(dp_rules.is_file() and "layoutpack::Switch(" in dp, "DarkPack.cpp uses the tested switch (src/core/rules/DarkPackSwitch.h through LayoutPack.h, Step B decision 46)")
+check(dp_rules.is_file() and "presetpacks::Switch(" in dp, "DarkPack.cpp uses the tested switch (src/core/rules/DarkPackSwitch.h through PresetPacks.h, preset rework 2026-11-17)")
 check("MR-PAK-PROBE" not in plugin and "PakMountProbe" not in plugin, "the pak mount probe (TEMP-DIAG, recorded in the KB) is removed")
 
 files_tool = root / "tools/plugin_files.py"
@@ -85,19 +85,19 @@ if files_tool.is_file():
     entries = module.entries(root)
 prefix = "OblivionRemastered/Binaries/Win64/OBSE/Plugins/"
 for ext in ("pak", "utoc", "ucas"):
-    check(entries.get(prefix + f"MenusRevamped/CustomPack/MRCustom_P.{ext}") == pack / f"MRCustom_P.{ext}",
-          f"the release zip ships MRCustom_P.{ext} in Plugins/MenusRevamped/CustomPack (tools/plugin_files.py)")
+    check(entries.get(prefix + f"MenusRevamped/DarkPack/MRDark_P.{ext}") == pack / f"MRDark_P.{ext}",
+          f"the release zip ships MRDark_P.{ext} in Plugins/MenusRevamped/CustomPack (tools/plugin_files.py)")
 check(not any("~mods" in name for name in entries), "the zip puts nothing into ~mods itself (the plugin copies the pack)")
-check([n for n in entries if n.endswith(".json") and "/PackBuilder/" not in n] == [prefix + "MenusRevamped/CustomPack/MRCustom_P.json"],
+check([n for n in entries if n.endswith(".json") and "/PackBuilder/" not in n] == [prefix + "MenusRevamped/DarkPack/MRDark_P.json"],
       "only the pack manifest ships outside the builder (Phase 3: the plugin checks it; Phase 4: PackBuilder/menus/*.json)")
 check(prefix + "MenusRevamped.dll" in entries and prefix + "MenusRevamped.ini" in entries
       and any(n.endswith(".png") for n in entries), "the zip list still holds the DLL, the INI and the PNGs")
 
 readme = (root / "README.md").read_text(encoding="utf-8")
-check("MRCustom_P" in readme and "~mods" in readme and "uninstall" in readme.lower(),
-      "README tells Vortex users to switch to Classic before uninstalling, or to delete ~mods/MRCustom_P.* by hand")
+check("MRDark_P" in readme and "~mods" in readme and "uninstall" in readme.lower(),
+      "README tells Vortex users to switch to Classic before uninstalling, or to delete ~mods/MRDark_P.* by hand")
 ini = (root / "config/MenusRevamped.defaults.ini").read_text(encoding="utf-8")
-check("MRCustom_P" in ini.split("uPreset", 1)[0][-700:], "the INI preset comment says Custom installs the MRCustom_P pack and needs a restart")
+check("MRDark_P" in ini.split("uPreset", 1)[0][-700:], "the INI preset comment says Dark installs the MRDark_P pack and needs a restart")
 
 # Phase 2 (owner 2026-11-10): the Inventory art of the local, never-shipped MRSkinPlayerPanel_P / MRSkinHighlight_P packs is
 # baked into MRDark_P by recipes that read DarkStyle.h, so Classic is stock once those packs leave ~mods.

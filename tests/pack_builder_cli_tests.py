@@ -76,7 +76,7 @@ with tempfile.TemporaryDirectory() as temp:
     fresh = dict(current, built_by="MenusRevampedPackBuilder.exe", builder_version="0.4.0", skipped=[],
                  files={"MRCustom_P.pak": "0"})
     argv = ["--paks", str(temp / "Paks"), "--retoc", str(temp / "retoc.exe"), "--ddstools", str(temp / "dds"),
-            "--out", str(out)]
+            "--out", str(out), "--pack", "MRCustom_P"]   # from source the default is MRDark_P (preset rework)
     if app is not None and hasattr(app, "build_pack"):
         saved = app.build_pack
         app.build_pack = recorder(fresh)
@@ -145,8 +145,8 @@ with tempfile.TemporaryDirectory() as temp:
     check(not any("oo2core" in n.lower() for n in names), "the zip never ships Oodle (a DLL retoc downloaded)")
     check(not any(n.endswith(".log") for n in names), "the zip ships no build log")
     check(not any(n.endswith("CustomColours.ini") for n in names), "the zip ships no CustomColours.ini (owner decision 8)")
-    check(any(n.endswith("CustomPack/MRCustom_P.ucas") for n in plugin_files.entries(root)),
-          "the zip still ships the default pack (owner decision 10)")
+    check(any(n.endswith("DarkPack/MRDark_P.ucas") for n in plugin_files.entries(root)),
+          "the zip still ships the default pack, as MRDark_P (owner decision 10; preset rework 2026-11-17)")
 
 for why in fails:
     print("FAIL", why)

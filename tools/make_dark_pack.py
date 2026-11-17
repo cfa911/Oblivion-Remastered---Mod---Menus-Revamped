@@ -1,4 +1,5 @@
-"""Build the colour pack (default assets/CustomPack/MRCustom_P.pak/.utoc/.ucas): stock textures re-coloured from the colour file.
+"""Build a colour pack (default MRCustom_P into --out): stock textures re-coloured from the colour file. The shipped Dark pack
+is built from source with --pack MRDark_P --out assets/DarkPack and the default colour file.
 
 Usage:
   python tools/make_dark_pack.py --paks <game>/OblivionRemastered/Content/Paks --ddstools <UE4-DDS-Tools/src/main.py>
@@ -39,13 +40,14 @@ def comparable(manifest):
 
 def main(argv=None):
     d = paths.defaults()
-    out_default = d["out"] if paths.is_frozen() else ROOT / "assets/CustomPack"
+    out_default = d["out"] if paths.is_frozen() else ROOT / "assets/DarkPack"
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--paks", type=Path, default=d["paks"], help="the game's OblivionRemastered/Content/Paks")
     parser.add_argument("--ddstools", type=Path, default=d["ddstools"], help="UE4-DDS-Tools src/main.py (the exe has its own)")
     parser.add_argument("--retoc", type=Path, default=d["retoc"], help="retoc.exe (the exe uses PackBuilder/retoc)")
     parser.add_argument("--out", type=Path, default=out_default)
-    parser.add_argument("--pack", default=DEFAULT_PACK, help=f"pack file name (default {DEFAULT_PACK})")
+    pack_default = DEFAULT_PACK if paths.is_frozen() else "MRDark_P"   # from source: the shipped Dark pack
+    parser.add_argument("--pack", default=pack_default, help=f"pack file name (default {pack_default})")
     parser.add_argument("--colours", type=Path, default=d["colours"],
                         help="the colour file (default config/CustomColours.ini; missing file or entry = the Dark colours)")
     parser.add_argument("--art", type=Path, default=d["art"], help="the owner's edited textures (png recipe)")
