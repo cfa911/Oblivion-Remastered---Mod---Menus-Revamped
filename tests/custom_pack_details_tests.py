@@ -88,7 +88,7 @@ BLUEPRINTS = {   # package: (menu data file, asset path, [(offset, stock, colour
 }
 MATERIALS = {   # material instance: (menu, asset, [(offset, stock, colour)])
     "MIC_UI_SkillCircularProgress": ("inventory", "UI/Materials/Instances/MIC_UI_SkillCircularProgress",
-                                     [(169, [0.86316, 0.3564, 0.13014, 1.0], "effectIcon")]),
+                                     [(169, [0.86316, 0.3564, 0.13014, 1.0], "menuTitle")]),
 }
 RULE = "skin_flat:ornament:235"
 TEXTURES = {   # asset: (menu, recipe, colour keys)
@@ -238,9 +238,9 @@ try:
     check(abs(t[0] - pipe.linear(239)) < 1e-6, f"bp_colour: an sRGB [Colours] value still linearised ({t})")
     mic = bytearray(9542)
     struct.pack_into("<4f", mic, 169, 0.86316, 0.3564, 0.13014, 1.0)
-    gold = [232, 187, 102]
-    r = struct.unpack_from("<4f", pipe.recipe("material_colour:MIC_UI_SkillCircularProgress")[2](bytes(mic), {"effectIcon": gold}, None, None), 169)
-    check(all(abs(a - b) < 1e-6 for a, b in zip(r, (*map(pipe.linear, gold), 1.0))), f"material_colour: the ring override ({r})")
+    blue = [79, 124, 176]
+    r = struct.unpack_from("<4f", pipe.recipe("material_colour:MIC_UI_SkillCircularProgress")[2](bytes(mic), {"menuTitle": blue}, None, None), 169)
+    check(all(abs(a - b) < 1e-6 for a, b in zip(r, (*map(pipe.linear, blue), 1.0))), f"material_colour: the ring override ({r})")
     dt = bytearray(730)
     struct.pack_into("<4f", dt, 69, *WARM)
     struct.pack_into("<4f", dt, 425, *WARM)
