@@ -52,9 +52,9 @@ TAB = {"selected": 41.0, "unselected": 33.0, "gap": 24.0, "outline": 134.0, "gly
 DEFAULTS = COLOURS | NUMBERS | TAB
 # the plugin's run-time tints of the Dark skin (DarkStyle.h SkinTints, header order): four linear values, or one for the scrollbar
 SKIN = {
-    "rule": [0.65, 0.65, 0.65, 0.55], "guide": [0.55, 0.55, 0.55, 0.13], "ring": [0.55, 0.55, 0.55, 1.0],
+    "rule": [0.1248, 0.1248, 0.1248, 1.0], "guide": [0.55, 0.55, 0.55, 0.13], "ring": [0.55, 0.55, 0.55, 1.0],
     "ornament": [0.45, 0.45, 0.45, 1.0], "pattern": [1.0, 1.0, 1.0, 1.0], "band": [0.41, 0.65, 1.0, 1.0],
-    "buttonFill": [0.12, 0.12, 0.12, 1.0], "scrollTrack": 0.0052, "scrollBorder": 0.0052, "scrollInside": 0.8632,
+    "buttonFill": [0.12, 0.12, 0.12, 1.0], "scrollTrack": 0.6445, "scrollBorder": 0.8632, "scrollInside": 0.025,
     "emphasisInk": [0.125, 0.12, 0.125, 1.0], "buttonRule": [0.83, 0.83, 0.83, 1.0],
     # Alchemy Step C.3 round 2 (owner 2026-11-14): our own Alchemy filter widgets in Custom (Runtime tab)
     "alchemyHeading": [0.0782, 0.2016, 0.4342, 1.0],
@@ -93,7 +93,7 @@ SKIN_HELP = {
 
 HELP = {
     "panel": "Inventory and Magic list backgrounds",
-    "frame": "Inventory and Magic list edges and shared scrollbar frame",
+    "frame": "Inventory and Magic list edges",
     "rowText": "Inventory and Magic list and details text",
     "rowSeparator": "List row divider in every list (baked)",
     "rowEquipped": "Equipped item band in every list (baked)",

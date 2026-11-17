@@ -87,12 +87,12 @@ for package in ("WBP_ModernMenu_AlchemyFilters", "WBP_ModernMenu_AlchemyMenu"):
     check(asset is not None and asset["colours"] == keys, f"{package}: the asset row lists exactly its blueprint keys ({keys})")
 check(C.get("menuTitle") == [79.0, 124.0, 176.0] and C.get("accentValue") == [79.0, 124.0, 176.0],
       "C.3-13: menuTitle and accentValue default #4f7cb0")
-check(abs(custom_colours.SKIN.get("scrollInside", 0) - 0.8632) < 0.0005, "C.3-12: the scrollbar thumb fill defaults white (sRGB 239)")
+check(abs(custom_colours.SKIN.get("scrollInside", 0) - 0.025) < 0.0005, "C.8b: the scrollbar thumb fill defaults to the search-bar grey (was C.3-12 white)")
 roles = custom_colours.ROLES
 check(any(r["members"] == ["Skin.scrollInside"] for r in roles.values()), "C.3-12: the thumb fill has its own builder role")
 check("Skin.scrollInside" not in roles["scrollbars"]["members"], "C.3-12: the Scrollbars role keeps the track and border only")
 check("Rgb menuTitle{ 79, 124, 176 };" in dark and "Rgb accentValue{ 79, 124, 176 };" in dark, "C.3-13: DarkStyle.h title blue #4f7cb0")
-check("scrollInside = 0.8632f" in dark, "C.3-12: DarkStyle.h scrollbar thumb fill white")
+check("scrollInside = 0.025f" in dark, "C.8b: DarkStyle.h scrollbar thumb fill search-bar grey")
 
 for why in fails:
     print("FAIL", why)

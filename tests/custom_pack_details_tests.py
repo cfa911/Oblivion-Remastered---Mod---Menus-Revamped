@@ -98,7 +98,7 @@ TEXTURES = {   # asset: (menu, recipe, colour keys)
     "Art/UI/Icons/Icon_Category/T_Category_Armor": ("inventory", "grey_scale:2.2", []),
     "Art/UI/Icons/Icon_Category/T_Category_Weapons": ("inventory", "grey_scale:1.8", []),
     "Art/UI/Modern/GameMenuLayer/Stats/T_CircularProgress_bg": ("inventory", "grey_scale:1.0", []),
-    "Art/UI/Common/T_Line_Brown": ("inventory", RULE, ["Skin.ornament"]),
+    "Art/UI/Common/T_Line_Brown": ("inventory", "flat:columnLine", ["columnLine"]),   # C.8b: the column-divider grey
     "Art/UI/Common/T_Diamond_Brown_Separator": ("magic", RULE, ["Skin.ornament"]),
     "Art/UI/Modern/GameMenuLayer/CharacterCreation/T_Character_Line_Long": ("magic", RULE, ["Skin.ornament"]),
     "Art/UI/Common/T_Line_02": ("inventory", RULE, ["Skin.ornament"]),

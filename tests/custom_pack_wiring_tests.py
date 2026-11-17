@@ -68,7 +68,7 @@ if block and hasattr(cc, "from_skin"):
 else:
     check(False, "custom_colours.from_skin() reads the tints from DarkStyle.h")
 ini = text("config/CustomColours.ini")
-check("[Skin]" in ini and "rule = 0.65, 0.65, 0.65, 0.55" in ini and "scrollTrack = 0.0052" in ini,
+check("[Skin]" in ini and "rule = 0.1248, 0.1248, 0.1248, 1" in ini and "scrollTrack = 0.6445" in ini,
       "config/CustomColours.ini has a [Skin] section (four linear values per tint, single numbers for the scrollbar)")
 with tempfile.TemporaryDirectory() as temp:
     path = Path(temp) / "skin.ini"

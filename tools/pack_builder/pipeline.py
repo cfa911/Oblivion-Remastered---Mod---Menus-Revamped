@@ -734,7 +734,15 @@ def altar_panel_texture(stock_dds, metal, paper, work, mask=None, invert=None):
     px = image.get_flattened_data()
     lums = [lum(p) for p in px]
     weight = Image.new("L", image.size)
-    weight.putdata([round(255 * clamp01((v - 140) / 25) * clamp01((45 - (max(p[:3]) - min(p[:3]))) / 20)) for p, v in zip(px, lums)])
+    # C.8b: a stain allowance widens the paper's saturation limit (the Repair parchment's brownish stains were painted as metal)
+    stain = invert[3] if invert is not None and len(invert) > 3 else 0.0
+    near_metal = [0] * len(px)
+    if stain:   # not within 10 px of dark metal: the frame's light edge ridge keeps its metal colour (owner 2026-11-17)
+        dark = Image.new("L", image.size)
+        dark.putdata([255 if v < 120 else 0 for v in lums])
+        near_metal = dark.filter(ImageFilter.MaxFilter(21)).get_flattened_data()
+    weight.putdata([round(255 * clamp01((v - 140) / 25) * clamp01((45 + (0 if near else stain) - (max(p[:3]) - min(p[:3]))) / 20))
+                    for p, v, near in zip(px, lums, near_metal)])
     weight = weight.filter(ImageFilter.MedianFilter(9)).filter(ImageFilter.GaussianBlur(1.2))
     if mask is not None:   # the panel's paper mask replaces the brightness rule
         path, channel = mask
@@ -749,7 +757,8 @@ def altar_panel_texture(stock_dds, metal, paper, work, mask=None, invert=None):
         # C4-7 (owner 2026-11-16, "use the same techniques we used on the left parchment on the right one"): the paper is
         # the page's parchment standard - brightness clamped to the paper's own 2..98 %, blurred (non-paper pixels as the
         # paper median), inverted and scaled so the paper median lands on the shared paper tone
-        tone, blur = invert
+        tone, blur, *clean = invert
+        clean = clean[:1]
         ordered = sorted(paper_l) or [200.0]
         low, high, middle = ordered[len(ordered) * 2 // 100], ordered[len(ordered) * 98 // 100], ordered[len(ordered) // 2]
         source = Image.new("L", image.size)
@@ -757,6 +766,13 @@ def altar_panel_texture(stock_dds, metal, paper, work, mask=None, invert=None):
                         for v, w in zip(lums, weight.get_flattened_data())])
         soft = source.filter(ImageFilter.GaussianBlur(blur)).get_flattened_data() if blur else source.get_flattened_data()
         inverted = [tone * (255 - v) / ((255 - middle) or 1) for v in soft]
+        if clean and clean[0]:
+            # C.8b (owner 2026-11-17, "clean this area"): the stock parchment's stains become pale clouds once inverted;
+            # remove everything broader than the clean radius (a Gaussian low-pass) and keep the fine grain around the tone
+            plane = Image.new("L", image.size)   # Pillow blurs 8-bit planes only; one level of rounding is below the output's
+            plane.putdata([max(0, min(255, round(a))) for a in inverted])
+            low = plane.filter(ImageFilter.GaussianBlur(clean[0])).get_flattened_data()
+            inverted = [tone + (a - b) for a, b in zip(inverted, low)]
     out = []
     for i, (p, v, w, g) in enumerate(zip(px, lums, weight.get_flattened_data(), gem.get_flattened_data())):
         w, g = w / 255, g / 255
@@ -1907,7 +1923,8 @@ def skin_flat(data, base, tint):
 # fixed literal colours a data row can name instead of a colour-file key (the Focusbox equip tint: white, as the run-time
 # swap drew it; decision 28)
 CONSTANT_COLOURS = {"white": [255.0, 255.0, 255.0],
-                    "statusRed": [205.0, 62.0, 62.0]}   # C.7: the Attributes page's lowered values, brighter than stock 159,45,45
+                    "statusRed": [205.0, 62.0, 62.0],
+                    "steelGlow": [193.0, 215.0, 255.0]}   # RMI-110: the Repair anvil effect, the frame steel hue at full brightness   # C.7: the Attributes page's lowered values, brighter than stock 159,45,45
 
 
 def bp_colour(uexp, package, values):
@@ -2030,6 +2047,8 @@ def recipe(name):
         return (), (), lambda dds, v, work, stock: charcoal_texture(dds, arg)
     if kind == "flat":
         return (), (arg,), lambda dds, v, work, stock: flat_blocks(dds.read_bytes(), v[arg])
+    if name == "flat_white":   # C.8b (owner 2026-11-17): the scrollbar track art white; the track tint (scrollTrack) sets the colour
+        return (), (), lambda dds, v, work, stock: flat_blocks(dds.read_bytes(), [255.0, 255.0, 255.0])
     if kind == "flat_alpha":   # flat_alpha:<key>:<alpha scale>
         key, _, scale = arg.partition(":")
         return (), (key,), lambda dds, v, work, stock: flat_alpha(dds.read_bytes(), v[key], float(scale), dds)
@@ -2056,13 +2075,16 @@ def recipe(name):
         return (), (arg,), lambda dds, v, work, stock: map_colours(dds.read_bytes(), lambda c: altar_metal(c, v[arg]))
     if kind == "frame_metal":   # frame_metal:<metal key> (C.8): altar_metal per pixel, gems keep their colour
         return (), (arg,), lambda dds, v, work, stock: frame_metal_texture(dds, v[arg], work)
-    if kind == "altar_panel_invert":   # altar_panel_invert:<metal key>:<blur> (C4-7): the paper on the parchment standard
-        metal_key, _, blur = arg.partition(":")
+    if kind == "altar_panel_invert":   # altar_panel_invert:<metal key>:<blur>[:<clean radius>[:<stain allowance>]] (C4-7, C.8b)
+        metal_key, _, rest = arg.partition(":")
+        blur, _, rest = rest.partition(":")
+        clean, _, stain = rest.partition(":")
         def panel_invert(dds, v, work, stock):
             name, channel = PANEL_MASKS.get(Path(dds).stem, (None, 0))
             mask = (stock(name), channel) if name and stock else None
             tone = paper_tone(v["parchmentDark"][0], v["parchmentLight"][0], v["panel"][0])
-            return altar_panel_texture(dds, v[metal_key], None, work, mask, (tone, float(blur or 0)))
+            return altar_panel_texture(dds, v[metal_key], None, work, mask,
+                                       (tone, float(blur or 0), float(clean or 0), float(stain or 0)) if clean or stain else (tone, float(blur or 0)))
         return (), (metal_key, "panel", "parchmentDark", "parchmentLight"), panel_invert
     if kind == "altar_panel":
         def panel(dds, v, work, stock):
@@ -2222,7 +2244,7 @@ def format_supported(kind, stock):
     if kind in ("quest_icon", "ink_gold", "white_backing"):
         layout = bgra_layout(stock)
         return bool(layout and layout[1] == (2, 1, 0, 3))
-    return kind in ("flat", "skin_flat") and bool(bgra_layout(stock))
+    return kind in ("flat", "skin_flat", "flat_white") and bool(bgra_layout(stock))
 
 
 def bake(asset, recipe_name, colours, art, legacy, stage, work, stock_dds, inject, sizes=None):

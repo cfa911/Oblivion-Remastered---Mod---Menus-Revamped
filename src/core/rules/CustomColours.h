@@ -43,7 +43,7 @@ namespace customcolours
 #define MR_CC_LIN(n, h) Entry{ "Skin", #n, Kind::Linear, [](darkstyle::Style& s) -> float* { return &s.skin.n; }, h }
 	// file order (tools/custom_colours.py COLOURS, NUMBERS, TAB, SKIN)
 	inline const Entry kEntries[]{
-		MR_CC_RGB(panel, "Inventory and Magic list backgrounds"), MR_CC_RGB(frame, "Inventory and Magic list edges and shared scrollbar frame"), MR_CC_RGB(rowText, "Inventory and Magic list and details text"),
+		MR_CC_RGB(panel, "Inventory and Magic list backgrounds"), MR_CC_RGB(frame, "Inventory and Magic list edges"), MR_CC_RGB(rowText, "Inventory and Magic list and details text"),
 		MR_CC_RGB(rowSeparator, "List row divider in every list (baked)"), MR_CC_RGB(rowEquipped, "Equipped item band in every list (baked)"), MR_CC_RGB(columnLine, "Inventory and Magic list column dividers"), MR_CC_RGB(rowIcon, "Magic school, spell type and detail icons"),
 		MR_CC_RGB(headerIcon, "Inventory and Magic header stat icons"), MR_CC_RGB(pickerIcon, "Inventory and Magic sort picker icons (inactive)"), MR_CC_RGB(listHighlight, "Inventory and Magic highlighted row background"),
 		MR_CC_RGB(subTabDisc, "Inventory selected details tab background"), MR_CC_RGB(subTabCircle, "Inventory details tab circle"),

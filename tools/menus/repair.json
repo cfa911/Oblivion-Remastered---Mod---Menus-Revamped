@@ -1,6 +1,6 @@
 {
   "menu": "Repair and Recharge",
-  "note": "Step C.8 (owner batch 2026-11-16, KB mods/menus-revamped/menus/Repair|Recharge/CHECKLIST.md): blue titles (menuTitle), light rows and right-panel text (rowText); right frames in the Enchanting steel (owner option A, enchantingFrame): T_repair_frame frame + paper (altar_panel_invert), the Recharge frame per pixel with the emerald kept (frame_metal), the small frames altar_metal; Recharge paper on the parchment standard; leaf strips laurel blue. Round 2: the action buttons T_UI_Repair (anvil) and T_UI_Frame_Recharge (knot) in the same steel (frame_metal); the Recharge button gem T_UI_Gem_Recharge stays stock green. The legacy focus box (Repair's white selected-row band, T_LevelUp_Frame_Light) is pointed at the baked list highlight T_List_highlight_V3 by an import swap; T_LevelUp_Frame_Light itself stays stock (Alchemy/Enchanting/Spellmaking notifications tint it).",
+  "note": "Step C.8 (owner batch 2026-11-16, KB mods/menus-revamped/menus/Repair|Recharge/CHECKLIST.md): blue titles (menuTitle), light rows and right-panel text (rowText); right frames in the Enchanting steel (owner option A, enchantingFrame): T_repair_frame frame + paper (altar_panel_invert), the Recharge frame per pixel with the emerald kept (frame_metal), the small frames altar_metal; Recharge paper on the parchment standard; leaf strips laurel blue. Round 2: the action buttons T_UI_Repair (anvil) and T_UI_Frame_Recharge (knot) in the same steel (frame_metal); the Recharge button gem T_UI_Gem_Recharge stays stock green. The legacy focus box (Repair's white selected-row band, T_LevelUp_Frame_Light) is pointed at the baked list highlight T_List_highlight_V3 by an import swap; T_LevelUp_Frame_Light itself stays stock (Alchemy/Enchanting/Spellmaking notifications tint it). C.8b (owner 2026-11-17): the Repair paper stain allowance and clean (altar_panel_invert ...:12:25); RMI-110: M_UI_Repair's orange effect colour -> steelGlow.",
   "assets": [
     {
       "asset": "UI/Modern/GameMenuLayer/Repair/WBP_ModernMenu_RepairMenu",
@@ -46,7 +46,7 @@
     },
     {
       "asset": "Art/UI/Modern/GameMenuLayer/Repair/T_repair_frame",
-      "recipe": "altar_panel_invert:enchantingFrame:1.5",
+      "recipe": "altar_panel_invert:enchantingFrame:1.5:12:25",
       "colours": [
         "enchantingFrame",
         "panel",
@@ -127,6 +127,14 @@
         "enchantingFrame"
       ],
       "shared_with": []
+    },
+    {
+      "asset": "UI/Materials/Repair/M_UI_Repair",
+      "recipe": "material_colour:M_UI_Repair",
+      "colours": [],
+      "shared_with": [
+        "the Repair button only (WBP_ModernMenu_RepairButton)"
+      ]
     }
   ],
   "blueprint_colours": {
@@ -402,6 +410,32 @@
         "to_package": "/Game/Art/UI/Common/T_List_highlight_V3",
         "to_object": "T_List_highlight_V3",
         "to_class": "Texture2D"
+      }
+    ]
+  },
+  "material_colours": {
+    "M_UI_Repair": [
+      {
+        "offset": 588,
+        "stock": [
+          1.0,
+          0.514,
+          0.0,
+          1.0
+        ],
+        "colour": "steelGlow",
+        "parameter": "orange effect colour (CachedExpressionData)"
+      },
+      {
+        "offset": 10719,
+        "stock": [
+          1.0,
+          0.514,
+          0.0,
+          1.0
+        ],
+        "colour": "steelGlow",
+        "parameter": "orange effect colour (shader map default)"
       }
     ]
   }
