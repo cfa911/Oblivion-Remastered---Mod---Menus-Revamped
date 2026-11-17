@@ -782,6 +782,38 @@ def altar_panel_texture(stock_dds, metal, paper, work, mask=None, invert=None):
     return bytes(raw)
 
 
+def frame_metal_texture(stock_dds, metal, work):
+    """C.8 (owner 2026-11-16, Recharge frame in the Enchanting steel): every pixel altar_metal'd, except saturated green or
+    blue gem pixels (the Recharge frame's emerald), which blend back to stock. Per pixel, BC3 colour halves only (stock alpha
+    byte for byte); an uncompressed stock is written back raw."""
+    from PIL import ImageFilter
+    image = decode_rgba(stock_dds)
+    px = list(image.get_flattened_data())
+    gem = Image.new("L", image.size)
+    gem.putdata([round(255 * clamp01((max(p[1], p[2]) - p[0] - 20) / 25) * clamp01((max(p[:3]) - min(p[:3]) - 30) / 30))
+                 for p in px])
+    if min(image.size) >= 3:
+        gem = gem.filter(ImageFilter.MedianFilter(3))
+    out = []
+    for p, g in zip(px, gem.get_flattened_data()):
+        g /= 255
+        m = altar_metal(p, metal)
+        out.append(tuple(max(0, min(255, round(mc * (1 - g) + sc * g))) for mc, sc in zip(m, p[:3])) + (p[3],))
+    result = Image.new("RGBA", image.size)
+    result.putdata(out)
+    data = stock_dds.read_bytes()
+    layout = bgra_layout(data)
+    if not layout:
+        return colour_keep_alpha(stock_dds, result, work)
+    head, order = layout
+    raw = bytearray(data)
+    flat = result.tobytes()
+    for i in range(image.size[0] * image.size[1]):
+        for c in range(3):
+            raw[head + 4 * i + order[c]] = flat[4 * i + c]
+    return bytes(raw)
+
+
 def colour_bc1(stock_dds, art, work):
     """An RGBA image into a stock BC1 texture: every mip level BC1-encoded by Pillow (its 1-bit alpha from the image's alpha),
     whole 8-byte blocks replaced; the stock header (size, mips, format) stays."""
@@ -2022,6 +2054,8 @@ def recipe(name):
         return TAB_STYLE, (), lambda dds, v, work, stock: magic_tab_atlas(dds, int(arg), v, work, stock)
     if kind == "altar_metal":
         return (), (arg,), lambda dds, v, work, stock: map_colours(dds.read_bytes(), lambda c: altar_metal(c, v[arg]))
+    if kind == "frame_metal":   # frame_metal:<metal key> (C.8): altar_metal per pixel, gems keep their colour
+        return (), (arg,), lambda dds, v, work, stock: frame_metal_texture(dds, v[arg], work)
     if kind == "altar_panel_invert":   # altar_panel_invert:<metal key>:<blur> (C4-7): the paper on the parchment standard
         metal_key, _, blur = arg.partition(":")
         def panel_invert(dds, v, work, stock):

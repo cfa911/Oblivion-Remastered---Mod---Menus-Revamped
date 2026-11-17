@@ -1,0 +1,408 @@
+{
+  "menu": "Repair and Recharge",
+  "note": "Step C.8 (owner batch 2026-11-16, KB mods/menus-revamped/menus/Repair|Recharge/CHECKLIST.md): blue titles (menuTitle), light rows and right-panel text (rowText); right frames in the Enchanting steel (owner option A, enchantingFrame): T_repair_frame frame + paper (altar_panel_invert), the Recharge frame per pixel with the emerald kept (frame_metal), the small frames altar_metal; Recharge paper on the parchment standard; leaf strips laurel blue. Round 2: the action buttons T_UI_Repair (anvil) and T_UI_Frame_Recharge (knot) in the same steel (frame_metal); the Recharge button gem T_UI_Gem_Recharge stays stock green. The legacy focus box (Repair's white selected-row band, T_LevelUp_Frame_Light) is pointed at the baked list highlight T_List_highlight_V3 by an import swap; T_LevelUp_Frame_Light itself stays stock (Alchemy/Enchanting/Spellmaking notifications tint it).",
+  "assets": [
+    {
+      "asset": "UI/Modern/GameMenuLayer/Repair/WBP_ModernMenu_RepairMenu",
+      "recipe": "bp_colour:WBP_ModernMenu_RepairMenu",
+      "colours": [
+        "menuTitle",
+        "rowText"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Legacy/GameMenuLayer/Repair/WBP_LegacyMenu_RepairEntry",
+      "recipe": "bp_colour:WBP_LegacyMenu_RepairEntry",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Modern/GameMenuLayer/Recharge/WBP_ModernMenu_Recharge",
+      "recipe": "bp_colour:WBP_ModernMenu_Recharge",
+      "colours": [
+        "menuTitle",
+        "rowText"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Legacy/GameMenuLayer/Recharge/WBP_LegacyMenu_RechargeItem",
+      "recipe": "bp_colour:WBP_LegacyMenu_RechargeItem",
+      "colours": [
+        "rowText"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "UI/Legacy/Prefabs/WBP_LegacyPrefab_FocusBox",
+      "recipe": "bp_colour:WBP_LegacyPrefab_FocusBox",
+      "colours": [],
+      "shared_with": [
+        "the legacy focus box: Repair rows, Character primary attributes, Settings effects entries"
+      ]
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/Repair/T_repair_frame",
+      "recipe": "altar_panel_invert:enchantingFrame:1.5",
+      "colours": [
+        "enchantingFrame",
+        "panel",
+        "parchmentDark",
+        "parchmentLight"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/Repair/T_Repair_Hammer_Frame",
+      "recipe": "altar_metal:enchantingFrame",
+      "colours": [
+        "enchantingFrame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/Recharge/T_UI_Recharge_Frame_No_Glow",
+      "recipe": "frame_metal:enchantingFrame",
+      "colours": [
+        "enchantingFrame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/Recharge/T_UI_Paper_Background",
+      "recipe": "paper_invert:3",
+      "colours": [
+        "panel",
+        "parchmentDark",
+        "parchmentLight"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/Recharge/T_goldframe",
+      "recipe": "altar_metal:enchantingFrame",
+      "colours": [
+        "enchantingFrame"
+      ],
+      "shared_with": [
+        "Save/Load"
+      ]
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/Recharge/T_pattern_2",
+      "recipe": "flat:pattern",
+      "colours": [
+        "pattern"
+      ],
+      "shared_with": [
+        "Repair",
+        "Recharge"
+      ]
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/SigilStone/T_SigilStone_IconFrame",
+      "recipe": "altar_metal:enchantingFrame",
+      "colours": [
+        "enchantingFrame"
+      ],
+      "shared_with": [
+        "Sigil Stone menu"
+      ]
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/Repair/T_UI_Repair",
+      "recipe": "frame_metal:enchantingFrame",
+      "colours": [
+        "enchantingFrame"
+      ],
+      "shared_with": []
+    },
+    {
+      "asset": "Art/UI/Modern/GameMenuLayer/Recharge/T_UI_Frame_Recharge",
+      "recipe": "frame_metal:enchantingFrame",
+      "colours": [
+        "enchantingFrame"
+      ],
+      "shared_with": []
+    }
+  ],
+  "blueprint_colours": {
+    "WBP_ModernMenu_RepairMenu": [
+      {
+        "offset": 67098,
+        "stock": [
+          0.4233,
+          0.305,
+          0.1946,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "CurrentValue"
+      },
+      {
+        "offset": 67275,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "GearList_Title"
+      },
+      {
+        "offset": 67437,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Recharge_Price_Text"
+      },
+      {
+        "offset": 67536,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "RechargeAll_Price_Text"
+      },
+      {
+        "offset": 67639,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Repair_BreakChance_Text"
+      },
+      {
+        "offset": 67738,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Repair_BreakChanceValue_Text"
+      },
+      {
+        "offset": 67807,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Repair_HammerQuantity_Text"
+      },
+      {
+        "offset": 67903,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Repair_HammerQuantityValue_Text"
+      },
+      {
+        "offset": 68114,
+        "stock": [
+          0.0999,
+          0.0561,
+          0.0395,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Repair_PriceAmount_Text"
+      },
+      {
+        "offset": 68181,
+        "stock": [
+          0.0999,
+          0.0561,
+          0.0395,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "RepairAll_PriceAmount_Text"
+      }
+    ],
+    "WBP_LegacyMenu_RepairEntry": [
+      {
+        "offset": 3061,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Repair_DurabilityValue"
+      },
+      {
+        "offset": 3129,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "repair_entry_name"
+      }
+    ],
+    "WBP_ModernMenu_Recharge": [
+      {
+        "offset": 63127,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Recharge_Price_Text"
+      },
+      {
+        "offset": 63224,
+        "stock": [
+          0.0999,
+          0.0561,
+          0.0395,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Recharge_PriceAmount_Text"
+      },
+      {
+        "offset": 63291,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Recharge_Soulgem_Name"
+      },
+      {
+        "offset": 63368,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          0.8
+        ],
+        "colour": "rowText",
+        "widget": "Recharge_SoulLevel_Text"
+      },
+      {
+        "offset": 63462,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "RechargeAll_Price_Text"
+      },
+      {
+        "offset": 63567,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "RechargeAll_PriceAmount_Text"
+      },
+      {
+        "offset": 63634,
+        "stock": [
+          0.4233,
+          0.305,
+          0.1946,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "Value_Text"
+      },
+      {
+        "offset": 63711,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "menuTitle",
+        "widget": "WeaponsList_Title"
+      }
+    ],
+    "WBP_LegacyMenu_RechargeItem": [
+      {
+        "offset": 5246,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "item_charge"
+      },
+      {
+        "offset": 5320,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "item_health"
+      },
+      {
+        "offset": 5387,
+        "stock": [
+          0.0723,
+          0.0382,
+          0.0284,
+          1.0
+        ],
+        "colour": "rowText",
+        "widget": "item_name"
+      }
+    ],
+    "WBP_LegacyPrefab_FocusBox": []
+  },
+  "import_swaps": {
+    "WBP_LegacyPrefab_FocusBox": [
+      {
+        "from_package": "/Game/Art/UI/Modern/GameMenuLayer/LevelUp/T_LevelUp_Frame_Light",
+        "from_object": "T_LevelUp_Frame_Light",
+        "from_class": "Texture2D",
+        "to_package": "/Game/Art/UI/Common/T_List_highlight_V3",
+        "to_object": "T_List_highlight_V3",
+        "to_class": "Texture2D"
+      }
+    ]
+  }
+}
