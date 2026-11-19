@@ -5,6 +5,7 @@
 #include "engine/Menus.h"
 #include "engine/Reflect.h"
 #include "engine/Ui.h"
+#include "engine/ScrollHints.h"
 #include "core/Config.h"
 #include "hover/HoverFix.h"
 #include "search/Search.h"
@@ -98,7 +99,7 @@ namespace core
 		if (GetTickCount64() >= next) {
 			next = GetTickCount64() + 200;
 			if (!reflect::Ok()) reflect::SelfCheck();
-			if (reflect::Ok()) { menus::Tick(); container::Tick(); quests::Tick(); worldmap::Tick(); }
+			if (reflect::Ok()) { menus::Tick(); container::Tick(); quests::Tick(); worldmap::Tick(); scrollhints::Discover(); }
 		}
 		if (!reflect::Ok() || SameFrame()) return;
 		container::TickScope frame;
@@ -123,6 +124,7 @@ namespace core
 		hoverfix::Tick(menus::Active());
 		search::Tick(menus::Active());
 		mapsearch::Tick();
+		scrollhints::Tick();
 #ifdef MR_DEVTOOLS
 		devtools::Tick();
 #endif

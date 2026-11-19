@@ -135,4 +135,33 @@ namespace uix
 		auto* inner = a_label ? ui::FindInTree(a_label, "text_block") : nullptr;
 		return inner && ApplyFont(inner, 0);
 	}
+
+	bool ApplyItemFont(UE::UObject* label, double size)
+	{
+		static reflect::Handle nativeFont;
+		auto* font = reflect::Get(nativeFont);
+		if (!font) {
+			font = ui::Load(L"/Game/UI/CommonStyle/Fonts/Font_Kingthings_Localized.Font_Kingthings_Localized");
+			if (font) nativeFont = reflect::Hold(font);
+		}
+		if (!label || !font || !reflect::Ok()) return false;
+		auto* info = reinterpret_cast<UE::UStruct*>(UE::StaticFindObject<UE::UObject>(nullptr, nullptr, L"/Script/SlateCore.SlateFontInfo"));
+		const auto off = reflect::Offset(label->GetClass(), "Font");
+		const auto bytes = ui::SizeOf(label->GetClass(), "Font");
+		const auto obj = info ? reflect::Offset(info, "FontObject") : -1;
+		const auto face = info ? reflect::Offset(info, "TypefaceFontName") : -1;
+		const auto value = info ? reflect::Offset(info, "Size") : -1;
+		const auto width = info ? ui::SizeOf(info, "Size") : 0;
+		if (off < 0 || bytes <= 0 || bytes > 512 || obj < 0 || face < 0 || value < 0 ||
+			obj + sizeof(font) > static_cast<std::size_t>(bytes) || face + sizeof(UE::FName) > static_cast<std::size_t>(bytes) ||
+			(width != 4 && width != 8) || value + width > bytes) return false;
+		const auto* old = reinterpret_cast<const std::uint8_t*>(label) + off;
+		std::vector<std::uint8_t> copy(old, old + bytes);
+		std::memcpy(copy.data() + obj, &font, sizeof(font));
+		const UE::FName typeface(L"Regular-Regular");
+		std::memcpy(copy.data() + face, &typeface, sizeof(typeface));
+		if (width == 4) { const float f = static_cast<float>(size); std::memcpy(copy.data() + value, &f, 4); }
+		else std::memcpy(copy.data() + value, &size, 8);
+		return ui::CallFirst(label, L"SetFont", copy.data(), copy.size());
+	}
 }

@@ -66,6 +66,9 @@ namespace customcolours
 		MR_CC_LIN(scrollTrack, "Scrollbar track in every menu but Settings"), MR_CC_LIN(scrollBorder, "Scrollbar thumb border in every menu but Settings"), MR_CC_LIN(scrollInside, "Scrollbar thumb fill in every menu but Settings"),
 		MR_CC_TINT(emphasisInk, "Inventory and Magic details emphasized perk text"), MR_CC_TINT(buttonRule, "Inventory and Magic action button divider centres"),
 		MR_CC_TINT(alchemyHeading, "Alchemy Selected Filters heading (our own label)"), MR_CC_TINT(alchemyBox, "Alchemy filter chips and Search effects box - fill"), MR_CC_TINT(alchemyBoxLine, "Alchemy filter chips and Search effects box - outline"), MR_CC_TINT(alchemyClearLine, "Alchemy Clear all chip - outline"),
+		MR_CC_TINT(keyboardKey, "Controller keyboard - key fill"), MR_CC_TINT(keyboardEdge, "Controller keyboard - key outline"),
+		MR_CC_TINT(keyboardSelected, "Controller keyboard - selected key fill"), MR_CC_TINT(keyboardSelectedEdge, "Controller keyboard - selected key outline"),
+		MR_CC_TINT(keyboardInk, "Controller keyboard - letters, search text and hints"),
 	};
 #undef MR_CC_RGB
 #undef MR_CC_TAB

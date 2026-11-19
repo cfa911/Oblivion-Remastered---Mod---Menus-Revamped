@@ -26,4 +26,6 @@ namespace uix
 
 	// The same font on a label made of the game's text prefab (WBP_AltarTextBlock: the text block inside it is called text_block), the size it has kept.
 	bool ApplyPrefabFont(UE::UObject* a_label);
+	// Inventory/Magic item-name font and face, independent of the widget's previous font.
+	bool ApplyItemFont(UE::UObject* a_label, double a_size);
 }

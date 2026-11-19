@@ -61,6 +61,11 @@ SKIN = {
     "alchemyBox": [0.0212, 0.0212, 0.0212, 1.0],
     "alchemyBoxLine": [0.0545, 0.1248, 0.3185, 1.0],
     "alchemyClearLine": [0.6445, 0.1248, 0.1046, 1.0],
+    "keyboardKey": [0.025, 0.025, 0.025, 0.92],
+    "keyboardEdge": [0.1248, 0.1248, 0.1248, 1.0],
+    "keyboardSelected": [0.0545, 0.1248, 0.3185, 1.0],
+    "keyboardSelectedEdge": [0.23, 0.40, 0.68, 1.0],
+    "keyboardInk": [0.8632, 0.8632, 0.8632, 1.0],
 }
 # namespaced so the [Colours] base and [Skin] tint stay independent; the scrollbar values are baked into the stock
 # scrollbar materials (Phase 7, owner decision 18)
@@ -73,6 +78,11 @@ RETIRED_SKIN = ("band", "buttonFill", "buttonRule", "ring")
 RETIRED_TAB_KEYS = ("tabPaperDark", "tabPaperLight", "tabGlyph", "enchantingTabPaper", "enchantingTabIcon")
 RETIRED_ROLES = ("tabShadow", "tabLight", "ring")   # their only members are retired
 SKIN_HELP = {
+    "keyboardKey": "Controller keyboard - key fill",
+    "keyboardEdge": "Controller keyboard - key outline",
+    "keyboardSelected": "Controller keyboard - selected key fill",
+    "keyboardSelectedEdge": "Controller keyboard - selected key outline",
+    "keyboardInk": "Controller keyboard - letters, search text and hints",
     "rule": "Inventory and Magic header horizontal lines",
     "guide": "Inventory and Magic header column guides",
     "ring": "Legacy skill level ring tint (use effectIcon for the arc)",
@@ -184,7 +194,8 @@ ROLES = {
     "effectGold": {"label": "Effect details (effect type, magnitude label and icons, amounts and durations)",
                    "members": ["effectLabel", "effectIcon", "effectValue"]},
 }
-RUNTIME_SKIN = ("rule", "guide", "alchemyHeading", "alchemyBox", "alchemyBoxLine", "alchemyClearLine")   # our own widgets (decision 38: the Runtime tab; C.3: Alchemy filters)
+RUNTIME_SKIN = ("rule", "guide", "alchemyHeading", "alchemyBox", "alchemyBoxLine", "alchemyClearLine",
+                "keyboardKey", "keyboardEdge", "keyboardSelected", "keyboardSelectedEdge", "keyboardInk")
 
 # [Sizes] (decisions 29, 33, 42, 45). Rows tab: per list, defaults = the compact rows (tools/menus/layout.json).
 ROW_LISTS = (
