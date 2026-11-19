@@ -35,7 +35,9 @@ Run MenusRevampedPackBuilder.exe from this folder (Plugins/MenusRevamped/PackBui
   element's own tint. Tick "Advanced" to set one element on its own ("own value" until Reset). Each entry is a key in
   ../CustomColours.ini ([Roles], [Colours], [Skin]).
 - Text tab: text sizes per role in percent of today's size (Advanced: each text's own size). Rows tab: row height, icon size
-  and count font per list. Both go into [Sizes]. Runtime tab: our own Inventory/Magic header lines (Save, restart the game).
+  and count font per list. Both go into [Sizes]. Runtime tab: Inventory/Magic header lines, Alchemy filters and controller
+  keyboard colours (Save, restart the game). The keyboard uses the game's item-name font and Inventory details parchment
+  in every menu. Its paper follows the selected preset and the shared details-page colours.
 - Build: writes ../CustomPack/MRCustom_P.* (colours and sizes) and ../CustomPack/MRLayout_P.* (sizes only); the previous
   packs are kept as .bak. At the next game start the plugin installs MRCustom_P when [Style] uPreset=2 in MenusRevamped.ini,
   otherwise MRLayout_P ([Layout] bLayoutPack=0: no sizes pack). An asset that fails its check is skipped and listed.

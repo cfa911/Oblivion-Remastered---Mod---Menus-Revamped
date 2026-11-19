@@ -109,6 +109,11 @@ namespace darkstyle
 			std::array<float, 4> alchemyBox{ 0.0212f, 0.0212f, 0.0212f, 1 };   // sRGB 40, the filter row grey (Alchemy C.3 round 2)
 			std::array<float, 4> alchemyBoxLine{ 0.0545f, 0.1248f, 0.3185f, 1 };   // sRGB 66 99 153, the filter row outline (Alchemy C.3 round 2)
 			std::array<float, 4> alchemyClearLine{ 0.6445f, 0.1248f, 0.1046f, 1 };   // sRGB 210 99 91, the stolen-mark red (Alchemy C.3 round 2)
+			std::array<float, 4> keyboardKey{ 0.025f, 0.025f, 0.025f, 0.92f };
+			std::array<float, 4> keyboardEdge{ 0.1248f, 0.1248f, 0.1248f, 1 };
+			std::array<float, 4> keyboardSelected{ 0.0545f, 0.1248f, 0.3185f, 1 };
+			std::array<float, 4> keyboardSelectedEdge{ 0.23f, 0.40f, 0.68f, 1 };
+			std::array<float, 4> keyboardInk{ 0.8632f, 0.8632f, 0.8632f, 1 };
 		} skin;
 	};
 #define DARKSTYLE_SKIN_TINTS 1

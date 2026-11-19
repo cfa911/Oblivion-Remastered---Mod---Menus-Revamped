@@ -315,9 +315,11 @@ class ColourModel:
                 for k, r in cc.TEXT_ROLES.items()]
         rows = [(label, [self._size_index[k] for k, _, _ in entries]) for label, entries in cc.ROW_LISTS]
         runtime = [("Inventory and Magic header (our own lines, applied at the next game start)",
-                    [self.entry("Skin", n) for n in cc.RUNTIME_SKIN if not n.startswith("alchemy")]),
+                    [self.entry("Skin", n) for n in cc.RUNTIME_SKIN if not n.startswith(("alchemy", "keyboard"))]),
                    ("Alchemy filters (our own heading, chips and Search effects box, applied at the next game start)",
-                    [self.entry("Skin", n) for n in cc.RUNTIME_SKIN if n.startswith("alchemy")])]
+                    [self.entry("Skin", n) for n in cc.RUNTIME_SKIN if n.startswith("alchemy")]),
+                   ("Controller keyboard (Custom colours; game font and Inventory details parchment in all presets)",
+                    [self.entry("Skin", n) for n in cc.RUNTIME_SKIN if n.startswith("keyboard")])]
         return [("Colours", colours), ("Text", text), ("Rows", rows), ("Runtime", runtime)]
 
     # ---- reset, build state, save ----

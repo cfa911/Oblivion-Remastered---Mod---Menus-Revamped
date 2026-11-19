@@ -48,12 +48,17 @@ namespace keyboard
 
 		// colours are linear (the game's brushes), alpha last
 		// the menus' parchment: the page behind the keyboard, darker keys on it, a gold selection, dark brown ink
-		constexpr float kPanelFill[4] = { 0.76f, 0.69f, 0.55f, 1.0f }, kPanelEdge[4] = { 0.20f, 0.12f, 0.05f, 1.0f };
 		constexpr float kKeyFill[4] = { 0.50f, 0.38f, 0.22f, 0.22f }, kKeyEdge[4] = { 0.25f, 0.15f, 0.06f, 0.55f };
-		constexpr float kWideFill[4] = { 0.50f, 0.38f, 0.22f, 0.22f };
 		constexpr float kSelFill[4] = { 0.74f, 0.60f, 0.42f, 0.90f }, kSelEdge[4] = { 0.22f, 0.13f, 0.06f, 1.0f };
 		constexpr float kInk[4] = { 0.10f, 0.06f, 0.03f, 1.0f };
 		constexpr float kGlyphFill[4] = { 0.12f, 0.11f, 0.10f, 1.0f }, kGlyphEdge[4] = { 0.72f, 0.64f, 0.52f, 1.0f }, kGlyphInk[4] = { 0.93f, 0.89f, 0.82f, 1.0f };
+
+		bool Dark() { return uistyle::Recolors(mrconfig::Get().stylePreset); }
+		const float* Ink() { return Dark() ? darkstyle::Get().skin.keyboardInk.data() : kInk; }
+		const float* KeyFill() { return Dark() ? darkstyle::Get().skin.keyboardKey.data() : kKeyFill; }
+		const float* KeyEdge() { return Dark() ? darkstyle::Get().skin.keyboardEdge.data() : kKeyEdge; }
+		const float* SelectedFill() { return Dark() ? darkstyle::Get().skin.keyboardSelected.data() : kSelFill; }
+		const float* SelectedEdge() { return Dark() ? darkstyle::Get().skin.keyboardSelectedEdge.data() : kSelEdge; }
 
 		reflect::Handle                                g_root, g_header;
 		std::vector<reflect::Handle>                   g_keyImg;
@@ -99,6 +104,33 @@ namespace keyboard
 		}
 
 		struct Rect { double x0, y0, x1, y1; };
+		Rect g_referencePanel{};
+		Rect g_builtPanel{};
+		bool g_hasReference = false;
+
+		Rect DetailsPanel()
+		{
+			ui::Call viewport(ui::PlayerController(), L"GetViewportSize");
+			if (!viewport.Run()) return {};
+			const double dpi = ui::ViewportScale();
+			const double width = viewport.Get<std::int32_t>("SizeX") / dpi;
+			const double height = viewport.Get<std::int32_t>("SizeY") / dpi;
+			if (width <= 1 || height <= 1) return {};
+			// Native Inventory slot values; anchors at the screen centre. Retained stock asset evidence in the KB.
+			Rect panel{ (width * 0.5 - 94.0) / width, (height * 0.5 - 423.166646) / height,
+				(width * 0.5 + 877.0) / width, (height * 0.5 + 462.166667) / height };
+			if (auto* inventory = menus::Widget(menus::Menu::kInventory)) {
+				auto* background = ui::FindInTree(inventory, "inv_details_item_background");
+				double x = 0, y = 0, w = 0, h = 0;
+				if (background && ui::Measure(background, x, y, w, h)) {
+					g_referencePanel = { x / width, y / height, (x + w) / width, (y + h) / height };
+					g_hasReference = true;
+				}
+			}
+			if (g_hasReference) panel = g_referencePanel;
+			if (g_mirror) panel = { 1.0 - panel.x1, panel.y0, 1.0 - panel.x0, panel.y1 };
+			return panel;
+		}
 
 		// every key's place as a share of the screen; the panel and the header / hint rows too
 		struct Layout
@@ -109,26 +141,22 @@ namespace keyboard
 
 		Layout MakeLayout()
 		{
-			const auto&  s = kbcfg::Get();
-			double       L = s.leftPercent / 100.0, T = s.topPercent / 100.0, R = s.rightPercent / 100.0, B = s.bottomPercent / 100.0;
-						if (g_mirror) {   // the same area, mirrored: it never covers the list that is being searched
-							const double l2 = 1.0 - R, r2 = 1.0 - L;
-							L = l2;
-							R = r2;
-						}
-const double W = R - L, H = B - T;
-			const double padX = W * 0.03;
-			const double colW = (W - 2 * padX) / kCols;
-			const double rowH = std::min(H / (kRows + 2 + 0.7), colW * Aspect() * 1.25);   // header, the key rows, the hint; keys a little taller than wide
-			const double padY = (H - (kRows + 2) * rowH) * 0.5;   // the rest of the height is margin, above and below
+			const auto page = DetailsPanel();
+			const double center = (page.x0 + page.x1) * 0.5;
+			// Owner's 2559x1450 reference: purple content frame, yellow heading; share the paper's centre in either orientation.
+			const double width = std::min(1069.0 / 2559.0, (page.x1 - page.x0) * 0.90);
+			const double height = std::min(596.0 / 1450.0, (page.y1 - page.y0) * 0.70);
+			const double x0 = center - width * 0.5;
+			const double y0 = std::clamp(537.0 / 1450.0, page.y0, page.y1 - height);
+			const double colW = width / kCols;
+			const double rowH = height * 88.0 / 431.0;   // preserve the marked grid's row spacing within the larger frame
 			Layout       l;
-			const double x0 = L + padX, y0 = T + padY;
-			l.panel = { L, T, R, T + 2 * padY + (kRows + 2) * rowH };
-			l.header = { x0, y0, x0 + kCols * colW, y0 + rowH };
-			l.hint = { x0, y0 + (kRows + 1) * rowH, x0 + kCols * colW, y0 + (kRows + 2) * rowH };
+			l.panel = page;
+			l.header = { center - 160.5 / 2559.0, 368.0 / 1450.0, center + 160.5 / 2559.0, 487.0 / 1450.0 };
+			l.hint = { x0, y0 + height * 0.84, x0 + width, y0 + height };
 			const double gx = colW * 0.07, gy = rowH * 0.08;
 			for (const auto& k : Keys()) {
-				const double kx = x0 + k.col * colW, ky = y0 + (k.row + 1) * rowH;
+				const double kx = x0 + k.col * colW, ky = y0 + k.row * rowH;
 				l.key.push_back({ kx + gx, ky + gy, kx + k.span * colW - gx, ky + rowH - gy });
 			}
 			return l;
@@ -150,7 +178,7 @@ const double W = R - L, H = B - T;
 
 		double g_headerSize = 32.0;
 
-		UE::UObject* AddLabel(UE::UObject* a_canvas, const std::wstring& a_name, const Rect& a_r, double a_size, const std::string& a_text, const float* a_ink = kInk, double a_alignX = 0.5)
+		UE::UObject* AddLabel(UE::UObject* a_canvas, const std::wstring& a_name, const Rect& a_r, double a_size, const std::string& a_text, const float* a_ink = nullptr, double a_alignX = 0.5)
 		{
 			UE::UObject* slot = nullptr;
 			auto*        label = ui::AddToCanvas(a_canvas, L"/Script/UMG.TextBlock", a_name.c_str(), &slot);
@@ -163,31 +191,9 @@ const double W = R - L, H = B - T;
 			ui::Vec2(slot, L"SetPosition", 0.0, 0.0);
 			ui::Vec2(label, L"SetRenderTransformPivot", 0.5, 0.5);
 			uix::SetText(label, a_text);
-			uix::Ink(label, a_ink);
-			if (!uix::ApplyFont(label, a_size)) {
-				const double scale = a_size / 24.0;   // no font to set: the prefab's own, scaled instead
-				ui::Vec2(label, L"SetRenderScale", scale, scale);
-			}
+			uix::Ink(label, a_ink ? a_ink : Ink());
+			if (!uix::ApplyItemFont(label, a_size)) return nullptr;   // retry the build instead of freezing in the engine default font
 			return label;
-		}
-
-		// ours, from the plugin's folder: a texture the engine imports from the PNG (KismetRenderingLibrary), as the wheel mod's star does
-		UE::UObject* ParchmentTexture()
-		{
-			static reflect::Handle s_tex;
-			static bool            s_failed = false;
-			if (auto* t = reflect::Get(s_tex)) return t;
-			if (s_failed) return nullptr;
-			const auto path = mrconfig::PluginFolder() / L"MenusRevamped" / L"Keyboard" / L"Parchment.png";
-			auto*        tex = ui::ImportTexture(path);
-			if (!tex) {
-				s_failed = true;
-				logger::warn("search keyboard: the parchment image could not be loaded ({}{}) - a plain box is used", path.string(), std::filesystem::exists(path) ? "" : ", missing");
-				return nullptr;
-			}
-			s_tex = reflect::Hold(tex);
-			logger::debug("search keyboard: the parchment is loaded from {}", path.filename().string());
-			return tex;
 		}
 
 		bool Build()
@@ -203,23 +209,30 @@ const double W = R - L, H = B - T;
 				return false;
 			}
 			const auto   layout = MakeLayout();
+			if (layout.panel.x1 <= layout.panel.x0 || layout.panel.y1 <= layout.panel.y0) return false;
 			const double scale = kbcfg::Get().textPercent / 100.0;
-			{   // the page: a parchment image from the plugin's folder, else a plain rounded box
-				auto* tex = ParchmentTexture();
-				auto* panel = AddImage(canvas, L"IwmOskPanel" + n, layout.panel, tex ? nullptr : kPanelFill, kPanelEdge, 3.0f);
+			{   // The same masked Inventory details parchment, including the currently mounted Dark/Custom art.
+				auto* material = ui::Load(g_mirror ? L"/Game/UI/Materials/Instances/Common/MIC_MaskedPageLeft.MIC_MaskedPageLeft" :
+					L"/Game/UI/Materials/Instances/Common/MIC_MaskedPageRight.MIC_MaskedPageRight");
+				if (!material) return false;
+				auto* panel = AddImage(canvas, L"IwmOskPanel" + n, layout.panel, nullptr, nullptr, 0.0f);
 				if (!panel) return false;
-				if (tex) {
-					ui::Call b(panel, L"SetBrushFromTexture");
-					b.Set("Texture", tex);
-					b.Set("bMatchSize", false);
-					b.Run();
-				}
+				ui::Call b(panel, L"SetBrushFromMaterial");
+				b.Set("Material", material);
+				if (!b.Run()) return false;
+				ui::Call dynamic(panel, L"GetDynamicMaterial");
+				if (!dynamic.Run()) return false;
+				auto* ownMaterial = dynamic.Get<UE::UObject*>("ReturnValue");
+				if (!ownMaterial) return false;
+				// Same solid-paper state as the native details' non-preview sub-tabs. This MID belongs to our image only.
+				ui::SetMidScalar(ownMaterial, L"Hole?", 0.0f);
+				ui::SetMidScalar(ownMaterial, L"UseShadow?", 0.0f);
 			}
 			std::vector<reflect::Handle> imgs;
 			const auto&                  keys = Keys();
 			for (std::size_t i = 0; i < keys.size(); ++i) {
 				auto* img = AddImage(canvas, L"IwmOskKey" + n + L"_" + std::to_wstring(i), layout.key[i],
-					keys[i].kind == Kind::kChar ? kKeyFill : kWideFill, kKeyEdge, 1.5f);
+					KeyFill(), KeyEdge(), 1.5f);
 				if (!img) return false;
 				imgs.push_back(reflect::Hold(img));
 			}
@@ -229,14 +242,14 @@ const double W = R - L, H = B - T;
 				const auto& key = keys[i];
 				const auto caption = key.kind == Kind::kChar ? std::string(1, KeyCharacter(key)) : key.label;
 				auto* label = AddLabel(canvas, L"IwmOskText" + n + L"_" + std::to_wstring(i), layout.key[i],
-					scale * (key.kind == Kind::kChar ? 36.0 : 28.0), caption);
+					scale * (key.kind == Kind::kChar ? 29.0 : 24.0), caption);
 				if (!label) {
 					logger::debug("search keyboard: the game's text prefab is not loaded yet");
 					return false;
 				}
 				labels.push_back(reflect::Hold(label));
 			}
-			g_headerSize = scale * 34.0;
+			g_headerSize = scale * 46.5;
 				auto* header = AddLabel(canvas, L"IwmOskHeader" + n, layout.header, g_headerSize, "Search: _");
 			{   // the pad's buttons as the game draws them: a dark disc with a light ring and the letter, then what the button does
 				struct Hint { const char* glyph; const char* text; };
@@ -244,8 +257,8 @@ const double W = R - L, H = B - T;
 					{ "RT", "Caps Lock" }, { "B", "Done" } } };
 				// sizes at full scale; the whole row is then shrunk to fit the page if it is wider than it
 				const double cy = (layout.hint.y0 + layout.hint.y1) * 0.5;
-				const double textFull = scale * 22.0;
-				const double dhFull = (layout.hint.y1 - layout.hint.y0) * 0.55;   // the disc's height, a share of the screen's height
+				const double textFull = scale * 19.5;
+				const double dhFull = std::min((layout.hint.y1 - layout.hint.y0) * 0.45, scale * 29.0 / 1080.0);
 				const double charFull = 0.00675;                                   // an average character's width as a share of the screen's width at size 22 (measured in game)
 				const double dwFull = dhFull / Aspect();                           // the same size across, so it is a circle
 				double       total1 = 0;
@@ -287,7 +300,7 @@ const double W = R - L, H = B - T;
 						}
 					}
 					const double tx = x + dw + gap;
-					AddLabel(canvas, L"IwmOskHint" + id, Rect{ tx, disc.y0, tx + 0.05, disc.y1 }, textSize, hints[i].text, kInk, 0.0);
+					AddLabel(canvas, L"IwmOskHint" + id, Rect{ tx, disc.y0, tx + 0.05, disc.y1 }, textSize, hints[i].text, Ink(), 0.0);
 					x += dw + gap + std::strlen(hints[i].text) * charW + between;
 				}
 			}
@@ -301,7 +314,8 @@ const double W = R - L, H = B - T;
 			g_keyImg = std::move(imgs);
 			g_keyLabels = std::move(labels);
 			g_builtMirror = g_mirror;
-logger::debug("search keyboard: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f}%,{:.0f}% of the screen", g_builds, layout.panel.x0 * 100, layout.panel.y0 * 100,
+			g_builtPanel = layout.panel;
+logger::debug("MR-KEYBOARD-DETAILS-T3: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f}%,{:.0f}% of the screen", g_builds, layout.panel.x0 * 100, layout.panel.y0 * 100,
 				layout.panel.x1 * 100, layout.panel.y1 * 100);
 			return true;
 		}
@@ -326,20 +340,18 @@ logger::debug("search keyboard: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f
 
 		void Paint(int a_index, bool a_selected)
 		{
-			const auto& keys = Keys();
 			if (a_index < 0 || a_index >= static_cast<int>(g_keyImg.size())) return;
 			auto* img = reflect::Get(g_keyImg[static_cast<std::size_t>(a_index)]);
 			if (!img) return;
-			const bool kc = keys[static_cast<std::size_t>(a_index)].kind == Kind::kChar;
-			ui::RoundedBox(img, false, a_selected ? kSelFill : kc ? kKeyFill : kWideFill, a_selected ? kSelEdge : kKeyEdge, a_selected ? 3.0f : 1.5f);
+			ui::RoundedBox(img, false, a_selected ? SelectedFill() : KeyFill(), a_selected ? SelectedEdge() : KeyEdge(), a_selected ? 3.0f : 1.5f);
 		}
 
 		void ShowText()
 		{
 			if (auto* h = reflect::Get(g_header)) {
 				uix::SetText(h, std::string(g_menu == menus::Menu::kAlchemyName ? "Potion name: " : g_menu == menus::Menu::kEnchantName ? "Item name: " : g_menu == menus::Menu::kSpellName ? "Spell name: " : "Search: ") + g_text + "_");
-				uix::Ink(h, kInk);
-			uix::ApplyFont(h, g_headerSize);
+				uix::Ink(h, Ink());
+				uix::ApplyItemFont(h, g_headerSize);
 			}
 		}
 
@@ -440,7 +452,11 @@ logger::debug("search keyboard: built (build {}), panel {:.0f}%,{:.0f}% to {:.0f
 		if (g_open) return true;
 		if (!search::Enabled(a_menu)) return false;
 		const bool mirror = a_menu == menus::Menu::kAlchemyName || a_menu == menus::Menu::kEnchantName || a_menu == menus::Menu::kSpellName || a_menu == menus::Menu::kAlchemyFilters || (a_menu == menus::Menu::kContainerYours || a_menu == menus::Menu::kContainerTheirs) && !search::PanelOnLeft(a_menu);   // a list on the right of the screen: the keyboard goes on the left
-		if (mirror != g_builtMirror && reflect::Get(g_root)) {   // built on the other side of the screen: built again there
+		g_mirror = mirror;
+		const auto panel = DetailsPanel();
+		const bool moved = std::abs(panel.x0 - g_builtPanel.x0) > 0.0001 || std::abs(panel.y0 - g_builtPanel.y0) > 0.0001 ||
+			std::abs(panel.x1 - g_builtPanel.x1) > 0.0001 || std::abs(panel.y1 - g_builtPanel.y1) > 0.0001;
+		if ((mirror != g_builtMirror || moved) && reflect::Get(g_root)) {
 			ui::Call rm(reflect::Get(g_root), L"RemoveFromParent");
 			rm.Run();
 			g_root = {};
