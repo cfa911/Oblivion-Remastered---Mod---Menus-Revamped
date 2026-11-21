@@ -15,6 +15,7 @@
 #include "search/WorldMapSearch.h"
 #include "alchemy/AlchemyMenu.h"
 #include "enchanting/EnchantingName.h"
+#include "builder/Builder.h"
 #ifdef MR_DEVTOOLS
 #include "devtools/Census.h"
 #endif
@@ -32,6 +33,10 @@ namespace core
 		LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM key, LPARAM position)
 		{
 			if (message == WM_TIMER && key == kTimer && GetCurrentThreadId() == g_thread) { Tick(); return 0; }
+			{
+				LRESULT builderResult = 0;   // in-game Pack Builder first: while its window is open the game and our menus see no input
+				if (builder::HandleWindowMessage(window, message, key, position, builderResult)) return builderResult;
+			}
 #ifdef MR_DEVTOOLS
 			if (devtools::Message(message, key, position)) return 0;
 #endif

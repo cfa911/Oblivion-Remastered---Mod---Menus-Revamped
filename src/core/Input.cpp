@@ -9,6 +9,7 @@
 #include "sorting/rules/ControllerPolicy.h"
 #include "keyboard/KeyboardInput.h"
 #include "keyboard/Keyboard.h"
+#include "builder/Builder.h"
 
 #include <Xinput.h>   // types and constants only - nothing is linked or loaded
 
@@ -28,6 +29,9 @@ namespace input
 			const DWORD rc = g_previous ? g_previous(a_user, a_state) : ERROR_DEVICE_NOT_CONNECTED;
 			if (a_user == 0 && GetCurrentThreadId() == g_gameThread) {
 				core::Tick();   // on every read, a connected pad or not
+				if (rc == ERROR_SUCCESS && a_state && builder::FilterPad(*a_state)) {
+					return rc;   // in-game Pack Builder open (or just closed with a button held): the game and our menus read an empty pad
+				}
 				if (rc == ERROR_SUCCESS && a_state) {
 					auto& pad = a_state->Gamepad;
 					alchemy::Controller(pad.wButtons, pad.sThumbLX, pad.sThumbLY);
