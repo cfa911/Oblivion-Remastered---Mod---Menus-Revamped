@@ -25,6 +25,14 @@ namespace ingame
 
 		bool IsOpen() const { return open_; }
 
+		// The game window lost focus (alt-tab): Windows sends no releases for held keys and UE flushes its own pressed keys,
+		// so nothing is held or owed any more.
+		void LoseFocus()
+		{
+			held_.reset();
+			owedRelease_.reset();
+		}
+
 		// true = hide this message from the game. a_code: virtual key for keys, button 0-4 for the mouse.
 		bool Consume(Input a_input, unsigned a_code)
 		{
