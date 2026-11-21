@@ -4,6 +4,7 @@
 #include "core/Config.h"
 #include "core/DarkPack.h"
 #include "search/Search.h"
+#include "builder/Builder.h"
 
 namespace
 {
@@ -30,6 +31,7 @@ OBSE_PLUGIN_LOAD(const OBSE::LoadInterface* obse)
 	const auto level = static_cast<spdlog::level::level_enum>(std::clamp(mrconfig::Get().search.logLevel, 0, 4));
 	logger::set_level(level, level);
 	darkpack::Apply(obse->RuntimeVersion().string());   // colour file, manifest check and pack switch, before the engine mounts ~mods (KB docs/reverse-engineering/dark-mode-ui.md "Pak mount timing")
+	builder::Install();   // in-game Pack Builder: DXGI factory hooks before the renderer makes its swap chain
 	logger::info("MR-MAP-SEARCH-20261101: world-map results and native marker focus");
 	logger::warn("Menus Revamped MR-SMOOTH-20261027-R3: latest-side quiescent hover replay; integrated hover throttle and object guard; standalone SmoothMenus must be disabled");
 	logger::warn("Menus Revamped MR-INTEGRATION-20261026: unified search/pickers/controller keyboard; one list owner; no display-copy/input-freeze experiment");

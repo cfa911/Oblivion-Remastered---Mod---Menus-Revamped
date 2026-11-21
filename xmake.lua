@@ -12,6 +12,11 @@ set_languages("c++23")
 set_warnings("allextra")
 add_rules("mode.debug", "mode.releasedbg")
 
+-- In-game Pack Builder overlay (KB mods/menus-revamped/evidence/in-game-pack-builder-plan.md): Dear ImGui (MIT) with its
+-- DX12 and Win32 backends, MinHook (BSD-2) for the DXGI hooks.
+add_requires("imgui v1.92.9", { configs = { dx12 = true, win32 = true } })
+add_requires("minhook v1.3.4")
+
 -- Developer tools (owner 2026-11-11): the widget census key (src/devtools). Off by default, so release DLLs never contain it;
 -- dev builds: xmake f --devtools=y
 option("devtools")
@@ -29,9 +34,10 @@ target("MenusRevamped")
         author = "cfa911",
         description = "Unified menu search, category pickers and controller keyboard"
     })
-    add_syslinks("user32", "imm32")
+    add_syslinks("user32", "imm32", "d3d12", "dxgi")
+    add_packages("imgui", "minhook")
     -- Feature folders under src/; every include is a path from src/ ("engine/Ui.h").
-    add_files("src/core/*.cpp", "src/engine/*.cpp", "src/search/*.cpp", "src/keyboard/*.cpp", "src/sorting/*.cpp", "src/hover/*.cpp", "src/alchemy/*.cpp", "src/enchanting/*.cpp")
+    add_files("src/core/*.cpp", "src/engine/*.cpp", "src/search/*.cpp", "src/keyboard/*.cpp", "src/sorting/*.cpp", "src/hover/*.cpp", "src/alchemy/*.cpp", "src/enchanting/*.cpp", "src/builder/*.cpp")
     add_options("devtools")
     if has_config("devtools") then
         add_files("src/devtools/*.cpp")
