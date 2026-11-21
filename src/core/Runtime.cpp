@@ -106,6 +106,7 @@ namespace core
 			if (!reflect::Ok()) reflect::SelfCheck();
 			if (reflect::Ok()) { menus::Tick(); container::Tick(); quests::Tick(); worldmap::Tick(); scrollhints::Discover(); }
 		}
+		if (reflect::Ok()) builder::Tick();   // in-game Pack Builder: closes with the game state under it; System-page row
 		if (!reflect::Ok() || SameFrame()) return;
 		container::TickScope frame;
 		if (container::Open()) {

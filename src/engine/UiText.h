@@ -10,6 +10,8 @@ namespace uix
 
 	// SetText on a TextBlock: a UTF-8 string laid into the call's FText parameter
 	bool SetText(UE::UObject* a_widget, const std::string& a_text);
+	// the same through another setter whose first parameter is an FText (SetButtonText on a CommonUI button wrapper)
+	bool SetTextVia(UE::UObject* a_widget, const wchar_t* a_function, const std::string& a_text);
 
 	// GetText on an editable or text widget (UTF-8)
 	std::string GetText(UE::UObject* a_widget);

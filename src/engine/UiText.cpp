@@ -55,9 +55,11 @@ namespace uix
 		ui::CallFirst(a_label, L"SetShadowColorAndOpacity", shadow, sizeof(shadow));
 	}
 
-	bool SetText(UE::UObject* a_widget, const std::string& a_text)
+	bool SetText(UE::UObject* a_widget, const std::string& a_text) { return SetTextVia(a_widget, L"SetText", a_text); }
+
+	bool SetTextVia(UE::UObject* a_widget, const wchar_t* a_function, const std::string& a_text)
 	{
-		auto*      fn = a_widget ? a_widget->FindFunction(UE::FName(L"SetText", UE::EFindName::Find)) : nullptr;
+		auto*      fn = a_widget ? a_widget->FindFunction(UE::FName(a_function, UE::EFindName::Find)) : nullptr;
 		const auto params = fn ? reflect::Fields(reinterpret_cast<UE::UStruct*>(fn)) : std::vector<std::pair<std::string, std::int32_t>>{};
 		if (params.empty()) return false;
 		std::vector<std::uint8_t> buf(static_cast<std::size_t>(std::max(reinterpret_cast<UE::UStruct*>(fn)->propertiesSize, 0)) + 16, 0);
