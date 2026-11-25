@@ -1,4 +1,4 @@
-// In-game Pack Builder (Phase 3a): the build on a background thread (see PackJob.h). The pipeline steps follow
+// In-game Pack Builder (Phase 3a, Build Phase 3e): the build on a background thread (see PackJob.h). The pipeline steps follow
 // tools/pack_builder/pipeline.py _build and app.build_pack: retoc to-legacy of every needed name, bake each asset
 // (src/builder/PackBuild.h), retoc to-zen, the manifest, the read-back (retoc verify + list), then the files are moved into
 // place. KB mods/menus-revamped/evidence/in-game-pack-builder-plan.md (Phase 3).
@@ -6,6 +6,7 @@
 #include "builder/PackJob.h"
 
 #include "builder/PackBuild.h"
+#include "builder/PackInstall.h"
 
 #include <Windows.h>
 
@@ -13,6 +14,7 @@
 #include <atomic>
 #include <chrono>
 #include <fstream>
+#include <functional>
 #include <mutex>
 #include <sstream>
 #include <thread>
@@ -188,32 +190,129 @@ namespace builder::pack::job
 			return a_s;
 		}
 
-		void TestBuild(fs::path a_plugins)
+		// our own file calls on the work folder use the \\?\ form: retoc's extraction paths pass 260 characters under the game's
+		// plugin folder (Phase 3d finding), which the Python builder handled and plain Win32 paths do not
+		fs::path Long(const fs::path& a_path)
+		{
+			std::error_code ec;
+			auto            full = fs::absolute(a_path, ec).make_preferred().wstring();
+			if (full.starts_with(L"\\\\?\\")) return full;
+			return fs::path(L"\\\\?\\" + full);
+		}
+
+		std::string ReadIni(const fs::path& a_path)
+		{
+			std::error_code ec;
+			return fs::is_regular_file(a_path, ec) ? ReadText(a_path) : std::string();
+		}
+
+		// one pack: retoc to-zen of a stage folder, its manifest, the read-back (retoc verify + list); returns the manifest
+		json::Value WritePack(const fs::path& a_retoc, const fs::path& a_stage, const fs::path& a_out, const std::string& a_pack, const BuildRecord& a_record,
+			const PackData& a_data, const std::function<void(const std::string&)>& a_note)
+		{
+			std::error_code ec;
+			fs::create_directories(Long(a_out), ec);
+			const fs::path utoc = a_out / Wide(a_pack + ".utoc");
+			std::string    output;
+			Retoc(a_retoc, { L"to-zen", L"--version", L"UE5_3", a_stage.wstring(), utoc.wstring() }, output, "to-zen");
+			CheckCancel();
+			std::vector<PackFileHash> hashes;
+			for (const char* ext : { "pak", "utoc", "ucas" }) {
+				Bytes file;
+				if (!ReadBytes(Long(a_out / Wide(a_pack + "." + ext)), file)) throw Stop{ "retoc wrote no " + a_pack + "." + ext };
+				hashes.push_back({ a_pack + "." + ext, Sha256Hex(file) });
+			}
+			auto       manifest = Manifest(a_pack, "MenusRevamped.dll", a_record, hashes, &a_data);
+			const auto text = json::Dump(manifest) + "\n";
+			WriteBytes(Long(a_out / Wide(a_pack + ".json")), text.data(), text.size());
+			Retoc(a_retoc, { L"verify", utoc.wstring() }, output, "verify");
+			if (Lower(output).find("verified") == std::string::npos)
+				throw Stop{ "read-back: retoc could not verify " + a_pack + ".utoc; the installed pack was not changed" };
+			Retoc(a_retoc, { L"list", L"--path", utoc.wstring() }, output, "list");
+			std::set<std::string> listed;
+			std::istringstream    lines(output);
+			for (std::string line; std::getline(lines, line);) {
+				if (line.find("ExportBundleData") == std::string::npos) continue;
+				while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
+				listed.insert(Lower(line.substr(line.find_last_of(' ') + 1)));
+			}
+			std::vector<std::string> missing;
+			for (const auto& asset : a_record.textures.keys)
+				if (!listed.count(Lower("../../../OblivionRemastered/Content/" + asset + ".uasset"))) missing.push_back(AssetName(asset));
+			if (!missing.empty()) {
+				std::string names;
+				for (size_t i = 0; i < missing.size(); ++i) names += (i ? ", " : "") + missing[i];
+				throw Stop{ "read-back: the new pack lacks " + std::to_string(missing.size()) + " package(s): " + names + "; the installed pack was not changed" };
+			}
+			a_note("Read back: " + std::to_string(listed.size()) + " packages verified");
+			return manifest;
+		}
+
+		FileOps DiskOps()
+		{
+			FileOps ops;
+			ops.exists = [](const fs::path& p) {
+				std::error_code ec;
+				return fs::is_regular_file(Long(p), ec);
+			};
+			ops.replace = [](const fs::path& a, const fs::path& b) {
+				return MoveFileExW(Long(a).c_str(), Long(b).c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED | MOVEFILE_WRITE_THROUGH) != 0;
+			};
+			ops.remove = [](const fs::path& p) {
+				std::error_code ec;
+				fs::remove(Long(p), ec);
+			};
+			return ops;
+		}
+
+		void WriteStage(const fs::path& a_stage, const std::string& a_asset, const PackageFiles& a_files)
+		{
+			const auto to = (Long(a_stage) / L"OblivionRemastered" / L"Content" / Wide(a_asset)).wstring();
+			WriteBytes(to + L".uasset", a_files.uasset.data(), a_files.uasset.size());
+			WriteBytes(to + L".uexp", a_files.uexp.data(), a_files.uexp.size());
+			if (a_files.hasUbulk) WriteBytes(to + L".ubulk", a_files.ubulk.data(), a_files.ubulk.size());
+		}
+
+		// app.build_pack + window.Controller.build: MRCustom_P (with the sizes unless bLayoutPack=0), MRLayout_P, the read-back,
+		// both packs put in place together with their .bak, uPreset=2, PackBuilder.log. The colour file was saved by the window.
+		void Build(fs::path a_plugins)
 		{
 			SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
 			const fs::path mr = a_plugins / L"MenusRevamped";
 			const fs::path retoc = mr / L"PackBuilder" / L"retoc" / L"retoc.exe";
 			const fs::path menus = mr / L"PackBuilder" / L"menus";
 			const fs::path colours = mr / L"CustomColours.ini";
-			const fs::path target = mr / L"CustomPack" / L"TestBuild";
-			const fs::path work = mr / L"CustomPack" / L".PackBuilder-test";
+			const fs::path pluginIni = a_plugins / L"MenusRevamped.ini";
+			const fs::path target = mr / L"CustomPack";
+			const fs::path logFile = mr / L"PackBuilder" / L"PackBuilder.log";
+			const fs::path work = mr / Wide(".PackBuilder-" + std::to_string(GetTickCount64()));
 			const fs::path paks = a_plugins.parent_path().parent_path().parent_path().parent_path() / L"Content" / L"Paks";
-			const std::string pack = "MRCustom_P";
+			const std::string colourPack = "MRCustom_P", layoutPack = "MRLayout_P";
 			std::vector<std::string> log;
 			auto note = [&](const std::string& a_line) { log.push_back(a_line); };
 			auto writeLog = [&] {
-				std::string text;
-				for (const auto& l : log) text += l + "\r\n";
+				std::string text = std::string("Menus Revamped - Pack Builder (in game) ") + kBuilderVersion + "\n";
+				for (const auto& l : log) text += l + "\n";
 				try {
-					WriteBytes(target / L"TestBuild.log", text.data(), text.size());
+					WriteBytes(Long(logFile), text.data(), text.size());
 				} catch (const Stop&) {}
 			};
 			std::error_code ec;
 			const auto      started = std::chrono::steady_clock::now();
+			bool            installing = false;
 			try {
-				note("Menus Revamped in-game Pack Builder: test build (Phase 3a, the recipes ported so far; this pack is never installed)");
 				SetPhase("Checking the game and the builder files", 0, 0);
 				if (!fs::is_regular_file(retoc, ec)) throw Stop{ "retoc not found: " + retoc.string() + " (it ships in MenusRevamped/PackBuilder/retoc)" };
+				if (!fs::exists(retoc.parent_path() / L"oo2core_9_win64.dll", ec)) {
+					const auto probe = retoc.parent_path() / L".write-test";
+					std::ofstream test(probe);
+					const bool    writable = static_cast<bool>(test);
+					test.close();
+					fs::remove(probe, ec);
+					if (!writable)
+						throw Stop{ "retoc needs Oodle (oo2core_9_win64.dll) to read the game's containers. It downloads the DLL into " +
+						            retoc.parent_path().string() + " on its first run, which needs internet and a writable folder." };
+				}
 				if (!fs::is_directory(paks, ec)) throw Stop{ "the game's Paks folder was not found: " + paks.string() };
 				std::vector<std::pair<std::string, std::string>> files;
 				for (const auto& e : fs::directory_iterator(menus, ec))
@@ -222,16 +321,20 @@ namespace builder::pack::job
 				PackData    data;
 				std::string error;
 				if (!LoadPackData(files, data, error)) throw Stop{ error };
-				Values      values;
-				const bool  haveColours = fs::is_regular_file(colours, ec);
-				std::string colourText = haveColours ? ReadText(colours) : std::string();
+				const bool        haveColours = fs::is_regular_file(colours, ec);
+				const std::string colourText = haveColours ? ReadText(colours) : std::string();
+				Values            values;
 				if (!PackValues(haveColours ? &colourText : nullptr, values, error)) throw Stop{ error };
-				fs::remove_all(work, ec);
-				fs::create_directories(work, ec);
-				const fs::path legacy = work / L"legacy", stage = work / L"stage", out = work / L"out";
-				const auto     names = NeededNames(data, false);
+				const bool layout = LayoutEnabled(ReadIni(pluginIni));
+				Sizes      sizes;
+				if (layout && !LoadSizes(haveColours ? &colourText : nullptr, sizes, error)) throw Stop{ error };
+
+				fs::remove_all(Long(work), ec);
+				fs::create_directories(Long(work), ec);
+				const fs::path legacy = work / L"legacy", stage = work / L"stage", layoutStage = work / L"layout-stage", out = work / L"out";
+				const auto     names = NeededNames(data, layout);
 				note("Reading " + std::to_string(names.size()) + " stock assets from " + paks.string());
-				SetPhase("Reading the game's assets (retoc)", 0, static_cast<int>(data.textures.size()));
+				SetPhase("Reading the game's assets (retoc; the first build downloads Oodle)", 0, static_cast<int>(data.textures.size()));
 				std::vector<std::wstring> args{ L"to-legacy", L"--no-shaders", L"--version", L"UE5_3" };
 				for (const auto& n : names) {
 					args.push_back(L"-f");
@@ -243,108 +346,119 @@ namespace builder::pack::job
 				Retoc(retoc, args, output, "to-legacy");
 				CheckCancel();
 
+				const auto      content = Long(legacy) / L"OblivionRemastered" / L"Content";
+				const ReadStock read = [&](const std::string& a_asset, PackageFiles& a_out) {
+					const auto base = (content / Wide(a_asset)).wstring();
+					if (!ReadBytes(base + L".uasset", a_out.uasset) || !ReadBytes(base + L".uexp", a_out.uexp)) return false;
+					a_out.hasUbulk = ReadBytes(base + L".ubulk", a_out.ubulk);
+					return true;
+				};
 				BuildRecord record;
-				int         done = 0, baked = 0, later = 0;
-				const auto  content = legacy / L"OblivionRemastered" / L"Content";
+				int         done = 0;
 				for (const auto& [asset, recipe] : data.textures) {
 					CheckCancel();
 					SetPhase("Baking " + AssetName(asset), done, -1);
 					PackageFiles stock;
-					const auto   base = (content / Wide(asset)).wstring();
 					BakedAsset   result;
 					std::string  reason;
 					BakeResult   r = BakeResult::Skipped;
-					if (!ReadBytes(base + L".uasset", stock.uasset) || !ReadBytes(base + L".uexp", stock.uexp))
-						reason = "not extracted from the game (game update or wrong folder?)";
-					else {
-						stock.hasUbulk = ReadBytes(base + L".ubulk", stock.ubulk);
-						r = BakeAsset(asset, recipe, stock, values, data, result, reason);
-					}
+					if (!read(asset, stock)) reason = "not extracted from the game (game update or wrong folder?)";
+					else r = BakeAsset(asset, recipe, stock, values, data, result, reason, layout ? &sizes : nullptr);
+					if (r == BakeResult::Later) throw Stop{ "recipe " + recipe + " (" + AssetName(asset) + ") is not part of this build yet" };
 					if (r == BakeResult::Baked) {
-						const auto to = (stage / L"OblivionRemastered" / L"Content" / Wide(asset)).wstring();
-						WriteBytes(to + L".uasset", result.files.uasset.data(), result.files.uasset.size());
-						WriteBytes(to + L".uexp", result.files.uexp.data(), result.files.uexp.size());
-						if (result.files.hasUbulk) WriteBytes(to + L".ubulk", result.files.ubulk.data(), result.files.ubulk.size());
+						WriteStage(stage, asset, result.files);
 						record.Add(asset, result, values);
-						++baked;
 						note(AssetName(asset) + ": " + recipe);
-					} else if (r == BakeResult::Later) {
-						++later;
-						note("later phase " + AssetName(asset) + ": " + recipe);
 					} else {
 						record.Skip(asset, recipe, reason);
 						note("SKIPPED " + AssetName(asset) + ": " + reason);
 					}
 					++done;
 				}
-				SetPhase("Writing the pack (retoc)", done, -1);
-				if (!baked) throw Stop{ "no asset passed its check: nothing to build" };
-				fs::create_directories(out, ec);
-				const fs::path utoc = out / Wide(pack + ".utoc");
-				Retoc(retoc, { L"to-zen", L"--version", L"UE5_3", stage.wstring(), utoc.wstring() }, output, "to-zen");
+				if (layout) {
+					record.SetSizes(sizes);
+					std::vector<StagedFiles> staged;
+					LayoutEntries(data, sizes, read, record, staged);
+					for (const auto& f : staged) WriteStage(stage, f.asset, f.files);
+				}
+				if (record.textures.keys.empty())
+					throw Stop{ "no asset passed its check (" + std::to_string(record.skipped.items.size()) + " skipped): nothing to build" };
+				SetPhase("Writing the colour pack (retoc)", done, -1);
+				note("Writing the pack");
+				const auto colourManifest = WritePack(retoc, stage, out, colourPack, record, data, note);
+
+				json::Value layoutManifest;
+				bool        layoutBuilt = false;
+				std::string layoutProblem;
+				if (layout) {
+					try {
+						SetPhase("Writing the sizes pack (retoc)", done, -1);
+						BuildRecord sizesRecord;
+						sizesRecord.layoutPack = true;
+						sizesRecord.SetSizes(sizes);
+						std::vector<StagedFiles> staged;
+						LayoutEntries(data, sizes, read, sizesRecord, staged);
+						if (staged.empty())
+							throw Stop{ "no layout package passed its check (" + std::to_string(sizesRecord.skipped.items.size()) + " skipped): nothing to build" };
+						for (const auto& f : staged) WriteStage(layoutStage, f.asset, f.files);
+						layoutManifest = WritePack(retoc, layoutStage, out, layoutPack, sizesRecord, data, note);
+						layoutBuilt = true;
+					} catch (const Stop& stop) {
+						layoutProblem = stop.message;
+						note("Sizes pack not built: " + layoutProblem);
+					}
+				}
+
 				CheckCancel();
-				std::vector<PackFileHash> hashes;
-				for (const char* ext : { "pak", "utoc", "ucas" }) {
-					Bytes file;
-					if (!ReadBytes(out / Wide(pack + "." + ext), file)) throw Stop{ "retoc wrote no " + pack + "." + ext };
-					hashes.push_back({ pack + "." + ext, Sha256Hex(file) });
+				installing = true;   // from here a cancel waits: the packs go in place together
+				SetPhase("Putting the packs in place", done, -1);
+				const auto ops = DiskOps();
+				if (!InstallPack(out, target, colourPack, ops, error)) throw Stop{ error };
+				if (layoutBuilt && !InstallPack(out, target, layoutPack, ops, error)) {
+					layoutProblem = error;
+					layoutBuilt = false;
 				}
-				const auto manifest = json::Dump(Manifest(pack, "MenusRevamped.dll", record, hashes)) + "\n";
-				WriteBytes(out / Wide(pack + ".json"), manifest.data(), manifest.size());
-
-				SetPhase("Reading the new pack back (retoc)", done, -1);
-				Retoc(retoc, { L"verify", utoc.wstring() }, output, "verify");
-				if (Lower(output).find("verified") == std::string::npos) throw Stop{ "read-back: retoc could not verify " + pack + ".utoc" };
-				Retoc(retoc, { L"list", L"--path", utoc.wstring() }, output, "list");
-				std::set<std::string> listed;
-				std::istringstream    lines(output);
-				for (std::string line; std::getline(lines, line);) {
-					if (line.find("ExportBundleData") == std::string::npos) continue;
-					while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
-					listed.insert(Lower(line.substr(line.find_last_of(' ') + 1)));
-				}
-				int missing = 0;
-				for (const auto& asset : record.textures.keys)
-					missing += !listed.count(Lower("../../../OblivionRemastered/Content/" + asset + ".uasset"));
-				if (missing) throw Stop{ "read-back: the new pack lacks " + std::to_string(missing) + " package(s)" };
-				note("Read back: " + std::to_string(listed.size()) + " packages verified");
-
-				fs::create_directories(target, ec);
-				for (const char* ext : { "pak", "utoc", "ucas", "json" }) {
-					const auto to = target / Wide(pack + "." + ext);
-					fs::remove(to, ec);
-					fs::rename(out / Wide(pack + "." + ext), to, ec);
-					if (ec) throw Stop{ "could not move the test pack into " + target.string() + " (" + ec.message() + ")" };
-				}
-				fs::remove_all(work, ec);
-				const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - started).count();
-				const std::string message = "Test build done in " + std::to_string(seconds) + " s: " + std::to_string(baked) + " baked, " +
-				                            std::to_string(record.skipped.items.size()) + " skipped, " + std::to_string(later) +
-				                            " for later phases. Written to CustomPack\\TestBuild (not installed).";
+				std::string message = BuildSummary(colourManifest, layoutBuilt ? &layoutManifest : nullptr, target.string());
+				if (!layoutProblem.empty())
+					message += "\nThe sizes pack (" + layoutPack + ") was not built: " + layoutProblem + " The installed one was not changed.";
 				note(message);
+				std::string presetError;
+				const auto  ini = ReadIni(pluginIni);
+				std::ofstream presetOut(pluginIni, std::ios::binary | std::ios::trunc);   // in place: MenusRevamped.ini is a Vortex hard link (tooling lesson)
+				const auto  preset = model::SetPreset(ini, 2);
+				presetOut.write(preset.data(), static_cast<std::streamsize>(preset.size()));
+				presetOut.close();
+				const bool presetOk = static_cast<bool>(presetOut);
+				note(presetOk ? "Custom preset set (uPreset=2 in MenusRevamped.ini)." : "Could not set uPreset=2 in MenusRevamped.ini: set it by hand.");
+				fs::remove_all(Long(work), ec);
 				writeLog();
-				Finish(State::Done, message);
+				const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - started).count();
+				const auto skipped = record.skipped.items.size() + (layoutBuilt ? layoutManifest.Find("skipped")->items.size() : 0);
+				Finish(State::Done, "Built in " + std::to_string(seconds) + " s: " + std::to_string(record.textures.keys.size()) + " assets baked, " +
+				                        std::to_string(skipped) + " skipped" + (layoutBuilt ? ", sizes pack built" : layout ? ", sizes pack NOT built" : "") +
+				                        (presetOk ? "; Custom preset set." : "; set uPreset=2 by hand.") +
+				                        " Restart the game to see the new pack. Open log has the details.");
 			} catch (const Cancelled&) {
-				fs::remove_all(work, ec);
-				note("Cancelled.");
+				fs::remove_all(Long(work), ec);
+				note("Cancelled. The installed packs were not changed.");
 				writeLog();
-				Finish(State::Cancelled, "Test build cancelled. Nothing was written.");
+				Finish(State::Cancelled, "Build cancelled. The installed packs were not changed.");
 			} catch (const Stop& stop) {
-				fs::remove_all(work, ec);
+				fs::remove_all(Long(work), ec);
 				note("FAILED: " + stop.message);
 				writeLog();
-				Finish(State::Failed, "Test build failed: " + stop.message);
+				Finish(State::Failed, "Build failed: " + stop.message + (installing ? "" : " The installed packs were not changed."));
 			} catch (const std::exception& e) {
-				fs::remove_all(work, ec);
+				fs::remove_all(Long(work), ec);
 				note(std::string("FAILED: ") + e.what());
 				writeLog();
-				Finish(State::Failed, std::string("Test build failed: ") + e.what());
+				Finish(State::Failed, std::string("Build failed (") + e.what() + "). The installed packs were not changed.");
 			}
 			running = false;
 		}
 	}
 
-	bool StartTestBuild(const std::filesystem::path& a_plugins, std::string& a_why)
+	bool StartBuild(const std::filesystem::path& a_plugins, std::string& a_why)
 	{
 		bool expected = false;
 		if (!running.compare_exchange_strong(expected, true)) {
@@ -356,7 +470,7 @@ namespace builder::pack::job
 			std::scoped_lock guard(lock);
 			snapshot = Snapshot{ State::Running, 0, 0, "Starting", {} };
 		}
-		std::thread(TestBuild, a_plugins).detach();
+		std::thread(Build, a_plugins).detach();
 		return true;
 	}
 
