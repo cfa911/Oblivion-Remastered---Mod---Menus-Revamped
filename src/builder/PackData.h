@@ -2,7 +2,7 @@
 // In-game Pack Builder (Phase 3a): what the build bakes, read from the same data files as the Python builder
 // (PackBuilder/menus/<menu>.json: tools/pack_builder/pipeline.py load_menus, load_literals, load_layout), and the colour
 // values the recipes read (custom_colours.pack_values: [Colours] and [Tab] over the Dark defaults, the baked [Skin] tints as
-// "Skin.<name>"). Pure: tests/ingame_pack_core_tests.cpp, tests/ingame_pack_parity_tests.py.
+// "Skin.<name>"), and the layout and import_swaps sections (Phase 3d). Pure: tests/ingame_pack_core_tests.cpp, tests/ingame_pack_parity_tests.py.
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include <algorithm>
 #include <array>
@@ -11,6 +11,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -45,6 +46,137 @@ namespace builder::pack
 		std::array<double, 4> stock{};
 	};
 
+	// the layout section (tools/menus/layout.json, pipeline.load_layout): stock-checked values and package rewrites (Phase 3d)
+	struct LayoutFloat
+	{
+		std::int64_t offset = 0;
+		bool         isDouble = false;   // "type": "double" (a Spacer size)
+		json::Value  stock;              // as written (int or float: the refusal message prints it like Python)
+		bool         hasSize = false;    // "size": the [Sizes] key; else "value", fixed
+		std::string  size;
+		double       value = 0;
+		std::string  widget;
+	};
+
+	struct LayoutByte   // a stored enum byte (a HorizontalBoxSlot's Size rule)
+	{
+		std::int64_t offset = 0;
+		json::Value  stock;
+		long long    value = 0;
+		std::string  widget;
+	};
+
+	struct LayoutRewrite   // one export gains stored values (KB techniques/unversioned-package-rewrite.md)
+	{
+		std::string                                     widget;
+		std::int64_t                                    exportStart = 0, exportSize = 0, headerPos = 0;
+		std::vector<int>                                stockFields, stockZeroes;
+		std::vector<long long>                          fieldSizes;
+		std::vector<std::pair<int, double>>             add;        // float values
+		std::vector<std::pair<int, std::vector<std::uint8_t>>> addBytes;   // whole cooked values (hex in the file)
+		std::vector<std::pair<long long, long long>>    shaMask;    // [start, length] zeroed for the stock check
+		std::string                                     stockSha256;
+	};
+
+	struct LayoutRow
+	{
+		std::string                asset;
+		std::vector<LayoutFloat>   floats;
+		std::vector<LayoutByte>    bytes;
+		std::vector<LayoutRewrite> rewrites;
+	};
+
+	struct ImportSwap   // import_swaps (RMI-096)
+	{
+		std::string fromPackage, fromObject, fromClass, toPackage, toObject, toClass;
+	};
+
+	namespace detail
+	{
+		inline std::string Text(const json::Value* a_v) { return a_v && a_v->type == json::Type::String ? a_v->s : std::string(); }
+		inline long long   Whole(const json::Value* a_v) { return a_v ? (a_v->type == json::Type::Int ? a_v->i : static_cast<long long>(a_v->Number())) : 0; }
+		inline std::vector<std::uint8_t> FromHex(std::string_view a_hex)   // bytes.fromhex (spaces allowed)
+		{
+			std::vector<std::uint8_t> out;
+			int                       high = -1;
+			for (const char c : a_hex) {
+				const int v = c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'f' ? c - 'a' + 10 : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1;
+				if (v < 0) continue;
+				if (high < 0) high = v;
+				else {
+					out.push_back(static_cast<std::uint8_t>(high * 16 + v));
+					high = -1;
+				}
+			}
+			return out;
+		}
+	}
+
+	inline LayoutRewrite LayoutRewriteFromJson(const json::Value& a_row)
+	{
+		LayoutRewrite r;
+		r.widget = detail::Text(a_row.Find("widget"));
+		r.exportStart = detail::Whole(a_row.Find("export_start"));
+		r.exportSize = detail::Whole(a_row.Find("export_size"));
+		r.headerPos = detail::Whole(a_row.Find("header_pos"));
+		auto ints = [&](const char* a_key, auto& a_out) {
+			if (const auto* v = a_row.Find(a_key); v && v->type == json::Type::Array)
+				for (const auto& e : v->items) a_out.push_back(static_cast<std::remove_reference_t<decltype(a_out[0])>>(detail::Whole(&e)));
+		};
+		ints("stock_fields", r.stockFields);
+		ints("stock_zeroes", r.stockZeroes);
+		ints("field_sizes", r.fieldSizes);
+		if (const auto* v = a_row.Find("add"); v && v->type == json::Type::Array)
+			for (const auto& e : v->items)
+				if (e.items.size() == 2) r.add.emplace_back(static_cast<int>(detail::Whole(&e.items[0])), e.items[1].Number());
+		if (const auto* v = a_row.Find("add_bytes"); v && v->type == json::Type::Array)
+			for (const auto& e : v->items)
+				if (e.items.size() == 2) r.addBytes.emplace_back(static_cast<int>(detail::Whole(&e.items[0])), detail::FromHex(e.items[1].s));
+		if (const auto* v = a_row.Find("sha_mask"); v && v->type == json::Type::Array)
+			for (const auto& e : v->items)
+				if (e.items.size() == 2) r.shaMask.emplace_back(detail::Whole(&e.items[0]), detail::Whole(&e.items[1]));
+		r.stockSha256 = detail::Text(a_row.Find("stock_export_sha256"));
+		return r;
+	}
+
+	inline LayoutRow LayoutRowFromJson(const json::Value& a_row)
+	{
+		LayoutRow row;
+		row.asset = detail::Text(a_row.Find("asset"));
+		if (const auto* floats = a_row.Find("floats"); floats && floats->type == json::Type::Array)
+			for (const auto& e : floats->items) {
+				LayoutFloat f;
+				f.offset = detail::Whole(e.Find("offset"));
+				f.isDouble = detail::Text(e.Find("type")) == "double";
+				if (const auto* s = e.Find("stock")) f.stock = *s;
+				if (const auto* s = e.Find("size")) {
+					f.hasSize = true;
+					f.size = detail::Text(s);
+				} else if (const auto* v = e.Find("value"))
+					f.value = v->Number();
+				f.widget = detail::Text(e.Find("widget"));
+				row.floats.push_back(std::move(f));
+			}
+		if (const auto* bytes = a_row.Find("bytes"); bytes && bytes->type == json::Type::Array)
+			for (const auto& e : bytes->items) {
+				LayoutByte b;
+				b.offset = detail::Whole(e.Find("offset"));
+				if (const auto* s = e.Find("stock")) b.stock = *s;
+				b.value = detail::Whole(e.Find("value"));
+				b.widget = detail::Text(e.Find("widget"));
+				row.bytes.push_back(std::move(b));
+			}
+		if (const auto* rewrites = a_row.Find("rewrites"); rewrites && rewrites->type == json::Type::Array)
+			for (const auto& e : rewrites->items) row.rewrites.push_back(LayoutRewriteFromJson(e));
+		return row;
+	}
+
+	inline ImportSwap ImportSwapFromJson(const json::Value& a_row)
+	{
+		return { detail::Text(a_row.Find("from_package")), detail::Text(a_row.Find("from_object")), detail::Text(a_row.Find("from_class")),
+			detail::Text(a_row.Find("to_package")), detail::Text(a_row.Find("to_object")), detail::Text(a_row.Find("to_class")) };
+	}
+
 	struct PackData
 	{
 		std::vector<std::pair<std::string, std::string>>          textures;   // stock asset (path under Content) -> recipe
@@ -52,8 +184,10 @@ namespace builder::pack
 		std::map<std::string, std::map<std::string, RichRow>>     richRows;
 		std::map<std::string, std::vector<BlueprintColour>>       blueprints;   // blueprint_colours and material_colours
 		std::map<std::string, std::vector<Literal>>               literals;     // blueprint_literals
-		std::set<std::string>                                     importSwaps;  // packages with import_swaps (Phase 3d)
-		std::vector<std::string>                                  layoutPackages;   // the layout section's packages (Phase 3d)
+		std::set<std::string>                                     importSwaps;  // packages with import_swaps
+		std::map<std::string, std::vector<ImportSwap>>            swaps;        // package -> its import swaps (the last menu's list)
+		std::vector<std::string>                                  layoutPackages;   // the layout section's packages, in file order
+		std::map<std::string, LayoutRow>                          layout;       // package -> its layout row
 	};
 
 	inline constexpr const char* kPanelMask = "T_Enchantment_Masks";   // pipeline.PANEL_MASKS (altar_panel*)
@@ -114,12 +248,14 @@ namespace builder::pack
 				}
 			}
 			if (const auto* layout = m.doc.Find("layout"); layout && layout->type == json::Type::Object) {
-				for (const auto& package : layout->keys) {
-					if (std::find(a_out.layoutPackages.begin(), a_out.layoutPackages.end(), package) != a_out.layoutPackages.end()) {
+				for (size_t k = 0; k < layout->keys.size(); ++k) {
+					const auto& package = layout->keys[k];
+					if (a_out.layout.count(package)) {
 						a_error = "layout package " + package + " is listed twice";
 						return false;
 					}
 					a_out.layoutPackages.push_back(package);
+					a_out.layout[package] = LayoutRowFromJson(layout->items[k]);
 				}
 			}
 		}
@@ -163,7 +299,12 @@ namespace builder::pack
 				}
 			}
 			if (const auto* swaps = m.doc.Find("import_swaps"); swaps && swaps->type == json::Type::Object)
-				for (const auto& package : swaps->keys) a_out.importSwaps.insert(package);
+				for (size_t k = 0; k < swaps->keys.size(); ++k) {   // IMPORT_SWAPS.update: a later menu replaces the list
+					std::vector<ImportSwap> rows;
+					for (const auto& row : swaps->items[k].items) rows.push_back(ImportSwapFromJson(row));
+					a_out.importSwaps.insert(swaps->keys[k]);
+					a_out.swaps[swaps->keys[k]] = std::move(rows);
+				}
 			for (const char* section : { "blueprint_colours", "material_colours" }) {
 				const auto* colours = m.doc.Find(section);
 				if (!colours || colours->type != json::Type::Object) continue;
