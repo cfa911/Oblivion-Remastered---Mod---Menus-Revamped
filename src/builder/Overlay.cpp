@@ -14,6 +14,7 @@
 #include "builder/InputGate.h"
 #include "builder/OverlayRules.h"
 #include "builder/Shell.h"
+#include "core/Config.h"
 
 #include "engine/Menus.h"
 #include "engine/Ui.h"
@@ -266,6 +267,7 @@ namespace builder
 				io.IniFilename = nullptr;
 				io.LogFilename = nullptr;
 				io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+				shell::SetPluginFolder(mrconfig::PluginFolder());
 				shell::LoadFont();
 				g_context = true;
 			}
@@ -301,8 +303,9 @@ namespace builder
 			ImGui_ImplDX12_NewFrame();
 			ImGui_ImplWin32_NewFrame();
 			ImGui::NewFrame();
+			const bool popup = ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId);   // a colour picker or a question: Escape closes it first
 			bool keep = shell::Draw();
-			if (keep && ImGui::IsKeyPressed(ImGuiKey_Escape, false) && !io.WantTextInput) keep = false;   // Escape, unless typing
+			if (keep && ImGui::IsKeyPressed(ImGuiKey_Escape, false) && !io.WantTextInput && !popup) keep = false;   // Escape, unless typing
 			if (!keep) RequestOpen(false, "Close / Escape");
 			ImGui::Render();
 

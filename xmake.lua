@@ -34,14 +34,13 @@ target("MenusRevamped")
         author = "cfa911",
         description = "Unified menu search, category pickers and controller keyboard"
     })
-    add_syslinks("user32", "imm32", "d3d12", "dxgi")
+    add_syslinks("user32", "imm32", "d3d12", "dxgi", "shell32", "ole32")   -- shell32/ole32: the builder's Open log
     add_packages("imgui", "minhook")
     -- Feature folders under src/; every include is a path from src/ ("engine/Ui.h").
     add_files("src/core/*.cpp", "src/engine/*.cpp", "src/search/*.cpp", "src/keyboard/*.cpp", "src/sorting/*.cpp", "src/hover/*.cpp", "src/alchemy/*.cpp", "src/enchanting/*.cpp", "src/builder/*.cpp")
     add_options("devtools")
     if has_config("devtools") then
         add_files("src/devtools/*.cpp")
-        add_syslinks("shell32", "ole32")
     end
     add_headerfiles("src/**.h")
     add_includedirs("src")
