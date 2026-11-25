@@ -15,6 +15,7 @@
 #include <imgui.h>
 #include <backends/imgui_impl_dx12.h>
 
+#include "builder/PackJob.h"
 #include "builder/Shell.h"
 
 namespace
@@ -127,6 +128,11 @@ int main(int argc, char** argv)
 	io.DeltaTime = 1.0f / 60.0f;
 	if (argc >= 6) builder::shell::SetPluginFolder(argv[5]);   // folder holding MenusRevamped/CustomColours.ini
 	if (argc >= 8) builder::shell::SelectForPreview(std::atoi(argv[6]), std::atoi(argv[7]) != 0);
+	if (argc >= 9) {   // DONE/TOTAL: a running build (Phase 3 progress line)
+		int done = 0, total = 0;
+		std::sscanf(argv[8], "%d/%d", &done, &total);
+		builder::pack::job::PreviewRunning(done, total, "Baking T_QuestPage_PaperBackground");
+	}
 	builder::shell::LoadFont();
 	builder::shell::ApplyStyle(static_cast<float>(height));
 	ImGui_ImplDX12_InitInfo info;

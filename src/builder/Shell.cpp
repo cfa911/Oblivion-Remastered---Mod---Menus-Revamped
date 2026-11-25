@@ -7,6 +7,7 @@
 #include "builder/Shell.h"
 
 #include "builder/ColourModel.h"
+#include "builder/PackJob.h"
 
 #include <imgui.h>
 
@@ -43,6 +44,7 @@ namespace builder::shell
 			std::string                saved;       // the file text as last read or written (unsaved changes = Render() differs)
 			bool                       dirty = false;
 			std::string                status = kSaveNote;
+			bool                       buildReported = true;   // the last test build's result is in the status line
 			bool                       statusError = false;
 			bool                       advanced = false;
 			int                        previewTab = -1;
@@ -573,9 +575,21 @@ namespace builder::shell
 		}
 		ImGui::EndChild();
 		ImGui::Separator();
-		ImGui::PushStyleColor(ImGuiCol_Text, s.statusError ? kError : kInkDim);
-		ImGui::TextWrapped("%s", s.status.c_str());
-		ImGui::PopStyleColor();
+		const auto build = pack::job::Get();   // Phase 3a developer test build (the Build button replaces it in Phase 3e)
+		if (build.state == pack::job::State::Running) {
+			s.buildReported = false;
+			const float fraction = build.total > 0 ? static_cast<float>(build.done) / static_cast<float>(build.total) : 0.0f;
+			const std::string line = build.total > 0 ? build.phase + " (" + std::to_string(build.done) + " of " + std::to_string(build.total) + ")" : build.phase;
+			ImGui::ProgressBar(fraction, ImVec2(-1, 0), line.c_str());
+		} else {
+			if (!s.buildReported && build.state != pack::job::State::Idle) {
+				s.buildReported = true;
+				SetStatus(build.message, build.state == pack::job::State::Failed);
+			}
+			ImGui::PushStyleColor(ImGuiCol_Text, s.statusError ? kError : kInkDim);
+			ImGui::TextWrapped("%s", s.status.c_str());
+			ImGui::PopStyleColor();
+		}
 
 		ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeight() - style.WindowPadding.y);
 		if (ImGui::Button("Save")) Save();
@@ -589,6 +603,15 @@ namespace builder::shell
 		if (ImGui::Button("Vanilla colours")) ImGui::OpenPopup("Vanilla colours");
 		ImGui::SameLine();
 		if (ImGui::Button("Open log")) OpenLog();
+		ImGui::SameLine();
+		if (build.state == pack::job::State::Running) {
+			if (ImGui::Button("Cancel test build")) pack::job::Cancel();
+		} else if (ImGui::Button("Test build")) {
+			std::string why;
+			if (!pack::job::StartTestBuild(s.plugins, why)) SetStatus(why, true);
+		}
+		if (ImGui::IsItemHovered())
+			ImGui::SetTooltip("Developer test (Phase 3a): builds the recipes ported so far into CustomPack\\TestBuild. Never installed.");
 		if (RightButton("Close")) open = false;
 
 		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
