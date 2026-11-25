@@ -25,7 +25,7 @@ def build(msvc: str, imgui: pathlib.Path, work: pathlib.Path) -> pathlib.Path:
     sources = f'"{HERE / "preview.cpp"}" "{REPO / "src/builder/Shell.cpp"}"'
     cmd = (f'call "{msvc}" >nul && cl /nologo /std:c++latest /EHsc /O2 /MD /utf-8 /DNOMINMAX /FIWindows.h '
            f'/I"{REPO / "src"}" /I"{imgui / "include"}" {sources} /Fe"{exe}" /Fo"{work}\\\\" '
-           f'/link "{imgui / "lib/imgui.lib"}" d3d12.lib dxgi.lib user32.lib imm32.lib')
+           f'/link "{imgui / "lib/imgui.lib"}" d3d12.lib dxgi.lib user32.lib imm32.lib shell32.lib ole32.lib')
     script = work / "build.bat"
     script.write_text("@echo off\n" + cmd + "\n", encoding="utf-8")
     result = subprocess.run(["cmd", "/d", "/c", str(script)], capture_output=True, text=True)
@@ -40,6 +40,9 @@ def main() -> None:
     parser.add_argument("--imgui", required=True, type=pathlib.Path)
     parser.add_argument("--backdrop", required=True, type=pathlib.Path)
     parser.add_argument("--out", required=True, type=pathlib.Path)
+    parser.add_argument("--plugins", type=pathlib.Path, help="folder holding MenusRevamped/CustomColours.ini (Phase 2 values)")
+    parser.add_argument("--tab", type=int, default=0, help="0 Colours, 1 Text, 2 Rows, 3 Runtime")
+    parser.add_argument("--advanced", action="store_true")
     parser.add_argument("--label", default="PROPOSED: Pack Builder window (Phase 1 shell)")
     args = parser.parse_args()
     backdrop = Image.open(args.backdrop).convert("RGBA")
@@ -48,7 +51,8 @@ def main() -> None:
         work = pathlib.Path(tmp)
         exe = build(args.msvc, args.imgui, work)
         (work / "in.rgba").write_bytes(backdrop.tobytes())
-        subprocess.run([str(exe), str(width), str(height), str(work / "in.rgba"), str(work / "out.rgba")], check=True)
+        subprocess.run([str(exe), str(width), str(height), str(work / "in.rgba"), str(work / "out.rgba")]
+                       + ([str(args.plugins), str(args.tab), str(int(args.advanced))] if args.plugins else []), check=True)
         shot = Image.frombytes("RGBA", (width, height), (work / "out.rgba").read_bytes()).convert("RGB")
     draw = ImageDraw.Draw(shot)
     try:

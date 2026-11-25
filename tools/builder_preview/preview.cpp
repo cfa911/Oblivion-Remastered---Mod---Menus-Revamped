@@ -125,6 +125,8 @@ int main(int argc, char** argv)
 	io.IniFilename = nullptr;
 	io.DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
 	io.DeltaTime = 1.0f / 60.0f;
+	if (argc >= 6) builder::shell::SetPluginFolder(argv[5]);   // folder holding MenusRevamped/CustomColours.ini
+	if (argc >= 8) builder::shell::SelectForPreview(std::atoi(argv[6]), std::atoi(argv[7]) != 0);
 	builder::shell::LoadFont();
 	builder::shell::ApplyStyle(static_cast<float>(height));
 	ImGui_ImplDX12_InitInfo info;
