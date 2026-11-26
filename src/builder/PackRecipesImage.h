@@ -931,7 +931,7 @@ namespace builder::pack
 				for (int a = 0; a < 256; ++a) lut[static_cast<size_t>(a)] = a > 128 ? 255 : 0;
 				Paste(inside, Point(mask, lut), darktab::kCenters[i] + kTabIconShift - kTabIcon / 2, kTabIconTop);
 			}
-			const Image near = MaxFilter(inside, 2 * 3 + 1);
+			const Image nearby = MaxFilter(inside, 2 * 3 + 1);
 			const auto& dark = a_v.at("tabPaperDark").v;
 			const auto& light = a_v.at("tabPaperLight").v;
 			const auto& glyph = a_v.at("tabGlyph").v;
@@ -947,7 +947,7 @@ namespace builder::pack
 					bool   inGlyphBox = false;
 					for (int c : darktab::kCenters)
 						if (-42 <= x - c && x - c <= 36) inGlyphBox = true;
-					if (12 <= y && y <= 88 && inGlyphBox) start = inside.px[static_cast<size_t>(y) * width + x] ? 0.22 : (near.px[static_cast<size_t>(y) * width + x] ? 0.24 : -1);
+					if (12 <= y && y <= 88 && inGlyphBox) start = inside.px[static_cast<size_t>(y) * width + x] ? 0.22 : (nearby.px[static_cast<size_t>(y) * width + x] ? 0.24 : -1);
 					bool inArrow = false;
 					for (int c : darktab::kArrows)
 						if (std::abs(x - c) <= 16) inArrow = true;

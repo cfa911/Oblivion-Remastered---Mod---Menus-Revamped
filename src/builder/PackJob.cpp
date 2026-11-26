@@ -7,6 +7,7 @@
 
 #include "builder/PackBuild.h"
 #include "builder/PackInstall.h"
+#include "builder/PackPaths.h"
 
 #include <Windows.h>
 
@@ -14,6 +15,7 @@
 #include <atomic>
 #include <chrono>
 #include <fstream>
+#include <map>
 #include <functional>
 #include <mutex>
 #include <sstream>
@@ -192,12 +194,10 @@ namespace builder::pack::job
 
 		// our own file calls on the work folder use the \\?\ form: retoc's extraction paths pass 260 characters under the game's
 		// plugin folder (Phase 3d finding), which the Python builder handled and plain Win32 paths do not
-		fs::path Long(const fs::path& a_path)
+		fs::path Long(const fs::path& a_path)   // RMI-114: backslashes only (PackPaths.h)
 		{
 			std::error_code ec;
-			auto            full = fs::absolute(a_path, ec).make_preferred().wstring();
-			if (full.starts_with(L"\\\\?\\")) return full;
-			return fs::path(L"\\\\?\\" + full);
+			return LongPath(fs::absolute(a_path, ec));
 		}
 
 		std::string ReadIni(const fs::path& a_path)
@@ -267,7 +267,7 @@ namespace builder::pack::job
 
 		void WriteStage(const fs::path& a_stage, const std::string& a_asset, const PackageFiles& a_files)
 		{
-			const auto to = (Long(a_stage) / L"OblivionRemastered" / L"Content" / Wide(a_asset)).wstring();
+			const auto to = LongAssetPath(Long(a_stage / L"OblivionRemastered" / L"Content"), a_asset).wstring();   // RMI-114
 			WriteBytes(to + L".uasset", a_files.uasset.data(), a_files.uasset.size());
 			WriteBytes(to + L".uexp", a_files.uexp.data(), a_files.uexp.size());
 			if (a_files.hasUbulk) WriteBytes(to + L".ubulk", a_files.ubulk.data(), a_files.ubulk.size());
@@ -346,13 +346,41 @@ namespace builder::pack::job
 				Retoc(retoc, args, output, "to-legacy");
 				CheckCancel();
 
-				const auto      content = Long(legacy) / L"OblivionRemastered" / L"Content";
+				const auto      content = Long(legacy / L"OblivionRemastered" / L"Content");
 				const ReadStock read = [&](const std::string& a_asset, PackageFiles& a_out) {
-					const auto base = (content / Wide(a_asset)).wstring();
+					const auto base = LongAssetPath(content, a_asset).wstring();   // RMI-114: "Art/UI/..." as backslashes
 					if (!ReadBytes(base + L".uasset", a_out.uasset) || !ReadBytes(base + L".uexp", a_out.uexp)) return false;
 					a_out.hasUbulk = ReadBytes(base + L".ubulk", a_out.ubulk);
 					return true;
 				};
+				// the recipes that read another stock texture, the menus folder's PNGs (3c): pipeline.stock_dds takes the first
+				// extracted .uasset of that name in sorted path order (Windows paths compare without case)
+				std::map<std::string, fs::path> byName;
+				{
+					std::vector<std::pair<std::string, fs::path>> all;
+					for (const auto& e : fs::recursive_directory_iterator(Long(legacy), ec))
+						if (e.is_regular_file() && e.path().extension() == L".uasset") all.emplace_back(Lower(e.path().generic_string()), e.path());
+					std::sort(all.begin(), all.end());
+					for (const auto& [key, path] : all) byName.emplace(Lower(path.stem().string()), path);
+				}
+				BakeInputs inputs;
+				inputs.stock = [&](const std::string& a_name, Dds& a_out) {
+					const auto it = byName.find(Lower(a_name));
+					if (it == byName.end()) return false;
+					PackageFiles f;
+					auto         base = it->second;
+					base.replace_extension();
+					if (!ReadBytes(base.wstring() + L".uasset", f.uasset) || !ReadBytes(base.wstring() + L".uexp", f.uexp)) return false;
+					f.hasUbulk = ReadBytes(base.wstring() + L".ubulk", f.ubulk);
+					TexturePackage tex;
+					std::string    why;
+					if (!ParseTexture(f.uasset, f.uexp, f.hasUbulk ? &f.ubulk : nullptr, tex, why)) return false;
+					a_out = { tex.format, tex.width, tex.height, static_cast<int>(tex.mips.size()), GatherMips(tex, f.uexp, f.hasUbulk ? &f.ubulk : nullptr) };
+					return true;
+				};
+				inputs.menusFile = [&](const std::string& a_file, Bytes& a_out) { return ReadBytes(Long(menus / Wide(a_file)), a_out); };
+				// no owner art in shipped builds: the png recipe (development only, no data row) is skipped and listed
+
 				BuildRecord record;
 				int         done = 0;
 				for (const auto& [asset, recipe] : data.textures) {
@@ -363,7 +391,7 @@ namespace builder::pack::job
 					std::string  reason;
 					BakeResult   r = BakeResult::Skipped;
 					if (!read(asset, stock)) reason = "not extracted from the game (game update or wrong folder?)";
-					else r = BakeAsset(asset, recipe, stock, values, data, result, reason, layout ? &sizes : nullptr);
+					else r = BakeAsset(asset, recipe, stock, values, data, result, reason, layout ? &sizes : nullptr, inputs);
 					if (r == BakeResult::Later) throw Stop{ "recipe " + recipe + " (" + AssetName(asset) + ") is not part of this build yet" };
 					if (r == BakeResult::Baked) {
 						WriteStage(stage, asset, result.files);
@@ -412,6 +440,7 @@ namespace builder::pack::job
 				CheckCancel();
 				installing = true;   // from here a cancel waits: the packs go in place together
 				SetPhase("Putting the packs in place", done, -1);
+				fs::create_directories(Long(target), ec);   // install.install: target.mkdir(parents=True) (a first build has no CustomPack)
 				const auto ops = DiskOps();
 				if (!InstallPack(out, target, colourPack, ops, error)) throw Stop{ error };
 				if (layoutBuilt && !InstallPack(out, target, layoutPack, ops, error)) {
@@ -447,7 +476,7 @@ namespace builder::pack::job
 				fs::remove_all(Long(work), ec);
 				note("FAILED: " + stop.message);
 				writeLog();
-				Finish(State::Failed, "Build failed: " + stop.message + (installing ? "" : " The installed packs were not changed."));
+				Finish(State::Failed, "Build failed: " + stop.message + (installing ? "" : ". The installed packs were not changed."));
 			} catch (const std::exception& e) {
 				fs::remove_all(Long(work), ec);
 				note(std::string("FAILED: ") + e.what());
