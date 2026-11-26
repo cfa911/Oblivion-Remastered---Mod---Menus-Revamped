@@ -321,9 +321,9 @@ int main()
 			"recipe keys in pipeline.recipe() order");
 		Check(keys("skin_flat:ornament:235") == std::vector<std::string>{ "Skin.ornament" } && keys("clear").empty() && keys("flat_white").empty(),
 			"skin_flat, clear, flat_white keys");
-		Check(Recipe("parchment", data).kind == RecipeKind::Later && Recipe("charcoal:inventory", data).kind == RecipeKind::Later &&
-				Recipe("line_tint:1.6", data).kind == RecipeKind::Later,
-			"image recipes wait for their phase");
+		Check(Recipe("parchment", data).kind == RecipeKind::Texture && Recipe("charcoal:inventory", data).kind == RecipeKind::Texture &&
+				Recipe("line_tint:1.6", data).kind == RecipeKind::Texture,
+			"image recipes are texture recipes (Phase 3c ported them)");
 		Check(Recipe("nonsense", data).kind == RecipeKind::Unknown, "an unknown recipe");
 		Check(FormatSupported("flat", PixelFormat::DXT5) && FormatSupported("flat", PixelFormat::B8G8R8A8) && !FormatSupported("flat", PixelFormat::DXT1),
 			"flat: BC3 or 32-bit");
@@ -469,7 +469,7 @@ int main()
 		Check(BakeAsset("Art/X/T_B", "flat:rowIcon", { bc1.uasset, bc1.uexp, {}, false }, v, data, baked, reason) == BakeResult::Skipped &&
 				reason == "the stock texture is not BC3 (game update?)",
 			"an unsupported format is skipped");
-		Check(BakeAsset("Art/X/T_P", "parchment", stock, v, data, baked, reason) == BakeResult::Later, "a later recipe is not baked yet");
+		Check(BakeAsset("Art/X/T_P", "parchment", stock, v, data, baked, reason) != BakeResult::Later, "no recipe answers later (Phase 3c)");
 		Check(BakeAsset("Art/X/T_P", "nonsense", stock, v, data, baked, reason) == BakeResult::Skipped && reason == "KeyError: 'nonsense'",
 			"an unknown recipe is skipped like the KeyError");
 		Check(BakeAsset("Art/X/T_B", "flat:missing", stock, v, data, baked, reason) == BakeResult::Skipped && reason == "KeyError: 'missing'",

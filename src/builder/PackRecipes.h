@@ -425,22 +425,47 @@ namespace builder::pack
 			info.keys = { std::string(Partition(arg).second) };
 			return info;
 		}
-		static constexpr std::string_view later[] = { "paper_scale", "popup_panel", "popup_paper", "mask_peak", "smooth_grain", "page_grain",
-			"paper_invert", "page_invert", "details_invert", "band_lines", "details_smooth", "gray_smooth", "line_tint", "laurel_tint",
-			"charcoal_paper", "quest_icon", "skill_card", "skill_icon", "charcoal", "flat_alpha", "tab", "magic_tab", "frame_metal",
-			"altar_panel_invert", "altar_panel" };
-		static constexpr std::string_view laterNames[] = { "ink_gold", "white_backing", "skill_ring", "parchment:enchanting", "details_page",
-			"parchment", "alchemy", "tab_strip", "tab_paper", "png", "enchanted_dot", "stolen_mark", "gray", "preview_frame" };
-		for (auto k : later)
-			if (kind == k) {
-				info.kind = RecipeKind::Later;
+		// Phase 3c: the image recipes (PackRecipesImage.h), keys in pipeline.recipe() order
+		const std::string a(arg);
+		if (kind == "paper_scale" || kind == "popup_panel") return texture({ "parchmentLight" });
+		if (kind == "popup_paper") {
+			if (!arg.empty() && recipes::ParseFloat(arg) == 0) return texture({ "parchmentDark", "parchmentLight" });
+			return texture({ "parchmentDark", "parchmentLight", "pattern" });
+		}
+		if (kind == "mask_peak" || kind == "gray_smooth" || kind == "charcoal" || kind == "skill_card") return texture({});
+		if (kind == "smooth_grain" || kind == "paper_invert") return texture({ "parchmentDark", "parchmentLight", "panel" });
+		if (kind == "page_grain" || kind == "page_invert") return texture({ "frame", "panel", "parchmentDark", "parchmentLight" });
+		if (kind == "details_invert" || kind == "details_smooth") return texture({ "detailsPage" });
+		if (kind == "band_lines" || kind == "line_tint") return texture({ "pattern" });
+		if (kind == "laurel_tint") {
+			const auto key = Partition(arg).first;
+			return texture({ key.empty() ? std::string("pattern") : std::string(key) });
+		}
+		if (kind == "charcoal_paper") {
+			if (arg != "enchanting" && arg != "quests") {
+				info.error = "no page texture for charcoal_paper preset '" + a + "'";
 				return info;
 			}
-		for (auto n : laterNames)
-			if (a_name == n) {
-				info.kind = RecipeKind::Later;
-				return info;
-			}
+			return texture({ "panel", "parchmentDark", "parchmentLight" });
+		}
+		if (kind == "quest_icon") return texture({ "menuTitle", "effectIcon" });
+		if (a_name == "ink_gold") return texture({ "effectIcon", "frame" });
+		if (a_name == "white_backing" || a_name == "skill_ring") return texture({});
+		if (kind == "skill_icon") return texture({ "frame" });
+		if (kind == "flat_alpha") return texture({ std::string(Partition(arg).first) });
+		if (kind == "tab" || kind == "magic_tab") return texture({ "selected", "unselected", "gap", "outline", "glyph", "glyphDim" });
+		if (kind == "frame_metal") return texture({ a });
+		if (kind == "altar_panel_invert") return texture({ std::string(Partition(arg).first), "panel", "parchmentDark", "parchmentLight" });
+		if (kind == "altar_panel") return texture({ a, "altarPaper" });
+		if (a_name == "parchment:enchanting" || a_name == "parchment") return texture({ "parchmentDark", "parchmentLight" });
+		if (a_name == "details_page") return texture({ "detailsPage" });
+		if (a_name == "alchemy") return texture({ "alchemyMetal", "alchemyStone" });
+		if (a_name == "tab_strip") return texture({ "enchantingTabIcon", "enchantingTabPaper" });
+		if (a_name == "tab_paper") return texture({ "tabPaperDark", "tabPaperLight", "tabGlyph" });
+		if (a_name == "png" || a_name == "gray") return texture({});
+		if (a_name == "enchanted_dot") return texture({ "enchantedDot" });
+		if (a_name == "stolen_mark") return texture({ "stolenMark" });
+		if (a_name == "preview_frame") return texture({ "previewFrameLight", "previewFrameDark" });
 		info.error = "KeyError: '" + std::string(a_name) + "'";
 		return info;
 	}
@@ -464,6 +489,7 @@ namespace builder::pack
 	inline bool BakeTexture(std::string_view a_recipe, const Dds& a_stock, const Values& a_values, Bytes& a_out, std::string& a_skip)
 	{
 		using namespace recipes;
+		using recipes::Colour;   // not PackImage.h's pixel Colour
 		const auto [kind, arg] = Partition(a_recipe);
 		auto value = [&](const std::string& k) -> const model::Value* {
 			const auto it = a_values.find(k);

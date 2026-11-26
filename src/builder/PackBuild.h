@@ -11,7 +11,7 @@
 #include <functional>
 
 #include "builder/PackLayout.h"
-#include "builder/PackRecipes.h"
+#include "builder/PackRecipesImage.h"
 #include "builder/PackSha256.h"
 
 namespace builder::pack
@@ -19,6 +19,14 @@ namespace builder::pack
 	inline constexpr const char* kGameBuild = "1.512.105.0";   // pipeline.GAME_BUILD
 	inline constexpr const char* kBuilderVersion = "0.5.0";    // pack_builder.VERSION
 	inline constexpr const char* kLaurelStockSha256 = "62be812455818cd56e241058bd2093659a3e5d94e3eab616f35998f485cb89ef";
+	// the alchemy recipe's stock textures (.uexp SHA-256, game 1.512.105.0; pipeline.ALCHEMY_STOCK_SHA256)
+	inline const char* AlchemyStockSha256(std::string_view a_name)
+	{
+		if (a_name == "T_UI_Alchemy_Background") return "10989a5b51e32941b2d8940adee7dc6251502535a2b5191c8486f936c38891a9";
+		if (a_name == "T_Alchemy_IngredientsSlots_BG") return "02e3d4bb82c118d5fa01cf69b4bdd1a3c876d48c02ca32b2ce46f894b069fa99";
+		if (a_name == "T_Alchemy_mortar_pestle") return "9643a8a439f01440da156b79b40ac4d77a909365dd6b11cbd55d922ffdbcb659";
+		return "";
+	}
 
 	struct PackageFiles
 	{
@@ -48,7 +56,7 @@ namespace builder::pack
 	// pipeline.bake: a_sizes = the [Sizes] values (nullptr: colours only); a colour-patched package in the layout section also
 	// gets its sizes (a refusal keeps the colours: layoutSkipped), an import_swaps package its .uasset rewrite
 	inline BakeResult BakeAsset(const std::string& a_asset, const std::string& a_recipe, const PackageFiles& a_stock, const Values& a_values,
-		const PackData& a_data, BakedAsset& a_out, std::string& a_reason, const Sizes* a_sizes = nullptr)
+		const PackData& a_data, BakedAsset& a_out, std::string& a_reason, const Sizes* a_sizes = nullptr, const BakeInputs& a_inputs = {})
 	{
 		a_out = {};
 		const auto name = AssetName(a_asset);
@@ -70,6 +78,17 @@ namespace builder::pack
 		if (kind == "laurels" && Sha256Hex(a_stock.uexp) != kLaurelStockSha256) {
 			a_reason = "laurel stock asset differs from the verified game build";
 			return BakeResult::Skipped;
+		}
+		if (kind == "alchemy" && Sha256Hex(a_stock.uexp) != AlchemyStockSha256(name)) {
+			a_reason = name + ": stock asset differs from the verified game build (game update?)";
+			return BakeResult::Skipped;
+		}
+		if (kind == "png") {
+			Bytes art;
+			if (!a_inputs.art || !a_inputs.art(name, art)) {
+				a_reason = "owner art missing (" + name + ".png in " + a_inputs.artFolder + "); the game's stock texture shows";
+				return BakeResult::Skipped;
+			}
 		}
 		PackageFiles files;
 		const bool   withLayout = a_sizes && a_data.layout.count(name);
@@ -94,7 +113,7 @@ namespace builder::pack
 			}
 			Dds stock{ tex.format, tex.width, tex.height, static_cast<int>(tex.mips.size()), GatherMips(tex, a_stock.uexp, a_stock.hasUbulk ? &a_stock.ubulk : nullptr) };
 			Bytes baked;
-			if (!BakeTexture(a_recipe, stock, a_values, baked, a_reason)) return BakeResult::Skipped;
+			if (!BakeTextureAll(a_recipe, name, stock, a_values, a_data, a_inputs, baked, a_reason)) return BakeResult::Skipped;
 			files = a_stock;
 			if (!InjectMips(tex, baked, files.uasset, files.uexp, files.hasUbulk ? &files.ubulk : nullptr, a_reason)) return BakeResult::Skipped;
 		}

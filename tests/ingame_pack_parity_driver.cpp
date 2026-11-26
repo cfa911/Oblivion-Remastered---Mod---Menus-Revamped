@@ -2,6 +2,10 @@
 // (src/builder/PackBuild.h) from a retoc to-legacy extraction, so the test can compare each staged file with the Python
 // builder's byte for byte.
 //   driver <menus folder> <legacy folder (holds OblivionRemastered/Content)> <CustomColours.ini or -> <out folder> [--sizes]
+//          [--extra <file>] [--art <folder>]
+// Phase 3c: other stock textures by name (pipeline's stock_dds: the first extracted .uasset of that name), the menus data
+// files and the owner art folder reach the recipes through BakeInputs. --extra: a JSON list of [asset, recipe] pairs (recipes
+// no data row uses) baked into <out>/extra-stage/<row index> and reported under "extra".
 // Writes <out>/stage/OblivionRemastered/Content/<asset>.uasset/.uexp[/.ubulk] and <out>/report.json:
 //   {"values": {key: value}, "assets": [{"asset", "recipe", "result": baked|skipped|later, "reason", "entry"}]}
 // --sizes (Phase 3d, tests/ingame_pack_layout_parity_tests.py): the [Sizes] of the file (- = today's sizes) are baked too, the
@@ -13,6 +17,9 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <map>
+#include <algorithm>
+#include <cctype>
 #include <sstream>
 #include "../src/builder/PackBuild.h"
 
@@ -44,12 +51,56 @@ static std::string ReadText(const fs::path& p)
 
 int main(int argc, char** argv)
 {
-	const bool withSizes = argc == 6 && std::string(argv[5]) == "--sizes";
-	if (argc != 5 && !withSizes) {
-		std::cerr << "usage: driver <menus> <legacy> <ini|-> <out> [--sizes]\n";
+	bool     withSizes = false;
+	fs::path extraFile, artFolder;
+	for (int i = 5; i < argc; ++i) {
+		const std::string a = argv[i];
+		if (a == "--sizes") withSizes = true;
+		else if (a == "--extra" && i + 1 < argc) extraFile = argv[++i];
+		else if (a == "--art" && i + 1 < argc) artFolder = argv[++i];
+		else argc = 0;
+	}
+	if (argc < 5) {
+		std::cerr << "usage: driver <menus> <legacy> <ini|-> <out> [--sizes] [--extra <file>] [--art <folder>]\n";
 		return 2;
 	}
 	const fs::path menus = argv[1], legacy = fs::path(argv[2]) / "OblivionRemastered/Content", out = argv[4];
+	std::map<std::string, fs::path> byName;   // lower-case stem -> the first .uasset in sorted path order
+	{
+		std::vector<std::pair<std::string, fs::path>> all;
+		for (const auto& e : fs::recursive_directory_iterator(argv[2]))
+			if (e.is_regular_file() && e.path().extension() == ".uasset") {
+				std::string key = e.path().generic_string();
+				for (auto& ch : key) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+				all.emplace_back(key, e.path());
+			}
+		std::sort(all.begin(), all.end());
+		for (const auto& [key, path] : all) {
+			std::string stem = path.stem().string();
+			for (auto& ch : stem) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+			byName.emplace(stem, path);
+		}
+	}
+	BakeInputs inputs;
+	inputs.stock = [&](const std::string& a_name, Dds& a_out) {
+		std::string key = a_name;
+		for (auto& ch : key) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+		const auto it = byName.find(key);
+		if (it == byName.end()) return false;
+		PackageFiles f;
+		auto         base = it->second;
+		base.replace_extension();
+		if (!ReadBytes(fs::path(base.string() + ".uasset"), f.uasset) || !ReadBytes(fs::path(base.string() + ".uexp"), f.uexp)) return false;
+		f.hasUbulk = ReadBytes(fs::path(base.string() + ".ubulk"), f.ubulk);
+		TexturePackage tex;
+		std::string    why;
+		if (!ParseTexture(f.uasset, f.uexp, f.hasUbulk ? &f.ubulk : nullptr, tex, why)) return false;
+		a_out = { tex.format, tex.width, tex.height, static_cast<int>(tex.mips.size()), GatherMips(tex, f.uexp, f.hasUbulk ? &f.ubulk : nullptr) };
+		return true;
+	};
+	inputs.menusFile = [&](const std::string& a_file, Bytes& a_out) { return ReadBytes(menus / a_file, a_out); };
+	inputs.artFolder = artFolder.string();
+	inputs.art = [&](const std::string& a_name, Bytes& a_out) { return !artFolder.empty() && ReadBytes(artFolder / (a_name + ".png"), a_out); };
 	std::vector<std::pair<std::string, std::string>> files;
 	for (const auto& e : fs::directory_iterator(menus))
 		if (e.path().extension() == ".json") files.emplace_back(e.path().filename().string(), ReadText(e.path()));
@@ -77,8 +128,11 @@ int main(int argc, char** argv)
 	auto vals = json::MakeObject();
 	for (const auto& [k, v] : values) json::Set(vals, k, ValueJson(v));
 	json::Set(report, "values", vals);
+	auto bakeAll = [&](const std::vector<std::pair<std::string, std::string>>& a_list, const fs::path& a_stage, bool a_record) {
 	auto assets = json::MakeArray();
-	for (const auto& [asset, recipe] : data.textures) {
+	size_t index = 0;
+	for (const auto& [asset, recipe] : a_list) {
+		const fs::path stageRoot = a_record ? a_stage : a_stage / std::to_string(index++);   // extras: one folder per row (an asset can repeat)
 		PackageFiles stock;
 		const auto   base = legacy / asset;
 		auto         row = json::MakeObject();
@@ -91,22 +145,35 @@ int main(int argc, char** argv)
 			reason = "not extracted";
 		else {
 			stock.hasUbulk = ReadBytes(fs::path(base.string() + ".ubulk"), stock.ubulk);
-			result = BakeAsset(asset, recipe, stock, values, data, baked, reason, withSizes ? &sizes : nullptr);
+			result = BakeAsset(asset, recipe, stock, values, data, baked, reason, withSizes ? &sizes : nullptr, inputs);
 		}
 		json::Set(row, "result", json::MakeString(result == BakeResult::Baked ? "baked" : result == BakeResult::Later ? "later" : "skipped"));
 		json::Set(row, "reason", json::MakeString(reason));
 		if (result == BakeResult::Baked) {
 			json::Set(row, "entry", baked.entry);
-			const auto target = out / "stage/OblivionRemastered/Content" / asset;
+			const auto target = stageRoot / "OblivionRemastered/Content" / asset;
 			WriteBytes(fs::path(target.string() + ".uasset"), baked.files.uasset);
 			WriteBytes(fs::path(target.string() + ".uexp"), baked.files.uexp);
 			if (baked.files.hasUbulk) WriteBytes(fs::path(target.string() + ".ubulk"), baked.files.ubulk);
-			record.Add(asset, baked, values);
-		} else if (result == BakeResult::Skipped)
+			if (a_record) record.Add(asset, baked, values);
+		} else if (result == BakeResult::Skipped && a_record)
 			record.Skip(asset, recipe, reason);
 		assets.items.push_back(std::move(row));
 	}
-	json::Set(report, "assets", assets);
+	return assets;
+	};
+	json::Set(report, "assets", bakeAll(data.textures, out / "stage", true));
+	if (!extraFile.empty()) {
+		json::Value list;
+		std::string why;
+		if (!json::Parse(ReadText(extraFile), list, why)) {
+			std::cerr << "extra: " << why << "\n";
+			return 6;
+		}
+		std::vector<std::pair<std::string, std::string>> extra;
+		for (const auto& pair : list.items) extra.emplace_back(pair.items[0].s, pair.items[1].s);
+		json::Set(report, "extra", bakeAll(extra, out / "extra-stage", false));
+	}
 	if (withSizes) {
 		const ReadStock read = [&](const std::string& a_asset, PackageFiles& a_out) {
 			const auto base = legacy / a_asset;
