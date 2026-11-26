@@ -23,7 +23,7 @@ REPO = HERE.parent.parent
 def build(msvc: str, imgui: pathlib.Path, work: pathlib.Path) -> pathlib.Path:
     exe = work / "preview.exe"
     sources = f'"{HERE / "preview.cpp"}" "{REPO / "src/builder/Shell.cpp"}" "{REPO / "src/builder/PackJob.cpp"}"'
-    cmd = (f'call "{msvc}" >nul && cl /nologo /std:c++latest /EHsc /O2 /MD /utf-8 /DNOMINMAX /FIWindows.h '
+    cmd = (f'call "{msvc}" >nul && cl /nologo /std:c++latest /EHsc /O2 /MD /utf-8 /DNOMINMAX /DWIN32_LEAN_AND_MEAN /FIWindows.h '
            f'/I"{REPO / "src"}" /I"{imgui / "include"}" {sources} /Fe"{exe}" /Fo"{work}\\\\" '
            f'/link "{imgui / "lib/imgui.lib"}" d3d12.lib dxgi.lib user32.lib imm32.lib shell32.lib ole32.lib')
     script = work / "build.bat"
@@ -44,6 +44,7 @@ def main() -> None:
     parser.add_argument("--tab", type=int, default=0, help="0 Colours, 1 Text, 2 Rows, 3 Runtime")
     parser.add_argument("--advanced", action="store_true")
     parser.add_argument("--building", help="DONE/TOTAL: show a running build at that point (Phase 3 progress line)")
+    parser.add_argument("--live", help="the live preview's status line (Phase 4a), e.g. 'Live preview: reading the game's art once...'")
     parser.add_argument("--label", default="PROPOSED: Pack Builder window (Phase 1 shell)")
     args = parser.parse_args()
     backdrop = Image.open(args.backdrop).convert("RGBA")
@@ -54,7 +55,8 @@ def main() -> None:
         (work / "in.rgba").write_bytes(backdrop.tobytes())
         subprocess.run([str(exe), str(width), str(height), str(work / "in.rgba"), str(work / "out.rgba")]
                        + ([str(args.plugins), str(args.tab), str(int(args.advanced))] if args.plugins else [])
-                       + ([args.building] if args.plugins and args.building else []), check=True)
+                       + ([args.building or "-"] if args.plugins and (args.building or args.live) else [])
+                       + ([args.live] if args.plugins and args.live else []), check=True)
         shot = Image.frombytes("RGBA", (width, height), (work / "out.rgba").read_bytes()).convert("RGB")
     draw = ImageDraw.Draw(shot)
     try:

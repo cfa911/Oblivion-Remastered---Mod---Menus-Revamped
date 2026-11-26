@@ -10,6 +10,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <string>
 #include <vector>
 
 #include <imgui.h>
@@ -128,11 +129,13 @@ int main(int argc, char** argv)
 	io.DeltaTime = 1.0f / 60.0f;
 	if (argc >= 6) builder::shell::SetPluginFolder(argv[5]);   // folder holding MenusRevamped/CustomColours.ini
 	if (argc >= 8) builder::shell::SelectForPreview(std::atoi(argv[6]), std::atoi(argv[7]) != 0);
-	if (argc >= 9) {   // DONE/TOTAL: a running build (Phase 3 progress line)
+	if (argc >= 9 && std::string(argv[8]) != "-") {   // DONE/TOTAL: a running build (Phase 3 progress line); "-" none
 		int done = 0, total = 0;
 		std::sscanf(argv[8], "%d/%d", &done, &total);
 		builder::pack::job::PreviewRunning(done, total, "Baking T_QuestPage_PaperBackground");
 	}
+	static std::string live = argc >= 10 ? argv[9] : "";   // Phase 4a: the live preview's status line
+	if (!live.empty()) builder::shell::SetLiveHooks({ {}, [] { return live; }, [] { return live.starts_with("Live preview off"); } });
 	builder::shell::LoadFont();
 	builder::shell::ApplyStyle(static_cast<float>(height));
 	ImGui_ImplDX12_InitInfo info;

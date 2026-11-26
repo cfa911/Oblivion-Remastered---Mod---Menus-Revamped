@@ -6,7 +6,8 @@ colour files, extremes) the C++ driver (tests/ingame_pack_parity_driver.cpp) and
 recipe the C++ side has ported; every staged .uasset/.uexp/.ubulk must be identical, the manifest entries equal, the same
 assets skipped, and the colour values equal (custom_colours.pack_values). Phase 3c: every recipe is ported, so no row may be
 "later"; recipe kinds no data row uses are baked on chosen stock assets too (EXTRA, compared the same way; png with a
-generated owner-art PNG).
+generated owner-art PNG). Phase 4a: the driver also bakes every texture row through the live preview
+(src/builder/LivePreviewCore.h) and reports any row whose preview bytes differ from the staged package's mips.
 
 Needs the game and the tools (no personal paths in the repository):
   MR_PAKS      <game>/OblivionRemastered/Content/Paks
@@ -206,6 +207,9 @@ def main():
                 compare(name, [row], work / f"{name}-py/extra-stage/{i}", out / "extra-stage" / str(i), colours, legacy, stock_dds, inject,
                         scratch, totals)
             check(len(report.get("extra", [])) == len(extra), f"{name}: extra rows {len(report.get('extra', []))} of {len(extra)}")
+            preview = report.get("preview", {})   # Phase 4a: the live preview's bytes = the staged (Python-identical) mips
+            check(preview.get("textures", 0) > 100, f"{name}: live preview baked {preview.get('textures', 0)} texture rows")
+            check(preview.get("mismatches") == [], f"{name}: live preview differs from the build for {preview.get('mismatches')}")
         print(f"asset runs (4 scenarios, data + extra): baked {totals['baked']}, skipped {totals['skipped']}, later {totals['later']}")
         if MISMATCH:
             print("byte mismatches:", sorted(set((a, r) for _, a, r in MISMATCH)))

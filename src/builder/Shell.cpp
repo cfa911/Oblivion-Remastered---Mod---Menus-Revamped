@@ -52,6 +52,7 @@ namespace builder::shell
 			bool                       advanced = false;
 			int                        previewTab = -1;
 			bool                       askVanilla = false;
+			LiveHooks                  live;
 		};
 
 		State& S()
@@ -146,8 +147,10 @@ namespace builder::shell
 
 		void Changed()
 		{
-			S().dirty = S().model.Render() != S().saved;
+			const auto text = S().model.Render();
+			S().dirty = text != S().saved;
 			RefreshPackStatus();
+			if (S().live.colours) S().live.colours(text);   // Phase 4a: the live preview follows every edit
 		}
 
 		void Load()
@@ -455,6 +458,8 @@ namespace builder::shell
 		}
 	}
 
+	void SetLiveHooks(LiveHooks a_hooks) { S().live = std::move(a_hooks); }
+
 	void SetPluginFolder(const std::filesystem::path& a_folder) { S().plugins = a_folder; }
 
 	void SelectForPreview(int a_tab, bool a_advanced)
@@ -579,7 +584,8 @@ namespace builder::shell
 		if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", ColourFile().string().c_str());
 
 		const auto& style = ImGui::GetStyle();
-		const float footer = ImGui::GetFrameHeight() + ImGui::GetTextLineHeightWithSpacing() * 3 + style.ItemSpacing.y * 5;
+		const auto  live = s.live.status ? s.live.status() : std::string();   // Phase 4a: "Live preview: ..." while it prepares or when it is off
+		const float footer = ImGui::GetFrameHeight() + ImGui::GetTextLineHeightWithSpacing() * (live.empty() ? 3 : 4) + style.ItemSpacing.y * (live.empty() ? 5 : 6);
 		if (ImGui::BeginChild("tabs", ImVec2(0, -footer), ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground)) {
 			if (ImGui::BeginTabBar("builder")) {
 				if (TabItem("Colours", 0)) {
@@ -626,6 +632,11 @@ namespace builder::shell
 			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 30.0f);
 			ImGui::SetTooltip("%s", s.packStatus.c_str());
 			ImGui::PopTextWrapPos();
+		}
+		if (!live.empty()) {
+			ImGui::PushStyleColor(ImGuiCol_Text, s.live.statusError && s.live.statusError() ? kError : kInkDim);
+			ImGui::TextWrapped("%s", live.c_str());
+			ImGui::PopStyleColor();
 		}
 
 		ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeight() - style.WindowPadding.y);

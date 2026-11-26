@@ -8,6 +8,7 @@
 #include "builder/PackBuild.h"
 #include "builder/PackInstall.h"
 #include "builder/PackPaths.h"
+#include "builder/PackStock.h"
 
 #include <Windows.h>
 
@@ -111,7 +112,7 @@ namespace builder::pack::job
 			return job;
 		}
 
-		int Run(const fs::path& a_exe, const std::vector<std::wstring>& a_args, std::string& a_output)
+		int Run(const fs::path& a_exe, const std::vector<std::wstring>& a_args, std::string& a_output, const std::atomic<bool>& a_cancel)
 		{
 			a_output.clear();
 			SECURITY_ATTRIBUTES sa{ sizeof(sa), nullptr, TRUE };
@@ -155,7 +156,7 @@ namespace builder::pack::job
 					a_output.append(buffer, got);
 				}
 				if (WaitForSingleObject(pi.hProcess, 50) == WAIT_OBJECT_0) break;
-				if (cancel.load() && !killed) {
+				if (a_cancel.load() && !killed) {
 					TerminateProcess(pi.hProcess, 1);
 					killed = true;
 				}
@@ -175,9 +176,10 @@ namespace builder::pack::job
 
 		std::string Tail(const std::string& a_s, size_t a_n = 2000) { return a_s.size() > a_n ? a_s.substr(a_s.size() - a_n) : a_s; }
 
-		void Retoc(const fs::path& a_retoc, const std::vector<std::wstring>& a_args, std::string& a_output, const char* a_what)
+		void Retoc(const fs::path& a_retoc, const std::vector<std::wstring>& a_args, std::string& a_output, const char* a_what,
+			const std::atomic<bool>& a_cancel = cancel)
 		{
-			const int code = Run(a_retoc, a_args, a_output);
+			const int code = Run(a_retoc, a_args, a_output, a_cancel);
 			if (code == 0) return;
 			std::string hint;
 			if (!fs::exists(a_retoc.parent_path() / L"oo2core_9_win64.dll"))
@@ -286,7 +288,7 @@ namespace builder::pack::job
 			const fs::path target = mr / L"CustomPack";
 			const fs::path logFile = mr / L"PackBuilder" / L"PackBuilder.log";
 			const fs::path work = mr / Wide(".PackBuilder-" + std::to_string(GetTickCount64()));
-			const fs::path paks = a_plugins.parent_path().parent_path().parent_path().parent_path() / L"Content" / L"Paks";
+			const fs::path paks = PaksFolder(a_plugins);
 			const std::string colourPack = "MRCustom_P", layoutPack = "MRLayout_P";
 			std::vector<std::string> log;
 			auto note = [&](const std::string& a_line) { log.push_back(a_line); };
@@ -346,52 +348,21 @@ namespace builder::pack::job
 				Retoc(retoc, args, output, "to-legacy");
 				CheckCancel();
 
-				const auto      content = Long(legacy / L"OblivionRemastered" / L"Content");
-				const ReadStock read = [&](const std::string& a_asset, PackageFiles& a_out) {
-					const auto base = LongAssetPath(content, a_asset).wstring();   // RMI-114: "Art/UI/..." as backslashes
-					if (!ReadBytes(base + L".uasset", a_out.uasset) || !ReadBytes(base + L".uexp", a_out.uexp)) return false;
-					a_out.hasUbulk = ReadBytes(base + L".ubulk", a_out.ubulk);
-					return true;
-				};
-				// the recipes that read another stock texture, the menus folder's PNGs (3c): pipeline.stock_dds takes the first
-				// extracted .uasset of that name in sorted path order (Windows paths compare without case)
-				std::map<std::string, fs::path> byName;
-				{
-					std::vector<std::pair<std::string, fs::path>> all;
-					for (const auto& e : fs::recursive_directory_iterator(Long(legacy), ec))
-						if (e.is_regular_file() && e.path().extension() == L".uasset") all.emplace_back(Lower(e.path().generic_string()), e.path());
-					std::sort(all.begin(), all.end());
-					for (const auto& [key, path] : all) byName.emplace(Lower(path.stem().string()), path);
-				}
-				BakeInputs inputs;
-				inputs.stock = [&](const std::string& a_name, Dds& a_out) {
-					const auto it = byName.find(Lower(a_name));
-					if (it == byName.end()) return false;
-					PackageFiles f;
-					auto         base = it->second;
-					base.replace_extension();
-					if (!ReadBytes(base.wstring() + L".uasset", f.uasset) || !ReadBytes(base.wstring() + L".uexp", f.uexp)) return false;
-					f.hasUbulk = ReadBytes(base.wstring() + L".ubulk", f.ubulk);
-					TexturePackage tex;
-					std::string    why;
-					if (!ParseTexture(f.uasset, f.uexp, f.hasUbulk ? &f.ubulk : nullptr, tex, why)) return false;
-					a_out = { tex.format, tex.width, tex.height, static_cast<int>(tex.mips.size()), GatherMips(tex, f.uexp, f.hasUbulk ? &f.ubulk : nullptr) };
-					return true;
-				};
-				inputs.menusFile = [&](const std::string& a_file, Bytes& a_out) { return ReadBytes(Long(menus / Wide(a_file)), a_out); };
-				// no owner art in shipped builds: the png recipe (development only, no data row) is skipped and listed
+				StockFolder     stock(legacy, menus);   // the recipes' stock and other inputs (PackStock.h, shared with the live preview)
+				const ReadStock read = [&](const std::string& a_asset, PackageFiles& a_out) { return stock.Read(a_asset, a_out); };
+				const BakeInputs inputs = stock.Inputs();
 
 				BuildRecord record;
 				int         done = 0;
 				for (const auto& [asset, recipe] : data.textures) {
 					CheckCancel();
 					SetPhase("Baking " + AssetName(asset), done, -1);
-					PackageFiles stock;
+					PackageFiles original;
 					BakedAsset   result;
 					std::string  reason;
 					BakeResult   r = BakeResult::Skipped;
-					if (!read(asset, stock)) reason = "not extracted from the game (game update or wrong folder?)";
-					else r = BakeAsset(asset, recipe, stock, values, data, result, reason, layout ? &sizes : nullptr, inputs);
+					if (!read(asset, original)) reason = "not extracted from the game (game update or wrong folder?)";
+					else r = BakeAsset(asset, recipe, original, values, data, result, reason, layout ? &sizes : nullptr, inputs);
 					if (r == BakeResult::Later) throw Stop{ "recipe " + recipe + " (" + AssetName(asset) + ") is not part of this build yet" };
 					if (r == BakeResult::Baked) {
 						WriteStage(stage, asset, result.files);
@@ -485,6 +456,41 @@ namespace builder::pack::job
 			}
 			running = false;
 		}
+	}
+
+	std::filesystem::path PaksFolder(const std::filesystem::path& a_plugins)
+	{
+		return a_plugins.parent_path().parent_path().parent_path().parent_path() / L"Content" / L"Paks";
+	}
+
+	bool ExtractStock(const std::filesystem::path& a_plugins, const std::vector<std::string>& a_names, const std::filesystem::path& a_to,
+		const std::atomic<bool>& a_cancel, std::string& a_why)
+	{
+		const fs::path retoc = a_plugins / L"MenusRevamped" / L"PackBuilder" / L"retoc" / L"retoc.exe";
+		std::error_code ec;
+		if (!fs::is_regular_file(retoc, ec)) {
+			a_why = "retoc not found: " + retoc.string();
+			return false;
+		}
+		std::vector<std::wstring> args{ L"to-legacy", L"--no-shaders", L"--version", L"UE5_3" };
+		for (const auto& n : a_names) {
+			args.push_back(L"-f");
+			args.push_back(Wide(n));
+		}
+		args.push_back(PaksFolder(a_plugins).wstring());
+		args.push_back(a_to.wstring());
+		try {
+			std::string output;
+			Retoc(retoc, args, output, "to-legacy", a_cancel);
+			return true;
+		} catch (const Stop& stop) {
+			a_why = stop.message;
+		} catch (const Cancelled&) {
+			a_why = "cancelled";
+		} catch (const std::exception& e) {
+			a_why = e.what();
+		}
+		return false;
 	}
 
 	bool StartBuild(const std::filesystem::path& a_plugins, std::string& a_why)

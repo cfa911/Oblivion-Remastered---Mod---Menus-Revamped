@@ -3,6 +3,8 @@
 // ImGui and plain file calls only, no game or engine calls, so the style preview tool (tools/builder_preview) draws exactly what
 // the game draws. KB mods/menus-revamped/evidence/in-game-pack-builder-plan.md.
 #include <filesystem>
+#include <functional>
+#include <string>
 
 namespace builder::shell
 {
@@ -18,6 +20,16 @@ namespace builder::shell
 
 	// Draws the window. false = the player closed it (title-bar X or the Close button).
 	bool Draw();
+
+	// Phase 4a: the live preview, wired by the overlay to builder::livepreview (the preview tool may set a status only).
+	// colours: the colour file text after every edit and load; status: a line under the pack status ("" = none).
+	struct LiveHooks
+	{
+		std::function<void(const std::string&)> colours;
+		std::function<std::string()>            status;
+		std::function<bool()>                   statusError;
+	};
+	void SetLiveHooks(LiveHooks a_hooks);
 
 	// Preview tool only: the tab shown (0 Colours, 1 Text, 2 Rows, 3 Runtime) and the Advanced switch.
 	void SelectForPreview(int a_tab, bool a_advanced);

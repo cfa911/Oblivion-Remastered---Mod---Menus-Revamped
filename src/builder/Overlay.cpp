@@ -13,6 +13,7 @@
 #include "builder/Builder.h"
 #include "builder/InputGate.h"
 #include "builder/OverlayRules.h"
+#include "builder/LivePreview.h"
 #include "builder/Shell.h"
 #include "core/Config.h"
 
@@ -167,6 +168,7 @@ namespace builder
 		void DestroyDeviceObjects()
 		{
 			WaitIdle();
+			livepreview::ReleaseAll();   // the queue is idle: the preview's upload buffers are done
 			if (g_dx12) {
 				ImGui_ImplDX12_Shutdown();
 				g_dx12 = false;
@@ -268,6 +270,9 @@ namespace builder
 				io.LogFilename = nullptr;
 				io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 				shell::SetPluginFolder(mrconfig::PluginFolder());
+				livepreview::SetPluginFolder(mrconfig::PluginFolder());
+				shell::SetLiveHooks({ [](const std::string& a_text) { livepreview::Colours(a_text); }, [] { return livepreview::Status(); },
+					[] { return livepreview::StatusIsError(); } });
 				shell::LoadFont();
 				g_context = true;
 			}
@@ -314,6 +319,7 @@ namespace builder
 				WaitForSingleObject(g_fenceEvent, 100);
 			frame.allocator->Reset();
 			g_list->Reset(frame.allocator, nullptr);
+			livepreview::Record(g_device, g_list, g_fence->GetCompletedValue());   // Phase 4a: the baked previews' copies, before our draw
 			D3D12_RESOURCE_BARRIER barrier{};
 			barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 			barrier.Transition.pResource = frame.buffer;
@@ -332,6 +338,7 @@ namespace builder
 			queue->ExecuteCommandLists(1, lists);
 			frame.fenceValue = ++g_fenceCounter;
 			queue->Signal(g_fence, frame.fenceValue);
+			livepreview::Submitted(frame.fenceValue);
 		}
 
 		thread_local bool t_inside = false;
@@ -540,6 +547,7 @@ namespace builder
 			if (!a_open) {
 				std::scoped_lock lock(g_queueLock);
 				g_messages.clear();
+				livepreview::WindowClosed();   // a first stock extraction stops; the next edit starts it again
 			}
 			g_open = a_open;
 		}
@@ -604,6 +612,7 @@ namespace builder
 			s_watching = false;
 		}
 		gear::Tick();
+		livepreview::GameTick();
 	}
 
 	bool HandleWindowMessage(HWND a_window, UINT a_message, WPARAM a_wparam, LPARAM a_lparam, LRESULT& a_result)

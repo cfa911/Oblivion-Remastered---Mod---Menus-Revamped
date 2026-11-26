@@ -13,6 +13,8 @@
 // (pipeline.build_layout), and both manifests written into <out>/colour-pack/MRCustom_P.json and
 // <out>/layout-pack/MRLayout_P.json over stand-in pack files (<pack>.<ext> holding the text "<pack>.<ext>"); report.json then
 // also has "sizes" (used_sizes) and "layout_order" (the layout packages in data order).
+// Phase 4a: every baked texture row of the data files is baked again through the live preview (LivePreviewCore.h BakePreview);
+// report.json "preview": {"textures": n, "mismatches": [assets whose preview bytes differ from the staged package's mips]}.
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
@@ -22,6 +24,7 @@
 #include <cctype>
 #include <sstream>
 #include "../src/builder/PackBuild.h"
+#include "../src/builder/LivePreviewCore.h"
 
 namespace fs = std::filesystem;
 using namespace builder::pack;
@@ -124,6 +127,8 @@ int main(int argc, char** argv)
 		return 5;
 	}
 	BuildRecord record;
+	size_t      previewed = 0;
+	auto        previewMismatches = json::MakeArray();
 	auto report = json::MakeObject();
 	auto vals = json::MakeObject();
 	for (const auto& [k, v] : values) json::Set(vals, k, ValueJson(v));
@@ -156,6 +161,17 @@ int main(int argc, char** argv)
 			WriteBytes(fs::path(target.string() + ".uexp"), baked.files.uexp);
 			if (baked.files.hasUbulk) WriteBytes(fs::path(target.string() + ".ubulk"), baked.files.ubulk);
 			if (a_record) record.Add(asset, baked, values);
+			if (a_record && Recipe(recipe, data).kind == RecipeKind::Texture) {   // the live preview gives the bytes the build staged
+				builder::pack::live::Preview preview;
+				std::string                  why;
+				TexturePackage               tex;
+				const auto&                  f = baked.files;
+				const bool same = builder::pack::live::BakePreview({ asset, recipe }, stock, values, data, inputs, preview, why) &&
+				                  ParseTexture(f.uasset, f.uexp, f.hasUbulk ? &f.ubulk : nullptr, tex, why) &&
+				                  preview.body == GatherMips(tex, f.uexp, f.hasUbulk ? &f.ubulk : nullptr);
+				++previewed;
+				if (!same) previewMismatches.items.push_back(json::MakeString(asset));
+			}
 		} else if (result == BakeResult::Skipped && a_record)
 			record.Skip(asset, recipe, reason);
 		assets.items.push_back(std::move(row));
@@ -163,6 +179,15 @@ int main(int argc, char** argv)
 	return assets;
 	};
 	json::Set(report, "assets", bakeAll(data.textures, out / "stage", true));
+	{
+		auto preview = json::MakeObject();
+		json::Value n;
+		n.type = json::Type::Int;
+		n.i = static_cast<std::int64_t>(previewed);
+		json::Set(preview, "textures", n);
+		json::Set(preview, "mismatches", previewMismatches);
+		json::Set(report, "preview", preview);
+	}
 	if (!extraFile.empty()) {
 		json::Value list;
 		std::string why;
