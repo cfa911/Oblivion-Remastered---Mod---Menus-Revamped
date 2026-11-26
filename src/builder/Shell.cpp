@@ -7,6 +7,8 @@
 #include "builder/Shell.h"
 
 #include "builder/ColourModel.h"
+#include "builder/PackJob.h"
+#include "builder/PackStatus.h"
 
 #include <imgui.h>
 
@@ -43,6 +45,9 @@ namespace builder::shell
 			std::string                saved;       // the file text as last read or written (unsaved changes = Render() differs)
 			bool                       dirty = false;
 			std::string                status = kSaveNote;
+			bool                       buildReported = true;   // the last build's result is in the status line
+			std::string                packStatus;             // "Build pack to apply: ..." against the installed manifests (full)
+			std::string                packShort;              // the same, at most three names (the window line; the tooltip has all)
 			bool                       statusError = false;
 			bool                       advanced = false;
 			int                        previewTab = -1;
@@ -57,7 +62,8 @@ namespace builder::shell
 
 		fs::path ColourFile() { return S().plugins / L"MenusRevamped" / L"CustomColours.ini"; }
 		fs::path PluginIni() { return S().plugins / L"MenusRevamped.ini"; }
-		fs::path BuilderLog() { return S().plugins / L"MenusRevamped" / L"PackBuilder" / L"PackBuilder.log"; }
+		fs::path BuilderLog() { return S().plugins / L"MenusRevamped" / L"PackBuilder" / L"PackBuilder.log"; }   // the in-game Build writes it
+		fs::path PackManifest(const wchar_t* a_pack) { return S().plugins / L"MenusRevamped" / L"CustomPack" / (std::wstring(a_pack) + L".json"); }
 
 		bool ReadFile(const fs::path& a_path, std::string& a_text)
 		{
@@ -118,7 +124,31 @@ namespace builder::shell
 			S().statusError = a_error;
 		}
 
-		void Changed() { S().dirty = S().model.Render() != S().saved; }
+		// window.refresh_status: what differs from the installed packs (their manifests' style and sizes)
+		void RefreshPackStatus()
+		{
+			auto&       s = S();
+			std::string text, error;
+			pack::json::Value colour, layout;
+			const bool  haveColour = ReadFile(PackManifest(L"MRCustom_P"), text) && pack::json::Parse(text, colour, error);
+			const bool  haveLayout = ReadFile(PackManifest(L"MRLayout_P"), text) && pack::json::Parse(text, layout, error);
+			const auto  stale = pack::NeedsBuild(s.model.Entries(), haveColour ? colour.Find("style") : nullptr);
+			const bool  sizes = !pack::SizesChanged(s.model, haveLayout ? layout.Find("sizes") : nullptr).empty();
+			s.packStatus = pack::BuildStatus(s.model.Entries(), stale, sizes);
+			const size_t shown = 3, total = stale.size() + (sizes ? 1 : 0);
+			if (total <= shown) {
+				s.packShort = s.packStatus;
+				return;
+			}
+			std::vector<std::string> first(stale.begin(), stale.begin() + static_cast<std::ptrdiff_t>(std::min(shown, stale.size())));
+			s.packShort = pack::BuildStatus(s.model.Entries(), first, sizes && first.size() < shown) + " and " + std::to_string(total - shown) + " more";
+		}
+
+		void Changed()
+		{
+			S().dirty = S().model.Render() != S().saved;
+			RefreshPackStatus();
+		}
 
 		void Load()
 		{
@@ -549,7 +579,7 @@ namespace builder::shell
 		if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", ColourFile().string().c_str());
 
 		const auto& style = ImGui::GetStyle();
-		const float footer = ImGui::GetFrameHeight() + ImGui::GetTextLineHeightWithSpacing() * 2 + style.ItemSpacing.y * 4;
+		const float footer = ImGui::GetFrameHeight() + ImGui::GetTextLineHeightWithSpacing() * 3 + style.ItemSpacing.y * 5;
 		if (ImGui::BeginChild("tabs", ImVec2(0, -footer), ImGuiChildFlags_None, ImGuiWindowFlags_NoBackground)) {
 			if (ImGui::BeginTabBar("builder")) {
 				if (TabItem("Colours", 0)) {
@@ -573,11 +603,43 @@ namespace builder::shell
 		}
 		ImGui::EndChild();
 		ImGui::Separator();
-		ImGui::PushStyleColor(ImGuiCol_Text, s.statusError ? kError : kInkDim);
-		ImGui::TextWrapped("%s", s.status.c_str());
+		const auto build = pack::job::Get();
+		if (build.state == pack::job::State::Running) {
+			s.buildReported = false;
+			const float fraction = build.total > 0 ? static_cast<float>(build.done) / static_cast<float>(build.total) : 0.0f;
+			const std::string line = build.total > 0 ? build.phase + " (" + std::to_string(build.done) + " of " + std::to_string(build.total) + ")" : build.phase;
+			ImGui::ProgressBar(fraction, ImVec2(-1, 0), line.c_str());
+		} else {
+			if (!s.buildReported && build.state != pack::job::State::Idle) {
+				s.buildReported = true;
+				SetStatus(build.message, build.state == pack::job::State::Failed);
+				RefreshPackStatus();
+			}
+			ImGui::PushStyleColor(ImGuiCol_Text, s.statusError ? kError : kInkDim);
+			ImGui::TextWrapped("%s", s.status.c_str());
+			ImGui::PopStyleColor();
+		}
+		ImGui::PushStyleColor(ImGuiCol_Text, s.packStatus.starts_with("Build pack") ? kAmber : kInkDim);
+		ImGui::TextWrapped("%s", s.packShort.c_str());
 		ImGui::PopStyleColor();
+		if (s.packShort != s.packStatus && ImGui::IsItemHovered()) {
+			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 30.0f);
+			ImGui::SetTooltip("%s", s.packStatus.c_str());
+			ImGui::PopTextWrapPos();
+		}
 
 		ImGui::SetCursorPosY(ImGui::GetWindowHeight() - ImGui::GetFrameHeight() - style.WindowPadding.y);
+		if (build.state == pack::job::State::Running) {
+			if (ImGui::Button("Cancel build")) pack::job::Cancel();
+		} else if (ImGui::Button("Build")) {   // window.build: the colour file is saved first (the plugin compares the pack with it)
+			Save();
+			std::string why;
+			if (!s.dirty && !pack::job::StartBuild(s.plugins, why)) SetStatus(why, true);
+		}
+		if (ImGui::IsItemHovered() && build.state != pack::job::State::Running)
+			ImGui::SetTooltip("Saves, then bakes the colours and sizes into the packs (about 30 seconds to a few minutes, in the background).\n"
+			                  "The new look shows after a game restart.");
+		ImGui::SameLine();
 		if (ImGui::Button("Save")) Save();
 		ImGui::SameLine();
 		if (ImGui::Button("Reset to Dark")) {
@@ -589,6 +651,7 @@ namespace builder::shell
 		if (ImGui::Button("Vanilla colours")) ImGui::OpenPopup("Vanilla colours");
 		ImGui::SameLine();
 		if (ImGui::Button("Open log")) OpenLog();
+
 		if (RightButton("Close")) open = false;
 
 		ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
