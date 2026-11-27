@@ -26,10 +26,14 @@ namespace builder::livepreview
 	std::string Status();
 	bool        StatusIsError();
 
-	void GameTick();   // game thread, from builder::Tick: baked previews -> the loaded textures' GPU resources
+	// game thread, from builder::Tick: baked previews -> the loaded textures' GPU resources (new ones at once, every preview of the
+	// session a few per tick for menus opened later); widget colour literals and our own tints (LiveWidgets.h)
+	void GameTick();
 
 	// render thread, the overlay's command list open: release finished uploads, record the copies of the textures found
 	void Record(ID3D12Device* a_device, ID3D12GraphicsCommandList* a_list, unsigned long long a_completedFence);
 	void Submitted(unsigned long long a_fence);   // render thread: the recorded list was signalled with this fence value
+	bool HasWork();                               // any thread: copies wait or upload buffers wait for their fence (the overlay
+	                                              // records them even while the window is closed, Phase 4b)
 	void ReleaseAll();                            // render thread, the queue idle (the overlay drops its device objects)
 }

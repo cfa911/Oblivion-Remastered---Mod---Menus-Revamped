@@ -3,12 +3,15 @@
 //   game thread (GameTick): UTexture2D -> ID3D12Resource, checked against the baked size and format
 //   render thread (Record/Submitted, the overlay's Present): barrier 0xC0 -> COPY_DEST -> 0xC0 and one copy per mip from an
 //   upload buffer, released once the fence passes
-// Facts used: KB docs/reverse-engineering/dark-mode-ui.md "Loaded UI textures in GPU memory" (game 1.512.105.0). 4b extends the
-// live roles, re-applies text colours and re-paints textures of menus opened later (g_latest keeps every preview made).
+// Facts used: KB docs/reverse-engineering/dark-mode-ui.md "Loaded UI textures in GPU memory" (game 1.512.105.0).
+// Phase 4b: every colour-file key is live; widget colour literals go to LiveWidgets.cpp; GameTick keeps re-resolving every
+// preview made this session (g_latest, a few assets per tick) so a menu opened later is painted too; a streamed texture gets
+// the package mips from its resident top size (MipWindow); the overlay records the copies even while the window is closed.
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include "builder/LivePreview.h"
 
 #include "builder/LivePreviewCore.h"
+#include "builder/LiveWidgets.h"
 #include "builder/PackJob.h"
 #include "builder/PackStock.h"
 
@@ -47,8 +50,16 @@ namespace builder::livepreview
 		bool                          g_statusError = false;
 
 		using PreviewPtr = std::shared_ptr<const live::Preview>;
-		std::map<std::string, PreviewPtr> g_baked;    // new previews for the game thread (latest per asset)
-		std::map<std::string, PreviewPtr> g_latest;   // every preview made this session (4b: re-paint a menu opened later)
+		struct Versioned
+		{
+			PreviewPtr    preview;
+			std::uint64_t version = 0;
+		};
+		std::uint64_t                    g_version = 0;   // under g_lock
+		std::map<std::string, Versioned> g_baked;    // new previews for the game thread (latest per asset)
+		std::map<std::string, Versioned> g_latest;   // every preview made this session (re-painted when a menu opens later)
+
+		std::string AssetNameOf(const std::string& a_asset) { return pack::AssetName(a_asset); }
 
 		void SetStatus(std::string a_text, bool a_error)
 		{
@@ -148,7 +159,7 @@ namespace builder::livepreview
 		{
 			SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
 			Session                   s;
-			pack::Values              last;
+			pack::Values              last, base;   // the newest values; the values at the first text (what the screen showed)
 			bool                      haveLast = false;
 			std::set<std::string>     dirty;   // assets still to bake with the newest values
 			std::set<std::string>     warned;
@@ -164,12 +175,14 @@ namespace builder::livepreview
 				pack::Values values;
 				std::string  error;
 				if (!pack::PackValues(&*text, values, error)) continue;   // the window refuses a bad file before this
+				widgets::Skin(*text);                                     // our own run-time tints (no stock files needed)
 				if (!haveLast) {                                          // the first text is what the screen shows
-					last = std::move(values);
+					last = values;
+					base = std::move(values);
 					haveLast = true;
 					continue;
 				}
-				for (const auto& k : live::ChangedKeys(last, values, live::LiveKeys())) dirty.insert(k);
+				for (const auto& k : live::ChangedKeys(last, values, {})) dirty.insert(k);   // every key: roles, Advanced, Runtime
 				last = values;
 				if (dirty.empty()) continue;
 				{
@@ -184,15 +197,40 @@ namespace builder::livepreview
 						continue;
 					}
 				}
-				// changed keys -> texture rows, baked one by one with the newest values; a newer edit adds its keys and continues
+				// changed keys -> widget literals at once (cheap), then texture rows baked one by one with the newest values; a newer
+				// edit adds its keys and continues
 				std::vector<std::string> keys(dirty.begin(), dirty.end());
 				dirty.clear();
+				auto literals = [&](const std::vector<std::string>& a_keys) {
+					std::vector<widgets::Paint>               paints;
+					std::map<std::string, pack::PackageFiles> files;
+					for (const auto& l : live::AffectedLiterals(s.data, a_keys)) {
+						if (l.owner.empty()) continue;   // a material literal that names no parameter (steelGlow's shader map)
+						auto it = files.find(l.asset);
+						if (it == files.end()) {
+							pack::PackageFiles f;
+							if (!s.stock->Read(l.asset, f)) f = {};
+							it = files.emplace(l.asset, std::move(f)).first;
+						}
+						widgets::Paint paint{ l };
+						if (live::StockLiteral(l, it->second.uexp, paint.stock) && live::LiteralColour(l, last, paint.stock[3], paint.colour) &&
+							live::LiteralColour(l, base, paint.stock[3], paint.baseline))
+							paints.push_back(std::move(paint));
+						else if (warned.insert(l.asset + "|" + std::to_string(l.offset)).second)
+							logger::warn("{}: {} {} not previewed (the stock literal is not at its offset)", kMarker, AssetNameOf(l.asset), l.owner);
+					}
+					if (!paints.empty()) widgets::Post(std::move(paints));
+				};
+				literals(keys);
+				std::vector<std::string> later;   // keys of newer edits taken during the bakes
 				auto targets = live::AffectedTextures(s.data, keys);
 				for (size_t i = 0; i < targets.size(); ++i) {
 					if (auto newer = g_requests.Take()) {
 						pack::Values next;
 						if (pack::PackValues(&*newer, next, error)) {
-							const auto more = live::ChangedKeys(last, next, live::LiveKeys());
+							widgets::Skin(*newer);
+							const auto more = live::ChangedKeys(last, next, {});
+							later.insert(later.end(), more.begin(), more.end());
 							last = std::move(next);
 							for (const auto& t : live::AffectedTextures(s.data, more))   // re-bake with the newer values, even if done already
 								if (std::none_of(targets.begin() + static_cast<std::ptrdiff_t>(i), targets.end(), [&](const live::Target& a) { return a.asset == t.asset; }))
@@ -206,12 +244,14 @@ namespace builder::livepreview
 					if (!s.stock->Read(t.asset, stock)) reason = "not in the stock cache";
 					else if (live::BakePreview(t, stock, last, s.data, s.inputs, *preview, reason)) {
 						std::scoped_lock guard(g_lock);
-						g_baked[t.asset] = preview;
-						g_latest[t.asset] = preview;
+						const Versioned v{ preview, ++g_version };
+						g_baked[t.asset] = v;
+						g_latest[t.asset] = v;
 						continue;
 					}
 					if (warned.insert(t.asset).second) logger::warn("{}: {} not previewed: {}", kMarker, t.asset, reason);
 				}
+				if (!later.empty()) literals(later);
 			}
 		}
 
@@ -262,6 +302,7 @@ namespace builder::livepreview
 		{
 			ID3D12Resource* resource = nullptr;   // AddRef'd
 			PreviewPtr      preview;
+			UINT            first = 0;            // the package mip copied into the resource's mip 0 (a streamed texture: > 0)
 			UINT            mips = 0;             // mips written (the resource may have more: those keep their pixels)
 		};
 		std::mutex                       g_uploadLock;   // g_uploads, g_inFlight
@@ -276,6 +317,38 @@ namespace builder::livepreview
 		std::vector<InFlight> g_inFlight;
 
 		std::wstring Wide(const std::string& a_ascii) { return std::wstring(a_ascii.begin(), a_ascii.end()); }   // asset paths are ASCII
+
+		// game thread: what each texture was last painted with, and the rolling cursor over g_latest (menus opened later)
+		std::map<std::string, live::PaintMemo> g_memo;
+		std::string                            g_cursor;
+		constexpr size_t                       kSweepPerTick = 8;   // ~380 previews: every asset looked at within a second
+
+		// a preview into its loaded texture's GPU resource, unless that resource already shows it
+		void Queue(const std::string& a_asset, const Versioned& a_v)
+		{
+			auto* texture = UE::StaticFindObject<UE::UObject>(nullptr, nullptr, Wide(live::ObjectPath(a_asset)).c_str());
+			if (!texture) return;   // not loaded: the sweep paints it once its menu loads it
+			auto* resource = ResourceOf(texture);
+			if (!resource) return;
+			auto& memo = g_memo[a_asset];
+			const auto& p = *a_v.preview;
+			const auto  desc = resource->GetDesc();
+			int         count = 0;
+			const int   first = live::MipWindow(p.width, p.height, static_cast<int>(p.mips.size()), static_cast<int>(desc.Width), static_cast<int>(desc.Height), desc.MipLevels, count);
+			if (!live::NeedsPaint(memo, resource, a_v.version) || desc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE2D || desc.DepthOrArraySize != 1 ||
+				!live::FormatMatches(p.format, static_cast<unsigned>(desc.Format)) || first < 0) {
+				resource->Release();
+				return;
+			}
+			memo = { resource, a_v.version };
+			Upload upload{ resource, a_v.preview, static_cast<UINT>(first), static_cast<UINT>(count) };
+			std::scoped_lock guard(g_uploadLock);
+			if (auto it = g_uploads.find(resource); it != g_uploads.end()) {
+				it->second.resource->Release();   // the older upload of the same texture: replaced
+				it->second = upload;
+			} else
+				g_uploads.emplace(resource, upload);
+		}
 	}
 
 	void SetPluginFolder(const std::filesystem::path& a_plugins)
@@ -313,31 +386,30 @@ namespace builder::livepreview
 
 	void GameTick()
 	{
-		std::map<std::string, PreviewPtr> baked;
+		widgets::Tick();
+		std::map<std::string, Versioned> baked, sweep;
 		{
 			std::scoped_lock guard(g_lock);
-			if (g_baked.empty()) return;
 			baked.swap(g_baked);
-		}
-		for (const auto& [asset, preview] : baked) {
-			auto* texture = UE::StaticFindObject<UE::UObject>(nullptr, nullptr, Wide(live::ObjectPath(asset)).c_str());
-			if (!texture) continue;   // not loaded: its menu shows the pak's art when opened (4b re-paints from g_latest)
-			auto* resource = ResourceOf(texture);
-			if (!resource) continue;
-			const auto desc = resource->GetDesc();
-			if (desc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE2D || desc.Width != static_cast<UINT64>(preview->width) ||
-				desc.Height != static_cast<UINT>(preview->height) || desc.DepthOrArraySize != 1 || !live::FormatMatches(preview->format, static_cast<unsigned>(desc.Format))) {
-				resource->Release();
-				continue;
+			// a few previews per tick, round robin: a texture whose menu was opened after the edit gets a new resource
+			auto it = g_latest.upper_bound(g_cursor);
+			for (size_t n = 0; n < kSweepPerTick && !g_latest.empty(); ++n) {
+				if (it == g_latest.end()) it = g_latest.begin();
+				sweep.insert(*it);
+				g_cursor = it->first;
+				++it;
+				if (sweep.size() == g_latest.size()) break;
 			}
-			Upload upload{ resource, preview, static_cast<UINT>(std::min<size_t>(desc.MipLevels, preview->mips.size())) };
-			std::scoped_lock guard(g_uploadLock);
-			if (auto it = g_uploads.find(resource); it != g_uploads.end()) {
-				it->second.resource->Release();   // the older upload of the same texture: replaced
-				it->second = upload;
-			} else
-				g_uploads.emplace(resource, upload);
 		}
+		for (const auto& [asset, v] : baked) Queue(asset, v);
+		for (const auto& [asset, v] : sweep)
+			if (!baked.count(asset)) Queue(asset, v);
+	}
+
+	bool HasWork()
+	{
+		std::scoped_lock guard(g_uploadLock);
+		return !g_uploads.empty() || !g_inFlight.empty();
 	}
 
 	void Record(ID3D12Device* a_device, ID3D12GraphicsCommandList* a_list, unsigned long long a_completedFence)
@@ -357,13 +429,15 @@ namespace builder::livepreview
 			const auto& p = *upload.preview;
 			const auto  desc = resource->GetDesc();
 			const UINT  n = upload.mips;
+			const UINT  first = upload.first;
 			std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> footprints(n);
 			std::vector<UINT>   rows(n);
 			std::vector<UINT64> rowSizes(n);
 			UINT64              total = 0;
 			a_device->GetCopyableFootprints(&desc, 0, n, 0, footprints.data(), rows.data(), rowSizes.data(), &total);
 			bool fits = n > 0;
-			for (UINT i = 0; i < n && fits; ++i) fits = rowSizes[i] == p.mips[i].rowBytes && rows[i] == static_cast<UINT>(p.mips[i].rows);
+			fits = fits && first + n <= p.mips.size();
+			for (UINT i = 0; i < n && fits; ++i) fits = rowSizes[i] == p.mips[first + i].rowBytes && rows[i] == static_cast<UINT>(p.mips[first + i].rows);
 			ID3D12Resource* staging = nullptr;
 			if (fits) {
 				D3D12_HEAP_PROPERTIES heap{ D3D12_HEAP_TYPE_UPLOAD };
@@ -384,7 +458,7 @@ namespace builder::livepreview
 				continue;
 			}
 			for (UINT i = 0; i < n; ++i) {
-				const auto& m = p.mips[i];
+				const auto& m = p.mips[first + i];
 				for (int r = 0; r < m.rows; ++r)
 					std::memcpy(mapped + footprints[i].Offset + UINT64(r) * footprints[i].Footprint.RowPitch, p.body.data() + m.offset + size_t(r) * m.rowBytes, m.rowBytes);
 			}

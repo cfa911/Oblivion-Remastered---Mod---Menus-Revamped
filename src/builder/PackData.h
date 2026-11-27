@@ -29,6 +29,7 @@ namespace builder::pack
 		std::string           colour;
 		bool                  hasScale = false;
 		double                scale = 1;
+		std::string           label;   // the entry's "widget" (blueprint) or "parameter" (material) text: who reads it in game
 	};
 
 	struct Literal
@@ -318,6 +319,7 @@ namespace builder::pack
 							return false;
 						}
 						c.colour = detail::Str(e.Find("colour"));
+						c.label = detail::Str(e.Find(e.Find("widget") ? "widget" : "parameter"));
 						if (const auto* scale = e.Find("scale")) {
 							c.hasScale = true;
 							c.scale = scale->Number();

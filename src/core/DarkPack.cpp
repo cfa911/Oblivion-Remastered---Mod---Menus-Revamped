@@ -18,6 +18,7 @@ namespace darkpack
 		bool g_headerLayoutBaked = false;
 		bool g_headerOverflowBaked = false;
 		bool g_bakedLaurelTint = false;
+		bool g_usesCustom = false;
 
 		const char* Describe(darkpackswitch::Outcome outcome)
 		{
@@ -133,6 +134,7 @@ namespace darkpack
 
 		const auto colours = presetpacks::Choose(static_cast<int>(preset), customAllowed, darkAllowed);
 		const bool usesCustom = colours == presetpacks::Colours::Custom;
+		g_usesCustom = usesCustom;
 		if (!usesCustom) darkstyle::Set(darkstyle::kDefaults);   // the run-time colours match the pack: the defaults unless the player's
 		const auto& manifest = usesCustom ? customManifest : darkManifest;
 		const auto& colourJson = usesCustom ? customJson : darkJson;
@@ -178,6 +180,7 @@ namespace darkpack
 	}
 
 	bool Active() { return g_active; }
+	bool UsesCustom() { return g_usesCustom; }
 	bool LayoutBaked() { return g_layoutBaked; }
 	bool HeaderLayoutBaked() { return g_headerLayoutBaked; }
 	bool HeaderOverflowBaked() { return g_headerOverflowBaked; }

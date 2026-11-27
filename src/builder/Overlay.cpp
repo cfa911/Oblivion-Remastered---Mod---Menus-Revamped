@@ -258,9 +258,41 @@ namespace builder
 			logger::warn("{}: {} - the in-game builder stays off this session", kMarker, a_why);
 		}
 
+		// Phase 4b: the window is closed but live-preview copies wait (a menu opened later, a bake that finished after closing):
+		// record only the copies on our command list, no ImGui. Needs the device objects of this swap chain (the window was
+		// open on it before); the overlay's fence releases the upload buffers as when open.
+		void RecordClosed(IDXGISwapChain* a_chain)
+		{
+			if (!livepreview::HasWork()) return;
+			std::scoped_lock lock(g_renderLock);
+			if (!g_dx12 || a_chain != g_chain || !g_list) return;
+			IDXGISwapChain3* chain3 = nullptr;
+			if (FAILED(a_chain->QueryInterface(IID_PPV_ARGS(&chain3)))) return;
+			const UINT index = chain3->GetCurrentBackBufferIndex();
+			Release(chain3);
+			if (index >= g_frames.size()) return;
+			auto& frame = g_frames[index];
+			if (g_fence->GetCompletedValue() < frame.fenceValue && SUCCEEDED(g_fence->SetEventOnCompletion(frame.fenceValue, g_fenceEvent)))
+				WaitForSingleObject(g_fenceEvent, 100);
+			frame.allocator->Reset();
+			g_list->Reset(frame.allocator, nullptr);
+			livepreview::Record(g_device, g_list, g_fence->GetCompletedValue());
+			g_list->Close();
+			ID3D12CommandList* lists[] = { g_list };
+			auto* queue = g_queue.load();
+			queue->ExecuteCommandLists(1, lists);
+			frame.fenceValue = ++g_fenceCounter;
+			queue->Signal(g_fence, frame.fenceValue);
+			livepreview::Submitted(frame.fenceValue);
+		}
+
 		void Render(IDXGISwapChain* a_chain)
 		{
-			if (g_failed.load() || !g_open.load()) return;
+			if (g_failed.load()) return;
+			if (!g_open.load()) {
+				RecordClosed(a_chain);
+				return;
+			}
 			std::scoped_lock lock(g_renderLock);
 			if (!g_context) {
 				IMGUI_CHECKVERSION();

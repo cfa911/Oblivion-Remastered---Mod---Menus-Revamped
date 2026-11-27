@@ -3,11 +3,16 @@
 // game and the GPU). A colour change in the window becomes: the changed colour-file keys (inside the live roles) -> the data
 // rows whose texture recipe reads one of them -> each texture's own bake (BakeAsset, the build's function, on the stock
 // files) -> its mip bytes exactly as the build writes them into the pack, cut per mip for the GPU copy. Package recipes
-// (bp_colour, material_colour, rich_row) change widget literals, not textures: Phase 4b. KB
+// (bp_colour, material_colour, rich_row) change widget literals, not textures: Phase 4b lists them (AffectedLiterals) with
+// the four floats the bake writes (LiteralColour); src/builder/LiveWidgets.cpp puts them on the live widgets. KB
 // mods/menus-revamped/evidence/in-game-pack-builder-plan.md "Phase 4". Tests: tests/ingame_live_preview_tests.cpp, preview
 // bytes vs the build on the game's assets: tests/ingame_pack_parity_tests.py (driver "preview" report).
 // SPDX-License-Identifier: GPL-3.0-or-later
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <cstring>
 #include <mutex>
 #include <optional>
 #include <set>
@@ -20,10 +25,15 @@
 
 namespace builder::pack::live
 {
-	// the roles the live preview follows (4a: one role; 4b: every role of model::Roles())
+	// the roles the live preview follows: every role of model::Roles() (4a had "lines" only). The worker diffs every key of the
+	// colour file (ChangedKeys with an empty scope), so the Advanced and Runtime elements outside the roles are live too.
 	inline const std::vector<std::string>& LiveRoles()
 	{
-		static const std::vector<std::string> roles{ "lines" };
+		static const std::vector<std::string> roles = [] {
+			std::vector<std::string> out;
+			for (const auto& r : model::Roles()) out.emplace_back(r.key);
+			return out;
+		}();
 		return roles;
 	}
 
@@ -174,6 +184,173 @@ namespace builder::pack::live
 		}
 		a_out = std::move(p);
 		return true;
+	}
+
+	// ---- Phase 4b: widget colour literals (bp_colour, material_colour, rich_row), the multi-mip window, re-paints ----
+
+	enum class LiteralKind { Widget, Material, RichRow };
+
+	// one colour literal a package recipe writes: who reads it in game and the bytes the bake patches
+	struct LiveLiteral
+	{
+		LiteralKind           kind = LiteralKind::Widget;
+		std::string           asset;    // the data row's stock asset (a widget blueprint, a material, DT_UI_MagicMenu)
+		std::string           owner;    // the widget (export) name, the material parameter, or the rich text row
+		std::string           colour;   // the colour-file key
+		bool                  hasScale = false;
+		double                scale = 1;
+		std::array<double, 4> stock{};
+		std::int64_t          offset = 0;
+	};
+
+	// the reader named by a data entry's label: a widget label's first word ("text (label)" -> "text"), a material label's
+	// text before " (" ("BorderColor - Dark"); "" when the label names no parameter ("... (CachedExpressionData)")
+	inline std::string OwnerName(LiteralKind a_kind, std::string_view a_label)
+	{
+		if (a_kind == LiteralKind::Material) {
+			if (a_label.find("CachedExpressionData") != std::string_view::npos || a_label.find("shader map") != std::string_view::npos) return {};
+			const auto note = a_label.find(" (");
+			return std::string(a_label.substr(0, note));
+		}
+		const auto space = a_label.find(' ');
+		return std::string(a_label.substr(0, space));
+	}
+
+	// the literals of the package rows (data order) whose colour is one of a_keys (constant colours never change: left out)
+	inline std::vector<LiveLiteral> AffectedLiterals(const PackData& a_data, const std::vector<std::string>& a_keys)
+	{
+		std::vector<LiveLiteral> out;
+		if (a_keys.empty()) return out;
+		auto wanted = [&](const std::string& k) { return std::find(a_keys.begin(), a_keys.end(), k) != a_keys.end(); };
+		std::set<std::string> seen;
+		for (const auto& [asset, recipe] : a_data.textures) {
+			const auto [kind, arg] = Partition(recipe);
+			if (kind == "rich_row") {   // one data row per table row: every row of DT_UI_MagicMenu is its own literal
+				const auto [row, colour] = Partition(arg);
+				if (!seen.insert(asset + "|" + std::string(row)).second) continue;
+				const auto table = a_data.richRows.find("DT_UI_MagicMenu");   // BakePackage's table
+				if (table == a_data.richRows.end() || !wanted(std::string(colour))) continue;
+				const auto entry = table->second.find(std::string(row));
+				if (entry == table->second.end()) continue;
+				LiveLiteral l;
+				l.kind = LiteralKind::RichRow;
+				l.asset = asset;
+				l.owner = std::string(row);
+				l.colour = std::string(colour);
+				l.stock = entry->second.stock;
+				l.offset = entry->second.offset;
+				out.push_back(std::move(l));
+			} else if ((kind == "bp_colour" || kind == "material_colour") && seen.insert(asset).second) {
+				const auto bp = a_data.blueprints.find(std::string(arg));
+				if (bp == a_data.blueprints.end()) continue;
+				const auto lk = kind == "bp_colour" ? LiteralKind::Widget : LiteralKind::Material;
+				for (const auto& c : bp->second) {
+					model::Value constant;
+					if (recipes::ConstantColour(c.colour, constant) || !wanted(c.colour)) continue;
+					LiveLiteral l;
+					l.kind = lk;
+					l.asset = asset;
+					l.owner = OwnerName(lk, c.label);
+					l.colour = c.colour;
+					l.hasScale = c.hasScale;
+					l.scale = c.scale;
+					l.stock = c.stock;
+					l.offset = c.offset;
+					out.push_back(std::move(l));
+				}
+			}
+		}
+		return out;
+	}
+
+	// the stock literal at its offset in the stock .uexp, refused like the bake refuses (out of range, not the stock value)
+	inline bool StockLiteral(const LiveLiteral& a_lit, const Bytes& a_uexp, std::array<float, 4>& a_out)
+	{
+		if (a_lit.offset < 0 || static_cast<std::uint64_t>(a_lit.offset) + 16 > a_uexp.size()) return false;
+		std::array<float, 4> f{};
+		std::memcpy(f.data(), a_uexp.data() + a_lit.offset, 16);
+		for (size_t i = 0; i < 4; ++i)
+			if (std::fabs(static_cast<double>(f[i]) - a_lit.stock[i]) > 5e-4) return false;   // BakePackage's "differs"
+		a_out = f;
+		return true;
+	}
+
+	// the four floats the bake writes for a literal with these values (a_stockAlpha: the stock literal's alpha, kept by
+	// bp_colour / material_colour; rich_row writes alpha 1)
+	inline bool LiteralColour(const LiveLiteral& a_lit, const Values& a_values, float a_stockAlpha, std::array<float, 4>& a_out)
+	{
+		model::Value value;
+		if (!recipes::ConstantColour(a_lit.colour, value)) {
+			const auto it = a_values.find(a_lit.colour);
+			if (it == a_values.end()) return false;
+			value = it->second;
+		}
+		if (a_lit.kind == LiteralKind::RichRow) {   // BakePackage rich_row: linear RGB, alpha 1
+			a_out = { static_cast<float>(model::Linear(value.v[0])), static_cast<float>(model::Linear(value.v[1])), static_cast<float>(model::Linear(value.v[2])), 1.0f };
+			return true;
+		}
+		if (a_lit.hasScale) {   // BakePackage bp_colour / material_colour, in its order
+			for (int i = 0; i < 3; ++i) value.v[static_cast<size_t>(i)] = std::min(255.0, value.v[static_cast<size_t>(i)] * a_lit.scale);
+			value.n = 3;
+		}
+		const auto rgba = recipes::LiteralRgba(value);
+		a_out = { static_cast<float>(rgba[0]), static_cast<float>(rgba[1]), static_cast<float>(rgba[2]), a_stockAlpha };
+		return true;
+	}
+
+	// the blueprint class of a widget blueprint asset: "UI/X/WBP_A" -> "/Game/UI/X/WBP_A.WBP_A_C"
+	inline std::string ClassPath(const std::string& a_asset)
+	{
+		return "/Game/" + a_asset + "." + AssetName(a_asset) + "_C";
+	}
+
+	// same colour within the bake's tolerance (5e-4 per channel)
+	inline bool SameColour(const float* a_a, const std::array<float, 4>& a_b)
+	{
+		for (size_t i = 0; i < 4; ++i)
+			if (!(std::fabs(a_a[i] - a_b[i]) <= 5e-4f)) return false;   // a NaN never matches
+		return true;
+	}
+
+	// the 4-byte aligned offsets in an object's bytes where one of a_candidates sits (every channel within 5e-4)
+	inline std::vector<size_t> ColourSlots(const std::uint8_t* a_bytes, size_t a_size, const std::vector<std::array<float, 4>>& a_candidates)
+	{
+		std::vector<size_t> out;
+		for (size_t at = 0; at + 16 <= a_size; at += 4) {
+			float f[4];
+			std::memcpy(f, a_bytes + at, 16);
+			for (const auto& c : a_candidates)
+				if (SameColour(f, c)) {
+					out.push_back(at);
+					break;
+				}
+		}
+		return out;
+	}
+
+	// a streamed texture's GPU resource may hold only the lower mips: the package mip whose size is the resource's top mip
+	// (-1 when none fits) and how many mips to copy (the resource's, at most what the package has below it)
+	inline int MipWindow(int a_width, int a_height, int a_mips, int a_gpuWidth, int a_gpuHeight, int a_gpuMips, int& a_count)
+	{
+		a_count = 0;
+		if (a_width <= 0 || a_height <= 0 || a_gpuMips <= 0) return -1;
+		for (int level = 0; level < a_mips; ++level)
+			if (std::max(1, a_width >> level) == a_gpuWidth && std::max(1, a_height >> level) == a_gpuHeight) {
+				a_count = std::min(a_gpuMips, a_mips - level);
+				return level;
+			}
+		return -1;
+	}
+
+	// what a texture was last painted with: a menu opened later loads the pak's art into a new resource, which is painted again
+	struct PaintMemo
+	{
+		const void*   resource = nullptr;
+		std::uint64_t version = 0;
+	};
+	inline bool NeedsPaint(const PaintMemo& a_memo, const void* a_resource, std::uint64_t a_version)
+	{
+		return a_resource && (a_memo.resource != a_resource || a_memo.version != a_version);
 	}
 
 	// the stock cache's stamp: a cache extracted for another game build, builder, data or pak set is extracted again
