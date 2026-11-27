@@ -87,6 +87,7 @@ namespace builder
 		};
 		std::recursive_mutex        g_renderLock;
 		bool                        g_context = false;     // ImGui context and font
+		bool                        g_drawnOpen = false;   // Phase 4c: the window was drawn since it last closed (render thread)
 		bool                        g_win32 = false;       // ImGui Win32 backend started (for g_window)
 		bool                        g_dx12 = false;        // ImGui DX12 backend started (for the current device objects)
 		IDXGISwapChain*             g_chain = nullptr;     // the chain our device objects belong to (not referenced)
@@ -290,6 +291,14 @@ namespace builder
 		{
 			if (g_failed.load()) return;
 			if (!g_open.load()) {
+				std::unique_lock shellLock(g_renderLock);   // the shell's state belongs to the drawing code
+				if (g_drawnOpen) {   // Phase 4c: closed by any path (Close, Escape, F11, the gear): maybe an automatic build
+					g_drawnOpen = false;
+					shell::Closed();
+				} else if (g_context) {
+					shell::PollClosed();
+				}
+				shellLock.unlock();
 				RecordClosed(a_chain);
 				return;
 			}
@@ -342,6 +351,7 @@ namespace builder
 			ImGui::NewFrame();
 			const bool popup = ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId);   // a colour picker or a question: Escape closes it first
 			bool keep = shell::Draw();
+			g_drawnOpen = true;
 			if (keep && ImGui::IsKeyPressed(ImGuiKey_Escape, false) && !io.WantTextInput && !popup) keep = false;   // Escape, unless typing
 			if (!keep) RequestOpen(false, "Close / Escape");
 			ImGui::Render();

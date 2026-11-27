@@ -136,6 +136,7 @@ int main(int argc, char** argv)
 	}
 	static std::string live = argc >= 10 ? argv[9] : "";   // Phase 4a: the live preview's status line
 	if (!live.empty()) builder::shell::SetLiveHooks({ {}, [] { return live; }, [] { return live.starts_with("Live preview off"); } });
+	if (argc >= 11) builder::shell::PreviewAutoBuild(std::atoi(argv[10]));   // Phase 4c: 1 rebuilding, 2 ready next launch, 3 not Custom
 	builder::shell::LoadFont();
 	builder::shell::ApplyStyle(static_cast<float>(height));
 	ImGui_ImplDX12_InitInfo info;

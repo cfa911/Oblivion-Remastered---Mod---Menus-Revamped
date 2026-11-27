@@ -31,6 +31,15 @@ namespace builder::shell
 	};
 	void SetLiveHooks(LiveHooks a_hooks);
 
+	// Phase 4c, on the thread that draws: the window has just closed (any way) - an automatic build starts when the rules in
+	// builder/AutoBuild.h say so (unsaved edits saved first), or one re-check is queued behind a running build; PollClosed (every
+	// frame while closed, cheap) runs that queued re-check once the build has ended.
+	void Closed();
+	void PollClosed();
+
+	// Preview tool only: 1 an automatic build running, 2 its "Ready next launch" status, 3 the "not Custom" note.
+	void PreviewAutoBuild(int a_state);
+
 	// Preview tool only: the tab shown (0 Colours, 1 Text, 2 Rows, 3 Runtime) and the Advanced switch.
 	void SelectForPreview(int a_tab, bool a_advanced);
 }

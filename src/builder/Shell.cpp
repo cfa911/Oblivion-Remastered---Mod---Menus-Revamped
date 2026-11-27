@@ -6,6 +6,7 @@
 // Revamped (core/UiTheme.h kDark: near-black warm paper, bronze border, parchment ink, amber focus). No game state is touched.
 #include "builder/Shell.h"
 
+#include "builder/AutoBuild.h"
 #include "builder/ColourModel.h"
 #include "builder/PackJob.h"
 #include "builder/PackStatus.h"
@@ -46,6 +47,9 @@ namespace builder::shell
 			bool                       dirty = false;
 			std::string                status = kSaveNote;
 			bool                       buildReported = true;   // the last build's result is in the status line
+			bool                       autoBuild = false;      // Phase 4c: the running (or last) build was started by a close
+			bool                       autoQueued = false;     // Phase 4c: a close during a build: re-check when it ends
+			bool                       packStale = false;      // "Build pack to apply" (colours or sizes differ from the installed packs)
 			std::string                packStatus;             // "Build pack to apply: ..." against the installed manifests (full)
 			std::string                packShort;              // the same, at most three names (the window line; the tooltip has all)
 			bool                       statusError = false;
@@ -137,6 +141,7 @@ namespace builder::shell
 			const bool  sizes = !pack::SizesChanged(s.model, haveLayout ? layout.Find("sizes") : nullptr).empty();
 			s.packStatus = pack::BuildStatus(s.model.Entries(), stale, sizes);
 			const size_t shown = 3, total = stale.size() + (sizes ? 1 : 0);
+			s.packStale = total > 0;
 			if (total <= shown) {
 				s.packShort = s.packStatus;
 				return;
@@ -209,6 +214,66 @@ namespace builder::shell
 				CoUninitialize();
 			}).detach();
 			SetStatus("Opened " + log.string() + " (outside the game).");
+		}
+
+		// ---- Phase 4c: the automatic build (rules in builder/AutoBuild.h) ----
+		bool CustomPresetNow()   // the file now: Vanilla colours may have set uPreset=0 this session
+		{
+			std::string text;
+			ReadFile(PluginIni(), text);
+			return autobuild::PresetIn(text, 0) == 2;
+		}
+
+		autobuild::Inputs AutoInputs()
+		{
+			auto& s = S();
+			RefreshPackStatus();   // a build may have replaced the manifests since the last edit
+			autobuild::Inputs in;
+			in.brokenFile = !s.broken.empty();
+			in.customPreset = CustomPresetNow();
+			in.packStale = s.packStale;
+			in.dirty = s.dirty;
+			in.jobRunning = pack::job::Get().state == pack::job::State::Running;
+			return in;
+		}
+
+		autobuild::JobEnd EndOf(pack::job::State a_state)
+		{
+			return a_state == pack::job::State::Done ? autobuild::JobEnd::Done : a_state == pack::job::State::Failed ? autobuild::JobEnd::Failed : autobuild::JobEnd::Cancelled;
+		}
+
+		void StartBuild(bool a_automatic)
+		{
+			auto&       s = S();
+			std::string why;
+			if (!pack::job::StartBuild(s.plugins, why)) {
+				SetStatus(why, true);
+				return;
+			}
+			s.autoBuild = a_automatic;
+			s.buildReported = false;
+			if (a_automatic) SetStatus("Rebuilding the pack...");
+		}
+
+		void Act(autobuild::Action a_action, const autobuild::Inputs& a_in)
+		{
+			auto& s = S();
+			switch (a_action) {
+			case autobuild::Action::Queue:
+				s.autoQueued = true;
+				return;
+			case autobuild::Action::SaveAndBuild:
+				Save();
+				if (s.dirty) return;   // the save failed: its reason is in the status line, nothing is built
+				[[fallthrough]];
+			case autobuild::Action::Build:
+				StartBuild(true);
+				return;
+			case autobuild::Action::None:
+				if (a_in.packStale && !a_in.customPreset && !a_in.brokenFile && !a_in.jobRunning)
+					SetStatus("Not rebuilt automatically: the Custom preset is not set. Build applies the colours and switches to Custom.");
+				return;
+			}
 		}
 
 		// ---- widgets ----
@@ -460,6 +525,35 @@ namespace builder::shell
 
 	void SetLiveHooks(LiveHooks a_hooks) { S().live = std::move(a_hooks); }
 
+	void Closed()
+	{
+		auto& s = S();
+		if (!s.loaded) return;
+		s.autoQueued = false;
+		const auto in = AutoInputs();
+		Act(autobuild::OnClose(in), in);
+	}
+
+	void PollClosed()
+	{
+		auto& s = S();
+		if (!s.autoQueued) return;
+		const auto build = pack::job::Get();
+		if (build.state == pack::job::State::Running) return;
+		s.autoQueued = false;
+		const auto in = AutoInputs();
+		Act(autobuild::AfterJob(in, EndOf(build.state), true), in);
+	}
+
+	void PreviewAutoBuild(int a_state)
+	{
+		auto& s = S();
+		if (a_state == 1) s.autoBuild = true;
+		if (a_state == 2) SetStatus(autobuild::DoneStatus(true, autobuild::JobEnd::Done,
+			"Built in 26 s: 376 assets baked, sizes pack 2 assets; Custom preset set. Restart the game to see them."));
+		if (a_state == 3) Act(autobuild::Action::None, { false, false, true, false, false });
+	}
+
 	void SetPluginFolder(const std::filesystem::path& a_folder) { S().plugins = a_folder; }
 
 	void SelectForPreview(int a_tab, bool a_advanced)
@@ -613,12 +707,12 @@ namespace builder::shell
 		if (build.state == pack::job::State::Running) {
 			s.buildReported = false;
 			const float fraction = build.total > 0 ? static_cast<float>(build.done) / static_cast<float>(build.total) : 0.0f;
-			const std::string line = build.total > 0 ? build.phase + " (" + std::to_string(build.done) + " of " + std::to_string(build.total) + ")" : build.phase;
+			const std::string line = autobuild::RunningLine(s.autoBuild, build.phase, build.done, build.total);
 			ImGui::ProgressBar(fraction, ImVec2(-1, 0), line.c_str());
 		} else {
 			if (!s.buildReported && build.state != pack::job::State::Idle) {
 				s.buildReported = true;
-				SetStatus(build.message, build.state == pack::job::State::Failed);
+				SetStatus(autobuild::DoneStatus(s.autoBuild, EndOf(build.state), build.message), build.state == pack::job::State::Failed);
 				RefreshPackStatus();
 			}
 			ImGui::PushStyleColor(ImGuiCol_Text, s.statusError ? kError : kInkDim);
@@ -644,8 +738,7 @@ namespace builder::shell
 			if (ImGui::Button("Cancel build")) pack::job::Cancel();
 		} else if (ImGui::Button("Build")) {   // window.build: the colour file is saved first (the plugin compares the pack with it)
 			Save();
-			std::string why;
-			if (!s.dirty && !pack::job::StartBuild(s.plugins, why)) SetStatus(why, true);
+			if (!s.dirty) StartBuild(false);
 		}
 		if (ImGui::IsItemHovered() && build.state != pack::job::State::Running)
 			ImGui::SetTooltip("Saves, then bakes the colours and sizes into the packs (about 30 seconds to a few minutes, in the background).\n"
