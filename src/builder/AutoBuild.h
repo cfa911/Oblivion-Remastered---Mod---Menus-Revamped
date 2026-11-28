@@ -60,13 +60,14 @@ namespace builder::autobuild
 	}
 
 	// the window closed (any way: Close, Escape, F11, the gear)
-	inline Action OnClose(const Inputs& a_in) { return detail::Decide(a_in); }
+	// owner 2026-11-28: only the Build button builds; closing the window never saves or builds
+	inline Action OnClose(const Inputs& a_in) { (void)a_in; return Action::None; }
 
 	// the window is closed and the build it queued behind has ended (a_queued: a close happened during that build)
 	inline Action AfterJob(const Inputs& a_in, JobEnd a_end, bool a_queued)
 	{
-		if (!a_queued || a_end != JobEnd::Done) return Action::None;
-		return detail::Decide(a_in);
+		(void)a_in, (void)a_end, (void)a_queued;   // owner 2026-11-28: never another build by itself
+		return Action::None;
 	}
 
 	// [Style] uPreset of MenusRevamped.ini text, read like the plugin (GetPrivateProfileInt, then clamped to 0..2): section and

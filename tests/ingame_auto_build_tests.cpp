@@ -35,27 +35,27 @@ static Inputs In(bool custom, bool stale, bool dirty, bool running = false, bool
 int main()
 {
 	// ---- OnClose ----
-	Check(OnClose(In(true, true, false)) == Action::Build, "custom + stale + saved: build");
-	Check(OnClose(In(true, true, true)) == Action::SaveAndBuild, "custom + stale + unsaved: save, then build");
+	Check(OnClose(In(true, true, false)) == Action::None, "owner 2026-11-28: closing never builds (only the Build button), custom + stale + saved");
+	Check(OnClose(In(true, true, true)) == Action::None, "closing never saves or builds, custom + stale + unsaved");
 	Check(OnClose(In(true, false, false)) == Action::None, "colours match the packs: nothing");
 	Check(OnClose(In(true, false, true)) == Action::None, "unsaved edits that need no build (run-time tints): nothing, edits stay pending");
 	Check(OnClose(In(false, true, false)) == Action::None, "Classic/Dark preset: no build (a build would switch to Custom)");
 	Check(OnClose(In(false, true, true)) == Action::None, "Classic/Dark preset with unsaved edits: no save, no build");
 	Check(OnClose(In(true, true, true, false, true)) == Action::None, "broken colour file: nothing");
-	Check(OnClose(In(true, true, false, true)) == Action::Queue, "build running: queue one re-check");
-	Check(OnClose(In(true, false, false, true)) == Action::Queue, "build running, manifests not yet updated: still queue (re-checked after)");
+	Check(OnClose(In(true, true, false, true)) == Action::None, "build running: nothing queued");
+	Check(OnClose(In(true, false, false, true)) == Action::None, "build running, manifests not yet updated: nothing queued");
 	Check(OnClose(In(false, true, false, true)) == Action::None, "build running but not Custom: nothing queued");
 	Check(OnClose(In(true, true, false, true, true)) == Action::None, "build running, broken file: nothing queued");
 
 	// ---- AfterJob ----
 	Check(AfterJob(In(true, true, false), JobEnd::Done, false) == Action::None, "nothing queued: nothing");
-	Check(AfterJob(In(true, true, false), JobEnd::Done, true) == Action::Build, "queued, done, still stale: build again");
-	Check(AfterJob(In(true, true, true), JobEnd::Done, true) == Action::SaveAndBuild, "queued, done, still stale, unsaved: save and build");
+	Check(AfterJob(In(true, true, false), JobEnd::Done, true) == Action::None, "after a build: never another build by itself");
+	Check(AfterJob(In(true, true, true), JobEnd::Done, true) == Action::None, "after a build, unsaved: no save, no build");
 	Check(AfterJob(In(true, false, false), JobEnd::Done, true) == Action::None, "queued, done, packs match now: nothing");
 	Check(AfterJob(In(true, true, false), JobEnd::Failed, true) == Action::None, "queued, failed: no automatic retry");
 	Check(AfterJob(In(true, true, false), JobEnd::Cancelled, true) == Action::None, "queued, cancelled: no automatic restart");
 	Check(AfterJob(In(false, true, false), JobEnd::Done, true) == Action::None, "queued, done, preset no longer Custom: nothing");
-	Check(AfterJob(In(true, true, false, true), JobEnd::Done, true) == Action::Queue, "queued, another build already running: keep waiting");
+	Check(AfterJob(In(true, true, false, true), JobEnd::Done, true) == Action::None, "another build running: nothing queued");
 	Check(AfterJob(In(true, true, false, false, true), JobEnd::Done, true) == Action::None, "queued, broken file: nothing");
 
 	// ---- PresetIn (GetPrivateProfileInt + clamp 0..2) ----

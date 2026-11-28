@@ -505,6 +505,50 @@ int main()
 		Check(live::ColourSlots(bytes.data(), 50, { ink }) == std::vector<size_t>{ 8 }, "a slot must fit in the object");
 	}
 
+	// ---- the colours the screen shows at the first text: the installed pack's (RMI-115) ----
+	{
+		Values file, dark;
+		Check(PackValues(nullptr, dark, error), "Dark default values");
+		file = dark;
+		file["rowText"] = model::Value{ 3, { 0, 255, 0 } };
+		Check(live::ShownValues(true, file, dark, nullptr).at("rowText").v[1] == 255, "Custom installed, no manifest: the colour file");
+		Check(live::ShownValues(false, file, dark, nullptr).at("rowText").v[1] == dark.at("rowText").v[1], "Dark (or Classic) installed: Dark's colours, not the colour file");
+		// owner run 2026-11-28: Custom installed, built with rowText 255,255,255, the file already saved with 0,255,0
+		json::Value manifest;
+		Check(json::Parse(R"({"style": {"rowText": [255.0, 255.0, 255.0], "detailsPage": 0.01}})", manifest, error), "manifest parses");
+		const auto shown = live::ShownValues(true, file, dark, manifest.Find("style"));
+		Check(shown.at("rowText").n == 3 && shown.at("rowText").v[1] == 255 && shown.at("rowText").v[0] == 255, "Custom installed: the pack's built colour wins over the saved file");
+		Check(shown.at("detailsPage").n == 1 && std::fabs(shown.at("detailsPage").v[0] - 0.01) < 1e-9, "a single-number entry from the manifest");
+		Check(shown.at("columnLine").v[0] == file.at("columnLine").v[0], "a key the manifest does not list keeps the file's value");
+	}
+
+	// ---- the game's text prefab (WBP_AltarTextBlock): its own Color variable and SetColor (RMI-115) ----
+	{
+		Check(live::SetterFor("Color") == "SetColor", "a prefab's Color goes through its SetColor (the prefab passes it to its inner text)");
+		Check(live::SetterFor("ColorAndOpacity") == "SetColorAndOpacity", "TextBlock setter");
+		Check(live::SetterFor("BrushColor") == "SetBrushColor" && live::SetterFor("Brush") == "SetBrushTintColor", "Border and Image setters");
+		Check(live::SetterFor("ColorAndOpacityDelegate").empty(), "no setter for anything else");
+		// a prefab paints whatever colour it shows now (only colours edited this session are ever posted); other widgets keep
+		// the guard that leaves a colour the game set alone
+		Check(live::ShouldPaint(true, false, false), "prefab: paint even when its colour is not a known one");
+		Check(!live::ShouldPaint(true, true, true), "already the wanted colour: nothing to do");
+		Check(!live::ShouldPaint(false, false, false), "other widget holding an unknown colour: left alone");
+		Check(live::ShouldPaint(false, false, true), "other widget holding a known colour: painted");
+	}
+
+	// ---- the property that holds a colour slot (RMI-115) ----
+	{
+		// a TextBlock in game: the field list also names ColorAndOpacityDelegate over the same bytes (owner run 2026-11-28)
+		const std::vector<live::FieldSpan> textBlock{ { "Text", 0x180, 0x18 }, { "ColorAndOpacityDelegate", 0x194, 0x20 },
+			{ "ColorAndOpacity", 0x1A4, 0x14 }, { "Font", 0x1C0, 0x60 } };
+		Check(live::PropertyFor(textBlock, 0x1A4) == "ColorAndOpacity", "a colour property wins over a delegate over the same bytes");
+		Check(live::PropertyFor(textBlock, 0x1C8) == "Font", "no colour property: the first field that holds it");
+		Check(live::PropertyFor(textBlock, 0x400).empty(), "no field holds it");
+		const std::vector<live::FieldSpan> border{ { "Brush", 0x100, 0x90 }, { "BrushColor", 0x190, 0x10 } };
+		Check(live::PropertyFor(border, 0x190) == "BrushColor", "BrushColor");
+		Check(live::PropertyFor(border, 0x110) == "Brush", "Brush counts as a colour property");
+	}
+
 	// ---- mip window ----
 	{
 		int n = 0;

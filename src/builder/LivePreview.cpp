@@ -14,6 +14,7 @@
 #include "builder/LiveWidgets.h"
 #include "builder/PackJob.h"
 #include "builder/PackStock.h"
+#include "core/DarkPack.h"
 
 #include <d3d12.h>
 
@@ -21,6 +22,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <fstream>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -176,9 +178,20 @@ namespace builder::livepreview
 				std::string  error;
 				if (!pack::PackValues(&*text, values, error)) continue;   // the window refuses a bad file before this
 				widgets::Skin(*text);                                     // our own run-time tints (no stock files needed)
-				if (!haveLast) {                                          // the first text is what the screen shows
+				if (!haveLast) {   // the first text; the screen shows the installed pack (the file only when Custom is installed)
+					pack::Values dark;
+					if (!pack::PackValues(nullptr, dark, error)) dark = values;
+					pack::json::Value manifest;   // the installed Custom pack's built colours (RMI-115)
+					std::string       manifestText;
+					{
+						std::scoped_lock guard(g_lock);
+						s.plugins = g_plugins;
+					}
+					std::ifstream in(s.plugins / L"MenusRevamped" / L"CustomPack" / L"MRCustom_P.json", std::ios::binary);
+					if (in) manifestText.assign(std::istreambuf_iterator<char>(in), {});
+					const bool haveManifest = !manifestText.empty() && pack::json::Parse(manifestText, manifest, error);
 					last = values;
-					base = std::move(values);
+					base = live::ShownValues(darkpack::UsesCustom(), values, dark, haveManifest ? manifest.Find("style") : nullptr);
 					haveLast = true;
 					continue;
 				}

@@ -270,8 +270,7 @@ namespace builder::shell
 				StartBuild(true);
 				return;
 			case autobuild::Action::None:
-				if (a_in.packStale && !a_in.customPreset && !a_in.brokenFile && !a_in.jobRunning)
-					SetStatus("Not rebuilt automatically: the Custom preset is not set. Build applies the colours and switches to Custom.");
+				(void)a_in;
 				return;
 			}
 		}

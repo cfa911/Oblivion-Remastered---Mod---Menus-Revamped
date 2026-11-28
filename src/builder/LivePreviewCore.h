@@ -328,6 +328,81 @@ namespace builder::pack::live
 		return out;
 	}
 
+	// the colours the screen shows before any edit: the colour file only when the Custom pack is installed, else Dark's
+	// (Classic shows stock, which every paint knows anyway). RMI-115: with Dark installed the file's colours were taken, so
+	// the real colour slot (Dark's white) was not recognised and the paint went to a stale copy of the stock colour
+	// With Custom installed the screen shows what the pack was built from (its manifest's "style"), which can differ from the
+	// saved file (colours saved but not rebuilt): those values win; keys the manifest does not list keep the file's value.
+	inline Values ShownValues(bool a_usesCustom, const Values& a_file, const Values& a_dark, const json::Value* a_customStyle)
+	{
+		if (!a_usesCustom) return a_dark;
+		Values out = a_file;
+		if (!a_customStyle) return out;
+		for (auto& [key, value] : out) {
+			const json::Value* baked = a_customStyle->Find(key);
+			if (!baked) continue;
+			model::Value v{};
+			if (baked->type == json::Type::Array) {
+				if (baked->items.empty() || baked->items.size() > 4) continue;
+				v.n = static_cast<int>(baked->items.size());
+				for (size_t i = 0; i < baked->items.size(); ++i) v.v[i] = baked->items[i].Number();
+			} else if (baked->type == json::Type::Int || baked->type == json::Type::Float) {
+				v.n = 1;
+				v.v[0] = baked->Number();
+			} else continue;
+			value = v;
+		}
+		return out;
+	}
+
+	// the setter LiveWidgets calls for a colour property, so the game redraws the widget at once ("" when it has none).
+	// "Color" is the game's text prefab WBP_AltarTextBlock: its own variable (+0x2F8) and SetColor, which passes the colour
+	// to the inner text (docs/alchemy/probe-runs.md); the bake writes the prefab's literal into that variable.
+	inline std::string SetterFor(std::string_view a_property)
+	{
+		if (a_property == "Color") return "SetColor";
+		if (a_property == "ColorAndOpacity") return "SetColorAndOpacity";
+		if (a_property == "BrushColor") return "SetBrushColor";
+		if (a_property == "ContentColorAndOpacity") return "SetContentColorAndOpacity";
+		if (a_property == "Brush") return "SetBrushTintColor";
+		return {};
+	}
+
+	// whether a live widget gets the new colour: a prefab always (its slot is known by name, and only colours edited this
+	// session are posted), other widgets only when they hold a known colour (a colour the game set itself is left alone)
+	inline bool ShouldPaint(bool a_prefab, bool a_alreadyWanted, bool a_holdsKnown)
+	{
+		return !a_alreadyWanted && (a_prefab || a_holdsKnown);
+	}
+
+	// a reflected field of a widget class (or its parents): name, offset, size
+	struct FieldSpan
+	{
+		std::string   name;
+		std::int32_t  offset = 0;
+		std::int32_t  size = 0;
+	};
+
+	// the property with a setter that LiveWidgets calls (so Slate redraws the widget at once)
+	inline bool IsColourProperty(std::string_view a_name)
+	{
+		return a_name == "ColorAndOpacity" || a_name == "BrushColor" || a_name == "ContentColorAndOpacity" || a_name == "Brush";
+	}
+
+	// the property that holds a colour slot: a colour property when one covers it (RMI-115: a TextBlock's field list also
+	// names ColorAndOpacityDelegate over ColorAndOpacity's bytes, which has no setter, so rows were written without a
+	// redraw), else the first field that holds it
+	inline std::string PropertyFor(const std::vector<FieldSpan>& a_fields, std::int32_t a_offset)
+	{
+		std::string first;
+		for (const auto& f : a_fields)
+			if (f.size > 0 && a_offset >= f.offset && a_offset < f.offset + f.size) {
+				if (IsColourProperty(f.name)) return f.name;
+				if (first.empty()) first = f.name;
+			}
+		return first;
+	}
+
 	// a streamed texture's GPU resource may hold only the lower mips: the package mip whose size is the resource's top mip
 	// (-1 when none fits) and how many mips to copy (the resource's, at most what the package has below it)
 	inline int MipWindow(int a_width, int a_height, int a_mips, int a_gpuWidth, int a_gpuHeight, int a_gpuMips, int& a_count)

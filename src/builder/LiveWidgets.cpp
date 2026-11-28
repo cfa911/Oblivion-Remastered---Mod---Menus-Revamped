@@ -11,6 +11,7 @@
 #include "engine/Reflect.h"
 #include "engine/Ui.h"
 
+#include <cstdio>
 #include <map>
 #include <mutex>
 #include <optional>
@@ -38,6 +39,7 @@ namespace builder::livepreview::widgets
 			UE::UClass*         widgetClass = nullptr;   // the widget's class (from the template or the first live widget)
 			std::int32_t        slot = -1;               // the colour's offset in that widget
 			std::string         property;                // the reflected property holding it
+			bool                prefab = false;          // the game's text prefab: Color by name, SetColor (RMI-115)
 			bool                warned = false;
 		};
 		std::map<std::string, Entry> g_entries;   // asset|owner|offset
@@ -64,26 +66,32 @@ namespace builder::livepreview::widgets
 		// the reflected property (of the class or a parent) whose bytes hold a_offset
 		std::string PropertyAt(UE::UStruct* a_struct, std::int32_t a_offset)
 		{
+			std::vector<live::FieldSpan> fields;
 			for (auto* s = a_struct; s; s = s->GetSuperStruct())
-				for (const auto& [name, offset] : reflect::Fields(s)) {
-					const auto size = ui::SizeOf(s, name);
-					if (size > 0 && a_offset >= offset && a_offset < offset + size) return name;
-				}
-			return {};
+				for (const auto& [name, offset] : reflect::Fields(s)) fields.push_back({ name, offset, ui::SizeOf(s, name) });
+			return live::PropertyFor(fields, a_offset);
 		}
 
 		// where a widget keeps this literal: a colour slot inside a colour property, else the only slot that holds it
 		bool Resolve(Entry& a_e, UE::UObject* a_widget)
 		{
 			auto*      cls = a_widget->GetClass();
+			// the game's text prefab (WBP_AltarTextBlock): the literal is its own Color variable, shown through SetColor; the
+			// value search found a stale copy or nothing there (RMI-115)
+			if (cls && a_widget->FindFunction(UE::FName(L"SetColor", UE::EFindName::Find))) {
+				const auto offset = reflect::Offset(reinterpret_cast<UE::UStruct*>(cls), "Color");
+				if (const auto size = ui::SizeOf(reinterpret_cast<UE::UStruct*>(cls), "Color"); offset >= 0x28 && (size == 16 || size == 20)) {   // FLinearColor or FSlateColor (+0x2F8, FontInfo at +0x310)
+					a_e.widgetClass = cls, a_e.slot = offset, a_e.property = "Color", a_e.prefab = true;
+					return true;
+				}
+			}
 			const auto size = cls ? reinterpret_cast<UE::UStruct*>(cls)->propertiesSize : 0;
 			if (size <= 0x30) return false;
 			const auto slots = live::ColourSlots(reinterpret_cast<const std::uint8_t*>(a_widget), static_cast<size_t>(size), Candidates(a_e));
-			static const std::set<std::string> kColourProperties{ "ColorAndOpacity", "BrushColor", "ContentColorAndOpacity", "Brush" };
 			for (const auto s : slots) {
 				if (s < 0x28) continue;   // the UObject header
 				auto name = PropertyAt(reinterpret_cast<UE::UStruct*>(cls), static_cast<std::int32_t>(s));
-				if (kColourProperties.count(name)) {
+				if (live::IsColourProperty(name)) {
 					a_e.widgetClass = cls, a_e.slot = static_cast<std::int32_t>(s), a_e.property = std::move(name);
 					return true;
 				}
@@ -99,12 +107,11 @@ namespace builder::livepreview::widgets
 		// the property's setter, so Slate shows it now; false when the property has none
 		bool Setter(UE::UObject* a_widget, const std::string& a_property, const Colour& a_c)
 		{
-			const wchar_t* fn = a_property == "ColorAndOpacity"         ? L"SetColorAndOpacity" :
-			                    a_property == "BrushColor"              ? L"SetBrushColor" :
-			                    a_property == "ContentColorAndOpacity"  ? L"SetContentColorAndOpacity" :
-			                    a_property == "Brush"                   ? L"SetBrushTintColor" :
-			                                                              nullptr;
-			auto* f = fn ? a_widget->FindFunction(UE::FName(fn, UE::EFindName::Find)) : nullptr;
+			const auto name = live::SetterFor(a_property);
+			if (name.empty()) return false;
+			const auto wide = Wide(name);
+			const wchar_t* fn = wide.c_str();
+			auto* f = a_widget->FindFunction(UE::FName(fn, UE::EFindName::Find));
 			if (!f) return false;
 			const auto params = reflect::Fields(reinterpret_cast<UE::UStruct*>(f));
 			if (params.empty()) return false;
@@ -130,7 +137,8 @@ namespace builder::livepreview::widgets
 			if (a_e.slot < 0 && !Resolve(a_e, a_widget)) return;
 			if (a_widget->GetClass() != a_e.widgetClass) return;
 			const auto* now = reinterpret_cast<const float*>(reinterpret_cast<const std::uint8_t*>(a_widget) + a_e.slot);
-			if (live::SameColour(now, a_e.paint.colour) || !Holds(a_widget, a_e.slot, a_e.known)) return;   // done, or a state colour the game set
+			const bool wanted = live::SameColour(now, a_e.paint.colour);
+			if (!live::ShouldPaint(a_e.prefab, wanted, wanted || Holds(a_widget, a_e.slot, a_e.known))) return;   // done, or a state colour the game set
 			Setter(a_widget, a_e.property, a_e.paint.colour);
 			if (!live::SameColour(now, a_e.paint.colour)) Write(a_widget, a_e.slot, a_e.paint.colour);
 		}
@@ -184,7 +192,7 @@ namespace builder::livepreview::widgets
 					if (auto* tmpl = UE::StaticFindObject<UE::UObject>(nullptr, nullptr, Wide(live::ClassPath(lit.asset) + ":WidgetTree." + lit.owner).c_str())) {
 						if (e.slot < 0) Resolve(e, tmpl);
 						if (e.slot >= 0 && tmpl->GetClass() == e.widgetClass && !live::SameColour(reinterpret_cast<const float*>(reinterpret_cast<std::uint8_t*>(tmpl) + e.slot), e.paint.colour) &&
-							Holds(tmpl, e.slot, e.known))
+							(e.prefab || Holds(tmpl, e.slot, e.known)))
 							Write(tmpl, e.slot, e.paint.colour);
 					}
 					byClass[cls].push_back(&e);
